@@ -17,11 +17,11 @@ package com.indeed.iql2.execution.groupkeys;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 
 public class GroupKeySets {
-    public static void appendTo(final StringBuilder sb, final GroupKeySet groupKeySet, final int group) {
+    public static void appendTo(final StringBuilder sb, final GroupKeySet groupKeySet, final int group, final char separator) {
         final GroupKeySet previous = groupKeySet.previous();
         if (previous != null) {
-            appendTo(sb, previous, groupKeySet.parentGroup(group));
+            appendTo(sb, previous, groupKeySet.parentGroup(group), separator);
         }
-        groupKeySet.groupKey(group).appendWithTab(sb);
+        groupKeySet.groupKey(group).appendWithSeparator(sb, separator);
     }
 }

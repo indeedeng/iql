@@ -14,6 +14,7 @@
 
 package com.indeed.iql2.execution.groupkeys.sets;
 
+import com.indeed.iql2.Formatter;
 import com.indeed.iql2.execution.groupkeys.GroupKey;
 import com.indeed.iql2.execution.groupkeys.HighGutterGroupKey;
 import com.indeed.iql2.execution.groupkeys.IntTermGroupKey;
@@ -28,9 +29,12 @@ import java.util.Arrays;
 // TODO: test no gutters
 // TODO: test interval=1
 public class TestMetricRangeGroupKeySet {
+
+    public static final Formatter FORMATTER = Formatter.tsvEscaper();
+
     private static MetricRangeGroupKeySet create() {
         final DumbGroupKeySet previous = DumbGroupKeySet.create(DumbGroupKeySet.empty(), new int[]{-1, 1, 1, 1, 1, 1}, Arrays.<GroupKey>asList(null, new IntTermGroupKey(1), new IntTermGroupKey(2), new IntTermGroupKey(3), new IntTermGroupKey(4), new IntTermGroupKey(5)));
-        return new MetricRangeGroupKeySet(previous, 7, false, 0, 2, false, false);
+        return new MetricRangeGroupKeySet(previous, 7, false, 0, 2, false, false, FORMATTER);
     }
 
     @Test
@@ -57,19 +61,19 @@ public class TestMetricRangeGroupKeySet {
     public void testGroupKey() throws Exception {
         final MetricRangeGroupKeySet keySet = create();
         for (int i = 1; i <= 35; i += 7) {
-            Assert.assertEquals(new RangeGroupKey(0, 2), keySet.groupKey(i));
+            Assert.assertEquals(new RangeGroupKey(0, 2, FORMATTER), keySet.groupKey(i));
         }
         for (int i = 2; i <= 35; i += 7) {
-            Assert.assertEquals(new RangeGroupKey(2, 4), keySet.groupKey(i));
+            Assert.assertEquals(new RangeGroupKey(2, 4, FORMATTER), keySet.groupKey(i));
         }
         for (int i = 3; i <= 35; i += 7) {
-            Assert.assertEquals(new RangeGroupKey(4, 6), keySet.groupKey(i));
+            Assert.assertEquals(new RangeGroupKey(4, 6, FORMATTER), keySet.groupKey(i));
         }
         for (int i = 4; i <= 35; i += 7) {
-            Assert.assertEquals(new RangeGroupKey(6, 8), keySet.groupKey(i));
+            Assert.assertEquals(new RangeGroupKey(6, 8, FORMATTER), keySet.groupKey(i));
         }
         for (int i = 5; i <= 35; i += 7) {
-            Assert.assertEquals(new RangeGroupKey(8, 10), keySet.groupKey(i));
+            Assert.assertEquals(new RangeGroupKey(8, 10, FORMATTER), keySet.groupKey(i));
         }
         for (int i = 6; i <= 35; i += 7) {
             Assert.assertEquals(new LowGutterGroupKey(0), keySet.groupKey(i));

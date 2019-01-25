@@ -16,43 +16,44 @@ package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
 import com.indeed.iql2.server.web.servlets.QueryServletTestUtils.Options;
+import com.indeed.iql2.server.web.servlets.dataset.CSVEscapeDataset;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class TSVEscapingTest extends BasicTest {
-    private static final Options OPTIONS = Options.create(true).setSkipCsv(true);
+public class CSVEscapingTest extends BasicTest {
+    private static final Options OPTIONS = Options.create(true).setOnlyCsv(true);
 
     @Test
     public void testStreamingLast() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
-        expected.add(ImmutableList.of("Crazy\uFFFDTerm\uFFFD!\uFFFD\uFFFD", "1"));
+        expected.add(ImmutableList.of(CSVEscapeDataset.CRAZY_TERM, "1"));
         expected.add(ImmutableList.of("NormalTerm", "1"));
-        QueryServletTestUtils.testAll(expected, "from tsvescape yesterday today group by sField", OPTIONS);
+        QueryServletTestUtils.testAll(expected, "from csvescape yesterday today group by sField", OPTIONS);
     }
 
     @Test
     public void testStreamingPreviousRegroup() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("NormalTerm", "2", "1"));
-        expected.add(ImmutableList.of("Crazy\uFFFDTerm\uFFFD!\uFFFD\uFFFD", "3", "1"));
-        QueryServletTestUtils.testAll(expected, "from tsvescape yesterday today group by sField, iField", OPTIONS);
+        expected.add(ImmutableList.of(CSVEscapeDataset.CRAZY_TERM, "3", "1"));
+        QueryServletTestUtils.testAll(expected, "from csvescape yesterday today group by sField, iField", OPTIONS);
     }
 
     @Test
     public void testStreamingPreviousRegroup2() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
-        expected.add(ImmutableList.of("Crazy\uFFFDTerm\uFFFD!\uFFFD\uFFFD", "Crazy\uFFFDTerm\uFFFD!\uFFFD\uFFFD", "1"));
+        expected.add(ImmutableList.of(CSVEscapeDataset.CRAZY_TERM, CSVEscapeDataset.CRAZY_TERM, "1"));
         expected.add(ImmutableList.of("NormalTerm", "NormalTerm", "1"));
-        QueryServletTestUtils.testAll(expected, "from tsvescape yesterday today group by sField, sField", OPTIONS);
+        QueryServletTestUtils.testAll(expected, "from csvescape yesterday today group by sField, sField", OPTIONS);
     }
 
     @Test
     public void testGetGroupStats() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
-        expected.add(ImmutableList.of("Crazy\uFFFDTerm\uFFFD!\uFFFD\uFFFD", "[2015-01-01 00:00:00, 2015-01-02 00:00:00)", "1"));
+        expected.add(ImmutableList.of(CSVEscapeDataset.CRAZY_TERM, "[2015-01-01 00:00:00, 2015-01-02 00:00:00)", "1"));
         expected.add(ImmutableList.of("NormalTerm", "[2015-01-01 00:00:00, 2015-01-02 00:00:00)", "1"));
-        QueryServletTestUtils.testAll(expected, "from tsvescape yesterday today group by sField, time(1d)", OPTIONS);
+        QueryServletTestUtils.testAll(expected, "from csvescape yesterday today group by sField, time(1d)", OPTIONS);
     }
 }

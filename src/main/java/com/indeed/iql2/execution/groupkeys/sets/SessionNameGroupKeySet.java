@@ -14,6 +14,7 @@
 
 package com.indeed.iql2.execution.groupkeys.sets;
 
+import com.indeed.iql2.Formatter;
 import com.indeed.iql2.execution.groupkeys.GroupKey;
 import com.indeed.iql2.execution.groupkeys.StringGroupKey;
 
@@ -27,11 +28,11 @@ public class SessionNameGroupKeySet implements GroupKeySet {
     private final GroupKeySet previous;
     private final List<StringGroupKey> groupKeys;
 
-    public SessionNameGroupKeySet(GroupKeySet previous, List<String> sessionNames) {
+    public SessionNameGroupKeySet(GroupKeySet previous, List<String> sessionNames, final Formatter formatter) {
         this.previous = previous;
         this.groupKeys = new ArrayList<>(sessionNames.size());
         for (final String sessionName : sessionNames) {
-            groupKeys.add(StringGroupKey.fromTerm(sessionName));
+            groupKeys.add(StringGroupKey.fromTerm(sessionName, formatter));
         }
     }
 

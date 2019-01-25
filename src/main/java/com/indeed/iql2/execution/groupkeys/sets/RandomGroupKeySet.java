@@ -14,6 +14,7 @@
 
 package com.indeed.iql2.execution.groupkeys.sets;
 
+import com.indeed.iql2.Formatter;
 import com.indeed.iql2.execution.groupkeys.DefaultGroupKey;
 import com.indeed.iql2.execution.groupkeys.GroupKey;
 import com.indeed.iql2.execution.groupkeys.IntTermGroupKey;
@@ -21,10 +22,12 @@ import com.indeed.iql2.execution.groupkeys.IntTermGroupKey;
 public class RandomGroupKeySet implements GroupKeySet {
     private final GroupKeySet previous;
     private final int numGroups;
+    private final Formatter formatter;
 
-    public RandomGroupKeySet(GroupKeySet previous, int numGroups) {
+    public RandomGroupKeySet(GroupKeySet previous, int numGroups, final Formatter formatter) {
         this.previous = previous;
         this.numGroups = numGroups;
+        this.formatter = formatter;
     }
 
     @Override
@@ -41,7 +44,7 @@ public class RandomGroupKeySet implements GroupKeySet {
     public GroupKey groupKey(int group) {
         final int innerGroup = (group - 1) % numGroups;
         if (innerGroup == 0) {
-            return DefaultGroupKey.create("No term");
+            return DefaultGroupKey.create("No term", formatter);
         }
         return new IntTermGroupKey(innerGroup);
     }

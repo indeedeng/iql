@@ -648,6 +648,10 @@ public final class IQLQuery implements Closeable {
                     csvFields.add(current.head().toString());
                     current = current.tail();
                 }
+                if (csvFields.isEmpty()) {
+                    // Add empty column if no group by columns added
+                    csvFields.add("");
+                }
                 for (double l : entry.stats) {
                     csvFields.add(format.format(l));
                 }

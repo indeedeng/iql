@@ -14,6 +14,8 @@
 
 package com.indeed.iql2.execution.groupkeys;
 
+import com.indeed.iql2.Formatter;
+
 import java.util.Objects;
 
 public class RangeGroupKey extends GroupKey {
@@ -21,10 +23,10 @@ public class RangeGroupKey extends GroupKey {
     private final long maxExclusive;
     private final String rendered;
 
-    public RangeGroupKey(long minInclusive, long maxExclusive) {
+    public RangeGroupKey(long minInclusive, long maxExclusive, final Formatter formatter) {
         this.minInclusive = minInclusive;
         this.maxExclusive = maxExclusive;
-        rendered = "[" + minInclusive + ", " + maxExclusive + ")";
+        rendered = formatter.escape("[" + minInclusive + ", " + maxExclusive + ")");
     }
 
     @Override

@@ -33,6 +33,7 @@ public class AllData {
         datasets.add(TimeRegroupDatasets.dayOfWeekDataset());
         datasets.add(TimeRegroupDatasets.multiMonthDataset());
         datasets.add(TSVEscapeDataset.createDataset());
+        datasets.add(CSVEscapeDataset.createDataset());
         datasets.add(ValidationDataset.createDataset());
         datasets.add(BigDataset.create());
         datasets.add(ExactCaseDataset.createDataset());

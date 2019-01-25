@@ -17,13 +17,13 @@ package com.indeed.iql2.execution.groupkeys.sets;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.indeed.iql2.Formatter;
 import com.indeed.iql2.execution.groupkeys.DefaultGroupKey;
 import com.indeed.iql2.execution.groupkeys.GroupKey;
 import com.indeed.iql2.execution.groupkeys.HighGutterGroupKey;
 import com.indeed.iql2.execution.groupkeys.IntTermGroupKey;
 import com.indeed.iql2.execution.groupkeys.LowGutterGroupKey;
 import com.indeed.iql2.execution.groupkeys.RangeGroupKey;
-import com.indeed.iql2.execution.groupkeys.StringGroupKey;
 
 import java.util.Objects;
 
@@ -39,7 +39,7 @@ public class MetricRangeGroupKeySet implements GroupKeySet {
     private final LowGutterGroupKey lowGutterGroupKey;
     private final LoadingCache<Integer, GroupKey> buildGroupKey;
 
-    public MetricRangeGroupKeySet(GroupKeySet previous, int numBuckets, boolean excludeGutters, long min, long interval, boolean withDefaultBucket, boolean fromPredicate) {
+    public MetricRangeGroupKeySet(GroupKeySet previous, int numBuckets, boolean excludeGutters, long min, long interval, boolean withDefaultBucket, boolean fromPredicate, final Formatter formatter) {
         this.previous = previous;
         this.numBuckets = numBuckets;
         this.excludeGutters = excludeGutters;
@@ -58,7 +58,7 @@ public class MetricRangeGroupKeySet implements GroupKeySet {
                         } else {
                             final long minInclusive = min + (innerGroup * interval);
                             final long maxExclusive = min + ((innerGroup + 1) * interval);
-                            return new RangeGroupKey(minInclusive, maxExclusive);
+                            return new RangeGroupKey(minInclusive, maxExclusive, formatter);
                         }
                     }
                 });

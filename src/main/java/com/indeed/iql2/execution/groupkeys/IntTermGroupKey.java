@@ -29,9 +29,9 @@ public class IntTermGroupKey extends GroupKey {
     }
 
     @Override
-    public void appendWithTab(final StringBuilder sb) {
+    public void appendWithSeparator(final StringBuilder sb, final char separator) {
         sb.append(value);
-        sb.append('\t');
+        sb.append(separator);
     }
 
     @Override

@@ -93,7 +93,8 @@ public class ExplodeMonthOfYear implements Command {
                 session.groupKeySet,
                 numMonths,
                 startMonth,
-                timeFormat.or(TimeUnit.SECOND.formatString)
+                timeFormat.or(TimeUnit.SECOND.formatString),
+                session.formatter
         );
         session.assumeDense(groupKeySet);
     }

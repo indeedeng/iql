@@ -106,6 +106,6 @@ public class MetricRegroup implements Command {
             }
         });
 
-        session.assumeDense(new MetricRangeGroupKeySet(session.groupKeySet, withDefaultBucket ? intermediateBuckets - 1 : intermediateBuckets, excludeGutters, min, interval, withDefaultBucket, fromPredicate));
+        session.assumeDense(new MetricRangeGroupKeySet(session.groupKeySet, withDefaultBucket ? intermediateBuckets - 1 : intermediateBuckets, excludeGutters, min, interval, withDefaultBucket, fromPredicate, session.formatter));
     }
 }

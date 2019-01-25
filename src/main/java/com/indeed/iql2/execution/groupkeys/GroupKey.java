@@ -18,8 +18,8 @@ public abstract class GroupKey {
     public abstract String render();
     public abstract boolean isDefault();
 
-    public void appendWithTab(StringBuilder sb) {
+    public void appendWithSeparator(StringBuilder sb, final char separator) {
         sb.append(render());
-        sb.append('\t');
+        sb.append(separator);
     }
 }
