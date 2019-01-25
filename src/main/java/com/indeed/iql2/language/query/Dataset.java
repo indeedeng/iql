@@ -41,6 +41,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.indeed.iql2.language.Identifiers.parseIdentifier;
 
@@ -300,8 +301,33 @@ public class Dataset extends AbstractPositional {
         }
     }
 
+    // Used to not consider Host assignment in cache keys
+    private static class CacheShard {
+        public final String shardId;
+        public final long version;
+
+        private CacheShard(final String shardId, final long version) {
+            this.shardId = shardId;
+            this.version = version;
+        }
+
+        public static CacheShard from(final Shard shard) {
+            return new CacheShard(shard.shardId, shard.version);
+        }
+
+        @Override
+        public String toString() {
+            return "CacheShard{" +
+                    "shardId='" + shardId + '\'' +
+                    ", version=" + version +
+                    '}';
+        }
+    }
+
     @Override
     public boolean equals(final Object o) {
+        // fieldAliases deliberately left out due to it not affecting semantics, only prettyprint results
+        // missingShardIntervals not used because it's only for diagnostics
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         final Dataset dataset1 = (Dataset) o;
@@ -309,26 +335,26 @@ public class Dataset extends AbstractPositional {
                 Objects.equal(startInclusive, dataset1.startInclusive) &&
                 Objects.equal(endExclusive, dataset1.endExclusive) &&
                 Objects.equal(alias, dataset1.alias) &&
-                Objects.equal(fieldAliases, dataset1.fieldAliases) &&
-                Objects.equal(shards, dataset1.shards) &&
-                Objects.equal(missingShardIntervals, dataset1.missingShardIntervals);
+                Objects.equal(shards, dataset1.shards);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(dataset, startInclusive, endExclusive, alias, fieldAliases, shards, missingShardIntervals);
+        // fieldAliases deliberately left out due to it not affecting semantics, only prettyprint results
+        // missingShardIntervals not used because it's only for diagnostics
+        return Objects.hashCode(dataset, startInclusive, endExclusive, alias, shards);
     }
 
     @Override
     public String toString() {
+        // fieldAliases deliberately left out due to it not affecting semantics, only prettyprint results
+        // missingShardIntervals not used because it's only for diagnostics
         return "Dataset{" +
                 "dataset=" + dataset +
                 ", startInclusive=" + startInclusive +
                 ", endExclusive=" + endExclusive +
                 ", alias=" + alias +
-                ", fieldAliases=" + fieldAliases +
-                ", shards=" + shards +
-                ", missingShardIntervals=" + missingShardIntervals +
+                ", shards=" + shards.stream().map(CacheShard::from).collect(Collectors.toList()) +
                 '}';
     }
 }
