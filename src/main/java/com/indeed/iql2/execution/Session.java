@@ -103,6 +103,8 @@ public class Session {
     public GroupKeySet groupKeySet = DumbGroupKeySet.empty();
     public final Map<String, SavedGroupStats> savedGroupStats = Maps.newHashMap();
     public int currentDepth = 0;
+    // Here metric totals will be saved in case of no-regroup query.
+    // Saving it to not calculate this stats twice (as totals and as query results)
     private double[] statsTotals;
 
     public final Map<String, ImhotepSessionInfo> sessions;
@@ -227,8 +229,13 @@ public class Session {
             totalValues = new double[totals.get().size()];
             for (int i = 0; i < totals.get().size(); i++) {
                 final AggregateMetric metric = totals.get().get(i).toExecutionMetric(session::namedMetricLookup, session.groupKeySet);
-                // first param in getGroupStats can be any since data is cached already.
-                final double[] groupStats = metric.getGroupStats(new long[1][1], 2);
+                if (metric.needStats()) {
+                    // Something went wrong!
+                    // Everything must be precalculated on during query execution.
+                    throw new IllegalStateException("Total stats for query expected to be precalculated");
+                }
+                // first param in getGroupStats can be any since metric.needStats() == false.
+                final double[] groupStats = metric.getGroupStats(null, 2);
                 totalValues[i] = groupStats[1];
             }
         } else {
@@ -438,7 +445,7 @@ public class Session {
                         sb.setLength(0);
                     }
 
-                    if (numGroups == 1) {
+                    if (groupKeySet.previous() == null) {
                         // It's query without regroup.
                         // Saving totalStats since it's not calculated otherwise.
                         statsTotals = new double[results.length];
