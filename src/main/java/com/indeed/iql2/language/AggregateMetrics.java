@@ -501,13 +501,21 @@ public class AggregateMetrics {
             @Override
             public void enterAggregateFieldMin(JQLParser.AggregateFieldMinContext ctx) {
                 final FieldSet field = fieldResolver.resolve(ctx.scopedField());
-                accept(field.wrap(new AggregateMetric.FieldMin(field)));
+                final Optional<AggregateMetric> metric = Optional.fromNullable(ctx.aggregate)
+                    .transform(m -> AggregateMetrics.parseJQLAggregateMetric(m, context));
+                final Optional<AggregateFilter> filter = Optional.fromNullable(ctx.filter)
+                    .transform(f -> AggregateFilters.parseJQLAggregateFilter(f, context));
+                accept(field.wrap(new AggregateMetric.FieldMin(field, metric, filter)));
             }
 
             @Override
             public void enterAggregateFieldMax(JQLParser.AggregateFieldMaxContext ctx) {
                 final FieldSet field = fieldResolver.resolve(ctx.scopedField());
-                accept(field.wrap(new AggregateMetric.FieldMax(field)));
+                final Optional<AggregateMetric> metric = Optional.fromNullable(ctx.aggregate)
+                    .transform(m -> AggregateMetrics.parseJQLAggregateMetric(m, context));
+                final Optional<AggregateFilter> filter = Optional.fromNullable(ctx.filter)
+                    .transform(f -> AggregateFilters.parseJQLAggregateFilter(f, context));
+                accept(field.wrap(new AggregateMetric.FieldMax(field, metric, filter)));
             }
 
             @Override

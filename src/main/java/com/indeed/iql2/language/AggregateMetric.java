@@ -1692,24 +1692,48 @@ public abstract class AggregateMetric extends AbstractPositional {
 
     public static class FieldMin extends RequiresFTGSMetric {
         public final FieldSet field;
+        public final Optional<AggregateMetric> metric;
+        public final Optional<AggregateFilter> filter;
 
-        public FieldMin(FieldSet field) {
+        public FieldMin(
+            final FieldSet field,
+            final Optional<AggregateMetric> metric,
+            final Optional<AggregateFilter> filter
+        ) {
             this.field = field;
+            this.metric = metric;
+            this.filter = filter;
         }
 
         @Override
-        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+        public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
         }
 
         @Override
-        public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            return f.apply(new FieldMin(field)).copyPosition(this);
+        public AggregateMetric transform(
+            final Function<AggregateMetric, AggregateMetric> f,
+            final Function<DocMetric, DocMetric> g,
+            final Function<AggregateFilter, AggregateFilter> h,
+            final Function<DocFilter, DocFilter> i,
+            final Function<GroupBy, GroupBy> groupByFunction
+        ) {
+            return f.apply(
+                new FieldMin(
+                    field,
+                    metric.transform(m -> m.transform(f, g, h, i, groupByFunction)),
+                    filter.transform(fil -> fil.transform(f, g, h, i, groupByFunction))
+                )
+            ).copyPosition(this);
         }
 
         @Override
-        public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
-            return this;
+        public AggregateMetric traverse1(final Function<AggregateMetric, AggregateMetric> f) {
+            return new FieldMin(
+                field,
+                metric.transform(f),
+                filter.isPresent() ? Optional.of(filter.get().traverse1(f)) : filter
+            );
         }
 
         @Override
@@ -1718,51 +1742,82 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public com.indeed.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+        public com.indeed.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(
+            final Function<String, PerGroupConstant> namedMetricLookup,
+            final GroupKeySet groupKeySet
+        ) {
             throw new IllegalStateException(PRECOMPUTED_EXCEPTION);
         }
 
         @Override
-        public boolean equals(Object o) {
+        public boolean equals(final Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             FieldMin fieldMin = (FieldMin) o;
-            return Objects.equals(field, fieldMin.field);
+            return Objects.equals(field, fieldMin.field) &&
+                Objects.equals(metric, fieldMin.metric) &&
+                Objects.equals(filter, fieldMin.filter);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(field);
+            return Objects.hash(field, metric, filter);
         }
 
         @Override
         public String toString() {
             return "FieldMin{" +
                     "field='" + field + '\'' +
+                    ", metric='" + metric + '\'' +
+                    ", filter='" + filter + '\'' +
                     '}';
         }
     }
 
     public static class FieldMax extends RequiresFTGSMetric {
         public final FieldSet field;
+        public final Optional<AggregateMetric> metric;
+        public final Optional<AggregateFilter> filter;
 
-        public FieldMax(FieldSet field) {
+        public FieldMax(
+            final FieldSet field,
+            final Optional<AggregateMetric> metric,
+            final Optional<AggregateFilter> filter
+        ) {
             this.field = field;
+            this.metric = metric;
+            this.filter = filter;
         }
 
         @Override
-        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+        public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
         }
 
         @Override
-        public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            return f.apply(new FieldMax(field)).copyPosition(this);
+        public AggregateMetric transform(
+            final Function<AggregateMetric, AggregateMetric> f,
+            final Function<DocMetric, DocMetric> g,
+            final Function<AggregateFilter, AggregateFilter> h,
+            final Function<DocFilter, DocFilter> i,
+            final Function<GroupBy, GroupBy> groupByFunction
+        ) {
+            return f.apply(
+                new FieldMax(
+                    field,
+                    metric.transform(m -> m.transform(f, g, h, i, groupByFunction)),
+                    filter.transform(fil -> fil.transform(f, g, h, i, groupByFunction))
+                )
+            ).copyPosition(this);
         }
 
         @Override
-        public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
-            return this;
+        public AggregateMetric traverse1(final Function<AggregateMetric, AggregateMetric> f) {
+            return new FieldMax(
+                field,
+                metric.transform(f),
+                filter.isPresent() ? Optional.of(filter.get().traverse1(f)) : filter
+            );
         }
 
         @Override
@@ -1771,27 +1826,34 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public com.indeed.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+        public com.indeed.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(
+            final Function<String, PerGroupConstant> namedMetricLookup,
+            final GroupKeySet groupKeySet
+        ) {
             throw new IllegalStateException(PRECOMPUTED_EXCEPTION);
         }
 
         @Override
-        public boolean equals(Object o) {
+        public boolean equals(final Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             FieldMax fieldMax = (FieldMax) o;
-            return Objects.equals(field, fieldMax.field);
+            return Objects.equals(field, fieldMax.field) &&
+                Objects.equals(metric, fieldMax.metric) &&
+                Objects.equals(filter, fieldMax.filter);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(field);
+            return Objects.hash(field, metric, filter);
         }
 
         @Override
         public String toString() {
             return "FieldMax{" +
                     "field='" + field + '\'' +
+                    ", metric='" + metric + '\'' +
+                    ", filter='" + filter + '\'' +
                     '}';
         }
     }
