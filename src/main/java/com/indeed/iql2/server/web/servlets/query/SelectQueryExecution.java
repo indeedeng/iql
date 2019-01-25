@@ -491,7 +491,7 @@ public class SelectQueryExecution {
                     if (isCached) {
                         timer.push("read cache");
                         if (isTopLevelQuery) {
-                            queryMetadata.addItem("IQL-Cached", isCached, true);
+                            queryMetadata.addItem("IQL-Cached", true, true);
                             // read metadata from cache
                             try {
                                 final InputStream metadataCacheStream = queryCache.getInputStream(cacheFileName + METADATA_FILE_SUFFIX);

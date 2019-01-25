@@ -17,6 +17,7 @@ package com.indeed.iql2.language.query;
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import com.indeed.imhotep.Shard;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql2.language.AbstractPositional;
@@ -73,7 +74,12 @@ public class Dataset extends AbstractPositional {
         this.endExclusive = endExclusive;
         this.alias = alias;
         this.fieldAliases = ImmutableMap.copyOf(fieldAliases);
-        this.shards = (shardResolutionResult != null) ? shardResolutionResult.shards : null;
+        if (shardResolutionResult != null) {
+            this.shards = Lists.newArrayList(shardResolutionResult.shards);
+            Collections.sort(this.shards);
+        } else {
+            this.shards = null;
+        }
         this.missingShardIntervals = (shardResolutionResult != null) ? shardResolutionResult.missingShardTimeIntervals : null;
     }
 

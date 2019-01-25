@@ -12,7 +12,13 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
+/**
+ * A cache that is local to an individual query / its subqueries which allows us
+ * to guarantee that if the query requests the same (dataset, start, end) for different
+ * parts of the query, it will see the same shards no matter what.
+ */
 public class CachingShardResolver implements ShardResolver {
+    // Doesn't outlive a query, doesn't need to be limited in size
     private final LoadingCache<Key, ShardResolutionResult> cache;
 
     public CachingShardResolver(final ShardResolver inner) {
