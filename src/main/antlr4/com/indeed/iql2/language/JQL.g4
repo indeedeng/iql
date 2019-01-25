@@ -195,8 +195,8 @@ jqlAggregateMetric
     | STDEV '(' jqlDocMetric ')' # AggregateStandardDeviation
     | LOG '(' jqlAggregateMetric ')' # AggregateLog
     | ABS '(' jqlAggregateMetric ')' # AggregateAbs
-    | FIELD_MIN '(' scopedField ')' # AggregateFieldMin
-    | FIELD_MAX '(' scopedField ')' # AggregateFieldMax
+    | FIELD_MIN '(' scopedField (BY aggregate=jqlAggregateMetric)? (HAVING filter=jqlAggregateFilter)? ')' # AggregateFieldMin
+    | FIELD_MAX '(' scopedField (BY aggregate=jqlAggregateMetric)? (HAVING filter=jqlAggregateFilter)? ')' # AggregateFieldMax
     | MIN '(' metrics+=jqlAggregateMetric (',' metrics+=jqlAggregateMetric)* ')' # AggregateMetricMin
     | MAX '(' metrics+=jqlAggregateMetric (',' metrics+=jqlAggregateMetric)* ')' # AggregateMetricMax
     | SUM_OVER '(' groupByElement[false] ',' jqlAggregateMetric ')' # AggregateSumAcross

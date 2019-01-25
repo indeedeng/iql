@@ -90,14 +90,9 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
                 final double[][] groupStats = ((GetGroupStats)computation).evaluate(session);
                 final double[] results = Arrays.copyOf(groupStats[0], session.numGroups + 1);
                 new CreateGroupStatsLookup(results, name).execute(session);
-            } else if (computation instanceof GetFieldMax) {
-                final GetFieldMax getFieldMax = (GetFieldMax) computation;
-                fields.add(getFieldMax.field);
-                handlerables.add(new NameIt<>(session, Functions.identity(), getFieldMax.iterateHandler(session), name));
-            } else if (computation instanceof GetFieldMin) {
-                final GetFieldMin getFieldMin = (GetFieldMin) computation;
-                fields.add(getFieldMin.field);
-                handlerables.add(new NameIt<>(session, Functions.identity(), getFieldMin.iterateHandler(session), name));
+            } else if (computation instanceof ComputeFieldExtremeValue) {
+                final double[] results = ((ComputeFieldExtremeValue)computation).evaluate(session);
+                new CreateGroupStatsLookup(results, name).execute(session);
             } else {
                 throw new IllegalArgumentException("Shouldn't be able to reach here. Bug in ComputeAndCreateGroupStatsLookups parser.");
             }

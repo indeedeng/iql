@@ -23,10 +23,78 @@ import java.util.List;
 
 public class FieldExtremaTest extends BasicTest {
     @Test
-    public void basicTest() throws Exception {
-        final List<List<String>> expected = new ArrayList<>();
-        expected.add(ImmutableList.of("", "3", "1000", "0", "15"));
-        QueryServletTestUtils.testIQL2(expected,
-                "from organic yesterday today select FIELD_MIN(oji), FIELD_MAX(oji), FIELD_MIN(ojc), FIELD_MAX(ojc)", true);
+    public void testBasicResult() throws Exception {
+        final List<String> expected = ImmutableList.of("", "3", "1000", "0", "15");
+        QueryServletTestUtils.testIQL2(
+            ImmutableList.of(expected),
+            "from organic yesterday today select FIELD_MIN(oji), FIELD_MAX(oji), FIELD_MIN(ojc), FIELD_MAX(ojc)",
+            true
+        );
+    }
+
+    @Test
+    public void testByStatement() throws Exception {
+        final List<String> expected = ImmutableList.of("", "3", "10", "2", "1");
+        QueryServletTestUtils.testIQL2(
+            ImmutableList.of(expected),
+            "from organic yesterday today select "
+            + "FIELD_MIN(oji by count()), FIELD_MAX(oji by count()), "
+            + "FIELD_MIN(ojc by count()), FIELD_MAX(ojc by count())",
+            true
+        );
+    }
+
+    @Test
+    public void testHavingStatement() throws Exception {
+        final List<String> expected = ImmutableList.of("", "3", "1000", "0", "10");
+        QueryServletTestUtils.testIQL2(
+            ImmutableList.of(expected),
+            "from organic yesterday today select "
+            + "FIELD_MIN(oji having avg(ojc)=1), FIELD_MAX(oji having avg(ojc)=1), "
+            + "FIELD_MIN(ojc having avg(oji)=10), FIELD_MAX(ojc having avg(oji)=10)",
+            true
+        );
+    }
+
+    @Test
+    public void testWithGroupBy() throws Exception {
+        final List<List<String>> expected = ImmutableList.of(
+            ImmutableList.of("0", "10", "10"),
+            ImmutableList.of("1", "3", "1000"),
+            ImmutableList.of("2", "10", "10"),
+            ImmutableList.of("3", "10", "10"),
+            ImmutableList.of("5", "10", "10"),
+            ImmutableList.of("10", "10", "10"),
+            ImmutableList.of("15", "100", "100")
+        );
+        QueryServletTestUtils.testIQL2(
+            expected,
+            "from organic yesterday today group by ojc select FIELD_MIN(oji), FIELD_MAX(oji)",
+            true
+        );
+    }
+
+    @Test
+    public void testWithNaN() throws Exception {
+        final List<String> expected = ImmutableList.of("", "NaN", "NaN", "NaN", "NaN");
+        QueryServletTestUtils.testIQL2(
+            ImmutableList.of(expected),
+            "from organic yesterday today select "
+            + "FIELD_MIN(oji having false), FIELD_MAX(oji having false), "
+            + "FIELD_MIN(ojc having false), FIELD_MAX(ojc having false)",
+            true
+        );       
+    }
+
+    @Test
+    public void testStringField() throws Exception {
+        final List<String> expected = ImmutableList.of("", "NaN", "NaN", "NaN", "NaN");
+        QueryServletTestUtils.testIQL2(
+            ImmutableList.of(expected),
+            "from organic yesterday today select "
+            + "FIELD_MIN(country), FIELD_MAX(country), "
+            + "FIELD_MIN(country), FIELD_MAX(country)",
+            true
+        );       
     }
 }

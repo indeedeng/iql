@@ -18,6 +18,7 @@ import com.google.common.base.Preconditions;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.Session;
 import com.indeed.util.core.Pair;
+import com.sun.org.apache.xalan.internal.xsltc.dom.SimpleResultTreeImpl;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -48,10 +49,8 @@ public class ComputeAndCreateGroupStatsLookup implements Command {
             longResults = ((GetSimpleGroupDistincts)computation).evaluate(session);
         } else if(computation instanceof SumAcross) {
             results = ((SumAcross)computation).evaluate(session);
-        } else if(computation instanceof GetFieldMin) {
-            results = ((GetFieldMin)computation).evaluate(session);
-        } else if(computation instanceof GetFieldMax) {
-            results = ((GetFieldMax)computation).evaluate(session);
+        } else if(computation instanceof ComputeFieldExtremeValue) {
+            results = ((ComputeFieldExtremeValue)computation).evaluate(session);
         } else if (computation instanceof GetGroupPercentiles) {
             final long[][] percentiles = ((GetGroupPercentiles)computation).evaluate(session);
             Preconditions.checkState(percentiles.length == 1, "Only one percentile expected");
