@@ -225,7 +225,7 @@ public class Session {
         }
 
         final double[] totalValues;
-        if (totals.isPresent()) {
+        if (totals.isPresent() && !totals.get().isEmpty()) {
             totalValues = new double[totals.get().size()];
             for (int i = 0; i < totals.get().size(); i++) {
                 final AggregateMetric metric = totals.get().get(i).toExecutionMetric(session::namedMetricLookup, session.groupKeySet);
