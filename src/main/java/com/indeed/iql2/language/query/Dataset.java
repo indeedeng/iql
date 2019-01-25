@@ -354,7 +354,7 @@ public class Dataset extends AbstractPositional {
                 ", startInclusive=" + startInclusive +
                 ", endExclusive=" + endExclusive +
                 ", alias=" + alias +
-                ", shards=" + shards.stream().map(CacheShard::from).collect(Collectors.toList()) +
+                ", shards=" + (shards != null ? shards.stream().map(CacheShard::from).collect(Collectors.toList()) : "null") +
                 '}';
     }
 }
