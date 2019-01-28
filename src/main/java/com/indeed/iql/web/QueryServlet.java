@@ -425,8 +425,8 @@ public class QueryServlet {
         for (final Shard shard: iqlQuery.getShards()) {
             hostHashSet.add(shard.getServer().toString());
         }
-        queryInfo.servers = hostHashSet;
-        queryInfo.numServers = hostHashSet.size();
+        queryInfo.imhotepServers = hostHashSet;
+        queryInfo.numImhotepServers = hostHashSet.size();
 
         // TODO: handle requested format mismatch: e.g. cached CSV but asked for TSV shouldn't have to rerun the query
         final String queryHash = SelectQuery.getQueryHash(queryForHashing, iqlQuery.getShards(), args.csv);
@@ -944,8 +944,8 @@ public class QueryServlet {
         logInteger(logEntry, "rows", queryInfo.rows);
         logSet(logEntry, "sessionid", queryInfo.sessionIDs);
         logInteger(logEntry, "shards", queryInfo.numShards);
-        logSet(logEntry, "servers", queryInfo.servers);
-        logInteger(logEntry, "numServers", queryInfo.numServers);
+        logSet(logEntry, "imhotepServers", queryInfo.imhotepServers);
+        logInteger(logEntry, "numImhotepServers", queryInfo.numImhotepServers);
         if (queryInfo.totalShardPeriodHours != null) {
             logInteger(logEntry, "shardhours", queryInfo.totalShardPeriodHours);
         }

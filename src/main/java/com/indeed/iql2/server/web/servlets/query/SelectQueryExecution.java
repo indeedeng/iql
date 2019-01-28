@@ -265,8 +265,8 @@ public class SelectQueryExecution {
             }
         }
         queryInfo.numShards = shardCount;
-        queryInfo.servers = hostHashSet;
-        queryInfo.numServers = hostHashSet.size();
+        queryInfo.imhotepServers = hostHashSet;
+        queryInfo.numImhotepServers = hostHashSet.size();
         queryInfo.totalShardPeriodHours = totalShardPeriod.toStandardHours().getHours();
         queryInfo.cached = execInfo.allCached();
         queryInfo.ftgsMB = execInfo.imhotepTempBytesWritten / 1024 / 1024;

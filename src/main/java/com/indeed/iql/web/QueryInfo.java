@@ -78,8 +78,8 @@ public class QueryInfo {
     public @Nullable Set<String> sessionIDs;
     public @Nullable Integer numShards;
     public @Nullable Long numDocs;
-    public @Nullable Set<String> servers;
-    public @Nullable Integer numServers;
+    public @Nullable Set<String> imhotepServers;
+    public @Nullable Integer numImhotepServers;
     public @Nullable Boolean cached;
     public @Nullable Integer rows;
     public @Nullable Boolean cacheUploadSkipped;
