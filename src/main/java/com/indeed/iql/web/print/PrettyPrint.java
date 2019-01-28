@@ -326,7 +326,7 @@ public class PrettyPrint {
             }
 
             @Override
-            public Void visit(GroupBy.GroupByTimeInference groupByTimeInference) {
+            public Void visit(GroupBy.GroupByInferredTime GroupByInferredTime) {
                 sb.append("time()");
                 return null;
             }

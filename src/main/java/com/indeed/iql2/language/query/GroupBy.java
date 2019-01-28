@@ -41,7 +41,7 @@ public abstract class GroupBy extends AbstractPositional {
         T visit(GroupByMetric groupByMetric) throws E;
         T visit(GroupByTime groupByTime) throws E;
         T visit(GroupByTimeBuckets groupByTimeBuckets) throws E;
-        T visit(GroupByTimeInference groupByTimeInference) throws E;
+        T visit(GroupByInferredTime groupByTimeInference) throws E;
         T visit(GroupByMonth groupByMonth) throws E;
         T visit(GroupByFieldIn groupByFieldIn) throws E;
         T visit(GroupByFieldInQuery groupByFieldInQuery) throws E;
@@ -261,10 +261,10 @@ public abstract class GroupBy extends AbstractPositional {
         }
     }
 
-    public static class GroupByTimeInference extends GroupBy {
+    public static class GroupByInferredTime extends GroupBy {
         public final boolean isRelative;
 
-        public GroupByTimeInference(boolean isRelative) {
+        public GroupByInferredTime(boolean isRelative) {
             this.isRelative = isRelative;
         }
 
@@ -275,7 +275,7 @@ public abstract class GroupBy extends AbstractPositional {
 
         @Override
         public GroupBy transform(Function<GroupBy, GroupBy> groupBy, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
-            return groupBy.apply(new GroupByTimeInference(isRelative))
+            return groupBy.apply(new GroupByInferredTime(isRelative))
                     .copyPosition(this);
         }
 
@@ -304,7 +304,7 @@ public abstract class GroupBy extends AbstractPositional {
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
-            GroupByTimeInference that = (GroupByTimeInference) o;
+            GroupByInferredTime that = (GroupByInferredTime) o;
             return isRelative == that.isRelative;
         }
 

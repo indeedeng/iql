@@ -553,7 +553,7 @@ public class FieldExtractor {
 			}
 
 			@Override
-			public Set<DatasetField> visit(final GroupBy.GroupByTimeInference groupByTimeInference) throws RuntimeException {
+			public Set<DatasetField> visit(final GroupBy.GroupByInferredTime groupByTimeInference) throws RuntimeException {
 				return ImmutableSet.of();
 			}
 

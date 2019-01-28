@@ -226,7 +226,7 @@ public class GroupBys {
                 }
 
                 if (ctx.groupByTime().timePeriod() == null) {
-                    accept(new GroupBy.GroupByTimeInference(isRelative));
+                    accept(new GroupBy.GroupByInferredTime(isRelative));
                     return;
                 }
                 final List<Pair<Integer, TimeUnit>> pairs = TimePeriods.parseTimePeriod(ctx.groupByTime().timePeriod(), ctx.useLegacy);
