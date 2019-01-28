@@ -25,6 +25,7 @@ import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocFilter;
 import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.Positional;
+import com.indeed.iql2.language.TimePeriods;
 import com.indeed.iql2.language.execution.ExecutionStep;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import it.unimi.dsi.fastutil.longs.LongList;
@@ -40,6 +41,7 @@ public abstract class GroupBy extends AbstractPositional {
         T visit(GroupByMetric groupByMetric) throws E;
         T visit(GroupByTime groupByTime) throws E;
         T visit(GroupByTimeBuckets groupByTimeBuckets) throws E;
+        T visit(GroupByTimeInference groupByTimeInference) throws E;
         T visit(GroupByMonth groupByMonth) throws E;
         T visit(GroupByFieldIn groupByFieldIn) throws E;
         T visit(GroupByFieldInQuery groupByFieldInQuery) throws E;
@@ -255,6 +257,66 @@ public abstract class GroupBy extends AbstractPositional {
                     ", field=" + field +
                     ", format=" + format +
                     ", isRelative=" + isRelative +
+                    '}';
+        }
+    }
+
+    public static class GroupByTimeInference extends GroupBy {
+        public final boolean isRelative;
+
+        public GroupByTimeInference(boolean isRelative) {
+            this.isRelative = isRelative;
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public GroupBy transform(Function<GroupBy, GroupBy> groupBy, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
+            return groupBy.apply(new GroupByTimeInference(isRelative))
+                    .copyPosition(this);
+        }
+
+        @Override
+        public GroupBy traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
+        }
+
+        @Override
+        public ExecutionStep executionStep(List<Dataset> datasets) {
+            final long periodMillis = TimePeriods.inferTimeBucketSize(Dataset.getEarliestStart(datasets), Dataset.getLatestEnd(datasets));
+            return new ExecutionStep.ExplodeTimePeriod(periodMillis, Optional.absent(), Optional.absent(), isRelative);
+        }
+
+        @Override
+        public boolean isTotal() {
+            return true;
+        }
+
+        @Override
+        public GroupBy makeTotal() throws CannotMakeTotalException {
+            return this;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            GroupByTimeInference that = (GroupByTimeInference) o;
+            return isRelative == that.isRelative;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(isRelative);
+        }
+
+        @Override
+        public String toString() {
+            return "GroupByTimeInference{" +
+                    "isRelative=" + isRelative +
                     '}';
         }
     }

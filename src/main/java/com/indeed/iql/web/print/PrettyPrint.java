@@ -326,6 +326,12 @@ public class PrettyPrint {
             }
 
             @Override
+            public Void visit(GroupBy.GroupByTimeInference groupByTimeInference) {
+                sb.append("time()");
+                return null;
+            }
+
+            @Override
             public Void visit(GroupBy.GroupByTimeBuckets groupByTimeBuckets) {
                 sb.append("time(");
                 sb.append(groupByTimeBuckets.numBuckets).append('b');

@@ -14,9 +14,11 @@
 
 package com.indeed.iql2.language;
 
+import com.google.common.collect.ImmutableList;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql2.language.query.Queries;
 import com.indeed.iql2.language.JQLParser;
+import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.util.core.Pair;
 import com.indeed.util.core.time.WallClock;
 import org.antlr.v4.runtime.Token;
@@ -85,5 +87,23 @@ public class TimePeriods {
             dt = TimeUnit.subtract(dt, pair.getFirst(), pair.getSecond());
         }
         return dt;
+    }
+
+    public static long inferTimeBucketSize(final long earliestStart, final long latestEnd) {
+        final int MAX_RECOMMENDED_BUCKETS = 1000;
+        final List<TimeUnit> bucketSizeOptions = ImmutableList.of(TimeUnit.SECOND, TimeUnit.MINUTE, TimeUnit.HOUR, TimeUnit.DAY, TimeUnit.WEEK);
+        for (final TimeUnit timeUnit: bucketSizeOptions) {
+            if ((latestEnd - earliestStart)/timeUnit.millis < MAX_RECOMMENDED_BUCKETS) {
+                return timeUnit.millis;
+            }
+        }
+        return TimeUnit.WEEK.millis;
+    }
+
+    public static String inferTimeBucketSizeString(final DateTime start,final DateTime end) {
+        final long timeBucketSizeMillis = inferTimeBucketSize(start.getMillis(), end.getMillis());
+        final StringBuilder inferedTimeStringBuilder = new StringBuilder();
+        ValidationUtil.appendTimePeriod(timeBucketSizeMillis/TimeUnit.SECOND.millis, inferedTimeStringBuilder);
+        return inferedTimeStringBuilder.toString();
     }
 }

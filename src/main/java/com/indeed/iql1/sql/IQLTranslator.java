@@ -58,6 +58,7 @@ import com.indeed.iql1.sql.ast2.FromClause;
 import com.indeed.iql1.sql.ast2.IQL1SelectStatement;
 import com.indeed.iql1.sql.parser.ExpressionParser;
 import com.indeed.iql1.sql.parser.PeriodParser;
+import com.indeed.iql2.language.TimePeriods;
 import com.indeed.util.serialization.LongStringifier;
 import com.indeed.util.serialization.Stringifier;
 import org.apache.commons.lang.StringUtils;
@@ -1124,7 +1125,7 @@ public final class IQLTranslator {
 
         private long parseTimeBucketInterval(String bucketSizeStr, boolean isTime, int min, int max) {
             if(Strings.isNullOrEmpty(bucketSizeStr)) {
-                bucketSizeStr = inferTimeBucketSize();
+                bucketSizeStr = TimePeriods.inferTimeBucketSizeString(start, end);
             }
 
             long bucketSize;
@@ -1246,53 +1247,6 @@ public final class IQLTranslator {
                 default:
                     throw new UnsupportedOperationException();
             }
-        }
-
-        private String inferTimeBucketSize() {
-            Period period = new Period(start, end,
-                    PeriodType.forFields(new DurationFieldType[]{DurationFieldType.weeks(), DurationFieldType.days(),
-                            DurationFieldType.hours(), DurationFieldType.minutes(), DurationFieldType.seconds()})
-            );
-            // try various sizes from smallest to largest until we find one that gives us number of buckets no more than we want
-            for(int i = 0; i <= 4; i++) {
-                int buckets;
-                String value;
-                switch (i) {
-                    case 4: {
-                        buckets = period.toStandardWeeks().getWeeks();
-                        value = "1w";
-                        break;
-                    }
-                    case 3: {
-                        buckets = period.toStandardDays().getDays();
-                        value = "1d";
-                        break;
-                    }
-                    case 2: {
-                        buckets = period.toStandardHours().getHours();
-                        value = "1h";
-                        break;
-                    }
-                    case 1: {
-                        buckets = period.toStandardMinutes().getMinutes();
-                        value = "1m";
-                        break;
-                    }
-                    case 0: {
-                        buckets = period.toStandardSeconds().getSeconds();
-                        value = "1s";
-                        break;
-                    }
-                    default: {
-                        throw new IllegalStateException("Shouldn't happen");
-                    }
-                }
-                if(buckets < MAX_RECOMMENDED_BUCKETS) {
-                    return value;
-                }
-            }
-            // we should never get here but just in case
-            return "1w";
         }
 
 
