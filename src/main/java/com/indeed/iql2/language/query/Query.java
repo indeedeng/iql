@@ -358,6 +358,10 @@ public class Query extends AbstractPositional {
         return this.datasets;
     }
 
+    public List<Dataset> getDatasetsFromScope(Set<String> scope) {
+        return datasets.stream().filter(dataset -> scope.contains(dataset.getDisplayName())).collect(Collectors.toList());
+    }
+
     public Map<String, String> nameToIndex() {
         final Map<String, String> nameToIndex = new HashMap<>();
         for (final Dataset dataset : datasets) {

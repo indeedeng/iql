@@ -131,7 +131,7 @@ public class ExtractPrecomputed {
             for (int i = 0; i <= max; i++) {
                 if (depthToPreComputation.containsKey(i)) {
                     for (final ComputationInfo computationInfo : depthToPreComputation.get(i)) {
-                        resultSteps.add(new ExecutionStep.ComputePrecomputed(computationInfo.scope, computationInfo.precomputed, computedNames.get(ComputationType.PreComputation).get(computationInfo)));
+                        resultSteps.add(new ExecutionStep.ComputePrecomputed(query.getDatasetsFromScope(computationInfo.scope), computationInfo.precomputed, computedNames.get(ComputationType.PreComputation).get(computationInfo)));
                     }
                 }
                 if (groupBySteps.containsKey(i)) {
@@ -139,7 +139,7 @@ public class ExtractPrecomputed {
                 }
                 if (depthToPostComputation.containsKey(i)) {
                     for (final ComputationInfo computationInfo : depthToPostComputation.get(i)) {
-                        resultSteps.add(new ExecutionStep.ComputePrecomputed(computationInfo.scope, computationInfo.precomputed, computedNames.get(ComputationType.PostComputation).get(computationInfo)));
+                        resultSteps.add(new ExecutionStep.ComputePrecomputed(query.getDatasetsFromScope(computationInfo.scope), computationInfo.precomputed, computedNames.get(ComputationType.PostComputation).get(computationInfo)));
                     }
                 }
                 if (postGroupByFilter.containsKey(i)) {

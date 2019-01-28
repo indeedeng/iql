@@ -26,6 +26,7 @@ import com.indeed.iql2.language.DocFilter;
 import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.execution.ExecutionStep;
 import com.indeed.iql2.language.precomputed.Precomputed;
+import com.indeed.iql2.language.query.Dataset;
 import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.util.core.Pair;
@@ -67,13 +68,13 @@ public class GroupIterations {
         for (final Grouping grouping : groupings) {
             if (grouping.precomputationInfos.size() == 1) {
                 final PrecomputationInfo info = grouping.precomputationInfos.get(0);
-                result.add(new ExecutionStep.ComputePrecomputed(grouping.scope, info.precomputation, info.name));
+                result.add(new ExecutionStep.ComputePrecomputed(grouping.datasets, info.precomputation, info.name));
             } else {
                 final List<Pair<Precomputed, String>> pairList = new ArrayList<>();
                 for (final PrecomputationInfo info : grouping.precomputationInfos) {
                     pairList.add(Pair.of(info.precomputation, info.name));
                 }
-                result.add(new ExecutionStep.ComputeManyPrecomputed(grouping.scope, pairList));
+                result.add(new ExecutionStep.ComputeManyPrecomputed(grouping.datasets, pairList));
             }
         }
         return result;
@@ -169,35 +170,35 @@ public class GroupIterations {
     }
 
     private static class PrecomputedContext {
-        private final Set<String> scope;
+        private final List<Dataset> datasets;
         private final Optional<FieldSet> field;
 
-        private PrecomputedContext(Set<String> scope, Optional<FieldSet> field) {
-            this.scope = scope;
+        private PrecomputedContext(List<Dataset> datasets, Optional<FieldSet> field) {
+            this.datasets = datasets;
             this.field = field;
         }
 
         // TODO: Make this a visitor to avoid being able to forget handling new ones
         public static PrecomputedContext create(ExecutionStep.ComputePrecomputed computePrecomputed) {
-            final Set<String> scope = computePrecomputed.scope;
+            final List<Dataset> datasets = computePrecomputed.datasets;
             final Precomputed computation = computePrecomputed.computation;
             if (computation instanceof Precomputed.PrecomputedDistinct) {
                 final Precomputed.PrecomputedDistinct precomputedDistinct = (Precomputed.PrecomputedDistinct) computation;
-                return new PrecomputedContext(scope, Optional.of(precomputedDistinct.field));
+                return new PrecomputedContext(datasets, Optional.of(precomputedDistinct.field));
             } else if (computation instanceof Precomputed.PrecomputedPercentile) {
                 final Precomputed.PrecomputedPercentile precomputedPercentile = (Precomputed.PrecomputedPercentile) computation;
-                return new PrecomputedContext(scope, Optional.of(precomputedPercentile.field));
+                return new PrecomputedContext(datasets, Optional.of(precomputedPercentile.field));
             } else if (computation instanceof Precomputed.PrecomputedRawStats) {
-                return new PrecomputedContext(scope, Optional.absent());
+                return new PrecomputedContext(datasets, Optional.absent());
             } else if (computation instanceof Precomputed.PrecomputedSumAcross) {
                 final Precomputed.PrecomputedSumAcross precomputedSumAcross = (Precomputed.PrecomputedSumAcross) computation;
-                return new PrecomputedContext(scope, Optional.of(precomputedSumAcross.field));
+                return new PrecomputedContext(datasets, Optional.of(precomputedSumAcross.field));
             } else if (computation instanceof Precomputed.PrecomputedSumAcrossGroupBy) {
                 final Precomputed.PrecomputedSumAcrossGroupBy precomputedSumAcrossGroupBy = (Precomputed.PrecomputedSumAcrossGroupBy) computation;
-                return new PrecomputedContext(scope, Optional.absent());
+                return new PrecomputedContext(datasets, Optional.absent());
             } else if (computation instanceof Precomputed.PrecomputedFieldExtremeValue) {
                 final Precomputed.PrecomputedFieldExtremeValue precomputedFieldExtremeValue = (Precomputed.PrecomputedFieldExtremeValue) computation;
-                return new PrecomputedContext(scope, Optional.of(precomputedFieldExtremeValue.field));
+                return new PrecomputedContext(datasets, Optional.of(precomputedFieldExtremeValue.field));
             } else {
                 throw new IllegalStateException("Failed to handle: [" + computePrecomputed + "]'s computation: [" + computation + "]");
             }
@@ -208,22 +209,22 @@ public class GroupIterations {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             PrecomputedContext that = (PrecomputedContext) o;
-            return Objects.equals(scope, that.scope) &&
+            return Objects.equals(datasets, that.datasets) &&
                     Objects.equals(field, that.field);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(scope, field);
+            return Objects.hash(datasets, field);
         }
     }
 
     private static class Grouping {
-        private final Set<String> scope;
+        private final List<Dataset> datasets;
         private final List<PrecomputationInfo> precomputationInfos;
 
-        private Grouping(Set<String> scope, List<PrecomputationInfo> precomputationInfos) {
-            this.scope = scope;
+        private Grouping(List<Dataset> datasets, List<PrecomputationInfo> precomputationInfos) {
+            this.datasets = datasets;
             this.precomputationInfos = precomputationInfos;
         }
 
@@ -232,7 +233,7 @@ public class GroupIterations {
             for (final ExecutionStep.ComputePrecomputed precomputed : precomputeds) {
                 infos.add(new PrecomputationInfo(precomputed.computation, precomputed.name));
             }
-            return new Grouping(ctx.scope, infos);
+            return new Grouping(ctx.datasets, infos);
         }
     }
 

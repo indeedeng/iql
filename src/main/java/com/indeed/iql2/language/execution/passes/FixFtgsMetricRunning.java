@@ -51,14 +51,14 @@ public class FixFtgsMetricRunning {
             if (step instanceof ExecutionStep.ComputePrecomputed) {
                 final ExecutionStep.ComputePrecomputed computePrecomputed = (ExecutionStep.ComputePrecomputed) step;
                 final Precomputed computation = computePrecomputed.computation.transform(x -> x, DECREMENT_RUNNING, x -> x, x -> x, x -> x, x -> x);
-                results.add(new ExecutionStep.ComputePrecomputed(computePrecomputed.scope, computation, computePrecomputed.name));
+                results.add(new ExecutionStep.ComputePrecomputed(computePrecomputed.datasets, computation, computePrecomputed.name));
             } else if (step instanceof ExecutionStep.ComputeManyPrecomputed) {
                 final ExecutionStep.ComputeManyPrecomputed computeManyPrecomputed = (ExecutionStep.ComputeManyPrecomputed) step;
                 final List<Pair<Precomputed, String>> computations = new ArrayList<>();
                 for (final Pair<Precomputed, String> computation : computeManyPrecomputed.computations) {
                     computations.add(Pair.of(computation.getFirst().transform(x -> x, DECREMENT_RUNNING, x -> x, x -> x, x -> x, x -> x), computation.getSecond()));
                 }
-                results.add(new ExecutionStep.ComputeManyPrecomputed(computeManyPrecomputed.scope, computations));
+                results.add(new ExecutionStep.ComputeManyPrecomputed(computeManyPrecomputed.datasets, computations));
             } else {
                 results.add(step);
             }
