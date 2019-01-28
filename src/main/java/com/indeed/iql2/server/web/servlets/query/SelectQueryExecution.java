@@ -258,14 +258,18 @@ public class SelectQueryExecution {
     private void extractCompletedQueryInfoData(SelectExecutionInformation execInfo, Set<String> warnings, CountingConsumer<String> countingOut) {
         int shardCount = 0;
         Duration totalShardPeriod = Duration.ZERO;
+        final Set<String> hostHashSet = Sets.newHashSet();
         for (final List<Shard> shardList : execInfo.datasetToShards.values()) {
             shardCount += shardList.size();
             for (final Shard shardInfo : shardList) {
+                hostHashSet.add(shardInfo.getServer().toString());
                 ShardInfo.DateTimeRange range = shardInfo.getRange();
                 totalShardPeriod = totalShardPeriod.plus(new Duration(range.start, range.end));
             }
         }
         queryInfo.numShards = shardCount;
+        queryInfo.imhotepServers = hostHashSet;
+        queryInfo.numImhotepServers = hostHashSet.size();
         queryInfo.totalShardPeriodHours = totalShardPeriod.toStandardHours().getHours();
         queryInfo.cached = execInfo.allCached();
         queryInfo.ftgsMB = execInfo.imhotepTempBytesWritten / 1024 / 1024;
