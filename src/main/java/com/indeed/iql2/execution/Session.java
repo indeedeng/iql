@@ -376,7 +376,7 @@ public class Session {
     public void evaluateCommandToOutput(final com.indeed.iql2.language.commands.Command lCommand,
                                         final Consumer<String> out,
                                         final List<String> options) throws ImhotepOutOfMemoryException, IOException {
-        timer.push("evaluateCommandToTSV " + lCommand.getClass().getSimpleName(), "evaluateCommandToTSV " + lCommand);
+        timer.push("evaluateCommandToOutput " + lCommand.getClass().getSimpleName(), "evaluateCommandToOutput " + lCommand);
         try {
             final Command command = lCommand.toExecutionCommand(this::namedMetricLookup, groupKeySet, options);
             try {
