@@ -24,9 +24,11 @@ import com.indeed.imhotep.automaton.RegexTooComplexException;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.JQLParser;
+import com.indeed.iql2.language.TimeUnit;
 import com.indeed.iql2.language.passes.ExtractQualifieds;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
+import com.indeed.util.core.Pair;
 import org.antlr.v4.runtime.RuleContext;
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.format.DateTimeFormat;
@@ -210,6 +212,24 @@ public class ValidationUtil {
         });
     }
 
+    public static void validateGroupByTimeRange(final ValidationHelper validationHelper, final long periodSeconds, final ErrorCollector errorCollector) {
+        for(Map.Entry<String, Pair<Long, Long>> datasetTimeRange: validationHelper.datasetTimeRanges().entrySet()) {
+            final long datasetTimePeriodSeconds = (datasetTimeRange.getValue().getSecond() - datasetTimeRange.getValue().getFirst())/1000;
+            if (datasetTimePeriodSeconds%periodSeconds != 0) {
+                    final StringBuilder exceptionBuilder = new StringBuilder("You requested a time period (");
+                    appendTimePeriod(datasetTimePeriodSeconds, exceptionBuilder);
+                    exceptionBuilder.append(") for dataset " + datasetTimeRange.getKey());
+                    exceptionBuilder.append(" not evenly divisible by the bucket size (");
+                    appendTimePeriod(periodSeconds, exceptionBuilder);
+                    exceptionBuilder.append("). To correct, increase the time range by ");
+                    appendTimePeriod(periodSeconds - datasetTimePeriodSeconds%periodSeconds, exceptionBuilder);
+                    exceptionBuilder.append(" or reduce the time range by ");
+                    appendTimePeriod(datasetTimePeriodSeconds%periodSeconds, exceptionBuilder);
+                    errorCollector.error(exceptionBuilder.toString());
+            }
+        }
+    }
+
     private static FieldType getFieldType(ValidationHelper validationHelper, String dataset, String field) {
         final boolean isIntField = validationHelper.containsIntOrAliasField(dataset, field);
         final boolean isStrField = validationHelper.containsStringField(dataset, field);
@@ -219,6 +239,25 @@ public class ValidationUtil {
             return FieldType.STR;
         } else {
             return FieldType.NULL;
+        }
+    }
+
+    public static void appendTimePeriod(long timePeriodSeconds, StringBuilder builder) {
+        if (timePeriodSeconds % TimeUnit.WEEK.toSeconds() == 0) {
+            builder.append(timePeriodSeconds / TimeUnit.WEEK.toSeconds());
+            builder.append(" weeks");
+        } else if ((timePeriodSeconds % TimeUnit.DAY.toSeconds()) == 0) {
+            builder.append(timePeriodSeconds / TimeUnit.DAY.toSeconds());
+            builder.append(" days");
+        } else if (timePeriodSeconds % TimeUnit.HOUR.toSeconds() == 0) {
+            builder.append(timePeriodSeconds / TimeUnit.HOUR.toSeconds());
+            builder.append(" hours");
+        } else if (timePeriodSeconds % TimeUnit.MINUTE.toSeconds() == 0) {
+            builder.append(timePeriodSeconds / TimeUnit.MINUTE.toSeconds());
+            builder.append(" minutes");
+        } else {
+            builder.append(timePeriodSeconds);
+            builder.append(" seconds");
         }
     }
 

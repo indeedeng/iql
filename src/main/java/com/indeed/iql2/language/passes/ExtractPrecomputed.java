@@ -31,6 +31,7 @@ import com.indeed.iql2.language.precomputed.Precomputed;
 import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.util.Optionals;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 
 import javax.annotation.Nullable;
@@ -41,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ExtractPrecomputed {
@@ -271,10 +273,22 @@ public class ExtractPrecomputed {
                 }
             } else if (input instanceof AggregateMetric.FieldMin){
                 final AggregateMetric.FieldMin fieldMin = (AggregateMetric.FieldMin) input;
-                return handlePrecomputed(new Precomputed.PrecomputedFieldMin(fieldMin.field));
+                return handlePrecomputed(
+                    new Precomputed.PrecomputedFieldExtremeValue(
+                        fieldMin.field,
+                        apply(new AggregateMetric.Negate(getOrDefaultToAggregateAvg(fieldMin.metric, fieldMin.field))),
+                        Optionals.traverse1(fieldMin.filter, this)
+                    )
+                );
             } else if (input instanceof AggregateMetric.FieldMax) {
                 final AggregateMetric.FieldMax fieldMax = (AggregateMetric.FieldMax) input;
-                return handlePrecomputed(new Precomputed.PrecomputedFieldMax(fieldMax.field));
+                return handlePrecomputed(
+                    new Precomputed.PrecomputedFieldExtremeValue(
+                        fieldMax.field,
+                        apply(getOrDefaultToAggregateAvg(fieldMax.metric, fieldMax.field)),
+                        Optionals.traverse1(fieldMax.filter, this)
+                    )
+                );
             } else if (input instanceof AggregateMetric.DivideByCount) {
                 final AggregateMetric docMetric = apply(((AggregateMetric.DivideByCount)input).metric);
                 final Set<String> datasets = new HashSet<>();
@@ -310,6 +324,21 @@ public class ExtractPrecomputed {
                 return new AggregateMetric.Divide(docMetric, countMetric).copyPosition(input);
             } else {
                 return input.traverse1(this);
+            }
+        }
+
+        private AggregateMetric getOrDefaultToAggregateAvg(
+            final Optional<AggregateMetric> metric,
+            final FieldSet field
+        ) {
+            if (metric.isPresent()) {
+                return metric.get();
+            } else {
+                final List<AggregateMetric> metrics =
+                    field.datasets().stream().map(dataset -> {
+                        return new AggregateMetric.DocStatsPushes(dataset, new DocMetric.Field(field));
+                    }).collect(Collectors.toList());
+                return new AggregateMetric.DivideByCount(AggregateMetric.Add.create(metrics));
             }
         }
 

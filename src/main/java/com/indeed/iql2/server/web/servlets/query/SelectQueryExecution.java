@@ -38,6 +38,7 @@ import com.indeed.iql.cache.QueryCache;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.io.TruncatingBufferedOutputStream;
 import com.indeed.iql.metadata.DatasetsMetadata;
+import com.indeed.iql.metadata.FieldType;
 import com.indeed.iql.web.AccessControl;
 import com.indeed.iql.web.ClientInfo;
 import com.indeed.iql.web.Limits;
@@ -143,6 +144,7 @@ public class SelectQueryExecution {
     private final boolean headOnly;
     public final int version;
     public final boolean isStream;
+    private final boolean returnNewestShardVersionHeader;
     public final boolean skipValidation;
     private final WallClock clock;
 
@@ -163,6 +165,7 @@ public class SelectQueryExecution {
             final boolean headOnly,
             final int version,
             final boolean isStream,
+            final boolean returnNewestShardVersionHeader,
             final boolean skipValidation,
             final WallClock clock,
             final QueryMetadata queryMetadata,
@@ -179,6 +182,7 @@ public class SelectQueryExecution {
         this.isStream = isStream;
         this.limits = limits;
         this.maxCachedQuerySizeLimitBytes = maxCachedQuerySizeLimitBytes;
+        this.returnNewestShardVersionHeader = returnNewestShardVersionHeader;
         this.skipValidation = skipValidation;
         this.clock = clock;
         this.imhotepClient = imhotepClient;
@@ -435,7 +439,7 @@ public class SelectQueryExecution {
             final ListMultimap<String, List<Shard>> allShardsUsed = query.allShardsUsed();
             final List<DatasetWithMissingShards> datasetsWithMissingShards = query.allMissingShards();
             if (isTopLevelQuery) {
-                queryMetadata.addItem("IQL-Newest-Shard", ISODateTimeFormat.dateTime().print(newestStaticShard(allShardsUsed).or(-1L)), true);
+                queryMetadata.addItem("IQL-Newest-Shard", ISODateTimeFormat.dateTime().print(newestStaticShard(allShardsUsed).or(-1L)), returnNewestShardVersionHeader);
                 for(DatasetWithMissingShards datasetWithMissingShards : datasetsWithMissingShards) {
                     warnings.addAll(QueryServlet.missingShardsToWarnings(datasetWithMissingShards.dataset,
                             datasetWithMissingShards.start, datasetWithMissingShards.end, datasetWithMissingShards.timeIntervalsMissingShards));
@@ -586,7 +590,8 @@ public class SelectQueryExecution {
                             compositeProgressCallback,
                             mbToBytes(limits.queryFTGSIQLLimitMB),
                             mbToBytes(limits.queryFTGSImhotepDaemonLimitMB),
-                            clientInfo.username
+                            clientInfo.username,
+                            (version == 2) ? FieldType.Integer : FieldType.String
                     );
 
                     final SelectExecutionInformation selectExecutionInformation = new SelectExecutionInformation(

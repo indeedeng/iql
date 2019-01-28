@@ -191,14 +191,6 @@ public class GroupBys {
                         excludeGutters = false;
                     }
                     withDefault = ctx2.withDefault != null;
-                } else if (ctx.groupByMetricEnglish() != null) {
-                    final JQLParser.GroupByMetricEnglishContext ctx2 = ctx.groupByMetricEnglish();
-                    metric = DocMetrics.parseDocMetric(ctx2.docMetric(), context);
-                    min = Long.parseLong(ctx2.min.getText());
-                    max = Long.parseLong(ctx2.max.getText());
-                    interval = Long.parseLong(ctx2.interval.getText());
-                    excludeGutters = false;
-                    withDefault = ctx2.withDefault != null;
                 } else {
                     throw new UnsupportedOperationException("Oh no! Someone changed the parser but not the consumer!");
                 }

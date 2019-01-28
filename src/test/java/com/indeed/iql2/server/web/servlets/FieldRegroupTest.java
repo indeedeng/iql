@@ -14,14 +14,13 @@
 
 package com.indeed.iql2.server.web.servlets;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
-import com.indeed.iql2.server.web.servlets.dataset.AllData;
-import com.indeed.iql2.server.web.servlets.dataset.Dataset;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
+
 
 import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.addConstantColumn;
 import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testAll;

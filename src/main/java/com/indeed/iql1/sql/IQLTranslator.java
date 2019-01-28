@@ -116,6 +116,7 @@ import static com.indeed.iql1.ez.EZImhotepSession.multiplyShiftRight;
 import static com.indeed.iql1.ez.EZImhotepSession.shiftLeftDivide;
 import static com.indeed.iql1.ez.EZImhotepSession.sub;
 import static com.indeed.iql1.ez.Stats.Stat;
+import static com.indeed.iql2.language.util.ValidationUtil.appendTimePeriod;
 
 /**
  * @author jplaisance
@@ -1181,36 +1182,7 @@ public final class IQLTranslator {
             return bucketSize;
         }
 
-        private static int appendTimePeriod(long timePeriod, StringBuilder builder) {
-            final int timePeriodUnits;
-            if (timePeriod % SECONDS_IN_WEEK == 0) {
-                // duration is in days
-                builder.append(timePeriod / SECONDS_IN_WEEK);
-                builder.append(" weeks");
-                timePeriodUnits = SECONDS_IN_WEEK;
-            } else if (timePeriod % SECONDS_IN_DAY == 0) {
-                // duration is in days
-                builder.append(timePeriod / SECONDS_IN_DAY);
-                builder.append(" days");
-                timePeriodUnits = SECONDS_IN_DAY;
-            } else if (timePeriod % SECONDS_IN_HOUR == 0) {
-                // duration is in hours
-                builder.append(timePeriod / SECONDS_IN_HOUR);
-                builder.append(" hours");
-                timePeriodUnits = SECONDS_IN_HOUR;
-            } else if (timePeriod % SECONDS_IN_MINUTE == 0) {
-                // duration is in minutes
-                builder.append(timePeriod / SECONDS_IN_MINUTE);
-                builder.append(" minutes");
-                timePeriodUnits = SECONDS_IN_MINUTE;
-            } else {
-                // duration is seconds
-                builder.append(timePeriod);
-                builder.append(" seconds");
-                timePeriodUnits = 1;
-            }
-            return timePeriodUnits;
-        }
+
 
         private static final int SECONDS_IN_MINUTE = 60;
         private static final int SECONDS_IN_HOUR = SECONDS_IN_MINUTE * 60;

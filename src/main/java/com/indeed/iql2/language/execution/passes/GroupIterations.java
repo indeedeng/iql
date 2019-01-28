@@ -195,12 +195,9 @@ public class GroupIterations {
             } else if (computation instanceof Precomputed.PrecomputedSumAcrossGroupBy) {
                 final Precomputed.PrecomputedSumAcrossGroupBy precomputedSumAcrossGroupBy = (Precomputed.PrecomputedSumAcrossGroupBy) computation;
                 return new PrecomputedContext(scope, Optional.absent());
-            } else if (computation instanceof Precomputed.PrecomputedFieldMax) {
-                final Precomputed.PrecomputedFieldMax precomputedFieldMax = (Precomputed.PrecomputedFieldMax) computation;
-                return new PrecomputedContext(scope, Optional.of(precomputedFieldMax.field));
-            } else if (computation instanceof Precomputed.PrecomputedFieldMin) {
-                final Precomputed.PrecomputedFieldMin precomputedFieldMin = (Precomputed.PrecomputedFieldMin) computation;
-                return new PrecomputedContext(scope, Optional.of(precomputedFieldMin.field));
+            } else if (computation instanceof Precomputed.PrecomputedFieldExtremeValue) {
+                final Precomputed.PrecomputedFieldExtremeValue precomputedFieldExtremeValue = (Precomputed.PrecomputedFieldExtremeValue) computation;
+                return new PrecomputedContext(scope, Optional.of(precomputedFieldExtremeValue.field));
             } else {
                 throw new IllegalStateException("Failed to handle: [" + computePrecomputed + "]'s computation: [" + computation + "]");
             }

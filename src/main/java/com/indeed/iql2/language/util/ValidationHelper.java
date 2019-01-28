@@ -18,6 +18,9 @@ import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql.metadata.MetricMetadata;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 
+import com.indeed.util.core.Pair;
+
+import java.util.List;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
@@ -30,13 +33,16 @@ public class ValidationHelper {
     private final DatasetsMetadata datasetsMetadata;
     private final Map<String, Set<String>> datasetAliasIntFields;
     private final Map<String, Set<String>> datasetAliasStringFields;
+    private final Map<String, Pair<Long, Long>> datasetsTimeRange;
     private final Set<String> definedComputations = new HashSet<>();
 
     public ValidationHelper(final DatasetsMetadata datasetsMetadata,
+                            final Map<String, Pair<Long, Long>> datasetsTimeRange,
                             final Map<String, Set<String>> datasetAliasIntFields,
                             final Map<String, Set<String>> datasetAliasStringFields,
                             final boolean useLegacy) {
         this.useLegacy = useLegacy;
+        this.datasetsTimeRange = datasetsTimeRange;
         this.datasetsMetadata = datasetsMetadata;
         this.datasetAliasIntFields = toCaseInsensitive(datasetAliasIntFields);
         this.datasetAliasStringFields = toCaseInsensitive(datasetAliasStringFields);
@@ -111,6 +117,10 @@ public class ValidationHelper {
 
     public Set<String> datasets() {
         return datasetsMetadata.getDatasetToMetadata().keySet();
+    }
+
+    public Map<String, Pair<Long, Long>> datasetTimeRanges() {
+        return datasetsTimeRange;
     }
 
     public void registerComputed(final String name) {

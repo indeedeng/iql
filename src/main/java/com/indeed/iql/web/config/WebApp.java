@@ -14,8 +14,9 @@
  package com.indeed.iql.web.config;
 
 import com.google.common.base.Strings;
+import com.indeed.iql.web.filters.LargePostFilter;
 import com.indeed.iql1.iql.IQLQuery;
-import com.indeed.iql.web.NoCacheFilter;
+import com.indeed.iql.web.filters.NoCacheFilter;
 import org.apache.log4j.Logger;
 import org.springframework.web.WebApplicationInitializer;
 import org.springframework.web.filter.CharacterEncodingFilter;
@@ -59,6 +60,9 @@ public class WebApp  extends AbstractAnnotationConfigDispatcherServletInitialize
 
         FilterRegistration.Dynamic noCacheFilter = servletContext.addFilter("nocache", NoCacheFilter.class);
         noCacheFilter.addMappingForUrlPatterns(EnumSet.of(DispatcherType.REQUEST), false, "/*");
+
+        servletContext.addFilter("largepost", LargePostFilter.class)
+            .addMappingForUrlPatterns(EnumSet.of(DispatcherType.REQUEST), false, "/*");
 
         cleanupTempFiles();
     }

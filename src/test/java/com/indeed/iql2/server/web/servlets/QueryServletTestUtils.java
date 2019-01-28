@@ -17,7 +17,7 @@ package com.indeed.iql2.server.web.servlets;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Joiner;
-import com.google.common.base.Predicate;
+import java.util.function.Predicate;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -80,8 +80,8 @@ public class QueryServletTestUtils extends BasicTest {
                     ImmutableSet.of(QueryOptions.Experimental.ASYNC, QueryOptions.PARANOID)
             );
 
-    public static QueryServlet create(ImhotepClient client, Options options, final IQL2Options defaultOptions) {
-        final ImhotepMetadataCache metadataCache = new ImhotepMetadataCache(options.imsClient, client, "", new FieldFrequencyCache(null), true);
+    public static QueryServlet create(ImhotepClient client, final LanguageVersion version, Options options, final IQL2Options defaultOptions) {
+        final ImhotepMetadataCache metadataCache = new ImhotepMetadataCache(options.imsClient, client, "", new FieldFrequencyCache(null), LanguageVersion.IQL2.equals(version));
         metadataCache.updateDatasets();
         final RunningQueriesManager runningQueriesManager = new RunningQueriesManager(null, Integer.MAX_VALUE);
 
@@ -144,7 +144,7 @@ public class QueryServletTestUtils extends BasicTest {
 
     @SuppressWarnings("WeakerAccess")
     public static QueryResult run(ImhotepClient client, String query, LanguageVersion version, boolean stream, Options options, final IQL2Options defaultOptions) throws Exception {
-        final QueryServlet queryServlet = create(client, options, defaultOptions);
+        final QueryServlet queryServlet = create(client, version, options, defaultOptions);
         final MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("Accept", stream ? "text/event-stream" : "");
         request.addParameter("username", "fakeUsername");
@@ -477,7 +477,7 @@ public class QueryServletTestUtils extends BasicTest {
             runQuery(client, query, version, true, options, Collections.emptySet());
             Assert.fail("No exception returned in expectException");
         } catch (Exception e) {
-            Assert.assertTrue(exceptionMessagePredicate.apply(e.getMessage()));
+            Assert.assertTrue(exceptionMessagePredicate.test(e.getMessage()));
         }
     }
 

@@ -273,6 +273,7 @@ public final class IQLQuery implements Closeable {
                 queryInfo.ftgsMB = session.getTempFilesBytesWritten() / 1024 / 1024;
                 return executionResult;
             } catch (Throwable t) {
+                Throwables.propagateIfInstanceOf(t, IqlKnownException.class);
                 log.error("Error while executing the query", t);
                 throw Throwables.propagate(t);
             }
