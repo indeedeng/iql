@@ -36,6 +36,7 @@ import com.indeed.iql2.language.commands.SimpleIterate;
 import com.indeed.iql2.language.commands.TimePeriodRegroup;
 import com.indeed.iql2.language.commands.TopK;
 import com.indeed.iql2.language.precomputed.Precomputed;
+import com.indeed.iql2.language.query.Dataset;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.util.core.Pair;
 import it.unimi.dsi.fastutil.longs.LongList;
@@ -53,19 +54,19 @@ public interface ExecutionStep {
     ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f);
 
     class ComputePrecomputed implements ExecutionStep {
-        public final Set<String> scope;
+        public final List<Dataset> datasets;
         public final Precomputed computation;
         public final String name;
 
-        public ComputePrecomputed(Set<String> scope, Precomputed computation, String name) {
-            this.scope = scope;
+        public ComputePrecomputed(List<Dataset> datasets, Precomputed computation, String name) {
+            this.datasets = datasets;
             this.computation = computation;
             this.name = name;
         }
 
         @Override
         public List<Command> commands() {
-            final Precomputed.Precomputation precomputation = computation.commands(scope);
+            final Precomputed.Precomputation precomputation = computation.commands(datasets);
             final List<Command> result = new ArrayList<>();
             result.addAll(precomputation.beforeCommands);
             result.add(new ComputeAndCreateGroupStatsLookup(precomputation.computationCommand, name));
@@ -75,13 +76,13 @@ public interface ExecutionStep {
 
         @Override
         public ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f) {
-            return new ComputePrecomputed(scope, computation.traverse1(f), name);
+            return new ComputePrecomputed(datasets, computation.traverse1(f), name);
         }
 
         @Override
         public String toString() {
             return "ComputePrecomputed{" +
-                    "scope=" + scope +
+                    "scope=" + datasets +
                     ", computation=" + computation +
                     ", name='" + name + '\'' +
                     '}';
@@ -89,11 +90,11 @@ public interface ExecutionStep {
     }
 
     class ComputeManyPrecomputed implements ExecutionStep {
-        public final Set<String> scope;
+        public final List<Dataset> datasets;
         public final List<Pair<Precomputed, String>> computations;
 
-        public ComputeManyPrecomputed(Set<String> scope, List<Pair<Precomputed, String>> computations) {
-            this.scope = scope;
+        public ComputeManyPrecomputed(List<Dataset> datasets, List<Pair<Precomputed, String>> computations) {
+            this.datasets = datasets;
             this.computations = computations;
         }
 
@@ -102,7 +103,7 @@ public interface ExecutionStep {
             final List<Pair<Command, String>> precomputeds = new ArrayList<>();
 
             for (final Pair<Precomputed, String> computation : computations) {
-                final Precomputed.Precomputation precomputation = computation.getFirst().commands(scope);
+                final Precomputed.Precomputation precomputation = computation.getFirst().commands(datasets);
                 if (!precomputation.afterCommands.isEmpty() || !precomputation.beforeCommands.isEmpty()) {
                     return naiveExecutionCommands();
                 }
@@ -115,7 +116,7 @@ public interface ExecutionStep {
         private List<Command> naiveExecutionCommands() {
             final List<Command> commands = new ArrayList<>();
             for (final Pair<Precomputed, String> computation : computations) {
-                commands.addAll(new ComputePrecomputed(scope, computation.getFirst(), computation.getSecond()).commands());
+                commands.addAll(new ComputePrecomputed(datasets, computation.getFirst(), computation.getSecond()).commands());
             }
             return commands;
         }
@@ -126,13 +127,13 @@ public interface ExecutionStep {
             for (final Pair<Precomputed, String> computation : this.computations) {
                 computations.add(Pair.of(computation.getFirst().traverse1(f), computation.getSecond()));
             }
-            return new ComputeManyPrecomputed(scope, computations);
+            return new ComputeManyPrecomputed(datasets, computations);
         }
 
         @Override
         public String toString() {
             return "ComputeManyPrecomputed{" +
-                    "scope=" + scope +
+                    "scope=" + datasets +
                     ", computations=" + computations +
                     '}';
         }
