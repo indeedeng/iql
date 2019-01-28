@@ -275,20 +275,12 @@ public class Dataset extends AbstractPositional {
         }
     }
 
-    public static long getLatestEnd(List<Dataset> datasets) {
-        long latestEndMillis = 0L;
-        for(final long datasetEnd: datasets.stream().map(dataset -> dataset.endExclusive.unwrap().getMillis()).collect(Collectors.toList())) {
-            latestEndMillis = Math.max(latestEndMillis, datasetEnd);
-        }
-        return  latestEndMillis;
+    public static long getLatestEnd(final List<Dataset> datasets) {
+        return datasets.stream().map(dataset1 -> dataset1.endExclusive.unwrap().getMillis()).max(Long::compareTo).get();
     }
 
-    public static long getEarliestStart(List<Dataset> datasets) {
-        long earliestStartMillis = Long.MAX_VALUE;
-        for (final long datasetStart: datasets.stream().map(dataset1 -> dataset1.startInclusive.unwrap().getMillis()).collect(Collectors.toList())) {
-            earliestStartMillis = Math.min(earliestStartMillis, datasetStart);
-        }
-        return  earliestStartMillis;
+    public static long getEarliestStart(final List<Dataset> datasets) {
+        return datasets.stream().map(dataset1 -> dataset1.startInclusive.unwrap().getMillis()).min(Long::compareTo).get();
     }
 
     @Override

@@ -77,6 +77,11 @@ public class GroupByTransformTest {
     }
 
     @Test
+    public void testGroupByTimeInfereence() {
+        test("time()");
+    }
+
+    @Test
     public void testGroupByFieldIn() {
         test("oji in (1, 2, 3)");
     }

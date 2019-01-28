@@ -225,6 +225,10 @@ public class GroupBys {
                     timeFormat = Optional.absent();
                 }
 
+                if (ctx.groupByTime().timePeriod() == null) {
+                    accept(new GroupBy.GroupByTimeInference(isRelative));
+                    return;
+                }
                 final List<Pair<Integer, TimeUnit>> pairs = TimePeriods.parseTimePeriod(ctx.groupByTime().timePeriod(), ctx.useLegacy);
                 long millisSum = 0L;
                 for (final Pair<Integer, TimeUnit> pair : pairs) {
