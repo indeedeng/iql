@@ -231,7 +231,6 @@ public class GroupBys {
                     timeFormat = Optional.absent();
                 }
 
-
                 final List<Pair<Integer, TimeUnit>> pairs = TimePeriods.parseTimePeriod(ctx.groupByTime().timePeriod(), ctx.useLegacy);
                 long millisSum = 0L;
                 for (final Pair<Integer, TimeUnit> pair : pairs) {
