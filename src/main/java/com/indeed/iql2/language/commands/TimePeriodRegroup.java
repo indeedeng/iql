@@ -26,6 +26,7 @@ import com.indeed.iql2.language.util.ValidationUtil;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 public class TimePeriodRegroup implements Command {
     private final long periodMillis;
@@ -49,6 +50,7 @@ public class TimePeriodRegroup implements Command {
         if (timeFormat.isPresent()) {
             ValidationUtil.validateDateTimeFormat(timeFormat.get(), validator);
         }
+        ValidationUtil.validateGroupByTimeRange(validationHelper, TimeUnit.MILLISECONDS.toSeconds(periodMillis) , validator);
     }
 
     @Override

@@ -27,7 +27,6 @@ import java.util.List;
 public class ValidationTests extends BasicTest {
     @Test
     public void testBasicValidationPassing() throws Exception {
-        final Dataset dataset = AllData.DATASET;
         final String basic =
                 "FROM trivialOrganic 2015-01-01 2015-01-02, trivialSponsored " +
                 "SELECT COUNT(), trivialOrganic.COUNT(), trivialSponsored.COUNT(), clicked, trivialOrganic.clicked, trivialSponsored.clicked, [trivialOrganic.clicked], [trivialSponsored.clicked]";
@@ -41,17 +40,17 @@ public class ValidationTests extends BasicTest {
         final List<List<String>> expected = ImmutableList.of(Arrays.asList("", "2", "1", "1", "2", "1", "1", "1", "1"));
 
         for (final String query : Arrays.asList(basic, aliases, sameDataset)) {
-            QueryServletTestUtils.testIQL2(dataset, expected, query);
+            QueryServletTestUtils.testIQL2(expected, query);
         }
     }
 
     @Test
-    public void testBasicValidationRejecting() throws Exception {
+    public void testBasicValidationRejecting() {
         final String query =
                 "FROM trivialOrganic 2015-01-01 2015-01-02, trivialSponsored " +
                 "SELECT [trivialOrganic.clicked + trivialSponsored.clicked]";
         try {
-            QueryServletTestUtils.runQuery(AllData.DATASET.getNormalClient(), query, QueryServletTestUtils.LanguageVersion.IQL2, false, QueryServletTestUtils.Options.create(), Collections.emptySet());
+            QueryServletTestUtils.runQuery(query, QueryServletTestUtils.LanguageVersion.IQL2, false, QueryServletTestUtils.Options.create(), Collections.emptySet());
             Assert.fail();
         } catch (Exception ignored) {
         }

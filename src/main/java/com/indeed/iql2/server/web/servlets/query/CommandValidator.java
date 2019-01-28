@@ -23,7 +23,9 @@ import com.indeed.iql2.language.commands.SimpleIterate;
 import com.indeed.iql2.language.query.Dataset;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.util.ValidationHelper;
+import com.indeed.util.core.Pair;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -69,6 +71,7 @@ public class CommandValidator {
     private static ValidationHelper buildValidationHelper(final List<Dataset> relevantDatasets, final Map<String, String> nameToActualDataset,
                                                           final DatasetsMetadata datasetsMetadata, final boolean useLegacy) {
         final Map<String, DatasetMetadata> relevantDatasetToMetadata = new HashMap<>();
+        final HashMap<String, Pair<Long,Long>> datasetsTimeRange = new HashMap<>();
         for (final Dataset relevantDataset : relevantDatasets) {
             final String aliasDataset = relevantDataset.getDisplayName().unwrap();
             final String actualDataset = nameToActualDataset.get(aliasDataset);
@@ -77,7 +80,8 @@ public class CommandValidator {
                 continue;
             }
             relevantDatasetToMetadata.put(aliasDataset, datasetMetadata);
+            datasetsTimeRange.put(aliasDataset,new Pair<>(relevantDataset.startInclusive.unwrap().getMillis(), relevantDataset.endExclusive.unwrap().getMillis()));
         }
-        return new ValidationHelper(new DatasetsMetadata(relevantDatasetToMetadata), Collections.emptyMap(), Collections.emptyMap(), useLegacy);
+        return new ValidationHelper(new DatasetsMetadata(relevantDatasetToMetadata), datasetsTimeRange, Collections.emptyMap(), Collections.emptyMap(), useLegacy);
     }
 }

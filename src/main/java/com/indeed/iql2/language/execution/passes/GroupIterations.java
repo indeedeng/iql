@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class GroupIterations {
     public static List<ExecutionStep> apply(List<ExecutionStep> steps) {
@@ -80,6 +81,16 @@ public class GroupIterations {
 
     private static List<Grouping> findGroupings(List<ExecutionStep.ComputePrecomputed> precomputeds) {
         final List<Grouping>[] bestGrouping = new List[1];
+
+        final boolean noDependencies = precomputeds.stream().allMatch(x -> findNamedDependencies(x.computation).isEmpty());
+        if (noDependencies) {
+            return groupByContexts(precomputeds)
+                    .entrySet()
+                    .stream()
+                    .map(e -> Grouping.from(e.getKey(), e.getValue()))
+                    .collect(Collectors.toList());
+        }
+
         recursivelyConsiderAllOrders(new ArrayList<>(), precomputeds, bestGrouping);
         if (bestGrouping[0] == null) {
             throw new IllegalStateException("No groupings?!");
@@ -105,16 +116,7 @@ public class GroupIterations {
                 }
             }
 
-            final Map<PrecomputedContext, List<ExecutionStep.ComputePrecomputed>> contextMembers = new HashMap<>();
-            for (final ExecutionStep.ComputePrecomputed elem : usable) {
-                final PrecomputedContext ctx = PrecomputedContext.create(elem);
-                List<ExecutionStep.ComputePrecomputed> members = contextMembers.get(ctx);
-                if (members == null) {
-                    members = new ArrayList<>();
-                    contextMembers.put(ctx, members);
-                }
-                members.add(elem);
-            }
+            final Map<PrecomputedContext, List<ExecutionStep.ComputePrecomputed>> contextMembers = groupByContexts(usable);
 
             for (final Map.Entry<PrecomputedContext, List<ExecutionStep.ComputePrecomputed>> entry : contextMembers.entrySet()) {
                 final Grouping grouping = Grouping.from(entry.getKey(), entry.getValue());
@@ -128,6 +130,20 @@ public class GroupIterations {
                 soFar.remove(soFar.size() - 1);
             }
         }
+    }
+
+    private static Map<PrecomputedContext, List<ExecutionStep.ComputePrecomputed>> groupByContexts(final List<ExecutionStep.ComputePrecomputed> usable) {
+        final Map<PrecomputedContext, List<ExecutionStep.ComputePrecomputed>> contextMembers = new HashMap<>();
+        for (final ExecutionStep.ComputePrecomputed elem : usable) {
+            final PrecomputedContext ctx = PrecomputedContext.create(elem);
+            List<ExecutionStep.ComputePrecomputed> members = contextMembers.get(ctx);
+            if (members == null) {
+                members = new ArrayList<>();
+                contextMembers.put(ctx, members);
+            }
+            members.add(elem);
+        }
+        return contextMembers;
     }
 
     private static Set<String> findNamedDependencies(Precomputed precomputed) {
@@ -179,12 +195,9 @@ public class GroupIterations {
             } else if (computation instanceof Precomputed.PrecomputedSumAcrossGroupBy) {
                 final Precomputed.PrecomputedSumAcrossGroupBy precomputedSumAcrossGroupBy = (Precomputed.PrecomputedSumAcrossGroupBy) computation;
                 return new PrecomputedContext(scope, Optional.absent());
-            } else if (computation instanceof Precomputed.PrecomputedFieldMax) {
-                final Precomputed.PrecomputedFieldMax precomputedFieldMax = (Precomputed.PrecomputedFieldMax) computation;
-                return new PrecomputedContext(scope, Optional.of(precomputedFieldMax.field));
-            } else if (computation instanceof Precomputed.PrecomputedFieldMin) {
-                final Precomputed.PrecomputedFieldMin precomputedFieldMin = (Precomputed.PrecomputedFieldMin) computation;
-                return new PrecomputedContext(scope, Optional.of(precomputedFieldMin.field));
+            } else if (computation instanceof Precomputed.PrecomputedFieldExtremeValue) {
+                final Precomputed.PrecomputedFieldExtremeValue precomputedFieldExtremeValue = (Precomputed.PrecomputedFieldExtremeValue) computation;
+                return new PrecomputedContext(scope, Optional.of(precomputedFieldExtremeValue.field));
             } else {
                 throw new IllegalStateException("Failed to handle: [" + computePrecomputed + "]'s computation: [" + computation + "]");
             }
@@ -220,14 +233,6 @@ public class GroupIterations {
                 infos.add(new PrecomputationInfo(precomputed.computation, precomputed.name));
             }
             return new Grouping(ctx.scope, infos);
-        }
-
-        public Set<String> names() {
-            final Set<String> names = new HashSet<>();
-            for (final PrecomputationInfo info : precomputationInfos) {
-                names.add(info.name);
-            }
-            return names;
         }
     }
 

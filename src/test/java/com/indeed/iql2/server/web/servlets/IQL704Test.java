@@ -26,17 +26,16 @@ import java.util.List;
 public class IQL704Test extends BasicTest {
     @Test
     public void ensureErrorThrown() throws Exception {
-        final Dataset dataset = AllData.DATASET;
         final QueryServletTestUtils.Options options = QueryServletTestUtils.Options.create(true).setSubQueryTermLimit(5000L);
         try {
-            QueryServletTestUtils.testIQL1(dataset, ImmutableList.of(), "from big yesterday today group by field, field", options);
+            QueryServletTestUtils.testIQL1(ImmutableList.of(), "from big yesterday today group by field, field", options);
             Assert.fail();
         } catch (Exception e) {
             // Ensure we get *just* above the limit, instead of way above
             Assert.assertTrue(e.getMessage().contains("Number of groups [5001] exceeds the group limit [5000]"));
         }
         try {
-            QueryServletTestUtils.testIQL2(dataset, ImmutableList.of(), "from big yesterday today group by field, field", options);
+            QueryServletTestUtils.testIQL2(ImmutableList.of(), "from big yesterday today group by field, field", options);
             Assert.fail();
         } catch (Exception e) {
             // Ensure we get *just* above the limit, instead of way above

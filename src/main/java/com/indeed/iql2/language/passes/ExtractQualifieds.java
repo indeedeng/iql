@@ -37,7 +37,7 @@ public class ExtractQualifieds {
                 if (input instanceof DocFilter.Qualified) {
                     aggregator.addAll(((DocFilter.Qualified) input).scope);
                 }
-                return null;
+                return input;
             }
         };
     }

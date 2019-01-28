@@ -96,14 +96,6 @@ public class IterateHandlers {
             Session.iterateMultiString(sessionsSubset, sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, callback, session.timer, session.options);
             session.timer.pop();
         } else {
-            if (log.isDebugEnabled()) {
-                for (final Map.Entry<String, Session.ImhotepSessionInfo> s : session.sessions.entrySet()) {
-                    final String name = s.getKey();
-                    final boolean isIntField = s.getValue().intFields.contains(field);
-                    final boolean isStringField = s.getValue().stringFields.contains(field);
-                    log.debug("name = " + name + ", isIntField=" + isIntField + ", isStringField=" + isStringField);
-                }
-            }
             throw new IllegalStateException("Field is neither all int nor all string field: " + field);
         }
 

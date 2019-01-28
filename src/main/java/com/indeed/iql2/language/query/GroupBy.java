@@ -24,6 +24,7 @@ import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocFilter;
 import com.indeed.iql2.language.DocMetric;
+import com.indeed.iql2.language.Positional;
 import com.indeed.iql2.language.execution.ExecutionStep;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import it.unimi.dsi.fastutil.longs.LongList;
@@ -68,6 +69,12 @@ public abstract class GroupBy extends AbstractPositional {
     public abstract boolean isTotal();
     public abstract GroupBy makeTotal() throws CannotMakeTotalException;
 
+    @Override
+    public GroupBy copyPosition(final Positional positional) {
+        super.copyPosition(positional);
+        return this;
+    }
+
     public static class GroupByMetric extends GroupBy {
         public final DocMetric metric;
         public final long min;
@@ -92,7 +99,8 @@ public abstract class GroupBy extends AbstractPositional {
 
         @Override
         public GroupBy transform(Function<GroupBy, GroupBy> groupBy, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
-            return groupBy.apply(new GroupByMetric(metric.transform(g, i), min, max, interval, excludeGutters, withDefault));
+            return groupBy.apply(new GroupByMetric(metric.transform(g, i), min, max, interval, excludeGutters, withDefault))
+                    .copyPosition(this);
         }
 
         @Override
@@ -182,7 +190,8 @@ public abstract class GroupBy extends AbstractPositional {
 
         @Override
         public GroupBy transform(Function<GroupBy, GroupBy> groupBy, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
-            return groupBy.apply(this);
+            return groupBy.apply(new GroupByTime(periodMillis, field, format, isRelative))
+                    .copyPosition(this);
         }
 
         @Override
@@ -267,7 +276,8 @@ public abstract class GroupBy extends AbstractPositional {
 
         @Override
         public GroupBy transform(Function<GroupBy, GroupBy> groupBy, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
-            return groupBy.apply(this);
+            return groupBy.apply(new GroupByTimeBuckets(numBuckets, field, format))
+                    .copyPosition(this);
         }
 
         @Override
@@ -337,7 +347,8 @@ public abstract class GroupBy extends AbstractPositional {
 
         @Override
         public GroupBy transform(Function<GroupBy, GroupBy> groupBy, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
-            return groupBy.apply(this);
+            return groupBy.apply(new GroupByMonth(timeField, timeFormat))
+                    .copyPosition(this);
         }
 
         @Override
@@ -424,7 +435,7 @@ public abstract class GroupBy extends AbstractPositional {
 
         @Override
         public GroupBy transform(Function<GroupBy, GroupBy> groupBy, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
-            return groupBy.apply(this);
+            return groupBy.apply(new GroupByFieldIn(field, intTerms, stringTerms, withDefault)).copyPosition(this);
         }
 
         @Override
@@ -507,7 +518,8 @@ public abstract class GroupBy extends AbstractPositional {
                 final Function<DocMetric, DocMetric> g,
                 final Function<AggregateFilter, AggregateFilter> h,
                 final Function<DocFilter, DocFilter> i) {
-            return groupBy.apply(this);
+            return groupBy.apply(new GroupByFieldInQuery(field, query, isNegated, withDefault))
+                    .copyPosition(this);
         }
 
         @Override
@@ -576,6 +588,10 @@ public abstract class GroupBy extends AbstractPositional {
             this.withDefault = withDefault;
         }
 
+        public boolean isTopK() {
+            return metric.isPresent() && limit.isPresent();
+        }
+
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
@@ -595,7 +611,8 @@ public abstract class GroupBy extends AbstractPositional {
             } else {
                 metric = Optional.absent();
             }
-            return groupBy.apply(new GroupByField(field, filter, limit, metric, withDefault));
+            return groupBy.apply(new GroupByField(field, filter, limit, metric, withDefault))
+                    .copyPosition(this);
         }
 
         @Override
@@ -612,7 +629,8 @@ public abstract class GroupBy extends AbstractPositional {
             } else {
                 metric = Optional.absent();
             }
-            return new GroupByField(field, filter, limit, metric, withDefault);
+            return new GroupByField(field, filter, limit, metric, withDefault)
+                    .copyPosition(this);
         }
 
         @Override
@@ -675,12 +693,12 @@ public abstract class GroupBy extends AbstractPositional {
 
         @Override
         public GroupBy transform(Function<GroupBy, GroupBy> groupBy, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
-            return groupBy.apply(this);
+            return groupBy.apply(new GroupByDayOfWeek()).copyPosition(this);
         }
 
         @Override
         public GroupBy traverse1(Function<AggregateMetric, AggregateMetric> f) {
-            return this;
+            return new GroupByDayOfWeek();
         }
 
         @Override
@@ -722,7 +740,7 @@ public abstract class GroupBy extends AbstractPositional {
 
         @Override
         public GroupBy transform(Function<GroupBy, GroupBy> groupBy, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
-            return groupBy.apply(this);
+            return groupBy.apply(new GroupBySessionName()).copyPosition(this);
         }
 
         @Override
@@ -777,7 +795,8 @@ public abstract class GroupBy extends AbstractPositional {
 
         @Override
         public GroupBy transform(Function<GroupBy, GroupBy> groupBy, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
-            return groupBy.apply(this);
+            return groupBy.apply(new GroupByQuantiles(field, numBuckets))
+                    .copyPosition(this);
         }
 
         @Override
@@ -843,7 +862,8 @@ public abstract class GroupBy extends AbstractPositional {
 
         @Override
         public GroupBy transform(Function<GroupBy, GroupBy> groupBy, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
-            return groupBy.apply(new GroupByPredicate(docFilter.transform(g, i)));
+            return groupBy.apply(new GroupByPredicate(docFilter.transform(g, i)))
+                    .copyPosition(this);
         }
 
         @Override
@@ -909,7 +929,8 @@ public abstract class GroupBy extends AbstractPositional {
 
         @Override
         public GroupBy transform(Function<GroupBy, GroupBy> groupBy, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
-            return groupBy.apply(this);
+            return groupBy.apply(new GroupByRandom(field, k, salt))
+                    .copyPosition(this);
         }
 
         @Override
@@ -979,7 +1000,8 @@ public abstract class GroupBy extends AbstractPositional {
                                  final Function<DocMetric, DocMetric> g,
                                  final Function<AggregateFilter, AggregateFilter> h,
                                  final Function<DocFilter, DocFilter> i) {
-            return groupBy.apply(new GroupByRandomMetric(metric.transform(g, i), k, salt));
+            return groupBy.apply(new GroupByRandomMetric(metric.transform(g, i), k, salt))
+                    .copyPosition(this);
         }
 
         @Override

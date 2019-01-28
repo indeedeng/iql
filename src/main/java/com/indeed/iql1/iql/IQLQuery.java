@@ -26,7 +26,7 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.client.ImhotepClient;
-import com.indeed.iql.StrictCloser;
+import com.indeed.imhotep.StrictCloser;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql.web.Limits;
@@ -273,6 +273,7 @@ public final class IQLQuery implements Closeable {
                 queryInfo.ftgsMB = session.getTempFilesBytesWritten() / 1024 / 1024;
                 return executionResult;
             } catch (Throwable t) {
+                Throwables.propagateIfInstanceOf(t, IqlKnownException.class);
                 log.error("Error while executing the query", t);
                 throw Throwables.propagate(t);
             }
@@ -615,7 +616,7 @@ public final class IQLQuery implements Closeable {
                 out.print("data: ");
             }
             if(!csv) { // TSV
-                GroupKey current = entry.groupKey;
+                GroupKey current = entry.getGroupKey();
                 while (!current.isEmpty()) {
                     final Object group = current.head();
                     if(group instanceof String) {
@@ -637,18 +638,18 @@ public final class IQLQuery implements Closeable {
                         out.print(tsvDelimiter);
                     }
                 }
-                for (double l : entry.stats) {
+                for (double l : entry.getStats()) {
                     out.print(tsvDelimiter);
                     out.print(Double.isNaN(l) ? "NaN" : format.format(l));
                 }
                 out.println();
             } else {    // csv
-                GroupKey current = entry.groupKey;
+                GroupKey current = entry.getGroupKey();
                 while (!current.isEmpty()) {
                     csvFields.add(current.head().toString());
                     current = current.tail();
                 }
-                for (double l : entry.stats) {
+                for (double l : entry.getStats()) {
                     csvFields.add(format.format(l));
                 }
                 csvWriter.writeNext(csvFields.toArray(new String[csvFields.size()]));

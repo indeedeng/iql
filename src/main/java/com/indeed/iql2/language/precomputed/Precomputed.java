@@ -22,8 +22,7 @@ import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocFilter;
 import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.commands.Command;
-import com.indeed.iql2.language.commands.ComputeFieldMax;
-import com.indeed.iql2.language.commands.ComputeFieldMin;
+import com.indeed.iql2.language.commands.ComputeFieldExtremeValue;
 import com.indeed.iql2.language.commands.GetGroupDistincts;
 import com.indeed.iql2.language.commands.GetGroupPercentiles;
 import com.indeed.iql2.language.commands.GetGroupStats;
@@ -160,7 +159,7 @@ public interface Precomputed {
         public Precomputation commands(final Set<String> scope) {
             final List<AggregateMetric> metrics = new ArrayList<>(scope.size());
             for (final String dataset : scope) {
-                final AggregateMetric metric = new AggregateMetric.DocStatsPushes(dataset, new DocMetric.PushableDocMetric(docMetric));
+                final AggregateMetric metric = new AggregateMetric.DocStatsPushes(dataset, docMetric);
                 metrics.add(metric);
             }
             final AggregateMetric metric = AggregateMetric.Add.create(metrics);
@@ -301,90 +300,69 @@ public interface Precomputed {
         }
     }
 
-    class PrecomputedFieldMin implements Precomputed {
+    class PrecomputedFieldExtremeValue implements Precomputed {
         public final FieldSet field;
+        public final AggregateMetric metric;
+        public final Optional<AggregateFilter> filter;
 
-        public PrecomputedFieldMin(FieldSet field) {
+        public PrecomputedFieldExtremeValue(
+                final FieldSet field,
+                final AggregateMetric metric,
+                final Optional<AggregateFilter> filter
+                ) {
             this.field = field;
+            this.metric = metric;
+            this.filter = filter;
         }
 
         @Override
-        public Precomputation commands(Set<String> scope) {
+        public Precomputation commands(final Set<String> scope) {
             Preconditions.checkState(scope.equals(field.datasets()));
-            return Precomputation.noContext(new ComputeFieldMin(field));
+            return Precomputation.noContext(new ComputeFieldExtremeValue(field, metric, filter));
         }
 
         @Override
-        public Precomputed transform(Function<Precomputed, Precomputed> precomputed, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            return precomputed.apply(this);
+        public Precomputed transform(
+                final Function<Precomputed, Precomputed> precomputed,
+                final Function<AggregateMetric, AggregateMetric> f,
+                final Function<DocMetric, DocMetric> g,
+                final Function<AggregateFilter, AggregateFilter> h,
+                final Function<DocFilter, DocFilter> i,
+                final Function<GroupBy, GroupBy> groupByFunction) {
+            return precomputed.apply(
+                new PrecomputedFieldExtremeValue(field,
+                    metric.transform(f, g, h, i, groupByFunction),
+                    filter.transform(fil -> fil.transform(f, g, h, i, groupByFunction))
+                )
+            );
         }
 
         @Override
         public Precomputed traverse1(Function<AggregateMetric, AggregateMetric> f) {
-            return this;
+            return new PrecomputedFieldExtremeValue(field, f.apply(metric), Optionals.traverse1(filter, f));
         }
 
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
-            PrecomputedFieldMin that = (PrecomputedFieldMin) o;
-            return Objects.equals(field, that.field);
+            PrecomputedFieldExtremeValue that = (PrecomputedFieldExtremeValue) o;
+            return Objects.equals(field, that.field) &&
+                Objects.equals(metric, that.metric) &&
+                Objects.equals(filter, that.filter);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(field);
+            return Objects.hash(field, metric, filter);
         }
 
         @Override
         public String toString() {
-            return "PrecomputedFieldMin{" +
+            return "PrecomputedFieldExtremeValue{" +
                     "field='" + field + '\'' +
-                    '}';
-        }
-    }
-
-    class PrecomputedFieldMax implements Precomputed {
-        public final FieldSet field;
-
-        public PrecomputedFieldMax(FieldSet field) {
-            this.field = field;
-        }
-
-        @Override
-        public Precomputation commands(Set<String> scope) {
-            Preconditions.checkState(scope.equals(field.datasets()));
-            return Precomputation.noContext(new ComputeFieldMax(field));
-        }
-
-        @Override
-        public Precomputed transform(Function<Precomputed, Precomputed> precomputed, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            return precomputed.apply(this);
-        }
-
-        @Override
-        public Precomputed traverse1(Function<AggregateMetric, AggregateMetric> f) {
-            return this;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            PrecomputedFieldMax that = (PrecomputedFieldMax) o;
-            return Objects.equals(field, that.field);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(field);
-        }
-
-        @Override
-        public String toString() {
-            return "PrecomputedFieldMax{" +
-                    "field='" + field + '\'' +
+                    ", metric='" + metric + '\'' +
+                    ", filter='" + filter + '\'' +
                     '}';
         }
     }

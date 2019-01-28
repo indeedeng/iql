@@ -15,7 +15,6 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
-import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -27,7 +26,7 @@ public class MultiValueRegroupTest extends BasicTest {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("1", "100"));
         expected.add(ImmutableList.of("2", "50"));
-        QueryServletTestUtils.testAll(AllData.DATASET, expected, "from multiValue yesterday today group by f[2] select count()", true);
+        QueryServletTestUtils.testAll(expected, "from multiValue yesterday today group by f[2] select count()", true);
     }
 
     @Test
@@ -35,12 +34,12 @@ public class MultiValueRegroupTest extends BasicTest {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("1", "100"));
         expected.add(ImmutableList.of("2", "50"));
-        QueryServletTestUtils.testAll(AllData.DATASET, expected, "from multiValue yesterday today group by f in (1,2) select count()", true);
+        QueryServletTestUtils.testAll(expected, "from multiValue yesterday today group by f in (1,2) select count()", true);
     }
 
     @Test
     public void testGroupByMultiValueInIQL1() throws Exception {
-        QueryServletTestUtils.testIQL1(AllData.DATASET,
+        QueryServletTestUtils.testIQL1(
                 ImmutableList.of(ImmutableList.of("1", "50")),
                 "from multiValue yesterday today where sf in (\"1\",\"2\") i=1 GROUP BY sf", true);
         // This query fails with ArrayIndexOutOfBoundsException in Iql1
@@ -48,19 +47,41 @@ public class MultiValueRegroupTest extends BasicTest {
         // But if you change filter to "where sf in ("2") sf in ("1")" it returns ("2", "2", "50")
         // Not sure it's worth to spend much time on that.
         // It's here just for history
-        //QueryServletTestUtils.testIQL1(AllData.DATASET,
+        //QueryServletTestUtils.testIQL1(
         //        ImmutableList.of(ImmutableList.of("1", "1", "50")),
         //        "from multiValue yesterday today where sf in (\"1\") sf in (\"2\") GROUP BY sf, sf", true);
-        QueryServletTestUtils.testIQL1(AllData.DATASET,
+        QueryServletTestUtils.testIQL1(
                 ImmutableList.of(
                         ImmutableList.of("0", "1", "50"),
                         ImmutableList.of("1", "1", "50"),
                         ImmutableList.of("0", "2", "50")
                 ),
                 "from multiValue yesterday today where sf in (\"1\",\"2\") GROUP BY i, sf", true);
-        QueryServletTestUtils.testIQL1(AllData.DATASET,
+        QueryServletTestUtils.testIQL1(
                 ImmutableList.of(),
                 "from multiValue yesterday today where sf in (\"1\") sf in (\"2\") i = 1 GROUP BY sf", true);
+    }
+
+    @Test
+    public void testRegroupByStringFieldWithIntFilter() throws Exception {
+        // page is string multivalued field, some docs have "last" as a second term.
+        // Check that in IQL1 string field optimization is applied even if we filter int values.
+        final String query = "from jobsearch yesterday today where page in (1, 2, 3) group by page";
+        QueryServletTestUtils.testIQL1(
+                ImmutableList.of(
+                        ImmutableList.of("1", "2"),
+                        ImmutableList.of("2", "2"),
+                        ImmutableList.of("3", "2")),
+                query);
+        // Check that in IQL2 is without these optimization.
+        QueryServletTestUtils.testIQL2(
+                ImmutableList.of(
+                        ImmutableList.of("1", "2"),
+                        ImmutableList.of("2", "2"),
+                        ImmutableList.of("3", "2"),
+                        ImmutableList.of("last", "3")
+                ),
+                query);
     }
 
     @Test
@@ -68,9 +89,9 @@ public class MultiValueRegroupTest extends BasicTest {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("1", "50"));
         expected.add(ImmutableList.of("3", "17"));
-        QueryServletTestUtils.testIQL2(AllData.DATASET, expected, "from multiValue yesterday today where f in (1,2) i=1 GROUP BY f", true);
+        QueryServletTestUtils.testIQL2(expected, "from multiValue yesterday today where f in (1,2) i=1 GROUP BY f", true);
 
-        QueryServletTestUtils.testIQL2(AllData.DATASET,
+        QueryServletTestUtils.testIQL2(
                 ImmutableList.of(
                         ImmutableList.of("0", "1", "50"),
                         ImmutableList.of("1", "1", "50"),
@@ -81,4 +102,21 @@ public class MultiValueRegroupTest extends BasicTest {
                 "from multiValue yesterday today where f in (1,2) GROUP BY i, f", true);
     }
 
+    @Test
+    public void testNoOptimizeWithTopK() throws Exception {
+        // Check that "where field in (..) group by field" -> "group by field in (..)" optimization
+        // does not apply in topK regroups
+        QueryServletTestUtils.testIQL1(
+                ImmutableList.of(
+                        ImmutableList.of("1", "50"),
+                        ImmutableList.of("3", "17")),
+                "from multiValue yesterday today where sf in (\"1\",\"2\") i=1 GROUP BY sf[10]", true);
+        QueryServletTestUtils.testIQL1(
+                ImmutableList.of(
+                        ImmutableList.of("1", "251"),
+                        ImmutableList.of("3", "119"),
+                        ImmutableList.of("2", "117")
+                ),
+                "from multiValue yesterday today where sf in (\"1\",\"2\") GROUP BY sf[10 by f + i] select f + i", true);
+    }
 }

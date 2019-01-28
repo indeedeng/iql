@@ -17,6 +17,7 @@ package com.indeed.iql2.language.execution;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Maps;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocMetric;
@@ -42,7 +43,6 @@ import it.unimi.dsi.fastutil.longs.LongLists;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -269,11 +269,7 @@ public interface ExecutionStep {
 
         @Override
         public List<Command> commands() {
-            final Map<String, List<String>> datasetToPushes = new HashMap<>();
-            for (final String s : scope) {
-                datasetToPushes.put(s, new DocMetric.PushableDocMetric(perDatasetMetric.get(s)).getPushes(s));
-            }
-            return Collections.<Command>singletonList(new MetricRegroup(datasetToPushes, lowerBound, upperBound, interval, excludeGutters, withDefault, fromPredicate));
+            return Collections.singletonList(new MetricRegroup(Maps.filterKeys(perDatasetMetric, scope::contains), lowerBound, upperBound, interval, excludeGutters, withDefault, fromPredicate));
         }
 
         @Override
@@ -660,11 +656,7 @@ public interface ExecutionStep {
 
         @Override
         public List<Command> commands() {
-            final Map<String, List<String>> datasetToPushes = new HashMap<>();
-            for (final String s : scope) {
-                datasetToPushes.put(s, new DocMetric.PushableDocMetric(perDatasetMetric.get(s)).getPushes(s));
-            }
-            return Collections.singletonList(new RandomMetricRegroup(datasetToPushes, k, salt));
+            return Collections.singletonList(new RandomMetricRegroup(Maps.filterKeys(perDatasetMetric, scope::contains), k, salt));
         }
 
         @Override

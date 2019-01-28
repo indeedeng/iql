@@ -112,7 +112,7 @@ public class PrettyPrint {
     private String getText(Positional positional) {
         final StringBuilder sb = new StringBuilder();
         appendCommentBeforeText(positional, sb);
-        sb.append(inputStream.getText(new Interval(positional.getStart().startIndex, positional.getEnd().stopIndex)));
+        sb.append(inputStream.getText(positional.getInterval()));
         appendCommentAfterText(positional, sb);
         return sb.toString();
     }
@@ -1111,11 +1111,6 @@ public class PrettyPrint {
                 sb.append(", ").append(log.scaleFactor);
                 sb.append(')');
                 return null;
-            }
-
-            @Override
-            public Void visit(DocMetric.PushableDocMetric pushableDocMetric) {
-                throw new UnsupportedOperationException("uhhh");
             }
 
             @Override

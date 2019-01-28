@@ -15,11 +15,36 @@
 package com.indeed.iql2.language;
 
 import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.misc.Interval;
+
+import javax.annotation.Nullable;
 
 public interface Positional {
-    Position getStart();
+    Token getStart();
 
-    Position getEnd();
+    Token getEnd();
+
+    default Interval getInterval() {
+        return new Interval(getStart().getStartIndex(), getEnd().getStopIndex());
+    }
+
+    @Nullable
+    default String getRawInput() {
+        final Token start = getStart();
+        if (start == null) {
+            return null;
+        }
+        return start.getInputStream().getText(getInterval());
+    }
+
+    default String getTextOrToString() {
+        final String rawInput = getRawInput();
+        if (rawInput != null) {
+            return rawInput;
+        }
+        return toString();
+    }
 
     ParserRuleContext getParserRuleContext();
 }

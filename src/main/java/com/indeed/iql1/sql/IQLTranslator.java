@@ -23,14 +23,13 @@ import com.indeed.flamdex.lucene.LuceneQueryTranslator;
 import com.indeed.imhotep.automaton.RegExp;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.RegexTooComplexException;
-import com.indeed.iql.StrictCloser;
+import com.indeed.imhotep.StrictCloser;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql.metadata.FieldMetadata;
 import com.indeed.iql.metadata.ImhotepMetadataCache;
 import com.indeed.iql.web.Limits;
 import com.indeed.iql.web.QueryInfo;
-import com.indeed.iql1.ez.DynamicMetric;
 import com.indeed.iql1.ez.EZImhotepSession;
 import com.indeed.iql1.ez.Field;
 import com.indeed.iql1.iql.Condition;
@@ -46,7 +45,6 @@ import com.indeed.iql1.iql.QueryCondition;
 import com.indeed.iql1.iql.RegexCondition;
 import com.indeed.iql1.iql.SampleCondition;
 import com.indeed.iql1.iql.StatRangeGrouping;
-import com.indeed.iql1.iql.StatRangeGrouping2D;
 import com.indeed.iql1.iql.StringInCondition;
 import com.indeed.iql1.sql.ast.BinaryExpression;
 import com.indeed.iql1.sql.ast.Expression;
@@ -95,7 +93,6 @@ import static com.indeed.iql1.ez.EZImhotepSession.cached;
 import static com.indeed.iql1.ez.EZImhotepSession.constant;
 import static com.indeed.iql1.ez.EZImhotepSession.counts;
 import static com.indeed.iql1.ez.EZImhotepSession.div;
-import static com.indeed.iql1.ez.EZImhotepSession.dynamic;
 import static com.indeed.iql1.ez.EZImhotepSession.exp;
 import static com.indeed.iql1.ez.EZImhotepSession.floatScale;
 import static com.indeed.iql1.ez.EZImhotepSession.greater;
@@ -119,6 +116,7 @@ import static com.indeed.iql1.ez.EZImhotepSession.multiplyShiftRight;
 import static com.indeed.iql1.ez.EZImhotepSession.shiftLeftDivide;
 import static com.indeed.iql1.ez.EZImhotepSession.sub;
 import static com.indeed.iql1.ez.Stats.Stat;
+import static com.indeed.iql2.language.util.ValidationUtil.appendTimePeriod;
 
 /**
  * @author jplaisance
@@ -488,16 +486,6 @@ public final class IQLTranslator {
                                 "Scaling factor defaults to 1.");
                     }
                     return log(input.get(0).match(StatMatcher.this), scaleFactor);
-                }
-            });
-            builder.put("dynamic", new Function<List<Expression>, Stat>() {
-                public Stat apply(final List<Expression> input) {
-                    if (input.size() != 1) {
-                        throw new IqlKnownException.ParseErrorException("dynamic() requires one argument.");
-                    }
-                    String name = getName(input.get(0));
-                    fieldNames.add(name);
-                    return dynamic(new DynamicMetric(name));
                 }
             });
             builder.put("hasstr", new Function<List<Expression>, Stat>() {
@@ -1073,16 +1061,7 @@ public final class IQLTranslator {
                             return new StatRangeGrouping(input.get(0).match(statMatcher), min, max, interval, noGutters,
                                     new LongStringifier(), false, limits);
                         } else if (input.size() == 8) {
-                            // DEPRECATED: queries using buckets() with 8 args should be rewritten as 2 buckets() groupings with 4 args each
-                            final Stat xStat = input.get(0).match(statMatcher);
-                            final long xMin = parseLong(input.get(1));
-                            final long xMax = parseLong(input.get(2));
-                            final long xInterval = parseTimeBucketInterval(getStr(input.get(3)), false, 0, 0);
-                            final Stat yStat = input.get(4).match(statMatcher);
-                            final long yMin = parseLong(input.get(5));
-                            final long yMax = parseLong(input.get(6));
-                            final long yInterval = parseTimeBucketInterval(getStr(input.get(7)), false, 0, 0);
-                            return new StatRangeGrouping2D(xStat, xMin, xMax, xInterval, yStat, yMin, yMax, yInterval, limits);
+                            throw new IqlKnownException.ParseErrorException("DEPRECATED: queries using buckets() with 8 args should be rewritten as 2 buckets() groupings with 4 args each");
                         } else {
                             throw new IqlKnownException.ParseErrorException("buckets() takes 4 or 5 arguments: stat, min(long), max(long), bucket_size(long), [noGutters(boolean)]");
                         }
@@ -1203,36 +1182,7 @@ public final class IQLTranslator {
             return bucketSize;
         }
 
-        private static int appendTimePeriod(long timePeriod, StringBuilder builder) {
-            final int timePeriodUnits;
-            if (timePeriod % SECONDS_IN_WEEK == 0) {
-                // duration is in days
-                builder.append(timePeriod / SECONDS_IN_WEEK);
-                builder.append(" weeks");
-                timePeriodUnits = SECONDS_IN_WEEK;
-            } else if (timePeriod % SECONDS_IN_DAY == 0) {
-                // duration is in days
-                builder.append(timePeriod / SECONDS_IN_DAY);
-                builder.append(" days");
-                timePeriodUnits = SECONDS_IN_DAY;
-            } else if (timePeriod % SECONDS_IN_HOUR == 0) {
-                // duration is in hours
-                builder.append(timePeriod / SECONDS_IN_HOUR);
-                builder.append(" hours");
-                timePeriodUnits = SECONDS_IN_HOUR;
-            } else if (timePeriod % SECONDS_IN_MINUTE == 0) {
-                // duration is in minutes
-                builder.append(timePeriod / SECONDS_IN_MINUTE);
-                builder.append(" minutes");
-                timePeriodUnits = SECONDS_IN_MINUTE;
-            } else {
-                // duration is seconds
-                builder.append(timePeriod);
-                builder.append(" seconds");
-                timePeriodUnits = 1;
-            }
-            return timePeriodUnits;
-        }
+
 
         private static final int SECONDS_IN_MINUTE = 60;
         private static final int SECONDS_IN_HOUR = SECONDS_IN_MINUTE * 60;
@@ -1334,7 +1284,7 @@ public final class IQLTranslator {
                         break;
                     }
                     default: {
-                        throw new RuntimeException("Shouldn't happen");
+                        throw new IllegalStateException("Shouldn't happen");
                     }
                 }
                 if(buckets < MAX_RECOMMENDED_BUCKETS) {

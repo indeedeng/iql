@@ -48,14 +48,14 @@ public class QueryOptions {
     // Temporary features, now in test mode.
     // After testing should be deleted or moved to main features list.
     public static class Experimental {
-        public static final String USE_MULTI_FTGS = "multiftgs";
-        public static final String USE_AGGREGATE_DISTINCT = "aggdistinct";
         private static final Pattern HOSTS_MAPPING_METHOD_PATTERN = Pattern.compile("^hostsmappingmethod=(\\w|_)*$");
         private static final Pattern HOSTS_PATTERN = Pattern.compile("^hosts=\\[.*\\]$");
 
         private static final Splitter COMMA_SPLITTER = Splitter.on(",");
         private static final Splitter COLON_SPLITTER = Splitter.on(":");
         private static final Splitter EQUALITY_SPLITTER = Splitter.on("=");
+
+        public static final String ASYNC = "async";
 
         private Experimental() {
         }

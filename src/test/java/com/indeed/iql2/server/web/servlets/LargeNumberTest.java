@@ -13,6 +13,6 @@ public class LargeNumberTest extends BasicTest {
     public void testLargeNumber() throws Exception {
         // 16 digits of precision
         final ImmutableList<List<String>> expected = ImmutableList.of(ImmutableList.of("", "36893488147419103000"));
-        testIQL2(AllData.DATASET, expected, "from organic yesterday today select 2 ^ 65");
+        testIQL2(expected, "from organic yesterday today select 2 ^ 65");
     }
 }
