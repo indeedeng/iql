@@ -1,7 +1,6 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
-import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -229,5 +228,76 @@ public class SampleAndRandomTest extends BasicTest {
         expected.add(ImmutableList.of("sampled", "2", "31", "31", "2"));
 
         testIQL2(expected, query, Options.create(true));
+    }
+
+    @Test
+    public void testRandomCountryWithLargeBucketNumber() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("15", "ae", "1"));
+        expected.add(ImmutableList.of("574", "aq", "1"));
+        expected.add(ImmutableList.of("1781", "ar", "1"));
+        expected.add(ImmutableList.of("265", "at", "1"));
+        expected.add(ImmutableList.of("589", "au", "1"));
+        expected.add(ImmutableList.of("75", "be", "1"));
+        expected.add(ImmutableList.of("696", "bh", "1"));
+        expected.add(ImmutableList.of("561", "br", "1"));
+        expected.add(ImmutableList.of("159", "ca", "1"));
+        expected.add(ImmutableList.of("1046", "ch", "1"));
+        expected.add(ImmutableList.of("1498", "cl", "1"));
+        expected.add(ImmutableList.of("1194", "cn", "1"));
+        expected.add(ImmutableList.of("934", "co", "1"));
+        expected.add(ImmutableList.of("486", "cr", "1"));
+        expected.add(ImmutableList.of("606", "cz", "1"));
+        expected.add(ImmutableList.of("1952", "de", "1"));
+        expected.add(ImmutableList.of("450", "dk", "1"));
+        expected.add(ImmutableList.of("1236", "ec", "1"));
+        expected.add(ImmutableList.of("686", "eg", "1"));
+        expected.add(ImmutableList.of("137", "es", "1"));
+        expected.add(ImmutableList.of("1203", "fi", "1"));
+        expected.add(ImmutableList.of("1718", "fr", "1"));
+        expected.add(ImmutableList.of("1390", "gb", "1"));
+        expected.add(ImmutableList.of("32", "gr", "1"));
+        expected.add(ImmutableList.of("338", "hk", "1"));
+        expected.add(ImmutableList.of("1808", "hu", "1"));
+        expected.add(ImmutableList.of("435", "id", "1"));
+        expected.add(ImmutableList.of("547", "ie", "1"));
+        expected.add(ImmutableList.of("399", "il", "1"));
+        expected.add(ImmutableList.of("1093", "in", "1"));
+        expected.add(ImmutableList.of("98", "it", "1"));
+        expected.add(ImmutableList.of("172", "jp", "1"));
+        expected.add(ImmutableList.of("614", "kr", "1"));
+        expected.add(ImmutableList.of("209", "kw", "1"));
+        expected.add(ImmutableList.of("330", "lu", "1"));
+        expected.add(ImmutableList.of("1765", "ma", "1"));
+        expected.add(ImmutableList.of("1548", "mx", "1"));
+        expected.add(ImmutableList.of("112", "my", "1"));
+        expected.add(ImmutableList.of("861", "ng", "1"));
+        expected.add(ImmutableList.of("800", "nl", "1"));
+        expected.add(ImmutableList.of("186", "no", "1"));
+        expected.add(ImmutableList.of("13", "nz", "1"));
+        expected.add(ImmutableList.of("904", "om", "1"));
+        expected.add(ImmutableList.of("348", "pa", "1"));
+        expected.add(ImmutableList.of("1724", "pe", "1"));
+        expected.add(ImmutableList.of("1112", "ph", "1"));
+        expected.add(ImmutableList.of("1320", "pk", "1"));
+        expected.add(ImmutableList.of("1938", "pl", "1"));
+        expected.add(ImmutableList.of("1054", "pt", "1"));
+        expected.add(ImmutableList.of("1596", "qa", "1"));
+        expected.add(ImmutableList.of("197", "ro", "1"));
+        expected.add(ImmutableList.of("1751", "ru", "1"));
+        expected.add(ImmutableList.of("1169", "sa", "1"));
+        expected.add(ImmutableList.of("117", "se", "1"));
+        expected.add(ImmutableList.of("1118", "sg", "1"));
+        expected.add(ImmutableList.of("512", "th", "1"));
+        expected.add(ImmutableList.of("966", "tr", "1"));
+        expected.add(ImmutableList.of("105", "tw", "1"));
+        expected.add(ImmutableList.of("846", "ua", "1"));
+        expected.add(ImmutableList.of("627", "us", "1"));
+        expected.add(ImmutableList.of("1596", "uy", "1"));
+        expected.add(ImmutableList.of("577", "ve", "1"));
+        expected.add(ImmutableList.of("855", "vn", "1"));
+        expected.add(ImmutableList.of("156", "za", "1"));
+
+        testIQL2(expected, "from countries yesterday today group by random(country, 2000, \"seed\"), country", Options.create(true));
     }
 }
