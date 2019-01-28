@@ -557,8 +557,17 @@ public class SelectQueryExecution {
                     };
                 }
 
-                // TODO: revalidate in paranoid mode?
                 final Query substitutedQuery = executeAndSubstituteSubQueries(query, totalBytesWritten, queryToResults);
+
+                if (query.options.contains(QueryOptions.PARANOID)) {
+                    timer.push("re-validate substituted query (paranoid mode)");
+                    final HashSet<String> errors = new HashSet<>();
+                    CommandValidator.validate(substitutedQuery, datasetsMetadata, new ErrorCollector(errors, warnings));
+                    if (!errors.isEmpty()) {
+                        throw new IqlKnownException.ParseErrorException("Errors found when (re-)validating query: " + errors);
+                    }
+                    timer.pop();
+                }
 
                 final List<Queries.QueryDataset> datasets = Queries.createDatasetMap(substitutedQuery);
 

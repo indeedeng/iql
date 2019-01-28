@@ -5,6 +5,7 @@ import com.google.common.base.Objects;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
+import com.indeed.iql2.language.cachekeys.CacheKey;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ErrorMessages;
@@ -63,7 +64,7 @@ public class GroupByFieldinPlaceholderCommand implements Command {
     public String toString() {
         return "GroupByFieldinPlaceholderCommand{" +
                 "field=" + field +
-                ", query=" + query +
+                ", queryHash=" + CacheKey.computeCacheKey(query).rawHash +
                 '}';
     }
 }
