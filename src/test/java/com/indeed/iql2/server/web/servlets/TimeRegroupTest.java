@@ -15,6 +15,7 @@
 package com.indeed.iql2.server.web.servlets;
 
 import java.util.function.Predicate;
+
 import com.google.common.collect.ImmutableList;
 import com.indeed.iql2.execution.QueryOptions;
 import com.indeed.iql2.server.web.servlets.dataset.AllData;
@@ -262,8 +263,8 @@ public class TimeRegroupTest extends BasicTest {
 
     @Test
     public void testInvalidTimeBucket() {
-        Predicate<String> containsTimeBucketErrorMessage = e -> (e.contains("You requested a time period") && e.contains("not evenly divisible by the bucket size ") );
-        QueryServletTestUtils.expectExceptionAll("FROM organic 10d today group by time(1w) select count()", containsTimeBucketErrorMessage.and(e -> e.contains("increase the time range by 4 days or reduce the time range by 3 days")) );
+        Predicate<String> containsTimeBucketErrorMessage = e -> (e.contains("You requested a time period") && e.contains("not evenly divisible by the bucket size "));
+        QueryServletTestUtils.expectExceptionAll("FROM organic 10d today group by time(1w) select count()", containsTimeBucketErrorMessage.and(e -> e.contains("increase the time range by 4 days or reduce the time range by 3 days")));
         QueryServletTestUtils.expectExceptionAll("FROM organic 2015-01-01 2015-03-01 group by time(1w) select count()", containsTimeBucketErrorMessage.and(e -> e.contains("increase the time range by 4 days or reduce the time range by 3 days")));
         QueryServletTestUtils.expectExceptionAll("FROM organic 10d today group by time(3d) select count()", containsTimeBucketErrorMessage.and(e -> e.contains("increase the time range by 2 days or reduce the time range by 1 days")));
         QueryServletTestUtils.expectExceptionAll("FROM organic 2015-01-01T0:0:0 2015-01-01T0:0:3  group by time(2s) select count()", containsTimeBucketErrorMessage.and(e -> e.contains("increase the time range by 1 seconds or reduce the time range by 1 seconds")));
@@ -274,7 +275,7 @@ public class TimeRegroupTest extends BasicTest {
         final List<List<String>> expected = new ArrayList<>();
         DateTime startDate = new DateTime("2015-01-01T01:00:00");
         final DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern("YYYY-MM-DD HH:mm:ss");
-        for (int i=0;i<60;i++) {
+        for (int i = 0; i < 60; i++) {
             expected.add(ImmutableList.of("[" + startDate.toString(dateTimeFormatter) + ", " + startDate.plusMinutes(1).toString(dateTimeFormatter) + ")", "1"));
             startDate = startDate.plusMinutes(1);
         }
@@ -286,8 +287,8 @@ public class TimeRegroupTest extends BasicTest {
         final List<List<String>> expected = new ArrayList<>();
         final DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern("YYYY-MM-DD HH:mm:ss");
         DateTime startDate = new DateTime("2015-01-01T03:00:00");
-        for (int i=0;i<21;i++) {
-            expected.add(ImmutableList.of("[" + startDate.toString(dateTimeFormatter) + ", " + startDate.plusHours(1).toString(dateTimeFormatter) + ")", "1" ));
+        for (int i = 0; i < 21; i++) {
+            expected.add(ImmutableList.of("[" + startDate.toString(dateTimeFormatter) + ", " + startDate.plusHours(1).toString(dateTimeFormatter) + ")", "1"));
             startDate = startDate.plusHours(1);
         }
         QueryServletTestUtils.testAll(expected, "from organic 2015-01-01 03:00:00 2015-01-02 00:00:00 group by time() select count()"); // inferred time 1 hour
