@@ -82,7 +82,7 @@ public interface ExecutionStep {
         @Override
         public String toString() {
             return "ComputePrecomputed{" +
-                    "scope=" + datasets +
+                    "datasets=" + datasets +
                     ", computation=" + computation +
                     ", name='" + name + '\'' +
                     '}';
@@ -133,7 +133,7 @@ public interface ExecutionStep {
         @Override
         public String toString() {
             return "ComputeManyPrecomputed{" +
-                    "scope=" + datasets +
+                    "datasets=" + datasets +
                     ", computations=" + computations +
                     '}';
         }
