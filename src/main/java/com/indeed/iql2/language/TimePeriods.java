@@ -31,7 +31,7 @@ import java.util.List;
 public class TimePeriods {
 
     private static final int MAX_RECOMMENDED_BUCKETS = 1000;
-    private static final List<TimeUnit> bucketSizeOptions = ImmutableList.of(TimeUnit.SECOND, TimeUnit.MINUTE, TimeUnit.HOUR, TimeUnit.DAY, TimeUnit.WEEK);
+    private static final List<TimeUnit> inferenceBucketSizeOptions = ImmutableList.of(TimeUnit.SECOND, TimeUnit.MINUTE, TimeUnit.HOUR, TimeUnit.DAY, TimeUnit.WEEK);
 
     public static List<Pair<Integer, TimeUnit>> parseTimePeriod(JQLParser.TimePeriodContext timePeriodContext, boolean useLegacy) {
         if (timePeriodContext == null) {
@@ -94,7 +94,7 @@ public class TimePeriods {
     }
 
     public static long inferTimeBucketSize(final long earliestStart, final long latestEnd) {
-        for (final TimeUnit timeUnit: bucketSizeOptions) {
+        for (final TimeUnit timeUnit: inferenceBucketSizeOptions) {
             if ((latestEnd - earliestStart)/timeUnit.millis < MAX_RECOMMENDED_BUCKETS) {
                 return timeUnit.millis;
             }

@@ -276,11 +276,11 @@ public class Dataset extends AbstractPositional {
     }
 
     public static long getLatestEnd(final List<Dataset> datasets) {
-        return datasets.stream().map(dataset1 -> dataset1.endExclusive.unwrap().getMillis()).max(Long::compareTo).get();
+        return datasets.stream().map(dataset -> dataset.endExclusive.unwrap().getMillis()).max(Long::compareTo).get();
     }
 
     public static long getEarliestStart(final List<Dataset> datasets) {
-        return datasets.stream().map(dataset1 -> dataset1.startInclusive.unwrap().getMillis()).min(Long::compareTo).get();
+        return datasets.stream().map(dataset -> dataset.startInclusive.unwrap().getMillis()).min(Long::compareTo).get();
     }
 
     @Override
