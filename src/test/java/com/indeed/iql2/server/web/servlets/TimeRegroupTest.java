@@ -270,7 +270,7 @@ public class TimeRegroupTest extends BasicTest {
     }
 
     @Test
-    public void testGroupByTimeInference() throws Exception {
+    public void GroupByInferredTime() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         DateTime startDate = new DateTime("2015-01-01T01:00:00");
         final DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern("YYYY-MM-DD HH:mm:ss");
@@ -282,7 +282,7 @@ public class TimeRegroupTest extends BasicTest {
     }
 
     @Test
-    public void testGroupByTimeInference1() throws Exception {
+    public void GroupByInferredTime1() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         final DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern("YYYY-MM-DD HH:mm:ss");
         DateTime startDate = new DateTime("2015-01-01T03:00:00");

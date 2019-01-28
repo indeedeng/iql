@@ -77,7 +77,7 @@ public class GroupByTransformTest {
     }
 
     @Test
-    public void testGroupByTimeInfereence() {
+    public void GroupByInferredTime() {
         test("time()");
     }
 

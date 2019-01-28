@@ -202,14 +202,20 @@ public class GroupBys {
 
             @Override
             public void enterTimeGroupBy(JQLParser.TimeGroupByContext ctx) {
+
+                final boolean isRelative = ctx.groupByTime().isRelative != null;
+
+                if (ctx.groupByTime().timePeriod() == null) {
+                    accept(new GroupBy.GroupByInferredTime(isRelative));
+                    return;
+                }
+
                 final Optional<FieldSet> timeField;
                 if (ctx.groupByTime().timeField != null) {
                     timeField = Optional.of(fieldResolver.resolve(ctx.groupByTime().timeField));
                 } else {
                     timeField = Optional.absent();
                 }
-
-                final boolean isRelative = ctx.groupByTime().isRelative != null;
 
                 final Optional<String> timeFormat;
                 if (ctx.groupByTime().timeFormat != null) {
@@ -225,10 +231,7 @@ public class GroupBys {
                     timeFormat = Optional.absent();
                 }
 
-                if (ctx.groupByTime().timePeriod() == null) {
-                    accept(new GroupBy.GroupByInferredTime(isRelative));
-                    return;
-                }
+
                 final List<Pair<Integer, TimeUnit>> pairs = TimePeriods.parseTimePeriod(ctx.groupByTime().timePeriod(), ctx.useLegacy);
                 long millisSum = 0L;
                 for (final Pair<Integer, TimeUnit> pair : pairs) {

@@ -41,7 +41,7 @@ public abstract class GroupBy extends AbstractPositional {
         T visit(GroupByMetric groupByMetric) throws E;
         T visit(GroupByTime groupByTime) throws E;
         T visit(GroupByTimeBuckets groupByTimeBuckets) throws E;
-        T visit(GroupByInferredTime groupByTimeInference) throws E;
+        T visit(GroupByInferredTime groupByInferredTime) throws E;
         T visit(GroupByMonth groupByMonth) throws E;
         T visit(GroupByFieldIn groupByFieldIn) throws E;
         T visit(GroupByFieldInQuery groupByFieldInQuery) throws E;
@@ -315,7 +315,7 @@ public abstract class GroupBy extends AbstractPositional {
 
         @Override
         public String toString() {
-            return "GroupByTimeInference{" +
+            return "GroupByInferredTime{" +
                     "isRelative=" + isRelative +
                     '}';
         }
