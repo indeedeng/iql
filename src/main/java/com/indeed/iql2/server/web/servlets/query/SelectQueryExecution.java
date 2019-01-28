@@ -14,6 +14,8 @@
 
 package com.indeed.iql2.server.web.servlets.query;
 
+import au.com.bytecode.opencsv.CSVParser;
+import au.com.bytecode.opencsv.CSVReader;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
@@ -83,6 +85,7 @@ import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import org.antlr.v4.runtime.CharStream;
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
@@ -378,7 +381,7 @@ public class SelectQueryExecution {
             selectQuery.lock();
             timer.pop();
             queryInfo.queryStartTimestamp = selectQuery.getQueryStartTimestamp().getMillis();
-            return new ParsedQueryExecution(true, parseResult.inputStream, out, warnings, progressCallback,
+            return new ParsedQueryExecution(true, parseResult.inputStream, out, warnings, resultFormat, progressCallback,
                     parseResult.query, limits.queryInMemoryRowsLimit, selectQuery, strictCloser).executeParsedQuery();
         } catch (final Exception e) {
             selectQuery.checkCancelled();
@@ -395,6 +398,7 @@ public class SelectQueryExecution {
         private final CharStream inputStream;
         private final Consumer<String> externalOutput;
         private final Set<String> warnings;
+        private final ResultFormat resultFormat;
 
         private final int groupLimit;
         private final SelectQuery selectQuery;
@@ -412,6 +416,7 @@ public class SelectQueryExecution {
                 final CharStream inputStream,
                 final Consumer<String> out,
                 final Set<String> warnings,
+                final ResultFormat resultFormat,
                 final ProgressCallback progressCallback,
                 final Query query,
                 final @Nullable Integer groupLimit,
@@ -421,6 +426,7 @@ public class SelectQueryExecution {
             this.inputStream = inputStream;
             this.externalOutput = out;
             this.warnings = warnings;
+            this.resultFormat = resultFormat;
             this.progressCallback = progressCallback;
             this.originalQuery = query;
             this.groupLimit = groupLimit == null ? 1000000 : groupLimit;
@@ -760,9 +766,9 @@ public class SelectQueryExecution {
                 final List<DatasetWithMissingShards> datasetsWithMissingShards) {
             final Set<Long> terms = new LongOpenHashSet();
             final Set<String> stringTerms = new HashSet<>();
-            final Formatter formatter = Formatter.forFormat(resultFormat);
             timer.push("Execute sub-query", "Execute sub-query: \"" + q + "\"");
             try {
+                final CSVParser csvParser = new CSVParser();
                 // TODO: This use of ProgressCallbacks looks wrong.
                 final SelectExecutionInformation execInfo = new ParsedQueryExecution(false, inputStream, new Consumer<String>() {
                     private boolean haveStringTerms = false;
@@ -771,7 +777,12 @@ public class SelectQueryExecution {
                         if ((limits.queryInMemoryRowsLimit > 0) && ((terms.size() + stringTerms.size()) >= limits.queryInMemoryRowsLimit)) {
                             throw new IqlKnownException.GroupLimitExceededException("Sub query cannot have more than [" + limits.queryInMemoryRowsLimit + "] terms!");
                         }
-                        final String term = s.split(String.valueOf(formatter.getSeparator()))[0];
+                        final String term;
+                        try {
+                            term = csvParser.parseLineMulti(s)[0];
+                        } catch (final IOException e) {
+                            throw Throwables.propagate(e);
+                        }
                         if (haveStringTerms) {
                             stringTerms.add(term);
                         } else {
@@ -783,7 +794,7 @@ public class SelectQueryExecution {
                             }
                         }
                     }
-                }, warnings, new SessionOpenedOnlyProgressCallback(progressCallback), q, groupLimit, selectQuery, strictCloser).executeParsedQuery();
+                }, warnings, ResultFormat.CSV, new SessionOpenedOnlyProgressCallback(progressCallback), q, groupLimit, selectQuery, strictCloser).executeParsedQuery();
                 totalBytesWritten[0] += execInfo.imhotepTempBytesWritten;
                 cacheKeys.addAll(execInfo.cacheKeys);
                 allShardsUsed.putAll(execInfo.datasetToShards);

@@ -36,7 +36,7 @@ public class TestDateTimeRangeGroupKeySet {
 
     private static DateTimeRangeGroupKeySet create() {
         final DumbGroupKeySet previous = DumbGroupKeySet.create(DumbGroupKeySet.empty(), new int[]{-1, 1, 1, 1, 1, 1}, Arrays.<GroupKey>asList(null, new IntTermGroupKey(1), new IntTermGroupKey(2), new IntTermGroupKey(3), new IntTermGroupKey(4), new IntTermGroupKey(5)));
-        return new DateTimeRangeGroupKeySet(previous, new DateTime(2015, 2, 23, 12, 0, 0).getMillis(), TimeUnit.HOUR.millis, 24, TimeUnit.HOUR.formatString, Formatter.tsvEscaper());
+        return new DateTimeRangeGroupKeySet(previous, new DateTime(2015, 2, 23, 12, 0, 0).getMillis(), TimeUnit.HOUR.millis, 24, TimeUnit.HOUR.formatString, Formatter.TSV);
     }
 
     @Test
@@ -64,7 +64,7 @@ public class TestDateTimeRangeGroupKeySet {
         final String format = TimeUnit.HOUR.formatString;
         final DateTimeRangeGroupKeySet keySet = create();
         final DateTimeFormatter formatter = DateTimeFormat.forPattern(format).withLocale(Locale.US);
-        final Formatter escaper = Formatter.tsvEscaper();
+        final Formatter escaper = Formatter.TSV;
         for (int i = 1; i <= 120; i += 24) {
             Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 23, 12, 0, 0).getMillis(), new DateTime(2015, 2, 23, 13, 0, 0).getMillis(), escaper), keySet.groupKey(i));
         }
