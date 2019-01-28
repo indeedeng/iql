@@ -50,7 +50,7 @@ public class TimePeriodRegroup implements Command {
         if (timeFormat.isPresent()) {
             ValidationUtil.validateDateTimeFormat(timeFormat.get(), errorCollector);
         }
-        ValidationUtil.validateGroupByTimeRange(validationHelper, TimeUnit.MILLISECONDS.toSeconds(periodMillis) , validator);
+        ValidationUtil.validateGroupByTimeRange(validationHelper, TimeUnit.MILLISECONDS.toSeconds(periodMillis), errorCollector);
     }
 
     @Override
