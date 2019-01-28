@@ -37,6 +37,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static com.indeed.iql2.language.Identifiers.parseIdentifier;
 
@@ -60,8 +62,12 @@ public class Dataset extends AbstractPositional {
         this.fieldAliases = ImmutableMap.copyOf(fieldAliases);
     }
 
-    public Positioned<String> getDisplayName() {
-        return alias.or(dataset);
+    public String getDisplayName() {
+        return alias.or(dataset).unwrap();
+    }
+
+    public static Set<String> datasetToScope(List<Dataset> datasets){
+        return datasets.stream().map(Dataset::getDisplayName).collect(Collectors.toSet());
     }
 
     public static List<Pair<Dataset, Optional<DocFilter>>> parseDatasets(final Query.Context context) {

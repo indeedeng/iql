@@ -97,7 +97,7 @@ public class Queries {
             result.add(new QueryDataset(
                     dataset.dataset.unwrap(),
                     dataset.startInclusive.unwrap().toString(),
-                    dataset.getDisplayName().unwrap(),
+                    dataset.getDisplayName(),
                     dataset.endExclusive.unwrap().toString(),
                     dataset.alias.or(dataset.dataset).unwrap()
             ));

@@ -29,10 +29,12 @@ import com.indeed.iql2.language.commands.GetGroupStats;
 import com.indeed.iql2.language.commands.GroupLookupMergeType;
 import com.indeed.iql2.language.commands.RegroupIntoParent;
 import com.indeed.iql2.language.commands.SumAcross;
+import com.indeed.iql2.language.query.Dataset;
 import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.Optionals;
 
+import javax.xml.crypto.Data;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -40,7 +42,7 @@ import java.util.Objects;
 import java.util.Set;
 
 public interface Precomputed {
-    Precomputation commands(Set<String> scope);
+    Precomputation commands(List<Dataset> datasets);
     Precomputed transform(Function<Precomputed, Precomputed> precomputed, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction);
     Precomputed traverse1(Function<AggregateMetric, AggregateMetric> f);
 
@@ -56,7 +58,7 @@ public interface Precomputed {
         }
 
         @Override
-        public Precomputation commands(Set<String> scope) {
+        public Precomputation commands(List<Dataset> datasets) {
             return Precomputation.noContext(new GetGroupDistincts(field, filter, windowSize.or(1)));
         }
 
@@ -111,7 +113,7 @@ public interface Precomputed {
         }
 
         @Override
-        public Precomputation commands(Set<String> scope) {
+        public Precomputation commands(List<Dataset> datasets) {
             return Precomputation.noContext(new GetGroupPercentiles(field, new double[]{percentile}));
         }
 
@@ -156,8 +158,9 @@ public interface Precomputed {
         }
 
         @Override
-        public Precomputation commands(final Set<String> scope) {
-            final List<AggregateMetric> metrics = new ArrayList<>(scope.size());
+        public Precomputation commands(final List<Dataset> datasets) {
+            final List<AggregateMetric> metrics = new ArrayList<>(datasets.size());
+            Set<String> scope = Dataset.datasetToScope(datasets);
             for (final String dataset : scope) {
                 final AggregateMetric metric = new AggregateMetric.DocStatsPushes(dataset, docMetric);
                 metrics.add(metric);
@@ -209,8 +212,8 @@ public interface Precomputed {
         }
 
         @Override
-        public Precomputation commands(Set<String> scope) {
-            Preconditions.checkState(scope.equals(field.datasets()));
+        public Precomputation commands(List<Dataset> datasets) {
+            Preconditions.checkState(Dataset.datasetToScope(datasets).equals(field.datasets()));
             return Precomputation.noContext(new SumAcross(field, metric, filter));
         }
 
@@ -259,9 +262,9 @@ public interface Precomputed {
         }
 
         @Override
-        public Precomputation commands(Set<String> scope) {
+        public Precomputation commands(List<Dataset> datasets) {
             return new Precomputation(
-                    groupBy.executionStep(scope).commands(),
+                    groupBy.executionStep(datasets).commands(),
                     new GetGroupStats(Collections.singletonList(metric), Collections.singletonList(Optional.<String>absent()), false),
                     Collections.<Command>singletonList(new RegroupIntoParent(GroupLookupMergeType.SumAll))
             );
@@ -316,8 +319,8 @@ public interface Precomputed {
         }
 
         @Override
-        public Precomputation commands(final Set<String> scope) {
-            Preconditions.checkState(scope.equals(field.datasets()));
+        public Precomputation commands(final List<Dataset> datasets) {
+            Preconditions.checkState(Dataset.datasetToScope(datasets).equals(field.datasets()));
             return Precomputation.noContext(new ComputeFieldExtremeValue(field, metric, filter));
         }
 

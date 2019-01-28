@@ -166,6 +166,7 @@ public class Query extends AbstractPositional {
             }
             datasets.add(dataset.getFirst());
         }
+        Query.validateDatasetNames(datasets);
         if (whereContents.isPresent()) {
             for (final JQLParser.DocFilterContext ctx : whereContents.get().docFilter()) {
                 allFilters.add(DocFilters.parseDocFilter(ctx, context));
@@ -338,21 +339,23 @@ public class Query extends AbstractPositional {
         return new Query(datasets, filter, groupBys, selects, formatStrings, options, rowLimit, useLegacy).copyPosition(this);
     }
 
-    public Set<String> extractDatasetNames() {
+    public static void validateDatasetNames(final List<Dataset> datasets) {
         final Set<String> names = new HashSet<>();
         for (final Dataset dataset : datasets) {
-            final Positioned<String> name;
-            if (dataset.alias.isPresent()) {
-                name = dataset.alias.get();
-            } else {
-                name = dataset.dataset;
+            final String name = dataset.getDisplayName();
+            if (names.contains(name)) {
+                throw new IqlKnownException.ParseErrorException("Duplicate name encountered: " + name);
             }
-            if (names.contains(name.unwrap())) {
-                throw new IqlKnownException.ParseErrorException("Duplicate name encountered: " + name.unwrap());
-            }
-            names.add(name.unwrap());
+            names.add(name);
         }
-        return names;
+    }
+
+    public Set<String> extractDatasetNames() {
+        return datasets.stream().map(Dataset::getDisplayName).collect(Collectors.toSet());
+    }
+
+    public List<Dataset> getDatasets() {
+        return this.datasets;
     }
 
     public Map<String, String> nameToIndex() {
@@ -375,7 +378,7 @@ public class Query extends AbstractPositional {
     // rewrite field in (A, B), group by field to group by field in (A, B...)
     // only string fields are processed to be backward compatible with Iql1
     private static void rewriteMultiTermIn(final Dataset dataset, final List<DocFilter> filters, final List<GroupByEntry> groupBys) {
-        final String singleDataset = dataset.getDisplayName().unwrap();
+        final String singleDataset = dataset.getDisplayName();
         final Set<String> expectedDatasets = Collections.singleton(singleDataset);
 
         final Set<String> rewrittenFields = new HashSet<>();

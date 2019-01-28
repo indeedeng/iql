@@ -64,7 +64,7 @@ public abstract class GroupBy extends AbstractPositional {
 
     public abstract GroupBy traverse1(Function<AggregateMetric, AggregateMetric> f);
 
-    public abstract ExecutionStep executionStep(Set<String> scope);
+    public abstract ExecutionStep executionStep(List<Dataset> datasets);
 
     public abstract boolean isTotal();
     public abstract GroupBy makeTotal() throws CannotMakeTotalException;
@@ -109,8 +109,9 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public ExecutionStep executionStep(Set<String> scope) {
-            final Map<String, DocMetric> perDatasetMetric = Maps.newHashMapWithExpectedSize(scope.size());
+        public ExecutionStep executionStep(List<Dataset> datasets) {
+            final Map<String, DocMetric> perDatasetMetric = Maps.newHashMapWithExpectedSize(datasets.size());
+            final Set<String> scope = Dataset.datasetToScope(datasets);
             for (final String dataset : scope) {
                 perDatasetMetric.put(dataset, metric);
             }
@@ -200,7 +201,7 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public ExecutionStep executionStep(Set<String> scope) {
+        public ExecutionStep executionStep(List<Dataset> datasets) {
             return new ExecutionStep.ExplodeTimePeriod(periodMillis, field, format, isRelative);
         }
 
@@ -286,7 +287,7 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public ExecutionStep executionStep(Set<String> scope) {
+        public ExecutionStep executionStep(List<Dataset> datasets) {
             return new ExecutionStep.ExplodeTimeBuckets(numBuckets, field, format);
         }
 
@@ -357,7 +358,7 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public ExecutionStep executionStep(Set<String> scope) {
+        public ExecutionStep executionStep(List<Dataset> datasets) {
             return new ExecutionStep.ExplodeMonthOfYear(
                     timeField,
                     timeFormat
@@ -444,7 +445,7 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public ExecutionStep executionStep(Set<String> scope) {
+        public ExecutionStep executionStep(List<Dataset> datasets) {
             if (intTerms.size() > 0) {
                 return ExecutionStep.ExplodeFieldIn.intExplode(field, intTerms, withDefault);
             } else {
@@ -528,7 +529,7 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public ExecutionStep executionStep(final Set<String> scope) {
+        public ExecutionStep executionStep(final List<Dataset> datasets) {
             throw new IllegalStateException("GroupByFieldInQuery must be already transformed into another GroupBy");
         }
 
@@ -634,7 +635,7 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public ExecutionStep executionStep(Set<String> scope) {
+        public ExecutionStep executionStep(List<Dataset> datasets) {
             return new ExecutionStep.ExplodeAndRegroup(field, filter, limit, metric, withDefault);
         }
 
@@ -702,7 +703,7 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public ExecutionStep executionStep(Set<String> scope) {
+        public ExecutionStep executionStep(List<Dataset> datasets) {
             return new ExecutionStep.ExplodeDayOfWeek();
         }
 
@@ -749,7 +750,7 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public ExecutionStep executionStep(Set<String> scope) {
+        public ExecutionStep executionStep(List<Dataset> datasets) {
             return new ExecutionStep.ExplodeSessionNames();
         }
 
@@ -805,7 +806,7 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public ExecutionStep executionStep(Set<String> scope) {
+        public ExecutionStep executionStep(List<Dataset> datasets) {
             return new ExecutionStep.ExplodePerDocPercentile(field, numBuckets);
         }
 
@@ -872,8 +873,9 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public ExecutionStep executionStep(Set<String> scope) {
-            final Map<String, DocMetric> perDatasetMetric = Maps.newHashMapWithExpectedSize(scope.size());
+        public ExecutionStep executionStep(List<Dataset> datasets) {
+            final Map<String, DocMetric> perDatasetMetric = Maps.newHashMapWithExpectedSize(datasets.size());
+            final Set<String> scope = Dataset.datasetToScope(datasets);
             for (final String dataset : scope) {
                 perDatasetMetric.put(dataset, docFilter.asZeroOneMetric(dataset));
             }
@@ -939,7 +941,7 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public ExecutionStep executionStep(Set<String> scope) {
+        public ExecutionStep executionStep(List<Dataset> datasets) {
             return new ExecutionStep.ExplodeRandom(field, k, salt);
         }
 
@@ -1010,8 +1012,9 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public ExecutionStep executionStep(final Set<String> scope) {
-            final Map<String, DocMetric> perDatasetMetric = Maps.newHashMapWithExpectedSize(scope.size());
+        public ExecutionStep executionStep(final List<Dataset> datasets) {
+            final Map<String, DocMetric> perDatasetMetric = Maps.newHashMapWithExpectedSize(datasets.size());
+            final Set<String> scope = Dataset.datasetToScope(datasets);
             for (final String dataset : scope) {
                 perDatasetMetric.put(dataset, metric);
             }

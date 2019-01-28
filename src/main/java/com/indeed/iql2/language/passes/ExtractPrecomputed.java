@@ -28,6 +28,7 @@ import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.GroupByEntry;
 import com.indeed.iql2.language.execution.ExecutionStep;
 import com.indeed.iql2.language.precomputed.Precomputed;
+import com.indeed.iql2.language.query.Dataset;
 import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.util.Optionals;
@@ -114,10 +115,10 @@ public class ExtractPrecomputed {
         final Map<Integer, ExecutionStep> groupBySteps = new HashMap<>();
         final Map<Integer, ExecutionStep.FilterGroups> postGroupByFilter = new HashMap<>();
         final List<GroupByEntry> groupBys = query.groupBys;
-        final Set<String> scope = query.extractDatasetNames();
+        final List<Dataset> datasets = query.getDatasets();
         for (int i = 0; i < groupBys.size(); i++) {
             final GroupByEntry groupByEntry = groupBys.get(i);
-            final ExecutionStep step = groupByEntry.groupBy.executionStep(scope);
+            final ExecutionStep step = groupByEntry.groupBy.executionStep(datasets);
             groupBySteps.put(i, step);
             if (groupByEntry.filter.isPresent()) {
                 postGroupByFilter.put(i, new ExecutionStep.FilterGroups(groupByEntry.filter.get()));

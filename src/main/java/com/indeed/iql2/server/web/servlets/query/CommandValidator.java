@@ -73,7 +73,7 @@ public class CommandValidator {
         final Map<String, DatasetMetadata> relevantDatasetToMetadata = new HashMap<>();
         final HashMap<String, Pair<Long,Long>> datasetsTimeRange = new HashMap<>();
         for (final Dataset relevantDataset : relevantDatasets) {
-            final String aliasDataset = relevantDataset.getDisplayName().unwrap();
+            final String aliasDataset = relevantDataset.getDisplayName();
             final String actualDataset = nameToActualDataset.get(aliasDataset);
             final DatasetMetadata datasetMetadata = datasetsMetadata.getMetadata(actualDataset).orNull();
             if (datasetMetadata == null) {
