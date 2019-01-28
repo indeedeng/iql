@@ -24,6 +24,7 @@ import com.indeed.imhotep.automaton.RegexTooComplexException;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.JQLParser;
+import com.indeed.iql2.language.TimePeriods;
 import com.indeed.iql2.language.TimeUnit;
 import com.indeed.iql2.language.Validator;
 import com.indeed.iql2.language.passes.ExtractQualifieds;
@@ -217,14 +218,14 @@ public class ValidationUtil {
             final long datasetTimePeriodSeconds = (datasetTimeRange.getValue().getSecond() - datasetTimeRange.getValue().getFirst())/1000;
             if (datasetTimePeriodSeconds%periodSeconds != 0) {
                     final StringBuilder exceptionBuilder = new StringBuilder("You requested a time period (");
-                    appendTimePeriod(datasetTimePeriodSeconds, exceptionBuilder);
+                    TimePeriods.appendTimePeriod(datasetTimePeriodSeconds, exceptionBuilder);
                     exceptionBuilder.append(") for dataset " + datasetTimeRange.getKey());
                     exceptionBuilder.append(" not evenly divisible by the bucket size (");
-                    appendTimePeriod(periodSeconds, exceptionBuilder);
+                    TimePeriods.appendTimePeriod(periodSeconds, exceptionBuilder);
                     exceptionBuilder.append("). To correct, increase the time range by ");
-                    appendTimePeriod(periodSeconds - datasetTimePeriodSeconds%periodSeconds, exceptionBuilder);
+                    TimePeriods.appendTimePeriod(periodSeconds - datasetTimePeriodSeconds%periodSeconds, exceptionBuilder);
                     exceptionBuilder.append(" or reduce the time range by ");
-                    appendTimePeriod(datasetTimePeriodSeconds%periodSeconds, exceptionBuilder);
+                    TimePeriods.appendTimePeriod(datasetTimePeriodSeconds%periodSeconds, exceptionBuilder);
                     validator.error(exceptionBuilder.toString());
             }
         }
@@ -242,24 +243,7 @@ public class ValidationUtil {
         }
     }
 
-    public static void appendTimePeriod(long timePeriodSeconds, StringBuilder builder) {
-        if (timePeriodSeconds % TimeUnit.WEEK.toSeconds() == 0) {
-            builder.append(timePeriodSeconds / TimeUnit.WEEK.toSeconds());
-            builder.append(" weeks");
-        } else if ((timePeriodSeconds % TimeUnit.DAY.toSeconds()) == 0) {
-            builder.append(timePeriodSeconds / TimeUnit.DAY.toSeconds());
-            builder.append(" days");
-        } else if (timePeriodSeconds % TimeUnit.HOUR.toSeconds() == 0) {
-            builder.append(timePeriodSeconds / TimeUnit.HOUR.toSeconds());
-            builder.append(" hours");
-        } else if (timePeriodSeconds % TimeUnit.MINUTE.toSeconds() == 0) {
-            builder.append(timePeriodSeconds / TimeUnit.MINUTE.toSeconds());
-            builder.append(" minutes");
-        } else {
-            builder.append(timePeriodSeconds);
-            builder.append(" seconds");
-        }
-    }
+
 
     private enum FieldType {
         INT, STR, NULL

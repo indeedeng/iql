@@ -93,6 +93,25 @@ public class TimePeriods {
         return dt;
     }
 
+    public static void appendTimePeriod(long timePeriodSeconds, StringBuilder builder) {
+        if (timePeriodSeconds % TimeUnit.WEEK.toSeconds() == 0) {
+            builder.append(timePeriodSeconds / TimeUnit.WEEK.toSeconds());
+            builder.append(" weeks");
+        } else if ((timePeriodSeconds % TimeUnit.DAY.toSeconds()) == 0) {
+            builder.append(timePeriodSeconds / TimeUnit.DAY.toSeconds());
+            builder.append(" days");
+        } else if (timePeriodSeconds % TimeUnit.HOUR.toSeconds() == 0) {
+            builder.append(timePeriodSeconds / TimeUnit.HOUR.toSeconds());
+            builder.append(" hours");
+        } else if (timePeriodSeconds % TimeUnit.MINUTE.toSeconds() == 0) {
+            builder.append(timePeriodSeconds / TimeUnit.MINUTE.toSeconds());
+            builder.append(" minutes");
+        } else {
+            builder.append(timePeriodSeconds);
+            builder.append(" seconds");
+        }
+    }
+
     public static long inferTimeBucketSize(final long earliestStart, final long latestEnd) {
         for (final TimeUnit timeUnit: inferenceBucketSizeOptions) {
             if ((latestEnd - earliestStart)/timeUnit.millis < MAX_RECOMMENDED_BUCKETS) {
@@ -105,7 +124,7 @@ public class TimePeriods {
     public static String inferTimeBucketSizeString(final DateTime start,final DateTime end) {
         final long timeBucketSizeMillis = inferTimeBucketSize(start.getMillis(), end.getMillis());
         final StringBuilder inferedTimeStringBuilder = new StringBuilder();
-        ValidationUtil.appendTimePeriod(timeBucketSizeMillis/TimeUnit.SECOND.millis, inferedTimeStringBuilder);
+        appendTimePeriod(timeBucketSizeMillis/TimeUnit.SECOND.millis, inferedTimeStringBuilder);
         return inferedTimeStringBuilder.toString();
     }
 }

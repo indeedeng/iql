@@ -117,7 +117,7 @@ import static com.indeed.iql1.ez.EZImhotepSession.multiplyShiftRight;
 import static com.indeed.iql1.ez.EZImhotepSession.shiftLeftDivide;
 import static com.indeed.iql1.ez.EZImhotepSession.sub;
 import static com.indeed.iql1.ez.Stats.Stat;
-import static com.indeed.iql2.language.util.ValidationUtil.appendTimePeriod;
+import static com.indeed.iql2.language.TimePeriods.appendTimePeriod;
 
 /**
  * @author jplaisance
