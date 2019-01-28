@@ -169,6 +169,10 @@ aggregateMetric [boolean useLegacy]
     | {!$ctx.useLegacy}? jqlAggregateMetric
     ;
 
+aggregateMetricEof [boolean useLegacy]
+    : aggregateMetric[$ctx.useLegacy] EOF
+    ;
+
 jqlAggregateMetric
     : field=identifier '.' syntacticallyAtomicJqlAggregateMetric # AggregateQualified
     | IF filter=jqlAggregateFilter THEN trueCase=jqlAggregateMetric ELSE falseCase=jqlAggregateMetric # AggregateIfThenElse
@@ -191,8 +195,8 @@ jqlAggregateMetric
     | STDEV '(' jqlDocMetric ')' # AggregateStandardDeviation
     | LOG '(' jqlAggregateMetric ')' # AggregateLog
     | ABS '(' jqlAggregateMetric ')' # AggregateAbs
-    | FIELD_MIN '(' scopedField ')' # AggregateFieldMin
-    | FIELD_MAX '(' scopedField ')' # AggregateFieldMax
+    | FIELD_MIN '(' scopedField (BY aggregate=jqlAggregateMetric)? (HAVING filter=jqlAggregateFilter)? ')' # AggregateFieldMin
+    | FIELD_MAX '(' scopedField (BY aggregate=jqlAggregateMetric)? (HAVING filter=jqlAggregateFilter)? ')' # AggregateFieldMax
     | MIN '(' metrics+=jqlAggregateMetric (',' metrics+=jqlAggregateMetric)* ')' # AggregateMetricMin
     | MAX '(' metrics+=jqlAggregateMetric (',' metrics+=jqlAggregateMetric)* ')' # AggregateMetricMax
     | SUM_OVER '(' groupByElement[false] ',' jqlAggregateMetric ')' # AggregateSumAcross
@@ -231,6 +235,10 @@ syntacticallyAtomicJqlAggregateMetric
 aggregateFilter [boolean useLegacy]
     : {$ctx.useLegacy}? {false}? // No such thing
     | {!$ctx.useLegacy}? jqlAggregateFilter
+    ;
+
+aggregateFilterEof [boolean useLegacy]
+    : aggregateFilter[$ctx.useLegacy] EOF
     ;
 
 jqlAggregateFilter
@@ -296,6 +304,10 @@ docMetric [boolean useLegacy]
     | {!$ctx.useLegacy}? jqlDocMetric
     ;
 
+docMetricEof [boolean useLegacy]
+    : docMetric[$ctx.useLegacy] EOF
+    ;
+
 legacyDocMetric
     : COUNT '(' ')' # LegacyDocCounts
     | ABS '(' legacyDocMetric ')' # LegacyDocAbs
@@ -356,6 +368,10 @@ docFilter [boolean useLegacy]
     | {!$ctx.useLegacy}? jqlDocFilter
     ;
 
+docFilterEof [boolean useLegacy]
+    : docFilter[$ctx.useLegacy] EOF
+    ;
+
 legacyDocFilter
     : field=identifier '=~' STRING_LITERAL # LegacyDocRegex
     | field=identifier '!=~' STRING_LITERAL # LegacyDocNotRegex
@@ -410,13 +426,16 @@ groupByElement [boolean useLegacy]
     | field=identifier not=NOT? IN '(' (terms += termVal[$ctx.useLegacy])? (',' terms += termVal[$ctx.useLegacy])* ')' (withDefault=WITH DEFAULT)? # GroupByFieldIn
     | field=identifier not=NOT? IN '(' queryNoSelect ')' (withDefault=WITH DEFAULT)? # GroupByFieldInQuery
     | groupByMetric[$ctx.useLegacy] # MetricGroupBy
-    | groupByMetricEnglish[$ctx.useLegacy] # MetricGroupBy
     | groupByTime[$ctx.useLegacy] # TimeGroupBy
     | groupByField[$ctx.useLegacy] # FieldGroupBy
     | {!$ctx.useLegacy}? DATASET '(' ')' # DatasetGroupBy
     | {!$ctx.useLegacy}? jqlDocFilter # PredicateGroupBy
     | {!$ctx.useLegacy}? RANDOM '(' field=identifier ',' k=NAT (',' salt=STRING_LITERAL)? ')' # RandomGroupBy
     | {!$ctx.useLegacy}? RANDOM '(' jqlDocMetric ',' k=NAT (',' salt=STRING_LITERAL)? ')' # RandomMetricGroupBy
+    ;
+
+groupByElementEof [boolean useLegacy]
+    : groupByElement[$ctx.useLegacy] EOF
     ;
 
 // TODO: Make TOPTERMS a valid identifier
@@ -434,10 +453,6 @@ topTermsGroupByElem [boolean useLegacy]
 
 groupByMetric [boolean useLegacy]
     : (BUCKET | BUCKETS) '(' docMetric[$ctx.useLegacy] ',' min=integer ',' max=integer ',' interval=NAT (',' (gutterID=identifier | gutterNumber=number))? ')' (withDefault=WITH DEFAULT)?
-    ;
-
-groupByMetricEnglish [boolean useLegacy]
-    : docMetric[$ctx.useLegacy] FROM min=integer TO max=integer BY interval=NAT (withDefault=WITH DEFAULT)?
     ;
 
 groupByTime [boolean useLegacy]

@@ -15,8 +15,9 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
-import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import org.junit.Test;
+
+import java.util.List;
 
 import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testAll;
 import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testIQL1;
@@ -49,4 +50,12 @@ public class DateTimeTest extends BasicTest {
         testAll(ImmutableList.of(ImmutableList.of("","19","190","57")), "from organic 2015-1-01T2:1:0 2015-1-01 2:19:4 select count(), oji, ojc");
     }
 
+    @Test
+    public void testUnixTimeStamp() throws  Exception {
+        final List<List<String>> expected = ImmutableList.of(ImmutableList.of("","151"));
+        // All 3 queries have the same time range (words, milliseconds, seconds)
+        testAll(expected, "from organic yesterday today select count()");
+        testAll(expected, "from organic 1420092000000 1420178400000 select count()");
+        testAll(expected, "from organic 1420092000 1420178400 select count()");
+    }
 }

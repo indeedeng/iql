@@ -43,9 +43,10 @@ import com.indeed.imhotep.io.RequestTools;
 import com.indeed.imhotep.io.SingleFieldRegroupTools;
 import com.indeed.imhotep.metrics.aggregate.AggregateStatTree;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
-import com.indeed.iql.StrictCloser;
+import com.indeed.imhotep.StrictCloser;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetMetadata;
+import com.indeed.iql.metadata.FieldType;
 import com.indeed.iql2.Formatter;
 import com.indeed.iql2.MathUtils;
 import com.indeed.iql2.execution.commands.Command;
@@ -64,8 +65,6 @@ import com.indeed.util.logging.TracingTreeTimer;
 import io.opentracing.ActiveSpan;
 import io.opentracing.Tracer;
 import io.opentracing.util.GlobalTracer;
-import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
-import it.unimi.dsi.fastutil.doubles.DoubleCollection;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
@@ -112,6 +111,7 @@ public class Session {
     public final int groupLimit;
     private final long firstStartTimeMillis;
     public final Set<String> options;
+    private final FieldType defaultFieldType;
     public final ResultFormat resultFormat;
     public final Formatter formatter;
 
@@ -135,13 +135,16 @@ public class Session {
             @Nullable Integer groupLimit,
             long firstStartTimeMillis,
             final Set<String> options,
-            final ResultFormat resultFormat) {
+            final FieldType defaultFieldType,
+            final ResultFormat resultFormat
+    ) {
         this.sessions = sessions;
         this.timer = timer;
         this.progressCallback = progressCallback;
         this.groupLimit = groupLimit == null ? -1 : groupLimit;
         this.firstStartTimeMillis = firstStartTimeMillis;
         this.options = options;
+        this.defaultFieldType = defaultFieldType;
         this.resultFormat = resultFormat;
         this.formatter = Formatter.forFormat(resultFormat);
     }
@@ -173,6 +176,7 @@ public class Session {
             final Long imhotepLocalTempFileSizeLimit,
             final Long imhotepDaemonTempFileSizeLimit,
             final String username,
+            final FieldType defaultFieldType,
             final ResultFormat resultFormat
     ) throws ImhotepOutOfMemoryException, IOException {
         final Map<String, ImhotepSessionInfo> sessions = Maps.newLinkedHashMap();
@@ -191,7 +195,7 @@ public class Session {
         progressCallback.sessionsOpened(sessions);
         treeTimer.pop();
 
-        final Session session = new Session(sessions, treeTimer, progressCallback, groupLimit, firstStartTimeMillis, optionsSet, resultFormat);
+        final Session session = new Session(sessions, treeTimer, progressCallback, groupLimit, firstStartTimeMillis, optionsSet, defaultFieldType, resultFormat);
         for (int i = 0; i < commands.size(); i++) {
             final com.indeed.iql2.language.commands.Command command = commands.get(i);
             final Tracer tracer = GlobalTracer.get();
@@ -453,29 +457,6 @@ public class Session {
         }
     }
 
-    public int findPercentile(double v, double[] percentiles) {
-        for (int i = 0; i < percentiles.length - 1; i++) {
-            if (v <= percentiles[i + 1]) {
-                return i;
-            }
-        }
-        return percentiles.length - 1;
-    }
-
-    // Returns the start of the bucket.
-    // result[0] will always be 0
-    // result[1] will be the minimum value required to be greater than 1/k values.
-    public static double[] getPercentiles(DoubleCollection values, int k) {
-        final DoubleArrayList list = new DoubleArrayList(values);
-        // TODO: Will this be super slow?
-        Collections.sort(list);
-        final double[] result = new double[k];
-        for (int i = 0; i < k; i++) {
-            result[i] = list.get((int) Math.ceil((double) list.size() * i / k));
-        }
-        return result;
-    }
-
     public void registerMetrics(Map<QualifiedPush, Integer> metricIndexes, Iterable<AggregateMetric> metrics, Iterable<AggregateFilter> filters) {
         for (final AggregateMetric metric : metrics) {
             metric.register(metricIndexes, groupKeySet);
@@ -653,33 +634,35 @@ public class Session {
         return Maps.newHashMap(sessions);
     }
 
-    public boolean isIntField(final FieldSet field) {
+    private FieldType getFieldType(final FieldSet field) {
+        boolean hasIntField = false;
+        boolean hasStrField = false;
         for (final ImhotepSessionInfo session : sessions.values()) {
             final String dataset = session.displayName;
             if (!field.containsDataset(dataset)) {
                 continue;
             }
-            if (session.intFields.contains(field.datasetFieldName(dataset))) {
-                return true;
-            }
+            hasIntField |= session.intFields.contains(field.datasetFieldName(dataset));
+            hasStrField |= session.stringFields.contains(field.datasetFieldName(dataset));
         }
-        return false;
+        if (hasIntField && !hasStrField) {
+            return FieldType.Integer;
+        }
+        if (hasStrField && !hasIntField) {
+            return FieldType.String;
+        }
+        if (!hasIntField && !hasStrField) {
+            return null;
+        }
+        return defaultFieldType;
+    }
+
+    public boolean isIntField(final FieldSet field) {
+        return FieldType.Integer.equals(getFieldType(field));
     }
 
     public boolean isStringField(final FieldSet field) {
-        if (isIntField(field)) {
-            return false;
-        }
-        for (final ImhotepSessionInfo session : sessions.values()) {
-            final String dataset = session.displayName;
-            if (!field.containsDataset(dataset)) {
-                continue;
-            }
-            if (session.stringFields.contains(field.datasetFieldName(dataset))) {
-                return true;
-            }
-        }
-        return false;
+        return FieldType.String.equals(getFieldType(field));
     }
 
     private PerGroupConstant namedMetricLookup(String name) {

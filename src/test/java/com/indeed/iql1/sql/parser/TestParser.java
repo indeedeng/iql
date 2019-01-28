@@ -22,7 +22,7 @@ import com.indeed.iql1.sql.ast.UnaryExpression;
 import com.indeed.iql1.sql.ast2.GroupByClause;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 /**
  * @author vladimir
  */
@@ -32,7 +32,7 @@ public class TestParser {
     @Test
     public void testGroupByClause() {
         String testQuery = "country[top 5 by sjc / sji]";
-        GroupByClause expected = new GroupByClause(Lists.newArrayList((Expression) new BracketsExpression("country", "top 5 by sjc / sji")));
+        GroupByClause expected = new GroupByClause(Lists.newArrayList((Expression) BracketsExpression.of("country", "top 5 by sjc / sji")));
         GroupByClause result = SelectStatementParser.parseGroupByClause(testQuery);
         assertEquals(expected, result);
     }

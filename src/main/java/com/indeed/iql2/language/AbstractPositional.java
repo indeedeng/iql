@@ -15,23 +15,24 @@
 package com.indeed.iql2.language;
 
 import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.Token;
 
 public abstract class AbstractPositional implements Positional {
     // TODO: Change this to be an Interval.
-    private Position start;
-    private Position end;
+    private Token start;
+    private Token end;
     private ParserRuleContext parserRuleContext = null;
 
     public AbstractPositional() {
     }
 
     @Override
-    public Position getStart() {
+    public Token getStart() {
         return start;
     }
 
     @Override
-    public Position getEnd() {
+    public Token getEnd() {
         return end;
     }
 
@@ -40,17 +41,19 @@ public abstract class AbstractPositional implements Positional {
         return parserRuleContext;
     }
 
-    public void setPosition(Position start, Position end) {
+    public void setPosition(Token start, Token end) {
         this.start = start;
         this.end = end;
     }
 
-    public void copyPosition(ParserRuleContext parserRuleContext) {
-        this.setPosition(Position.from(parserRuleContext.start), Position.from(parserRuleContext.stop));
+    public Object copyPosition(ParserRuleContext parserRuleContext) {
+        this.setPosition(parserRuleContext.start, parserRuleContext.stop);
         this.parserRuleContext = parserRuleContext;
+        return this;
     }
 
-    public void copyPosition(Positional positional) {
+    public Object copyPosition(Positional positional) {
         this.setPosition(positional.getStart(), positional.getEnd());
+        return this;
     }
 }

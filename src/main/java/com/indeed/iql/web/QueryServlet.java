@@ -29,7 +29,7 @@ import com.indeed.imhotep.exceptions.ImhotepErrorResolver;
 import com.indeed.imhotep.exceptions.ImhotepKnownException;
 import com.indeed.imhotep.exceptions.QueryCancelledException;
 import com.indeed.imhotep.service.MetricStatsEmitter;
-import com.indeed.iql.StrictCloser;
+import com.indeed.imhotep.StrictCloser;
 import com.indeed.iql.cache.CompletableOutputStream;
 import com.indeed.iql.cache.QueryCache;
 import com.indeed.iql.exceptions.IqlKnownException;
@@ -367,7 +367,7 @@ public class QueryServlet {
                 final SelectQueryExecution selectQueryExecution = new SelectQueryExecution(
                         tmpDir, queryCache, limits, maxCachedQuerySizeLimitBytes, imhotepClient,
                         metadataCacheIQL2.get(), resp.getWriter(), queryInfo, clientInfo, timer, query,
-                        queryRequestParams.version, queryRequestParams.isEventStream, queryRequestParams.skipValidation,
+                        queryRequestParams.version, queryRequestParams.isEventStream, queryRequestParams.returnNewestShardVersion, queryRequestParams.skipValidation,
                         queryRequestParams.csv,
                         clock, queryMetadata, cacheUploadExecutorService, defaultIQL2Options.getOptions(), accessControl);
                 selectQueryExecution.processSelect(runningQueriesManager);

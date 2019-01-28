@@ -14,15 +14,10 @@
 
 package com.indeed.iql2.server.web.servlets;
 
-import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
-import com.indeed.iql2.server.web.servlets.dataset.AllData;
-import com.indeed.iql2.server.web.servlets.dataset.Dataset;
-import junit.framework.Assert;
 import org.junit.Test;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 public class ValidationTests extends BasicTest {
@@ -50,6 +45,6 @@ public class ValidationTests extends BasicTest {
         final String query =
                 "FROM trivialOrganic 2015-01-01 2015-01-02, trivialSponsored " +
                 "SELECT [trivialOrganic.clicked + trivialSponsored.clicked]";
-        QueryServletTestUtils.expectException(query, QueryServletTestUtils.LanguageVersion.IQL2, Predicates.alwaysTrue());
+        QueryServletTestUtils.expectException(query, QueryServletTestUtils.LanguageVersion.IQL2, x -> true);
     }
 }

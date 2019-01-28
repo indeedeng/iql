@@ -50,39 +50,9 @@ public class Stats {
         }
     }
 
-    public static class DynamicMetricStat extends Stat {
-        private final DynamicMetric metric;
-        DynamicMetricStat(DynamicMetric metric) {
-            requireValid(metric);
-            this.metric = metric;
-        }
-        @Override
-        protected List<String> pushes(EZImhotepSession session) {
-            requireValid(metric);
-            return Lists.newArrayList("dynamic "+metric.name);
-        }
-        @Override
-        public String toString() {
-            if (metric.valid) {
-                return "dynamic \""+metric.name+"\"";
-            } else {
-                return "invalid dynamic metric stat";
-            }
-        }
-        public DynamicMetricStat of(DynamicMetric metric) {
-            return new DynamicMetricStat(metric);
-        }
-    }
-
     static void requireValid(StatReference ref) {
         if (!ref.isValid()) {
             throw new IllegalArgumentException("Stat reference is no longer valid!");
-        }
-    }
-
-    static void requireValid(DynamicMetric metric) {
-        if (!metric.valid) {
-            throw new IllegalArgumentException("Dynamic metric "+metric+"is not valid anymore.");
         }
     }
 
@@ -320,21 +290,6 @@ public class Stats {
         }
     }
 
-    static class StatRefStat extends Stat {
-        private final SingleStatReference ref;
-        StatRefStat(SingleStatReference ref) {
-            this.ref = ref;
-        }
-        @Override
-        protected List<String> pushes(EZImhotepSession session) {
-            requireValid(ref);
-            return Lists.newArrayList("ref "+(session.getStackDepth()-ref.depth-1));
-        }
-        @Override
-        public String toString() {
-            return "ref:"+ref.toString();
-        }
-    }
     static class CountStat extends Stat {
         CountStat() {
         }

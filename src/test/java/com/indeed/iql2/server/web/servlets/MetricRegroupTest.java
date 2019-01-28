@@ -15,12 +15,11 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
-import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
-import com.google.common.base.Predicate;
+import java.util.function.Predicate;
 
 public class MetricRegroupTest extends BasicTest {
     @Test
@@ -109,5 +108,35 @@ public class MetricRegroupTest extends BasicTest {
         QueryServletTestUtils.expectExceptionAll("FROM organic yesterday today GROUP BY bucket(oji,1,100,10) select count()", containsBucketErrorMessage);
         QueryServletTestUtils.expectExceptionAll("FROM organic yesterday today GROUP BY bucket(oji,1,95,10) select count()", containsBucketErrorMessage);
         QueryServletTestUtils.expectExceptionAll("FROM organic yesterday today GROUP BY bucket(oji,1,99,10) select count()", containsBucketErrorMessage);
+    }
+
+    @Test
+    public void testRegroupTopTerms() throws Exception {
+        final List<List<String>> expected = ImmutableList.of(
+                ImmutableList.of("1", "84"),
+                ImmutableList.of("3", "60"));
+        QueryServletTestUtils.testIQL1(
+                expected,
+                "from organic yesterday today group by topterms(ojc, 2, count()) select count()", true);
+        QueryServletTestUtils.testIQL1(
+                QueryServletTestUtils.addConstantColumn(1, "1", expected),
+                "from organic yesterday today group by topterms(ojc, 2, count()), allbit select count()", true);
+    }
+
+    @Test
+    public void testRegroupByDiff() throws Exception {
+        final List<List<String>> expected = ImmutableList.of(
+                ImmutableList.of("d", "1212", "1473", "261"),
+                ImmutableList.of("c", "1009", "1030", "21"),
+                ImmutableList.of("b", "93", "110", "17"),
+                ImmutableList.of("a", "33", "40", "7"));
+        // supported only in IQL1
+        QueryServletTestUtils.testOriginalIQL1(expected, "from organic yesterday today group by diff(tk, oji, ojc, 10) select count()", true);
+    }
+
+    @Test
+    public void testInvalidMetric() {
+        final Predicate<String> errorDuringValidation = e -> e.contains("Errors found when validating query");
+        QueryServletTestUtils.expectException("FROM organic yesterday today GROUP BY BUCKET(EXTRACT(tk, \"+\"), 0, 10, 1)", QueryServletTestUtils.LanguageVersion.IQL2, errorDuringValidation);
     }
 }

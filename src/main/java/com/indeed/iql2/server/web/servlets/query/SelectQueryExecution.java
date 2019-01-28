@@ -42,12 +42,13 @@ import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.client.Host;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.UserSessionCountLimitExceededException;
-import com.indeed.iql.StrictCloser;
+import com.indeed.imhotep.StrictCloser;
 import com.indeed.iql.cache.CompletableOutputStream;
 import com.indeed.iql.cache.QueryCache;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.io.TruncatingBufferedOutputStream;
 import com.indeed.iql.metadata.DatasetsMetadata;
+import com.indeed.iql.metadata.FieldType;
 import com.indeed.iql.web.AccessControl;
 import com.indeed.iql.web.ClientInfo;
 import com.indeed.iql.web.Limits;
@@ -162,6 +163,7 @@ public class SelectQueryExecution {
     public final String query;
     public final int version;
     public final boolean isStream;
+    private final boolean returnNewestShardVersionHeader;
     public final boolean skipValidation;
     private final ResultFormat resultFormat;
     private final WallClock clock;
@@ -182,6 +184,7 @@ public class SelectQueryExecution {
             final String query,
             final int version,
             final boolean isStream,
+            final boolean returnNewestShardVersionHeader,
             final boolean skipValidation,
             final boolean csv,
             final WallClock clock,
@@ -198,6 +201,7 @@ public class SelectQueryExecution {
         this.isStream = isStream;
         this.limits = limits;
         this.maxCachedQuerySizeLimitBytes = maxCachedQuerySizeLimitBytes;
+        this.returnNewestShardVersionHeader = returnNewestShardVersionHeader;
         this.skipValidation = skipValidation;
         this.resultFormat = csv ? ResultFormat.CSV : ResultFormat.TSV;
         this.clock = clock;
@@ -308,13 +312,12 @@ public class SelectQueryExecution {
         final Queries.ParseResult parseResult = Queries.parseQuery(q, useLegacy, datasetsMetadata, defaultIQL2Options, warnings::add, clock);
         timer.pop();
 
-        final Query paranoidQuery;
         if (parseResult.query.options.contains(QueryOptions.PARANOID)) {
             timer.push("reparse query (paranoid mode)");
-            paranoidQuery = Queries.parseQuery(q, useLegacy, datasetsMetadata, defaultIQL2Options, x -> {}, clock).query;
+            final Query paranoidQuery = Queries.parseQuery(q, useLegacy, datasetsMetadata, defaultIQL2Options, x -> {}, clock).query;
             timer.pop();
 
-            timer.push("check query equals() and hashCode()");
+            timer.push("check query equals() and hashCode() (paranoid mode)");
             if (!paranoidQuery.equals(parseResult.query)) {
                 log.error("parseResult.query = " + parseResult.query);
                 log.error("paranoidQuery = " + paranoidQuery);
@@ -326,8 +329,10 @@ public class SelectQueryExecution {
                 throw new IllegalStateException("Paranoid mode encountered re-parsed query hashCode() failure!");
             }
             timer.pop();
-        } else {
-            paranoidQuery = null;
+
+            timer.push("extractHeaders (paranoid mode)");
+            Queries.extractHeaders(parseResult.query);
+            timer.pop();
         }
 
         {
@@ -554,7 +559,7 @@ public class SelectQueryExecution {
             allShardsUsed.putAll(Multimaps.forMap(datasetToChosenShards));
             datasetsWithMissingShards.addAll(computeCacheKey.datasetsWithMissingShards);
             if (isTopLevelQuery) {
-                queryMetadata.addItem("IQL-Newest-Shard", ISODateTimeFormat.dateTime().print(newestStaticShard(allShardsUsed).or(-1L)), true);
+                queryMetadata.addItem("IQL-Newest-Shard", ISODateTimeFormat.dateTime().print(newestStaticShard(allShardsUsed).or(-1L)), returnNewestShardVersionHeader);
 
                 for(DatasetWithMissingShards datasetWithMissingShards : datasetsWithMissingShards) {
                     warnings.addAll(QueryServlet.missingShardsToWarnings(datasetWithMissingShards.dataset,
@@ -683,6 +688,7 @@ public class SelectQueryExecution {
                             mbToBytes(limits.queryFTGSIQLLimitMB),
                             mbToBytes(limits.queryFTGSImhotepDaemonLimitMB),
                             clientInfo.username,
+                            (version == 2) ? FieldType.Integer : FieldType.String,
                             resultFormat
                     );
 
@@ -921,7 +927,7 @@ public class SelectQueryExecution {
             }
         }
         final TreeSet<String> sortedOptions = Sets.newTreeSet(query.options);
-        final String queryHash = computeQueryHash(commands, query.rowLimit, sortedOptions, shards, datasetsWithTimeRange, SelectQuery.VERSION_FOR_HASHING, resultFormat);
+        final String queryHash = computeQueryHash(commands, query.rowLimit, sortedOptions, shards, datasetsWithTimeRange, query.useLegacy, SelectQuery.VERSION_FOR_HASHING, resultFormat);
         final String cacheFileName = "IQL2-" + queryHash + ".tsv";
         timer.pop();
 
@@ -946,7 +952,7 @@ public class SelectQueryExecution {
         return hasMoreRows;
     }
 
-    private static String computeQueryHash(List<Command> commands, Optional<Integer> rowLimit, final Collection<String> sortedOptions, Set<Pair<String, String>> shards, Set<DatasetWithTimeRangeAndAliases> datasets, int version, final ResultFormat resultFormat) {
+    private static String computeQueryHash(List<Command> commands, Optional<Integer> rowLimit, final Collection<String> sortedOptions, Set<Pair<String, String>> shards, Set<DatasetWithTimeRangeAndAliases> datasets, final boolean useLegacy, int version, final ResultFormat resultFormat) {
         final MessageDigest sha1;
         try {
             sha1 = MessageDigest.getInstance("SHA-1");
@@ -955,6 +961,7 @@ public class SelectQueryExecution {
             throw Throwables.propagate(e);
         }
         sha1.update(Ints.toByteArray(version));
+        sha1.update(Ints.toByteArray(useLegacy ? 1 : 2));
         sha1.update(resultFormat.toString().getBytes());
         for (final Command command : commands) {
             sha1.update(command.toString().getBytes(Charsets.UTF_8));

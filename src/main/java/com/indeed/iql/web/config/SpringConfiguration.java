@@ -427,4 +427,12 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
     public File tmpDir() {
         return null;
     }
+
+    @Bean
+    public Integer maxPostSize() {
+        // Should be configured to match the container context
+        // If unset, users are likely to get cryptic errors such as
+        // "Required String parameter 'q' is not present"
+        return env.getProperty("max.post.size", Integer.class, Integer.MAX_VALUE);
+    }
 }

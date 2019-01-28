@@ -15,18 +15,37 @@
 package com.indeed.iql2.language.optimizations;
 
 import com.google.common.base.Function;
+import com.google.common.base.Functions;
+import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocFilter;
 import com.indeed.iql2.language.DocMetric;
+import com.indeed.iql2.language.query.Query;
 import com.indeed.util.core.Pair;
 
 public class ConstantFolding {
+    public static final Function<AggregateMetric, AggregateMetric> AGG_METRIC_OPTIMIZER = new Function<AggregateMetric, AggregateMetric>() {
+        @Override
+        public AggregateMetric apply(final AggregateMetric input) {
+            if (input instanceof AggregateMetric.Negate) {
+                final AggregateMetric.Negate negate = (AggregateMetric.Negate) input;
+                if (isConstant(negate.m1)) {
+                    return new AggregateMetric.Constant(-getConstant(negate.m1));
+                }
+            }
+
+            // TODO: Fill in some more.
+
+            return input;
+        }
+    };
+
     public static final Function<DocMetric, DocMetric> METRIC_OPTIMIZER = new Function<DocMetric, DocMetric>() {
         @Override
         public DocMetric apply(DocMetric input) {
             if (input instanceof DocMetric.Multiply) {
                 // Multiply (Constant x) (Constant y) = Constant (x * y)
                 // Multiply (Constant 0) x = Constant 0
-                // Multiply x (Constant 0) = x
+                // Multiply x (Constant 0) = Constant 0
                 // Multiply (Constant 1) x = x
                 // Multiply x (Constant 1) = x
                 final DocMetric.Multiply multiply = (DocMetric.Multiply) input;
@@ -243,6 +262,14 @@ public class ConstantFolding {
         }
     };
 
+    public static Query apply(final Query query) {
+        return query.transform(Functions.identity(), AGG_METRIC_OPTIMIZER, METRIC_OPTIMIZER, Functions.identity(), FILTER_OPTIMIZER);
+    }
+
+    public static AggregateMetric apply(final AggregateMetric metric) {
+        return metric.transform(AGG_METRIC_OPTIMIZER, METRIC_OPTIMIZER, Functions.identity(), FILTER_OPTIMIZER, Functions.identity());
+    }
+
     public static DocMetric apply(final DocMetric metric) {
         return metric.transform(METRIC_OPTIMIZER, FILTER_OPTIMIZER);
     }
@@ -259,6 +286,14 @@ public class ConstantFolding {
         } else {
             return Pair.of(x, y);
         }
+    }
+
+    private static double getConstant(AggregateMetric constant) {
+        return ((AggregateMetric.Constant) constant).value;
+    }
+
+    private static boolean isConstant(AggregateMetric value) {
+        return value instanceof AggregateMetric.Constant;
     }
 
     private static long getConstant(DocMetric constant) {

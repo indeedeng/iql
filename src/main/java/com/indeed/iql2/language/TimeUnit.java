@@ -116,4 +116,8 @@ public enum TimeUnit {
                 throw new IqlKnownException.ParseErrorException("Unknown time unit: " + unit);
         }
     }
+
+    public long toSeconds() {
+        return millis/1000;
+    }
 }

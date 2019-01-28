@@ -15,18 +15,17 @@
 package com.indeed.iql2.language.actions;
 
 import com.google.common.base.Function;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
+import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.Validator;
 import com.indeed.iql2.language.util.ValidationHelper;
 
-import java.util.List;
 import java.util.Map;
 
 public class SampleMetricAction implements Action {
-    final ImmutableMap<String, ImmutableList<String>> perDatasetMetric;
+    final ImmutableMap<String, DocMetric> perDatasetMetric;
     public final double probability;
     public final String seed;
 
@@ -34,17 +33,13 @@ public class SampleMetricAction implements Action {
     public final int positiveGroup;
     public final int negativeGroup;
 
-    public SampleMetricAction(final Map<String, List<String>> perDatasetMetrics,
+    public SampleMetricAction(final Map<String, DocMetric> perDatasetMetrics,
                               final double probability,
                               final String seed,
                               final int targetGroup,
                               final int positiveGroup,
                               final int negativeGroup) {
-        final ImmutableMap.Builder<String, ImmutableList<String>> copy = ImmutableMap.builder();
-        for (final Map.Entry<String, List<String>> entry : perDatasetMetrics.entrySet()) {
-            copy.put(entry.getKey(), ImmutableList.copyOf(entry.getValue()));
-        }
-        this.perDatasetMetric = copy.build();
+        this.perDatasetMetric = ImmutableMap.copyOf(perDatasetMetrics);
         this.probability = probability;
         this.seed = seed;
         this.targetGroup = targetGroup;

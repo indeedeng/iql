@@ -305,11 +305,6 @@ public class FieldExtractor {
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.PushableDocMetric pushableDocMetric) throws RuntimeException {
-				return getDatasetFields(pushableDocMetric.metric);
-			}
-
-			@Override
 			public Set<DatasetField> visit(final DocMetric.PerDatasetDocMetric perDatasetDocMetric) throws RuntimeException {
 				final Set<DatasetField> set = Sets.newHashSet();
  				for (final DocMetric metric : perDatasetDocMetric.datasetToMetric.values()) {

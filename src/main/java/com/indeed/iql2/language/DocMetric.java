@@ -24,7 +24,6 @@ import com.indeed.imhotep.marshal.ImhotepClientMarshaller;
 import com.indeed.imhotep.protobuf.QueryMessage;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetsMetadata;
-import com.indeed.iql2.language.optimizations.ConstantFolding;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.query.fieldresolution.ScopedFieldResolver;
 import com.indeed.iql2.language.util.ErrorMessages;
@@ -44,7 +43,6 @@ import java.util.regex.PatternSyntaxException;
 public abstract class DocMetric extends AbstractPositional {
     public interface Visitor<T, E extends Throwable> {
         T visit(Log log) throws E;
-        T visit(PushableDocMetric pushableDocMetric) throws E;
         T visit(PerDatasetDocMetric perDatasetDocMetric) throws E;
         T visit(Count count) throws E;
         T visit(DocId count) throws E;
@@ -87,6 +85,9 @@ public abstract class DocMetric extends AbstractPositional {
         T visit(RandomMetric random) throws E;
     }
 
+    /**
+     * @see com.indeed.iql2.language.query.Query#transform(Function, Function, Function, Function, Function)
+     */
     public abstract DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i);
 
     public abstract List<String> getPushes(String dataset);
@@ -95,52 +96,10 @@ public abstract class DocMetric extends AbstractPositional {
 
     public abstract void validate(String dataset, ValidationHelper validationHelper, Validator validator);
 
-    public static class PushableDocMetric extends DocMetric {
-        public final DocMetric metric;
-
-        public PushableDocMetric(DocMetric metric) {
-            this.metric = metric;
-        }
-
-        @Override
-        public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return g.apply(new PushableDocMetric(metric.transform(g, i)));
-        }
-
-        @Override
-        public List<String> getPushes(String dataset) {
-            return ConstantFolding.apply(metric).getPushes(dataset);
-        }
-
-        @Override
-        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
-            return visitor.visit(this);
-        }
-
-        @Override
-        public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
-            metric.validate(dataset, validationHelper, validator);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            PushableDocMetric that = (PushableDocMetric) o;
-            return Objects.equals(metric, that.metric);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(metric);
-        }
-
-        @Override
-        public String toString() {
-            return "PushableDocMetric{" +
-                    "metric=" + metric +
-                    '}';
-        }
+    @Override
+    public DocMetric copyPosition(Positional positional) {
+        super.copyPosition(positional);
+        return this;
     }
 
     public static class PerDatasetDocMetric extends DocMetric {
@@ -152,7 +111,8 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return g.apply(new PerDatasetDocMetric(Maps.transformValues(datasetToMetric, d -> d.transform(g, i))));
+            return g.apply(new PerDatasetDocMetric(Maps.transformValues(datasetToMetric, d -> d.transform(g, i))))
+                    .copyPosition(this);
         }
 
         @Override
@@ -209,7 +169,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return g.apply(this);
+            return g.apply(new Count()).copyPosition(this);
         }
 
         @Override
@@ -249,7 +209,7 @@ public abstract class DocMetric extends AbstractPositional {
         @Override
         public DocMetric transform(final Function<DocMetric, DocMetric> g,
                                    final Function<DocFilter, DocFilter> i) {
-            return g.apply(this);
+            return g.apply(new DocId()).copyPosition(this);
         }
 
         @Override
@@ -294,7 +254,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return g.apply(this);
+            return g.apply(new Field(field)).copyPosition(this);
         }
 
         @Override
@@ -387,7 +347,8 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return g.apply(new Log(metric.transform(g, i), scaleFactor));
+            return g.apply(new Log(metric.transform(g, i), scaleFactor))
+                    .copyPosition(this);
         }
 
         @Override
@@ -446,7 +407,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return g.apply(new Exponentiate(metric.transform(g, i), scaleFactor));
+            return g.apply(new Exponentiate(metric.transform(g, i), scaleFactor)).copyPosition(this);
         }
 
         @Override
@@ -501,12 +462,12 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return g.apply(new Negate(m1.transform(g, i)));
+            return g.apply(new Negate(m1.transform(g, i))).copyPosition(this);
         }
 
         @Override
         public List<String> getPushes(String dataset) {
-            return new PushableDocMetric(new Subtract(new Constant(0), m1)).getPushes(dataset);
+            return new Subtract(new Constant(0), m1).getPushes(dataset);
         }
 
         @Override
@@ -522,7 +483,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return g.apply(new Abs(m1.transform(g, i)));
+            return g.apply(new Abs(m1.transform(g, i))).copyPosition(this);
         }
 
         @Override
@@ -543,7 +504,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return g.apply(new Signum(m1.transform(g, i)));
+            return g.apply(new Signum(m1.transform(g, i))).copyPosition(this);
         }
 
         @Override
@@ -554,7 +515,7 @@ public abstract class DocMetric extends AbstractPositional {
                             new Constant(-1),
                             new Constant(0))
             );
-            return new PushableDocMetric(m).getPushes(dataset);
+            return m.getPushes(dataset);
         }
 
         @Override
@@ -663,7 +624,7 @@ public abstract class DocMetric extends AbstractPositional {
             for (final DocMetric metric : metrics) {
                 transformed.add(metric.transform(g, i));
             }
-            return g.apply(create(transformed));
+            return g.apply(create(transformed)).copyPosition(this);
         }
 
         @Override
@@ -742,7 +703,8 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return g.apply(new Subtract(m1.transform(g, i), m2.transform(g, i)));
+            return g.apply(new Subtract(m1.transform(g, i), m2.transform(g, i)))
+                    .copyPosition(this);
         }
 
         @Override
@@ -763,7 +725,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return g.apply(new Multiply(m1.transform(g, i), m2.transform(g, i)));
+            return g.apply(new Multiply(m1.transform(g, i), m2.transform(g, i))).copyPosition(this);
         }
 
         @Override
@@ -784,7 +746,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return g.apply(new Divide(m1.transform(g, i), m2.transform(g, i)));
+            return g.apply(new Divide(m1.transform(g, i), m2.transform(g, i))).copyPosition(this);
         }
 
         @Override
@@ -805,7 +767,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return g.apply(new Modulus(m1.transform(g, i), m2.transform(g, i)));
+            return g.apply(new Modulus(m1.transform(g, i), m2.transform(g, i))).copyPosition(this);
         }
 
         @Override
@@ -826,7 +788,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return g.apply(new Min(m1.transform(g, i), m2.transform(g, i)));
+            return g.apply(new Min(m1.transform(g, i), m2.transform(g, i))).copyPosition(this);
         }
 
         @Override
@@ -847,7 +809,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return g.apply(new Max(m1.transform(g, i), m2.transform(g, i)));
+            return g.apply(new Max(m1.transform(g, i), m2.transform(g, i))).copyPosition(this);
         }
 
         @Override
@@ -868,7 +830,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return g.apply(new MetricEqual(m1.transform(g, i), m2.transform(g, i)));
+            return g.apply(new MetricEqual(m1.transform(g, i), m2.transform(g, i))).copyPosition(this);
         }
 
         @Override
@@ -889,7 +851,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return g.apply(new MetricNotEqual(m1.transform(g, i), m2.transform(g, i)));
+            return g.apply(new MetricNotEqual(m1.transform(g, i), m2.transform(g, i))).copyPosition(this);
         }
 
         @Override
@@ -910,7 +872,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return g.apply(new MetricLt(m1.transform(g, i), m2.transform(g, i)));
+            return g.apply(new MetricLt(m1.transform(g, i), m2.transform(g, i))).copyPosition(this);
         }
 
         @Override
@@ -931,7 +893,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return g.apply(new MetricLte(m1.transform(g, i), m2.transform(g, i)));
+            return g.apply(new MetricLte(m1.transform(g, i), m2.transform(g, i))).copyPosition(this);
         }
 
         @Override
@@ -952,7 +914,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return g.apply(new MetricGt(m1.transform(g, i), m2.transform(g, i)));
+            return g.apply(new MetricGt(m1.transform(g, i), m2.transform(g, i))).copyPosition(this);
         }
 
         @Override
@@ -973,7 +935,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return g.apply(new MetricGte(m1.transform(g, i), m2.transform(g, i)));
+            return g.apply(new MetricGte(m1.transform(g, i), m2.transform(g, i))).copyPosition(this);
         }
 
         @Override
@@ -999,7 +961,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return g.apply(this);
+            return g.apply(new RegexMetric(field, regex)).copyPosition(this);
         }
 
         @Override
@@ -1054,7 +1016,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return g.apply(this);
+            return g.apply(new FieldEqualMetric(field1, field2)).copyPosition(this);
         }
 
         @Override
@@ -1113,7 +1075,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return g.apply(this);
+            return g.apply(new FloatScale(field, mult, add)).copyPosition(this);
         }
 
         @Override
@@ -1168,7 +1130,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return g.apply(this);
+            return g.apply(new Constant(value)).copyPosition(this);
         }
 
         @Override
@@ -1216,7 +1178,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return g.apply(this);
+            return g.apply(new HasIntField(field)).copyPosition(this);
         }
 
         @Override
@@ -1264,7 +1226,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return g.apply(this);
+            return g.apply(new HasStringField(field)).copyPosition(this);
         }
 
         @Override
@@ -1314,7 +1276,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return g.apply(this);
+            return g.apply(new HasInt(field, term)).copyPosition(this);
         }
 
         @Override
@@ -1370,7 +1332,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return g.apply(this);
+            return g.apply(new HasString(field, term, strictValidate)).copyPosition(this);
         }
 
         @Override
@@ -1432,7 +1394,8 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return g.apply(new IfThenElse(condition.transform(g, i), trueCase.transform(g, i), falseCase.transform(g, i)));
+            return g.apply(new IfThenElse(condition.transform(g, i), trueCase.transform(g, i), falseCase.transform(g, i)))
+                    .copyPosition(this);
         }
 
         @Override
@@ -1440,7 +1403,7 @@ public abstract class DocMetric extends AbstractPositional {
             final DocMetric truth = condition.asZeroOneMetric(dataset);
             final DocMetric trueOrZero = new Multiply(truth, trueCase);
             final DocMetric falseOrZero = new Multiply(new Subtract(new Constant(1), truth), falseCase);
-            return new PushableDocMetric(Add.create(trueOrZero, falseOrZero)).getPushes(dataset);
+            return Add.create(trueOrZero, falseOrZero).getPushes(dataset);
         }
 
         @Override
@@ -1491,7 +1454,8 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return g.apply(new Qualified(dataset, metric.transform(g, i)));
+            return g.apply(new Qualified(dataset, metric.transform(g, i)))
+                    .copyPosition(this);
         }
 
         @Override
@@ -1551,7 +1515,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return g.apply(this);
+            return g.apply(new Extract(field, regex, groupNumber)).copyPosition(this);
         }
 
         @Override
@@ -1611,7 +1575,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public DocMetric transform(final Function<DocMetric, DocMetric> g, final Function<DocFilter, DocFilter> i) {
-            return g.apply(this);
+            return g.apply(new Lucene(query, datasetsMetadata, fieldResolver)).copyPosition(this);
         }
 
         @Override
@@ -1665,7 +1629,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public DocMetric transform(final Function<DocMetric, DocMetric> g, final Function<DocFilter, DocFilter> i) {
-            return g.apply(this);
+            return g.apply(new StringLen(field)).copyPosition(this);
         }
 
         @Override
@@ -1720,7 +1684,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public DocMetric transform(final Function<DocMetric, DocMetric> g, final Function<DocFilter, DocFilter> i) {
-            return g.apply(this);
+            return g.apply(new IntTermCount(field)).copyPosition(this);
         }
 
         @Override
@@ -1786,7 +1750,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public DocMetric transform(final Function<DocMetric, DocMetric> g, final Function<DocFilter, DocFilter> i) {
-            return g.apply(this);
+            return g.apply(new StrTermCount(field)).copyPosition(this);
         }
 
         @Override
@@ -1861,7 +1825,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public DocMetric transform(final Function<DocMetric, DocMetric> g, final Function<DocFilter, DocFilter> i) {
-            return g.apply(this);
+            return g.apply(this).copyPosition(this);
         }
 
         @Override
@@ -1933,7 +1897,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public DocMetric transform(final Function<DocMetric, DocMetric> g, final Function<DocFilter, DocFilter> i) {
-            return g.apply(this);
+            return g.apply(new Random(field, isIntField, max, salt)).copyPosition(this);
         }
 
         @Override
@@ -2007,7 +1971,8 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public DocMetric transform(final Function<DocMetric, DocMetric> g, final Function<DocFilter, DocFilter> i) {
-            return g.apply(new SampleMetric(metric.transform(g, i), numerator, denominator, salt));
+            return g.apply(new SampleMetric(metric.transform(g, i), numerator, denominator, salt))
+                    .copyPosition(this);
         }
 
         @Override
@@ -2067,7 +2032,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public DocMetric transform(final Function<DocMetric, DocMetric> g, final Function<DocFilter, DocFilter> i) {
-            return g.apply(new RandomMetric(metric.transform(g, i), max, salt));
+            return g.apply(new RandomMetric(metric.transform(g, i), max, salt)).copyPosition(this);
         }
 
         @Override

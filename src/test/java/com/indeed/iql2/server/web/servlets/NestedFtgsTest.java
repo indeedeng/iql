@@ -1,13 +1,7 @@
 package com.indeed.iql2.server.web.servlets;
 
-import com.google.common.base.Predicates;
-import com.indeed.imhotep.client.ImhotepClient;
-import com.indeed.iql2.server.web.servlets.dataset.AllData;
-import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
-
-import java.util.Collections;
 
 import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.LanguageVersion.IQL2;
 
@@ -35,6 +29,6 @@ public class NestedFtgsTest extends BasicTest {
         final String query =
                 "from organic 2d 1d " +
                 "select DISTINCT(country) as c, DISTINCT(oji HAVING count() > c)";
-        QueryServletTestUtils.expectException(query, IQL2, Predicates.alwaysTrue());
+        QueryServletTestUtils.expectException(query, IQL2, x -> true);
     }
 }

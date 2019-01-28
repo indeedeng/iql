@@ -20,14 +20,17 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
+import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.Validator;
 import com.indeed.iql2.language.util.ValidationHelper;
 
+import java.text.MessageFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class MetricRegroup implements Command {
-    public final ImmutableMap<String, ImmutableList<String>> perDatasetMetric;
+    public final ImmutableMap<String, DocMetric> perDatasetMetric;
     public final long min;
     public final long max;
     public final long interval;
@@ -35,12 +38,8 @@ public class MetricRegroup implements Command {
     public final boolean withDefault;
     public final boolean fromPredicate;
 
-    public MetricRegroup(Map<String, List<String>> perDatasetMetric, long min, long max, long interval, boolean excludeGutters, boolean withDefault, boolean fromPredicate) {
-        final ImmutableMap.Builder<String, ImmutableList<String>> copy = ImmutableMap.builder();
-        for (final Map.Entry<String, List<String>> entry : perDatasetMetric.entrySet()) {
-            copy.put(entry.getKey(), ImmutableList.copyOf(entry.getValue()));
-        }
-        this.perDatasetMetric = copy.build();
+    public MetricRegroup(Map<String, DocMetric> perDatasetMetric, long min, long max, long interval, boolean excludeGutters, boolean withDefault, boolean fromPredicate) {
+        this.perDatasetMetric = ImmutableMap.copyOf(perDatasetMetric);
         this.min = min;
         this.max = max;
         this.interval = interval;
@@ -59,16 +58,23 @@ public class MetricRegroup implements Command {
         }
         if ((max-min)%interval != 0) {
             final long bucketRange = max - min;
-            validator.error("Bucket range should be a multiple of the interval. To correct, decrease the upper bound to " + (max - bucketRange%interval) + " or increase to " + (max + interval - bucketRange%interval));
+            validator.error(MessageFormat.format("Bucket range should be a multiple of the interval. To correct, decrease the upper bound to {0} or increase to {1}", max - bucketRange % interval, max + interval - bucketRange % interval));
         }
 
-        // TODO: Validate more List<String>s.... somehow.
+        for (final Map.Entry<String, DocMetric> docMetricEntry : perDatasetMetric.entrySet()) {
+            docMetricEntry.getValue().validate(docMetricEntry.getKey(), validationHelper, validator);
+        }
     }
 
     @Override
     public com.indeed.iql2.execution.commands.Command toExecutionCommand(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet, List<String> options) {
+        final Map<String, List<String>> perDatasetCommands = perDatasetMetric.entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entry -> ImmutableList.copyOf(entry.getValue().getPushes(entry.getKey()))
+                ));
         return new com.indeed.iql2.execution.commands.MetricRegroup(
-                perDatasetMetric,
+                perDatasetCommands,
                 min,
                 max,
                 interval,
