@@ -398,6 +398,32 @@ public class AggregateMetrics {
             }
 
             @Override
+            public void enterAggregateLogLoss(final JQLParser.AggregateLogLossContext ctx) {
+                final DocFilter label = DocFilters.parseJQLDocFilter(ctx.label, context);
+                final DocMetric score = DocMetrics.parseJQLDocMetric(ctx.score, context);
+                final int scale = Integer.parseInt(ctx.scale.getText());
+
+                // AVG([if <label> then -log(score, scale) else -log(scale - score, scale)) / scale
+                accept(
+                        new AggregateMetric.Divide(
+                                new AggregateMetric.DivideByCount(
+                                        new AggregateMetric.DocStats(
+                                                new DocMetric.IfThenElse(
+                                                        label,
+                                                        new DocMetric.Negate(new DocMetric.Log(score, scale)),
+                                                        new DocMetric.Negate(new DocMetric.Log(new DocMetric.Subtract(
+                                                                new DocMetric.Constant(scale),
+                                                                score
+                                                        ), scale))
+                                                )
+                                        )
+                                ),
+                                new AggregateMetric.Constant(scale)
+                        )
+                );
+            }
+
+            @Override
             public void enterAggregateSum(JQLParser.AggregateSumContext ctx) {
                 accept(new AggregateMetric.DocStats(DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(), context)));
             }
