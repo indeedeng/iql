@@ -170,7 +170,13 @@ public class DocMetrics {
 
             @Override
             public void enterLegacyDocMetricAtomHasString(final JQLParser.LegacyDocMetricAtomHasStringContext ctx) {
-                accept(new DocMetric.HasString(fieldResolver.resolve(ctx.field), ParserCommon.unquote(ctx.term.getText()), false));
+                final String term;
+                if (ctx.term != null) {
+                    term = ParserCommon.unquote(ctx.term.getText());
+                } else {
+                    term = ctx.numTerm.getText();
+                }
+                accept(new DocMetric.HasString(fieldResolver.resolve(ctx.field), term, false));
             }
 
             @Override

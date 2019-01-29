@@ -270,7 +270,7 @@ jqlSyntacticallyAtomicDocMetricAtom
 
 legacyDocMetricAtom
     : field=identifier '=' term=(STRING_LITERAL | ID | TIME_UNIT) # LegacyDocMetricAtomHasString
-    | HASSTR '(' field=identifier ',' term=(STRING_LITERAL | ID | TIME_UNIT) ')' # LegacyDocMetricAtomHasString
+    | HASSTR '(' field=identifier ',' (term=(STRING_LITERAL | ID | TIME_UNIT)  | numTerm=number) ')' # LegacyDocMetricAtomHasString
     | field=identifier '!=' term=(STRING_LITERAL | ID | TIME_UNIT) # LegacyDocMetricAtomHasntString
     | field=identifier '=' term=integer # LegacyDocMetricAtomHasInt
     | HASINT '(' field=identifier ',' term=integer ')' # LegacyDocMetricAtomHasInt
