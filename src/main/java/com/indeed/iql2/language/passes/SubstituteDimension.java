@@ -22,7 +22,9 @@ import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.query.Queries;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.fieldresolution.ScopedFieldResolver;
+import com.indeed.iql2.language.query.shardresolution.NullShardResolver;
 import com.indeed.util.core.time.DefaultWallClock;
+import com.indeed.util.logging.TracingTreeTimer;
 import org.apache.log4j.Logger;
 
 public class SubstituteDimension {
@@ -43,7 +45,9 @@ public class SubstituteDimension {
                         null,
                         s -> log.warn(String.format("parse DimensionMetric name: %s, expr: %s, warning: %s", name, expr, s)),
                         new DefaultWallClock(),
-                        fieldResolver
+                        new TracingTreeTimer(),
+                        fieldResolver,
+                        new NullShardResolver() // Dimensions metrics cannot use subqueries
                 )
         );
 

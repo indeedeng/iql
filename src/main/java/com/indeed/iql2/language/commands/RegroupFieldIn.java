@@ -19,10 +19,10 @@ import com.indeed.iql2.execution.commands.IntRegroupFieldIn;
 import com.indeed.iql2.execution.commands.StringRegroupFieldIn;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
-import com.indeed.iql2.language.Validator;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
+import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 import it.unimi.dsi.fastutil.longs.LongList;
 
 import java.util.List;
@@ -44,11 +44,11 @@ public class RegroupFieldIn implements Command {
     }
 
     @Override
-    public void validate(ValidationHelper validationHelper, Validator validator) {
+    public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {
         if (isIntField) {
-            ValidationUtil.validateIntField(field, validationHelper, validator, this);
+            ValidationUtil.validateIntField(field, validationHelper, errorCollector, this);
         } else {
-            ValidationUtil.validateStringField(field, validationHelper, validator, this);
+            ValidationUtil.validateStringField(field, validationHelper, errorCollector, this);
         }
     }
 

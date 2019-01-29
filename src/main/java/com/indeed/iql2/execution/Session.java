@@ -164,7 +164,6 @@ public class Session {
 
     public static CreateSessionResult createSession(
             final ImhotepClient client,
-            final Map<String, List<Shard>> datasetToChosenShards,
             final Integer groupLimit,
             final Set<String> optionsSet,
             final List<com.indeed.iql2.language.commands.Command> commands,
@@ -187,10 +186,10 @@ public class Session {
         final boolean useAsync = optionsSet.contains(QueryOptions.Experimental.ASYNC);
 
         progressCallback.startSession(Optional.of(commands.size()));
-        progressCallback.preSessionOpen(datasetToChosenShards);
+        progressCallback.preSessionOpen(datasets);
 
         treeTimer.push("createSubSessions");
-        final long firstStartTimeMillis = createSubSessions(client, requestRust, useAsync, datasets, datasetToChosenShards,
+        final long firstStartTimeMillis = createSubSessions(client, requestRust, useAsync, datasets,
                 strictCloser, sessions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, username, progressCallback);
         progressCallback.sessionsOpened(sessions);
         treeTimer.pop();
@@ -229,6 +228,7 @@ public class Session {
             tempFileBytesWritten += sessionInfo.session.getTempFilesBytesWritten();
         }
 
+        treeTimer.push("get performance stats");
         final PerformanceStats.Builder performanceStats = PerformanceStats.builder();
         try {
             // Close sessions and get performance stats
@@ -241,6 +241,7 @@ public class Session {
         } catch (Exception e) {
             log.error("Exception trying to close Imhotep sessions", e);
         }
+        treeTimer.pop();
 
         return new CreateSessionResult(Optional.<Session>absent(), tempFileBytesWritten, performanceStats.build());
     }
@@ -258,7 +259,6 @@ public class Session {
             final boolean requestRust,
             final boolean useAsync,
             final List<Queries.QueryDataset> sessionRequest,
-            final Map<String, List<Shard>> datasetToChosenShards,
             final StrictCloser strictCloser,
             final Map<String, ImhotepSessionInfo> sessions,
             final TracingTreeTimer treeTimer,
@@ -286,7 +286,7 @@ public class Session {
             treeTimer.pop();
             treeTimer.push("build session");
             treeTimer.push("create session builder");
-            final List<Shard> chosenShards = datasetToChosenShards.get(dataset.name);
+            final List<Shard> chosenShards = dataset.shards;
             if ((chosenShards == null) || chosenShards.isEmpty()) {
                 throw new IqlKnownException.NoDataException("No shards: no data available for the requested dataset and time range."
                 + " Dataset: " + dataset.name + ", start: " + startDateTime + ", end: " + endDateTime);

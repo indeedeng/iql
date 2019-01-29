@@ -16,7 +16,10 @@ package com.indeed.iql2.language;
 
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.query.Queries;
+import com.indeed.iql2.language.query.shardresolution.NullShardResolver;
+import com.indeed.iql2.language.query.shardresolution.ShardResolver;
 import com.indeed.util.core.time.DefaultWallClock;
+import com.indeed.util.logging.TracingTreeTimer;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -34,6 +37,10 @@ public class CompatibilityTest {
         log.setLevel(Level.TRACE);
         log.addAppender(new ConsoleAppender(new SimpleLayout()));
 
+        final DefaultWallClock clock = new DefaultWallClock();
+        final TracingTreeTimer timer = new TracingTreeTimer();
+        final ShardResolver shardResolver = new NullShardResolver();
+
         final String path = args[0];
         int successes = 0;
         int failures = 0;
@@ -46,7 +53,7 @@ public class CompatibilityTest {
                 }
                 successes++;
                 try {
-                    Queries.parseQuery(q, true, DatasetsMetadata.empty(), Collections.emptySet(), new DefaultWallClock());
+                    Queries.parseQuery(q, true, DatasetsMetadata.empty(), Collections.emptySet(), clock, timer, shardResolver);
                 } catch (Exception e) {
                     successes--;
                     failures++;

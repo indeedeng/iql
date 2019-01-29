@@ -18,10 +18,10 @@ import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
-import com.indeed.iql2.language.Validator;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ErrorMessages;
 import com.indeed.iql2.language.util.ValidationHelper;
+import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 
 import java.util.Set;
 
@@ -42,11 +42,11 @@ public class StringOrAction implements Action {
     }
 
     @Override
-    public void validate(ValidationHelper validationHelper, Validator validator) {
+    public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {
         for (final String dataset : field.datasets()) {
             final String fieldName = this.field.datasetFieldName(dataset);
             if (!validationHelper.containsStringField(dataset, fieldName)) {
-                validator.error(ErrorMessages.missingStringField(dataset, fieldName, this));
+                errorCollector.error(ErrorMessages.missingStringField(dataset, fieldName, this));
             }
         }
     }

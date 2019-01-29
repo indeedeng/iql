@@ -21,8 +21,8 @@ import com.google.common.collect.ImmutableMap;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.DocMetric;
-import com.indeed.iql2.language.Validator;
 import com.indeed.iql2.language.util.ValidationHelper;
+import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 
 import java.util.List;
 import java.util.Map;
@@ -42,12 +42,12 @@ public class RandomMetricRegroup implements Command {
     }
 
     @Override
-    public void validate(final ValidationHelper validationHelper, final Validator validator) {
+    public void validate(final ValidationHelper validationHelper, final ErrorCollector errorCollector) {
         if (k <= 1) {
-            validator.error("Bucket count in RANDOM() must be greater than 1, buckets = " + k);
+            errorCollector.error("Bucket count in RANDOM() must be greater than 1, buckets = " + k);
         }
         for (final Map.Entry<String, DocMetric> entry : perDatasetMetric.entrySet()) {
-            entry.getValue().validate(entry.getKey(), validationHelper, validator);
+            entry.getValue().validate(entry.getKey(), validationHelper, errorCollector);
         }
     }
 

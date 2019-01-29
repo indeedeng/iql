@@ -1,8 +1,10 @@
 package com.indeed.iql2.language.query;
 
 import com.indeed.iql.metadata.DatasetsMetadata;
+import com.indeed.iql2.language.query.shardresolution.NullShardResolver;
 import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import com.indeed.util.core.time.StoppedClock;
+import com.indeed.util.logging.TracingTreeTimer;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.junit.Assert;
@@ -20,7 +22,8 @@ public class TimeRangeTest {
     }
 
     private void testStartEnd(final String query, final DateTime start, final DateTime end, final boolean useLegacy) {
-        final Queries.ParseResult result = Queries.parseQuery(query, useLegacy, DATASETS_METADATA, Collections.emptySet(), new StoppedClock(STOPPED_TIME.getMillis()));
+        final TracingTreeTimer timer = new TracingTreeTimer();
+        final Queries.ParseResult result = Queries.parseQuery(query, useLegacy, DATASETS_METADATA, Collections.emptySet(), new StoppedClock(STOPPED_TIME.getMillis()), timer, new NullShardResolver());
         for (final Dataset dataset : result.query.datasets) {
             Assert.assertEquals("Start doesn't match", start, dataset.startInclusive.unwrap());
             Assert.assertEquals("End doesn't match", end, dataset.endExclusive.unwrap());

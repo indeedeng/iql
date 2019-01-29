@@ -12,19 +12,18 @@
  * limitations under the License.
  */
 
-
 package com.indeed.iql2.language.commands;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
-import com.indeed.iql2.language.Validator;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
+import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 
 import java.util.List;
 import java.util.Objects;
@@ -45,11 +44,11 @@ public class ComputeFieldExtremeValue implements Command {
     }
 
     @Override
-    public void validate(final ValidationHelper validationHelper, final Validator validator) {
-        ValidationUtil.validateField(field, validationHelper, validator, this);
-        metric.validate(validationHelper.datasets(),  validationHelper, validator);
+    public void validate(final ValidationHelper validationHelper, final ErrorCollector errorCollector) {
+        ValidationUtil.validateField(field, validationHelper, errorCollector, this);
+        metric.validate(validationHelper.datasets(),  validationHelper, errorCollector);
         if (filter.isPresent()) {
-            filter.get().validate(validationHelper.datasets(), validationHelper, validator);
+            filter.get().validate(validationHelper.datasets(), validationHelper, errorCollector);
         }
     }
 
@@ -90,4 +89,3 @@ public class ComputeFieldExtremeValue implements Command {
                 '}';
     }
 }
-

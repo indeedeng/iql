@@ -16,11 +16,11 @@ package com.indeed.iql2.server.web.servlets.query;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
-import com.indeed.imhotep.Shard;
 import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.commands.Command;
 import com.indeed.iql2.execution.progress.ProgressCallback;
+import com.indeed.iql2.language.query.Queries;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,9 +28,7 @@ import java.util.Map;
 
 public class InfoCollectingProgressCallback implements ProgressCallback {
     private final List<String> sessionIds = new ArrayList<>();
-    private long totalNumDocs = 0;
     private int maxNumGroups = 0;
-    private int maxConcurrentSessions = 0;
 
     public List<String> getSessionIds() {
         return ImmutableList.copyOf(sessionIds);
@@ -44,9 +42,7 @@ public class InfoCollectingProgressCallback implements ProgressCallback {
             if (sessionId != null) {
                 sessionIds.add(sessionId);
             }
-            totalNumDocs += session.getNumDocs();
         }
-        maxConcurrentSessions = Math.max(maxConcurrentSessions, sessions.size());
     }
 
     @Override
@@ -58,7 +54,7 @@ public class InfoCollectingProgressCallback implements ProgressCallback {
     }
 
     @Override
-    public void preSessionOpen(final Map<String, List<Shard>> datasetToChosenShards) {
+    public void preSessionOpen(final List<Queries.QueryDataset> datasets) {
         // do nothing
     }
 
@@ -80,15 +76,7 @@ public class InfoCollectingProgressCallback implements ProgressCallback {
         }
     }
 
-    public long getTotalNumDocs() {
-        return totalNumDocs;
-    }
-
     public int getMaxNumGroups() {
         return maxNumGroups;
-    }
-
-    public int getMaxConcurrentSessions() {
-        return maxConcurrentSessions;
     }
 }

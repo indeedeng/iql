@@ -19,8 +19,8 @@ import com.google.common.collect.ImmutableSet;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.DocFilter;
-import com.indeed.iql2.language.Validator;
 import com.indeed.iql2.language.util.ValidationHelper;
+import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -42,9 +42,9 @@ public class MetricAction implements Action {
     }
 
     @Override
-    public void validate(ValidationHelper validationHelper, Validator validator) {
+    public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {
         for (final String dataset : scope) {
-            filter.validate(dataset, validationHelper, validator);
+            filter.validate(dataset, validationHelper, errorCollector);
         }
     }
 

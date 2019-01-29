@@ -19,10 +19,10 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
-import com.indeed.iql2.language.Validator;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
+import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 
 import java.util.Collections;
 import java.util.List;
@@ -40,19 +40,19 @@ public class IterateAndExplode implements Command {
     }
 
     @Override
-    public void validate(ValidationHelper validationHelper, Validator validator) {
+    public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {
         Preconditions.checkState(validationHelper.datasets().equals(field.datasets()));
-        ValidationUtil.validateField(field, validationHelper, validator, this);
+        ValidationUtil.validateField(field, validationHelper, errorCollector, this);
 
         if (fieldOpts.topK.isPresent()) {
             final TopK topK = fieldOpts.topK.get();
             if (topK.metric.isPresent()) {
-                topK.metric.get().validate(validationHelper.datasets(), validationHelper, validator);
+                topK.metric.get().validate(validationHelper.datasets(), validationHelper, errorCollector);
             }
         }
 
         if (fieldOpts.filter.isPresent()) {
-            fieldOpts.filter.get().validate(validationHelper.datasets(), validationHelper, validator);
+            fieldOpts.filter.get().validate(validationHelper.datasets(), validationHelper, errorCollector);
         }
     }
 

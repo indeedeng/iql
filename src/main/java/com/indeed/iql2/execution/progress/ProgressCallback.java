@@ -15,10 +15,10 @@
 package com.indeed.iql2.execution.progress;
 
 import com.google.common.base.Optional;
-import com.indeed.imhotep.Shard;
 import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.commands.Command;
+import com.indeed.iql2.language.query.Queries;
 
 import java.util.List;
 import java.util.Map;
@@ -34,7 +34,7 @@ public interface ProgressCallback {
     void startSession(Optional<Integer> numCommands);
 
     // called after shards are chosen but before sessions creation.
-    void preSessionOpen(Map<String, List<Shard>> datasetToChosenShards);
+    void preSessionOpen(List<Queries.QueryDataset> datasets);
 
     // Provided separately in order to allow early termination.
     void sessionOpened(ImhotepSessionHolder session);

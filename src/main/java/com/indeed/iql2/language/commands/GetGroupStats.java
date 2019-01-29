@@ -19,9 +19,9 @@ import com.google.common.base.Optional;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.AggregateMetric;
-import com.indeed.iql2.language.Validator;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
+import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 
 import java.util.List;
 import java.util.Objects;
@@ -39,13 +39,13 @@ public class GetGroupStats implements Command {
     }
 
     @Override
-    public void validate(ValidationHelper validationHelper, Validator validator) {
+    public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {
         for (final AggregateMetric metric : metrics) {
-            metric.validate(validationHelper.datasets(), validationHelper, validator);
+            metric.validate(validationHelper.datasets(), validationHelper, errorCollector);
         }
         for (final Optional<String> formatString : formatStrings) {
             if (formatString.isPresent() ) {
-                ValidationUtil.validateDoubleFormatString(formatString.get(), validator);
+                ValidationUtil.validateDoubleFormatString(formatString.get(), errorCollector);
             }
         }
     }

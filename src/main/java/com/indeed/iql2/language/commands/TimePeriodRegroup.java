@@ -19,10 +19,10 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
-import com.indeed.iql2.language.Validator;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
+import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 
 import java.util.List;
 import java.util.Objects;
@@ -42,15 +42,15 @@ public class TimePeriodRegroup implements Command {
     }
 
     @Override
-    public void validate(ValidationHelper validationHelper, Validator validator) {
+    public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {
         if (timeField.isPresent()) {
             Preconditions.checkState(validationHelper.datasets().equals(timeField.get().datasets()));
-            ValidationUtil.validateIntField(timeField.get(), validationHelper, validator, this);
+            ValidationUtil.validateIntField(timeField.get(), validationHelper, errorCollector, this);
         }
         if (timeFormat.isPresent()) {
-            ValidationUtil.validateDateTimeFormat(timeFormat.get(), validator);
+            ValidationUtil.validateDateTimeFormat(timeFormat.get(), errorCollector);
         }
-        ValidationUtil.validateGroupByTimeRange(validationHelper, TimeUnit.MILLISECONDS.toSeconds(periodMillis) , validator);
+        ValidationUtil.validateGroupByTimeRange(validationHelper, TimeUnit.MILLISECONDS.toSeconds(periodMillis), errorCollector);
     }
 
     @Override

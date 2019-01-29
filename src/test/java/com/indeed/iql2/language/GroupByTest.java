@@ -16,7 +16,6 @@ package com.indeed.iql2.language;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
-import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.GroupBys;
 import com.indeed.iql2.language.query.Queries;
@@ -24,9 +23,11 @@ import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.fieldresolution.FieldResolver;
 import com.indeed.iql2.language.query.fieldresolution.FieldResolverTest;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
+import com.indeed.iql2.language.query.shardresolution.NullShardResolver;
 import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import com.indeed.util.core.time.StoppedClock;
 import com.indeed.util.core.time.WallClock;
+import com.indeed.util.logging.TracingTreeTimer;
 import junit.framework.Assert;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -45,7 +46,9 @@ public class GroupByTest {
             null,
             WARN,
             CLOCK,
-            FIELD_RESOLVER.universalScope()
+            new TracingTreeTimer(),
+            FIELD_RESOLVER.universalScope(),
+            new NullShardResolver()
     );
 
     public static final Function<JQLParser, GroupByEntry> PARSE_IQL1_GROUP_BY = new Function<JQLParser, GroupByEntry>() {

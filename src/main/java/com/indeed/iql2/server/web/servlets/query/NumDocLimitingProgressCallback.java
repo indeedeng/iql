@@ -21,6 +21,7 @@ import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.commands.Command;
 import com.indeed.iql2.execution.progress.ProgressCallback;
+import com.indeed.iql2.language.query.Queries;
 
 import java.util.List;
 import java.util.Map;
@@ -41,10 +42,10 @@ public class NumDocLimitingProgressCallback implements ProgressCallback {
     }
 
     @Override
-    public void preSessionOpen(final Map<String, List<Shard>> datasetToChosenShards) {
+    public void preSessionOpen(final List<Queries.QueryDataset> datasets) {
         long docCount = 0;
-        for (final List<Shard> shards : datasetToChosenShards.values()) {
-            for (final Shard shard : shards) {
+        for (final Queries.QueryDataset dataset : datasets) {
+            for (final Shard shard : dataset.shards) {
                 docCount += shard.numDocs;
             }
         }

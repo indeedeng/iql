@@ -18,8 +18,8 @@ import com.google.common.base.Function;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.AggregateFilter;
-import com.indeed.iql2.language.Validator;
 import com.indeed.iql2.language.util.ValidationHelper;
+import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 
 import java.util.List;
 import java.util.Objects;
@@ -32,8 +32,8 @@ public class ApplyGroupFilter implements Command {
     }
 
     @Override
-    public void validate(ValidationHelper validationHelper, Validator validator) {
-        filter.validate(validationHelper.datasets(), validationHelper, validator);
+    public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {
+        filter.validate(validationHelper.datasets(), validationHelper, errorCollector);
     }
 
     @Override

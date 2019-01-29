@@ -39,9 +39,11 @@ import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.fieldresolution.FieldResolver;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.query.fieldresolution.ScopedFieldResolver;
+import com.indeed.iql2.language.query.shardresolution.NullShardResolver;
 import com.indeed.iql2.language.util.ParserUtil;
 import com.indeed.util.core.time.StoppedClock;
 import com.indeed.util.core.time.WallClock;
+import com.indeed.util.logging.TracingTreeTimer;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
 import org.apache.commons.lang.StringEscapeUtils;
@@ -79,7 +81,8 @@ public class PrettyPrint {
             }
         };
         WallClock clock = new StoppedClock();
-        Query query = Query.parseQuery(queryContext, datasetsMetadata, Collections.emptySet(), consumer, clock);
+        final TracingTreeTimer timer = new TracingTreeTimer();
+        Query query = Query.parseQuery(queryContext, datasetsMetadata, Collections.emptySet(), consumer, clock, timer, new NullShardResolver());
         return prettyPrint(queryContext, query, datasetsMetadata, consumer, clock);
     }
 
@@ -97,6 +100,7 @@ public class PrettyPrint {
     private final StringBuilder sb = new StringBuilder();
     private final DatasetsMetadata datasetsMetadata;
     private final ScopedFieldResolver fieldResolver;
+    private final TracingTreeTimer timer = new TracingTreeTimer();
 
     // This is used to prevent the situation where multiple layers of abstraction all share the same comment
     // causing it to be printed multiple times as we pp() each point in the tree.
@@ -253,7 +257,7 @@ public class PrettyPrint {
         try {
             final String rawString = getText(positional);
             final AbstractPositional positionalIQL2;
-            final Query.Context context = new Query.Context(null, datasetsMetadata, null, consumer, clock, fieldResolver);
+            final Query.Context context = new Query.Context(null, datasetsMetadata, null, consumer, clock, timer, fieldResolver, new NullShardResolver());
             if (positional instanceof GroupBy) {
                 positionalIQL2 = Queries.parseGroupBy(rawString, false, context);
             } else if (positional instanceof AggregateFilter) {

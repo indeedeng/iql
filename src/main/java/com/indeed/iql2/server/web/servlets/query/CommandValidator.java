@@ -16,7 +16,6 @@ package com.indeed.iql2.server.web.servlets.query;
 
 import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql.metadata.DatasetsMetadata;
-import com.indeed.iql2.language.Validator;
 import com.indeed.iql2.language.commands.Command;
 import com.indeed.iql2.language.commands.GetGroupStats;
 import com.indeed.iql2.language.commands.SimpleIterate;
@@ -30,7 +29,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * @author zheli
@@ -39,23 +37,15 @@ public class CommandValidator {
     private CommandValidator() {
     }
 
-    public static void validate(final List<Command> commands, final Query query,
-                                final DatasetsMetadata datasetsMetadata,
-                                final Set<String> errors, final Set<String> warnings) {
-        final Validator validator = new Validator() {
-            @Override
-            public void error(final String error) {
-                errors.add(error);
-            }
-
-            @Override
-            public void warn(final String warn) {
-                warnings.add(warn);
-            }
-        };
+    public static void validate(
+            final Query query,
+            final DatasetsMetadata datasetsMetadata,
+            final ErrorCollector errorCollector
+    ) {
+        final List<Command> commands = query.commands();
         final ValidationHelper validationHelper = buildValidationHelper(query.datasets, query.nameToIndex(), datasetsMetadata, query.useLegacy);
         for (final Command command : commands) {
-            command.validate(validationHelper, validator);
+            command.validate(validationHelper, errorCollector);
         }
 
         if (!commands.isEmpty()) {

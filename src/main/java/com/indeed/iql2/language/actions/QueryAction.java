@@ -19,9 +19,9 @@ import com.google.common.collect.ImmutableMap;
 import com.indeed.flamdex.query.Query;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
-import com.indeed.iql2.language.Validator;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
+import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 
 import java.util.Collections;
 import java.util.Map;
@@ -46,8 +46,8 @@ public class QueryAction implements Action {
     }
 
     @Override
-    public void validate(ValidationHelper validationHelper, Validator validator) {
-        ValidationUtil.validateQuery(validationHelper, perDatasetQuery, validator, this);
+    public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {
+        ValidationUtil.validateQuery(validationHelper, perDatasetQuery, errorCollector, this);
     }
 
     @Override

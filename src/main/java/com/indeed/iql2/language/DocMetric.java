@@ -30,6 +30,7 @@ import com.indeed.iql2.language.util.ErrorMessages;
 import com.indeed.iql2.language.util.ParserUtil;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
+import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 import org.apache.commons.codec.binary.Base64;
 
 import java.text.DecimalFormat;
@@ -95,7 +96,7 @@ public abstract class DocMetric extends AbstractPositional {
 
     public abstract <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E;
 
-    public abstract void validate(String dataset, ValidationHelper validationHelper, Validator validator);
+    public abstract void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector);
 
     @Override
     public DocMetric copyPosition(Positional positional) {
@@ -131,11 +132,11 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
+        public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
             if (!datasetToMetric.containsKey(dataset)) {
                 throw new IqlKnownException.UnknownDatasetException("Unknown dataset: " + dataset + " in [" + this + "]");
             } else {
-                datasetToMetric.get(dataset).validate(dataset, validationHelper, validator);
+                datasetToMetric.get(dataset).validate(dataset, validationHelper, errorCollector);
             }
         }
 
@@ -184,7 +185,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
+        public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
         }
 
         @Override
@@ -226,7 +227,7 @@ public abstract class DocMetric extends AbstractPositional {
         @Override
         public void validate(final String dataset,
                              final ValidationHelper validationHelper,
-                             final Validator validator) {
+                             final ErrorCollector errorCollector) {
         }
 
         @Override
@@ -269,10 +270,10 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
+        public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
             final String fieldName = field.datasetFieldName(dataset);
             if (!validationHelper.containsField(dataset, fieldName)) {
-                validator.error(ErrorMessages.missingField(dataset, fieldName, this));
+                errorCollector.error(ErrorMessages.missingField(dataset, fieldName, this));
             }
         }
 
@@ -332,8 +333,8 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
-            m1.validate(dataset, validationHelper, validator);
+        public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
+            m1.validate(dataset, validationHelper, errorCollector);
         }
     }
 
@@ -365,8 +366,8 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
-            metric.validate(dataset, validationHelper, validator);
+        public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
+            metric.validate(dataset, validationHelper, errorCollector);
         }
 
         @Override
@@ -424,8 +425,8 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
-            metric.validate(dataset, validationHelper, validator);
+        public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
+            metric.validate(dataset, validationHelper, errorCollector);
         }
 
         @Override
@@ -565,9 +566,9 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
-            m1.validate(dataset, validationHelper, validator);
-            m2.validate(dataset, validationHelper, validator);
+        public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
+            m1.validate(dataset, validationHelper, errorCollector);
+            m2.validate(dataset, validationHelper, errorCollector);
         }
     }
 
@@ -692,8 +693,8 @@ public abstract class DocMetric extends AbstractPositional {
         public void validate(
                 final String dataset,
                 final ValidationHelper validationHelper,
-                final Validator validator) {
-            metrics.forEach(m -> m.validate(dataset, validationHelper, validator));
+                final ErrorCollector errorCollector) {
+            metrics.forEach(m -> m.validate(dataset, validationHelper, errorCollector));
         }
     }
 
@@ -976,10 +977,10 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
+        public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
             final String fieldName = field.datasetFieldName(dataset);
             if (!validationHelper.containsStringField(dataset, fieldName)) {
-                validator.error(ErrorMessages.missingStringField(dataset, fieldName, this));
+                errorCollector.error(ErrorMessages.missingStringField(dataset, fieldName, this));
             }
         }
 
@@ -1026,8 +1027,8 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
-            ValidationUtil.validateExistenceAndSameFieldType(dataset, field1.datasetFieldName(dataset), field2.datasetFieldName(dataset), validationHelper, validator);
+        public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
+            ValidationUtil.validateExistenceAndSameFieldType(dataset, field1.datasetFieldName(dataset), field2.datasetFieldName(dataset), validationHelper, errorCollector);
         }
 
         @Override
@@ -1090,10 +1091,10 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
+        public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
             final String fieldName = field.datasetFieldName(dataset);
             if (!validationHelper.containsStringField(dataset, fieldName)) {
-                validator.error(ErrorMessages.missingStringField(dataset, fieldName, this));
+                errorCollector.error(ErrorMessages.missingStringField(dataset, fieldName, this));
             }
         }
 
@@ -1145,7 +1146,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
+        public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
 
         }
 
@@ -1193,7 +1194,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
+        public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
             // Don't validate, since this is used for investigating field presence
         }
 
@@ -1241,7 +1242,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
+        public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
             // Don't validate, since this is used for investigating field presence
         }
 
@@ -1291,9 +1292,9 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
+        public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
             final String fieldName = field.datasetFieldName(dataset);
-            validationHelper.validateIntField(dataset, fieldName, validator, this);
+            validationHelper.validateIntField(dataset, fieldName, errorCollector, this);
         }
 
         @Override
@@ -1347,13 +1348,13 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
+        public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
             final String fieldName = this.field.datasetFieldName(dataset);
             final boolean missingField =
                     !validationHelper.containsField(dataset, fieldName) ||
                     (strictValidate && !validationHelper.containsStringField(dataset, fieldName));
             if (missingField) {
-                validator.error(ErrorMessages.missingStringField(dataset, fieldName, this));
+                errorCollector.error(ErrorMessages.missingStringField(dataset, fieldName, this));
             }
         }
 
@@ -1413,10 +1414,10 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
-            condition.validate(dataset, validationHelper, validator);
-            trueCase.validate(dataset, validationHelper, validator);
-            falseCase.validate(dataset, validationHelper, validator);
+        public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
+            condition.validate(dataset, validationHelper, errorCollector);
+            trueCase.validate(dataset, validationHelper, errorCollector);
+            falseCase.validate(dataset, validationHelper, errorCollector);
         }
 
         @Override
@@ -1473,11 +1474,11 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
+        public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
             if (!dataset.equals(this.dataset)) {
-                validator.error("Qualified DocMetric getting validated against different dataset! [" + this.dataset + "] != [" + dataset + "]");
+                errorCollector.error("Qualified DocMetric getting validated against different dataset! [" + this.dataset + "] != [" + dataset + "]");
             }
-            metric.validate(this.dataset, validationHelper, validator);
+            metric.validate(this.dataset, validationHelper, errorCollector);
         }
 
         @Override
@@ -1530,11 +1531,11 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(String dataset, ValidationHelper validationHelper, Validator validator) {
+        public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
             try {
                 Pattern.compile(regex);
             } catch (PatternSyntaxException e) {
-                validator.error("Invalid pattern: " + regex);
+                errorCollector.error("Invalid pattern: " + regex);
             }
         }
 
@@ -1594,10 +1595,10 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(final String dataset, final ValidationHelper validationHelper, final Validator validator) {
+        public void validate(final String dataset, final ValidationHelper validationHelper, final ErrorCollector errorCollector) {
             final Query flamdexQuery = ParserUtil.getFlamdexQuery(
                     query, dataset, datasetsMetadata, fieldResolver);
-            ValidationUtil.validateQuery(validationHelper, ImmutableMap.of(dataset, flamdexQuery), validator, this);
+            ValidationUtil.validateQuery(validationHelper, ImmutableMap.of(dataset, flamdexQuery), errorCollector, this);
         }
 
         @Override
@@ -1644,10 +1645,10 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(final String dataset, final ValidationHelper validationHelper, final Validator validator) {
+        public void validate(final String dataset, final ValidationHelper validationHelper, final ErrorCollector errorCollector) {
             final String fieldName = field.datasetFieldName(dataset);
             if(!validationHelper.containsStringField(dataset, fieldName)) {
-                validator.error(ErrorMessages.missingStringField(dataset, fieldName, this));
+                errorCollector.error(ErrorMessages.missingStringField(dataset, fieldName, this));
             }
         }
 
@@ -1699,7 +1700,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(final String dataset, final ValidationHelper validationHelper, final Validator validator) {
+        public void validate(final String dataset, final ValidationHelper validationHelper, final ErrorCollector errorCollector) {
             final String fieldName = field.datasetFieldName(dataset);
             if(!validationHelper.containsIntOrAliasField(dataset, fieldName)) {
                 if (validationHelper.containsStringField(dataset, fieldName)) {
@@ -1709,10 +1710,10 @@ public abstract class DocMetric extends AbstractPositional {
                         " Using operator INTTERMCOUNT over string field \"" + field + "\" in dataset \"" + dataset + "\"." +
                         " Only string terms that can be converted to integer value will be counted." +
                         " If you want to get all terms count in a string field use STRTERMCOUNT operator instead";
-                    validator.warn(warning);
+                    errorCollector.warn(warning);
                 } else {
                     // field not found, error.
-                    validator.error(ErrorMessages.missingIntField(dataset, fieldName, this));
+                    errorCollector.error(ErrorMessages.missingIntField(dataset, fieldName, this));
                 }
             }
         }
@@ -1765,7 +1766,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(final String dataset, final ValidationHelper validationHelper, final Validator validator) {
+        public void validate(final String dataset, final ValidationHelper validationHelper, final ErrorCollector errorCollector) {
             final String fieldName = field.datasetFieldName(dataset);
             if(!validationHelper.containsStringField(dataset, fieldName)) {
                 if (validationHelper.containsIntOrAliasField(dataset, fieldName)) {
@@ -1773,10 +1774,10 @@ public abstract class DocMetric extends AbstractPositional {
                     final String warning =
                             "Using operator STRTERMCOUNT over int field \"" + field + "\" in dataset \"" + dataset + "\"." +
                             " Result is always zero.";
-                    validator.warn(warning);
+                    errorCollector.warn(warning);
                 } else {
                     // field not found, error.
-                    validator.error(ErrorMessages.missingStringField(dataset, fieldName, this));
+                    errorCollector.error(ErrorMessages.missingStringField(dataset, fieldName, this));
                 }
             }
         }
@@ -1841,15 +1842,15 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(final String dataset, final ValidationHelper validationHelper, final Validator validator) {
+        public void validate(final String dataset, final ValidationHelper validationHelper, final ErrorCollector errorCollector) {
             final String fieldName = field.datasetFieldName(dataset);
             if (isIntField) {
                 if (!validationHelper.containsIntField(dataset, fieldName)) {
-                    validator.error(ErrorMessages.missingStringField(dataset, fieldName, this));
+                    errorCollector.error(ErrorMessages.missingStringField(dataset, fieldName, this));
                 }
             } else {
                 if (!validationHelper.containsStringField(dataset, fieldName)) {
-                    validator.error(ErrorMessages.missingIntField(dataset, fieldName, this));
+                    errorCollector.error(ErrorMessages.missingIntField(dataset, fieldName, this));
                 }
             }
         }
@@ -1914,15 +1915,15 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(final String dataset, final ValidationHelper validationHelper, final Validator validator) {
+        public void validate(final String dataset, final ValidationHelper validationHelper, final ErrorCollector errorCollector) {
             final String fieldName = field.datasetFieldName(dataset);
             if (isIntField) {
                 if (!validationHelper.containsIntField(dataset, fieldName)) {
-                    validator.error(ErrorMessages.missingStringField(dataset, fieldName, this));
+                    errorCollector.error(ErrorMessages.missingStringField(dataset, fieldName, this));
                 }
             } else {
                 if (!validationHelper.containsStringField(dataset, fieldName)) {
-                    validator.error(ErrorMessages.missingIntField(dataset, fieldName, this));
+                    errorCollector.error(ErrorMessages.missingIntField(dataset, fieldName, this));
                 }
             }
         }
@@ -1989,8 +1990,8 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(final String dataset, final ValidationHelper validationHelper, final Validator validator) {
-            metric.validate(dataset, validationHelper, validator);
+        public void validate(final String dataset, final ValidationHelper validationHelper, final ErrorCollector errorCollector) {
+            metric.validate(dataset, validationHelper, errorCollector);
         }
 
         @Override
@@ -2050,8 +2051,8 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        public void validate(final String dataset, final ValidationHelper validationHelper, final Validator validator) {
-            metric.validate(dataset, validationHelper, validator);
+        public void validate(final String dataset, final ValidationHelper validationHelper, final ErrorCollector errorCollector) {
+            metric.validate(dataset, validationHelper, errorCollector);
         }
 
         @Override

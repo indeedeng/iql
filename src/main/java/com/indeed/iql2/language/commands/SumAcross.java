@@ -20,10 +20,10 @@ import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
-import com.indeed.iql2.language.Validator;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
+import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 
 import java.util.List;
 import java.util.Objects;
@@ -40,12 +40,12 @@ public class SumAcross implements Command {
     }
 
     @Override
-    public void validate(ValidationHelper validationHelper, Validator validator) {
-        ValidationUtil.validateField(field, validationHelper, validator, this);
-        metric.validate(field.datasets(), validationHelper, validator);
+    public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {
+        ValidationUtil.validateField(field, validationHelper, errorCollector, this);
+        metric.validate(field.datasets(), validationHelper, errorCollector);
 
         if (filter.isPresent()) {
-            filter.get().validate(field.datasets(), validationHelper, validator);
+            filter.get().validate(field.datasets(), validationHelper, errorCollector);
         }
     }
 

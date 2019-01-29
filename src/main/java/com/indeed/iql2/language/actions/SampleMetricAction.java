@@ -19,8 +19,8 @@ import com.google.common.collect.ImmutableMap;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.DocMetric;
-import com.indeed.iql2.language.Validator;
 import com.indeed.iql2.language.util.ValidationHelper;
+import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 
 import java.util.Map;
 
@@ -48,7 +48,7 @@ public class SampleMetricAction implements Action {
     }
 
     @Override
-    public void validate(final ValidationHelper validationHelper, final Validator validator) {
+    public void validate(final ValidationHelper validationHelper, final ErrorCollector errorCollector) {
     }
 
     @Override

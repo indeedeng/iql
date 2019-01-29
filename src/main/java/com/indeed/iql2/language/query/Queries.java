@@ -21,6 +21,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.indeed.imhotep.Shard;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.AggregateFilter;
@@ -49,9 +50,12 @@ import com.indeed.iql2.language.passes.FixTopKHaving;
 import com.indeed.iql2.language.passes.HandleWhereClause;
 import com.indeed.iql2.language.passes.RemoveNames;
 import com.indeed.iql2.language.passes.SubstituteNamed;
+import com.indeed.iql2.language.query.shardresolution.NullShardResolver;
+import com.indeed.iql2.language.query.shardresolution.ShardResolver;
 import com.indeed.iql2.language.util.ParserUtil;
 import com.indeed.util.core.time.WallClock;
 import com.indeed.util.logging.Loggers;
+import com.indeed.util.logging.TracingTreeTimer;
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -71,6 +75,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 public class Queries {
     private static final Logger log = Logger.getLogger(Queries.class);
@@ -82,16 +87,26 @@ public class Queries {
         public final String end;
         public final String name;
 
-        public QueryDataset(String dataset, String start, String displayName, String end, String name) {
+        public final List<Shard> shards;
+
+        public QueryDataset(
+                final String dataset,
+                final String start,
+                final String displayName,
+                final String end,
+                final String name,
+                final List<Shard> shards
+        ) {
             this.dataset = dataset;
             this.start = start;
             this.displayName = displayName;
             this.end = end;
             this.name = name;
+            this.shards = shards;
         }
     }
 
-    public static List<QueryDataset> createDatasetMap(Query query) {
+    public static List<QueryDataset> createDatasetMap(final Query query) {
         final List<QueryDataset> result = new ArrayList<>();
         for (final Dataset dataset : query.datasets) {
             result.add(new QueryDataset(
@@ -99,7 +114,8 @@ public class Queries {
                     dataset.startInclusive.unwrap().toString(),
                     dataset.getDisplayName(),
                     dataset.endExclusive.unwrap().toString(),
-                    dataset.alias.or(dataset.dataset).unwrap()
+                    dataset.alias.or(dataset.dataset).unwrap(),
+                    dataset.shards
             ));
         }
         return result;
@@ -171,18 +187,18 @@ public class Queries {
         }
     }
 
-    public static ParseResult parseQuery(String q, boolean useLegacy, DatasetsMetadata datasetsMetadata, final Set<String> defaultOptions, WallClock clock) {
+    public static ParseResult parseQuery(String q, boolean useLegacy, DatasetsMetadata datasetsMetadata, final Set<String> defaultOptions, WallClock clock, final TracingTreeTimer timer, final ShardResolver shardResolver) {
         return parseQuery(q, useLegacy, datasetsMetadata, defaultOptions, new Consumer<String>() {
             @Override
             public void accept(String s) {
 
             }
-        }, clock);
+        }, clock, timer, shardResolver);
     }
 
-    public static ParseResult parseQuery(String q, boolean useLegacy, DatasetsMetadata datasetsMetadata, final Set<String> defaultOptions, Consumer<String> warn, WallClock clock) {
+    public static ParseResult parseQuery(String q, boolean useLegacy, DatasetsMetadata datasetsMetadata, final Set<String> defaultOptions, Consumer<String> warn, WallClock clock, final TracingTreeTimer timer, final ShardResolver shardResolver) {
         final JQLParser.QueryContext queryContext = parseQueryContext(q, useLegacy);
-        return new ParseResult(queryContext.start.getInputStream(), Query.parseQuery(queryContext, datasetsMetadata, defaultOptions, warn, clock));
+        return new ParseResult(queryContext.start.getInputStream(), Query.parseQuery(queryContext, datasetsMetadata, defaultOptions, warn, clock, timer, shardResolver));
     }
 
     private static String getText(CharStream inputStream, ParserRuleContext context, Set<Interval> seenComments) {
@@ -215,7 +231,9 @@ public class Queries {
     public static SplitQuery parseSplitQuery(String q, boolean useLegacy, final Set<String> defaultOptions, WallClock clock, final DatasetsMetadata datasetsMetadata) {
         Set<Interval> seenComments = new HashSet<>();
         final JQLParser.QueryContext queryContext = parseQueryContext(q, useLegacy);
-        final Query parsed = parseQuery(q, useLegacy, datasetsMetadata, defaultOptions, clock).query;
+        final TracingTreeTimer timer = new TracingTreeTimer();
+        final ShardResolver shardResolver = new NullShardResolver();
+        final Query parsed = parseQuery(q, useLegacy, datasetsMetadata, defaultOptions, clock, timer, shardResolver).query;
         final CharStream queryInputStream = queryContext.start.getInputStream();
         final String from = getText(queryInputStream, queryContext.fromContents(), seenComments).trim();
         final String where;
@@ -432,7 +450,7 @@ public class Queries {
         return parser;
     }
 
-    public static List<Command> queryCommands(Query query, DatasetsMetadata datasetsMetadata) {
+    public static List<Command> queryCommands(Query query) {
         Loggers.trace(log, "query = %s", query);
         final Query query1 = FixTopKHaving.apply(query);
         Loggers.trace(log, "query1 = %s", query1);
@@ -476,15 +494,9 @@ public class Queries {
                 log.trace("executionStep = " + executionStep);
             }
         }
-        return asCommands(executionSteps4);
-    }
-
-    static List<Command> asCommands(List<ExecutionStep> executionSteps) {
-        final List<Command> commands = new ArrayList<>();
-        for (final ExecutionStep executionStep : executionSteps) {
-            commands.addAll(executionStep.commands());
-        }
-        return commands;
+        return executionSteps4.stream()
+                .flatMap(x -> x.commands().stream())
+                .collect(Collectors.toList());
     }
 
     public static List<Dataset> findAllDatasets(Query query) {

@@ -25,10 +25,9 @@ import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.JQLParser;
 import com.indeed.iql2.language.TimePeriods;
-import com.indeed.iql2.language.TimeUnit;
-import com.indeed.iql2.language.Validator;
 import com.indeed.iql2.language.passes.ExtractQualifieds;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
+import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 import com.indeed.util.core.Pair;
 import org.antlr.v4.runtime.RuleContext;
 import org.apache.commons.lang.StringUtils;
@@ -65,7 +64,7 @@ public class ValidationUtil {
         }
     }
 
-    public static void validateQuery(ValidationHelper validationHelper, Map<String, Query> perDatasetQuery, Validator validator, Object source) {
+    public static void validateQuery(ValidationHelper validationHelper, Map<String, Query> perDatasetQuery, ErrorCollector errorCollector, Object source) {
         final Map<String, Set<String>> datasetToIntFields = new HashMap<>();
         final Map<String, Set<String>> datasetToStringFields = new HashMap<>();
         for (final Map.Entry<String, Query> datasetEntry : perDatasetQuery.entrySet()) {
@@ -80,30 +79,30 @@ public class ValidationUtil {
             for (final String field : datasetToStringFields.get(dataset)) {
                 if (!validationHelper.containsStringField(dataset, field)) {
                     if (validationHelper.containsMetricField(dataset, field)) {
-                        validator.error(ErrorMessages.metricFieldIsNotSupported(field, source));
+                        errorCollector.error(ErrorMessages.metricFieldIsNotSupported(field, source));
                         continue;
                     }
-                    validator.error("Dataset \"" + dataset + "\" does not contain expected string field \"" + field + "\" in [" + source + "]");
+                    errorCollector.error("Dataset \"" + dataset + "\" does not contain expected string field \"" + field + "\" in [" + source + "]");
                 }
             }
 
             for (final String field : datasetToIntFields.get(dataset)) {
-                validationHelper.validateIntField(dataset, field, validator, source);
+                validationHelper.validateIntField(dataset, field, errorCollector, source);
             }
         }
     }
 
-    public static void validateScope(Collection<String> scope, ValidationHelper validationHelper, Validator validator) {
+    public static void validateScope(Collection<String> scope, ValidationHelper validationHelper, ErrorCollector errorCollector) {
         for (final String s : scope) {
             if (!validationHelper.datasets().contains(s)) {
-                validator.error(ErrorMessages.missingDataset(s));
+                errorCollector.error(ErrorMessages.missingDataset(s));
             }
         }
     }
 
-    public static void validateDataset(String dataset, ValidationHelper validationHelper, Validator validator) {
+    public static void validateDataset(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
         if (!validationHelper.datasets().contains(dataset)) {
-            validator.error(ErrorMessages.missingDataset(dataset));
+            errorCollector.error(ErrorMessages.missingDataset(dataset));
         }
     }
 
@@ -126,61 +125,61 @@ public class ValidationUtil {
         }
     }
 
-    public static void validateExistenceAndSameFieldType(String dataset, String field1, String field2, ValidationHelper validationHelper, Validator validator) {
+    public static void validateExistenceAndSameFieldType(String dataset, String field1, String field2, ValidationHelper validationHelper, ErrorCollector errorCollector) {
         final FieldType type1 = getFieldType(validationHelper, dataset, field1);
         final FieldType type2 = getFieldType(validationHelper, dataset, field2);
         if (type1 == FieldType.NULL || type2 == FieldType.NULL || type1 != type2) {
-            validator.error(String.format("incompatible fields found in fieldequal: [%s -> %s], [%s -> %s]", field1, type1, field2, type2));
+            errorCollector.error(String.format("incompatible fields found in fieldequal: [%s -> %s], [%s -> %s]", field1, type1, field2, type2));
         }
     }
 
     public static void validateIntField(
-            final Set<String> scope, final String field, final ValidationHelper validationHelper, final Validator validator, final Object context) {
-        validateField(scope, field, validationHelper, validationHelper::containsIntOrAliasField, validator, context);
+            final Set<String> scope, final String field, final ValidationHelper validationHelper, final ErrorCollector errorCollector, final Object context) {
+        validateField(scope, field, validationHelper, validationHelper::containsIntOrAliasField, errorCollector, context);
     }
 
     public static void validateStringField(
-            final Set<String> scope, final String field, final ValidationHelper validationHelper, final Validator validator, final Object context) {
-        validateField(scope, field, validationHelper, validationHelper::containsStringField, validator, context);
+            final Set<String> scope, final String field, final ValidationHelper validationHelper, final ErrorCollector errorCollector, final Object context) {
+        validateField(scope, field, validationHelper, validationHelper::containsStringField, errorCollector, context);
     }
 
-    public static void validateField(final Set<String> scope, final String field, final ValidationHelper validationHelper, final Validator validator, final Object context) {
-        validateField(scope, field, validationHelper, validationHelper::containsField, validator, context);
+    public static void validateField(final Set<String> scope, final String field, final ValidationHelper validationHelper, final ErrorCollector errorCollector, final Object context) {
+        validateField(scope, field, validationHelper, validationHelper::containsField, errorCollector, context);
     }
 
-    public static void validateIntField(final FieldSet field, final ValidationHelper validationHelper, final Validator validator, final Object context) {
-        validateField(field, validationHelper, validationHelper::containsIntOrAliasField, validator, context);
+    public static void validateIntField(final FieldSet field, final ValidationHelper validationHelper, final ErrorCollector errorCollector, final Object context) {
+        validateField(field, validationHelper, validationHelper::containsIntOrAliasField, errorCollector, context);
     }
 
-    public static void validateStringField(final FieldSet field, final ValidationHelper validationHelper, final Validator validator, final Object context) {
-        validateField(field, validationHelper, validationHelper::containsStringField, validator, context);
+    public static void validateStringField(final FieldSet field, final ValidationHelper validationHelper, final ErrorCollector errorCollector, final Object context) {
+        validateField(field, validationHelper, validationHelper::containsStringField, errorCollector, context);
     }
 
-    public static void validateField(final FieldSet field, final ValidationHelper validationHelper, final Validator validator, final Object context) {
-        validateField(field, validationHelper, validationHelper::containsField, validator, context);
+    public static void validateField(final FieldSet field, final ValidationHelper validationHelper, final ErrorCollector errorCollector, final Object context) {
+        validateField(field, validationHelper, validationHelper::containsField, errorCollector, context);
     }
 
-    private static void validateField(final FieldSet field, final ValidationHelper validationHelper, final BiPredicate<String, String> predicate, final Validator validator, final Object context) {
+    private static void validateField(final FieldSet field, final ValidationHelper validationHelper, final BiPredicate<String, String> predicate, final ErrorCollector errorCollector, final Object context) {
         field.datasets().forEach(dataset -> {
             final String fieldName = field.datasetFieldName(dataset);
             if (!predicate.test(dataset, fieldName)) {
                 if (validationHelper.containsNonAliasMetricField(dataset, fieldName)) {
-                    validator.error(ErrorMessages.nonAliasMetricInFTGS(fieldName, context));
+                    errorCollector.error(ErrorMessages.nonAliasMetricInFTGS(fieldName, context));
                     return;
                 }
-                validator.error(ErrorMessages.missingField(dataset, fieldName, context));
+                errorCollector.error(ErrorMessages.missingField(dataset, fieldName, context));
             }
         });
     }
 
-    public static void validateDoubleFormatString(final String formatString, final Validator validator) {
+    public static void validateDoubleFormatString(final String formatString, final ErrorCollector errorCollector) {
         // Don't know how to check format string.
         // Format string will be used to output doubles, so try to output any double and check for exceptions.
         // Not sure that we can catch all format errors with this approach, but believe that almost all will be caught.
         try {
             final String ignored = String.format(formatString, 0.0d);
         } catch (final Throwable t) {
-            validator.error("Incorrect format string: <" + formatString + ">");
+            errorCollector.error("Incorrect format string: <" + formatString + ">");
         }
     }
 
@@ -194,26 +193,26 @@ public class ValidationUtil {
         }
     }
 
-    public static void validateDateTimeFormat(final String formatString, final Validator validator) {
+    public static void validateDateTimeFormat(final String formatString, final ErrorCollector errorCollector) {
         if (!isValidDateTimeFormat(formatString)) {
-            validator.error("Incorrect DateTime format string: <" + formatString + ">");
+            errorCollector.error("Incorrect DateTime format string: <" + formatString + ">");
         }
     }
 
     private static void validateField(final Set<String> scope, final String field, final ValidationHelper validationHelper,
-                                      final BiPredicate<String, String> containsFieldPredicate, final Validator validator, final Object context) {
+                                      final BiPredicate<String, String> containsFieldPredicate, final ErrorCollector errorCollector, final Object context) {
         scope.forEach(dataset -> {
             if (!containsFieldPredicate.test(dataset, field)) {
                 if (validationHelper.containsNonAliasMetricField(dataset, field)) {
-                    validator.error(ErrorMessages.nonAliasMetricInFTGS(field, context));
+                    errorCollector.error(ErrorMessages.nonAliasMetricInFTGS(field, context));
                     return;
                 }
-                validator.error(ErrorMessages.missingField(dataset, field, context));
+                errorCollector.error(ErrorMessages.missingField(dataset, field, context));
             }
         });
     }
 
-    public static void validateGroupByTimeRange(final ValidationHelper validationHelper, final long periodSeconds, final Validator validator) {
+    public static void validateGroupByTimeRange(final ValidationHelper validationHelper, final long periodSeconds, final ErrorCollector errorCollector) {
         for(Map.Entry<String, Pair<Long, Long>> datasetTimeRange: validationHelper.datasetTimeRanges().entrySet()) {
             final long datasetTimePeriodSeconds = (datasetTimeRange.getValue().getSecond() - datasetTimeRange.getValue().getFirst())/1000;
             if (datasetTimePeriodSeconds%periodSeconds != 0) {
@@ -226,7 +225,7 @@ public class ValidationUtil {
                     TimePeriods.appendTimePeriod(periodSeconds - datasetTimePeriodSeconds%periodSeconds, exceptionBuilder);
                     exceptionBuilder.append(" or reduce the time range by ");
                     TimePeriods.appendTimePeriod(datasetTimePeriodSeconds%periodSeconds, exceptionBuilder);
-                    validator.error(exceptionBuilder.toString());
+                    errorCollector.error(exceptionBuilder.toString());
             }
         }
     }

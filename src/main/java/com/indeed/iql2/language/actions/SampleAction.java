@@ -17,10 +17,10 @@ package com.indeed.iql2.language.actions;
 import com.google.common.base.Function;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
-import com.indeed.iql2.language.Validator;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ErrorMessages;
 import com.indeed.iql2.language.util.ValidationHelper;
+import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 
 public class SampleAction implements Action {
     public final FieldSet field;
@@ -41,11 +41,11 @@ public class SampleAction implements Action {
     }
 
     @Override
-    public void validate(ValidationHelper validationHelper, Validator validator) {
+    public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {
         for (final String dataset : field.datasets()) {
             final String fieldName = this.field.datasetFieldName(dataset);
             if (!validationHelper.containsField(dataset, fieldName)) {
-                validator.error(ErrorMessages.missingField(dataset, fieldName, this));
+                errorCollector.error(ErrorMessages.missingField(dataset, fieldName, this));
             }
         }
     }

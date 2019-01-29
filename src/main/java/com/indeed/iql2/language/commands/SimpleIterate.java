@@ -20,10 +20,10 @@ import com.google.common.base.Preconditions;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.AggregateMetric;
-import com.indeed.iql2.language.Validator;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
+import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 
 import java.util.List;
 import java.util.Objects;
@@ -43,27 +43,27 @@ public class SimpleIterate implements Command {
     }
 
     @Override
-    public void validate(ValidationHelper validationHelper, Validator validator) {
+    public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {
         Preconditions.checkState(validationHelper.datasets().equals(field.datasets()));
-        ValidationUtil.validateField(field, validationHelper, validator, this);
+        ValidationUtil.validateField(field, validationHelper, errorCollector, this);
         if (opts.topK.isPresent()) {
             final TopK topK = opts.topK.get();
             if (topK.metric.isPresent()) {
-                topK.metric.get().validate(validationHelper.datasets(), validationHelper, validator);
+                topK.metric.get().validate(validationHelper.datasets(), validationHelper, errorCollector);
             }
         }
 
         if (opts.filter.isPresent()) {
-            opts.filter.get().validate(validationHelper.datasets(), validationHelper, validator);
+            opts.filter.get().validate(validationHelper.datasets(), validationHelper, errorCollector);
         }
 
         for (final AggregateMetric metric : selecting) {
-            metric.validate(validationHelper.datasets(), validationHelper, validator);
+            metric.validate(validationHelper.datasets(), validationHelper, errorCollector);
         }
 
         for (final Optional<String> formatString : formatStrings) {
             if (formatString.isPresent()) {
-                ValidationUtil.validateDoubleFormatString(formatString.get(), validator);
+                ValidationUtil.validateDoubleFormatString(formatString.get(), errorCollector);
             }
         }
     }

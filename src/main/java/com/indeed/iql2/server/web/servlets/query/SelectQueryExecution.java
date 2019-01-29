@@ -15,7 +15,6 @@
 package com.indeed.iql2.server.web.servlets.query;
 
 import au.com.bytecode.opencsv.CSVParser;
-import au.com.bytecode.opencsv.CSVReader;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
@@ -23,26 +22,19 @@ import com.google.common.base.Functions;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
-import com.google.common.primitives.Ints;
-import com.google.common.primitives.Longs;
 import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.DynamicIndexSubshardDirnameUtil;
 import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.ShardInfo;
+import com.indeed.imhotep.StrictCloser;
 import com.indeed.imhotep.api.PerformanceStats;
-import com.indeed.imhotep.client.Host;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.UserSessionCountLimitExceededException;
-import com.indeed.imhotep.StrictCloser;
 import com.indeed.iql.cache.CompletableOutputStream;
 import com.indeed.iql.cache.QueryCache;
 import com.indeed.iql.exceptions.IqlKnownException;
@@ -57,7 +49,6 @@ import com.indeed.iql.web.QueryMetadata;
 import com.indeed.iql.web.QueryServlet;
 import com.indeed.iql.web.RunningQueriesManager;
 import com.indeed.iql.web.SelectQuery;
-import com.indeed.iql2.Formatter;
 import com.indeed.iql2.execution.QueryOptions;
 import com.indeed.iql2.execution.ResultFormat;
 import com.indeed.iql2.execution.Session;
@@ -66,17 +57,17 @@ import com.indeed.iql2.execution.progress.ProgressCallback;
 import com.indeed.iql2.execution.progress.SessionOpenedOnlyProgressCallback;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateFilters;
-import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocFilter;
-import com.indeed.iql2.language.DocMetric;
-import com.indeed.iql2.language.Positioned;
 import com.indeed.iql2.language.Term;
-import com.indeed.iql2.language.commands.Command;
+import com.indeed.iql2.language.cachekeys.CacheKey;
 import com.indeed.iql2.language.query.Dataset;
 import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.Queries;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
+import com.indeed.iql2.language.query.shardresolution.CachingShardResolver;
+import com.indeed.iql2.language.query.shardresolution.ImhotepClientShardResolver;
+import com.indeed.iql2.language.query.shardresolution.ShardResolver;
 import com.indeed.iql2.language.util.FieldExtractor;
 import com.indeed.util.core.Pair;
 import com.indeed.util.core.io.Closeables2;
@@ -85,8 +76,6 @@ import com.indeed.util.logging.TracingTreeTimer;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import org.antlr.v4.runtime.CharStream;
-import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
@@ -103,28 +92,21 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.PriorityQueue;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 public class SelectQueryExecution {
     private static final Logger log = Logger.getLogger(SelectQueryExecution.class);
@@ -148,6 +130,7 @@ public class SelectQueryExecution {
 
     // IQL2 Imhotep-based state
     private final ImhotepClient imhotepClient;
+    private final ShardResolver shardResolver;
 
     private final DatasetsMetadata datasetsMetadata;
 
@@ -161,6 +144,7 @@ public class SelectQueryExecution {
 
     // Query inputs
     public final String query;
+    private final boolean headOnly;
     public final int version;
     public final boolean isStream;
     private final boolean returnNewestShardVersionHeader;
@@ -182,6 +166,7 @@ public class SelectQueryExecution {
             final ClientInfo clientInfo,
             final TracingTreeTimer timer,
             final String query,
+            final boolean headOnly,
             final int version,
             final boolean isStream,
             final boolean returnNewestShardVersionHeader,
@@ -196,6 +181,7 @@ public class SelectQueryExecution {
         this.queryInfo = queryInfo;
         this.clientInfo = clientInfo;
         this.query = query;
+        this.headOnly = headOnly;
         this.version = version;
         this.timer = timer;
         this.isStream = isStream;
@@ -213,6 +199,7 @@ public class SelectQueryExecution {
         this.defaultIQL2Options = defaultIQL2Options;
         this.tmpDir = tmpDir;
         this.accessControl = accessControl;
+        this.shardResolver = new CachingShardResolver(new ImhotepClientShardResolver(imhotepClient));
 
         Preconditions.checkArgument(!(csv && isStream), "Cannot use csv and event-stream output formats at the same time");
     }
@@ -263,7 +250,7 @@ public class SelectQueryExecution {
             progressCallback = CompositeProgressCallback.create(eventStreamProgressCallback);
         }
 
-        executeSelect(runningQueriesManager, queryInfo, query, version == 1, out, progressCallback);
+        executeSelect(runningQueriesManager, version == 1, out, progressCallback);
     }
 
     private void extractCompletedQueryInfoData(SelectExecutionInformation execInfo, Set<String> warnings, CountingConsumer<String> countingOut) {
@@ -282,12 +269,11 @@ public class SelectQueryExecution {
         queryInfo.imhotepServers = hostHashSet;
         queryInfo.numImhotepServers = hostHashSet.size();
         queryInfo.totalShardPeriodHours = totalShardPeriod.toStandardHours().getHours();
-        queryInfo.cached = execInfo.allCached();
+        queryInfo.cached = execInfo.cached;
         queryInfo.ftgsMB = execInfo.imhotepTempBytesWritten / 1024 / 1024;
         queryInfo.sessionIDs = execInfo.sessionIds;
         queryInfo.numDocs = execInfo.totalNumDocs;
         queryInfo.rows = countingOut.getCount();
-        queryInfo.cacheHashes = ImmutableSet.copyOf(execInfo.cacheKeys);
         queryInfo.maxGroups = execInfo.maxNumGroups;
         queryInfo.maxConcurrentSessions = execInfo.maxConcurrentSessions;
 
@@ -303,8 +289,6 @@ public class SelectQueryExecution {
 
     private SelectExecutionInformation executeSelect(
             final RunningQueriesManager runningQueriesManager,
-            final QueryInfo queryInfo,
-            final String q,
             final boolean useLegacy,
             final Consumer<String> out,
             final ProgressCallback progressCallback
@@ -313,36 +297,47 @@ public class SelectQueryExecution {
         timer.push("Select query execution");
 
         timer.push("parse query");
-        final Queries.ParseResult parseResult = Queries.parseQuery(q, useLegacy, datasetsMetadata, defaultIQL2Options, warnings::add, clock);
+        final Queries.ParseResult parseResult = Queries.parseQuery(this.query, useLegacy, datasetsMetadata, defaultIQL2Options, warnings::add, clock, timer, shardResolver);
+        final Query query = parseResult.query;
         timer.pop();
 
-        if (parseResult.query.options.contains(QueryOptions.PARANOID)) {
+        if (!skipValidation) {
+            timer.push("validate query");
+            final Set<String> errors = new HashSet<>();
+            CommandValidator.validate(query, datasetsMetadata, new ErrorCollector(errors, warnings));
+            if (errors.size() != 0) {
+                throw new IqlKnownException.ParseErrorException("Errors found when validating query: " + errors);
+            }
+            timer.pop();
+        }
+
+        if (query.options.contains(QueryOptions.PARANOID)) {
             timer.push("reparse query (paranoid mode)");
-            final Query paranoidQuery = Queries.parseQuery(q, useLegacy, datasetsMetadata, defaultIQL2Options, x -> {}, clock).query;
+            final Query paranoidQuery = Queries.parseQuery(this.query, useLegacy, datasetsMetadata, defaultIQL2Options, x -> {}, clock, timer, shardResolver).query;
             timer.pop();
 
             timer.push("check query equals() and hashCode() (paranoid mode)");
-            if (!paranoidQuery.equals(parseResult.query)) {
-                log.error("parseResult.query = " + parseResult.query);
+            if (!paranoidQuery.equals(query)) {
+                log.error("parseResult.query = " + query);
                 log.error("paranoidQuery = " + paranoidQuery);
                 throw new IllegalStateException("Paranoid mode encountered re-parsed query equals() failure!");
             }
-            if (paranoidQuery.hashCode() != parseResult.query.hashCode()) {
-                log.error("parseResult.query = " + parseResult.query);
+            if (paranoidQuery.hashCode() != query.hashCode()) {
+                log.error("parseResult.query = " + query);
                 log.error("paranoidQuery = " + paranoidQuery);
                 throw new IllegalStateException("Paranoid mode encountered re-parsed query hashCode() failure!");
             }
             timer.pop();
 
             timer.push("extractHeaders (paranoid mode)");
-            Queries.extractHeaders(parseResult.query);
+            Queries.extractHeaders(query);
             timer.pop();
         }
 
         {
             queryInfo.statementType = "select";
 
-            final List<Dataset> allDatasets = Queries.findAllDatasets(parseResult.query);
+            final List<Dataset> allDatasets = Queries.findAllDatasets(query);
             Duration datasetRangeSum = Duration.ZERO;
             queryInfo.datasets = new HashSet<>();
             for (final Dataset dataset : allDatasets) {
@@ -356,7 +351,7 @@ public class SelectQueryExecution {
             }
             queryInfo.totalDatasetRangeDays = datasetRangeSum.toStandardDays().getDays();
 
-            final Set<FieldExtractor.DatasetField> datasetFields = FieldExtractor.getDatasetFields(parseResult.query);
+            final Set<FieldExtractor.DatasetField> datasetFields = FieldExtractor.getDatasetFields(query);
             queryInfo.datasetFields = Sets.newHashSet();
             queryInfo.datasetFieldsNoDescription = Sets.newHashSet();
 
@@ -377,12 +372,12 @@ public class SelectQueryExecution {
             }
         }
 
-        final int sessions = parseResult.query.datasets.size();
+        final int sessions = query.datasets.size();
         if (sessions > limits.concurrentImhotepSessionsLimit) {
             throw new UserSessionCountLimitExceededException("User is creating more concurrent imhotep sessions than the limit: " + limits.concurrentImhotepSessionsLimit);
         }
         final StrictCloser strictCloser = new StrictCloser();
-        final SelectQuery selectQuery = new SelectQuery(queryInfo, runningQueriesManager, query, clientInfo, limits, new DateTime(queryInfo.queryStartTimestamp),
+        final SelectQuery selectQuery = new SelectQuery(queryInfo, runningQueriesManager, this.query, clientInfo, limits, new DateTime(queryInfo.queryStartTimestamp),
                 null, (byte) sessions, queryMetadata, strictCloser, progressCallback);
 
         try {
@@ -391,7 +386,7 @@ public class SelectQueryExecution {
             timer.pop();
             queryInfo.queryStartTimestamp = selectQuery.getQueryStartTimestamp().getMillis();
             return new ParsedQueryExecution(true, parseResult.inputStream, out, warnings, resultFormat, progressCallback,
-                    parseResult.query, limits.queryInMemoryRowsLimit, selectQuery, strictCloser).executeParsedQuery();
+                    query, limits.queryInMemoryRowsLimit, selectQuery, strictCloser).executeParsedQuery();
         } catch (final Exception e) {
             selectQuery.checkCancelled();
             throw e;
@@ -413,10 +408,9 @@ public class SelectQueryExecution {
         private final SelectQuery selectQuery;
         private final StrictCloser strictCloser;
 
-        private final Query originalQuery;
+        private final Query query;
 
         private final ProgressCallback progressCallback;
-        private final Map<Query, Boolean> queryCached = new HashMap<>();
 
         private final AtomicInteger cacheUploadingCounter = new AtomicInteger(0);
 
@@ -437,7 +431,7 @@ public class SelectQueryExecution {
             this.warnings = warnings;
             this.resultFormat = resultFormat;
             this.progressCallback = progressCallback;
-            this.originalQuery = query;
+            this.query = query;
             this.groupLimit = groupLimit == null ? 1000000 : groupLimit;
             this.selectQuery = selectQuery;
             this.strictCloser = strictCloser;
@@ -445,110 +439,7 @@ public class SelectQueryExecution {
 
         private SelectExecutionInformation executeParsedQuery() throws IOException {
             final int[] totalBytesWritten = {0};
-            final Set<String> cacheKeys = new HashSet<>();
-            final ListMultimap<String, List<Shard>> allShardsUsed = ArrayListMultimap.create();
-            final List<DatasetWithMissingShards> datasetsWithMissingShards = new ArrayList<>();
             final Map<Query, Pair<Set<Long>, Set<String>>> queryToResults = new HashMap<>();
-
-            // TODO: subqueries should be executed at a later stage after the query hash is calculated
-            // to support "head only" requests for shard related headers
-            final Query query = originalQuery.transform(
-                    new Function<GroupBy, GroupBy>() {
-                        @Nullable
-                        @Override
-                        public GroupBy apply(final GroupBy input) {
-                            if (input instanceof GroupBy.GroupByFieldInQuery) {
-                                final GroupBy.GroupByFieldInQuery fieldInQuery = (GroupBy.GroupByFieldInQuery) input;
-                                final Query q = fieldInQuery.query;
-                                if (!queryToResults.containsKey(q)) {
-                                    final Pair<Set<Long>, Set<String>> subqueryResult =
-                                            executeSubquery(q, totalBytesWritten, cacheKeys, allShardsUsed, datasetsWithMissingShards);
-                                    queryToResults.put(q, subqueryResult);
-                                }
-                                final Pair<Set<Long>, Set<String>> result = queryToResults.get(q);
-                                if (fieldInQuery.isNegated) {
-                                    // if negated then we have to iterate all terms and filter out result of subquery.
-                                    final AggregateFilter filter;
-                                    if (result.getFirst() != null) {
-                                        final Iterable<Term> terms = Iterables.transform(result.getFirst(), Term::term);
-                                        filter = AggregateFilters.aggregateInHelper(terms, true);
-                                    } else if (result.getSecond() != null) {
-                                        final Iterable<Term> terms = Iterables.transform(result.getSecond(), Term::term);
-                                        filter = AggregateFilters.aggregateInHelper(terms, true);
-                                    } else {
-                                        filter = null;
-                                    }
-                                    return new GroupBy.GroupByField(fieldInQuery.field, Optional.fromNullable(filter), Optional.absent(), Optional.absent(), fieldInQuery.withDefault);
-                                } else {
-                                    // if not-negated then we do group by field in terms-set.
-                                    final LongArrayList intTerms = (result.getFirst() == null) ?
-                                            new LongArrayList(0) : new LongArrayList(result.getFirst());
-                                    final List<String> stringTerms = (result.getSecond() == null) ?
-                                            new ArrayList<>(0) : new ArrayList<>(result.getSecond());
-                                    Arrays.sort(intTerms.elements());
-                                    stringTerms.sort(String::compareTo);
-                                    return new GroupBy.GroupByFieldIn(fieldInQuery.field, intTerms, stringTerms, fieldInQuery.withDefault);
-                                }
-                            }
-                            return input;
-                        }
-                    },
-                    Functions.<AggregateMetric>identity(),
-                    Functions.<DocMetric>identity(),
-                    Functions.<AggregateFilter>identity(),
-                    new Function<DocFilter, DocFilter>() {
-                        @Nullable
-                        @Override
-                        public DocFilter apply(final DocFilter input) {
-                            if (input instanceof DocFilter.FieldInQuery) {
-                                final DocFilter.FieldInQuery fieldInQuery = (DocFilter.FieldInQuery) input;
-                                final Query q = fieldInQuery.query;
-                                if (!queryToResults.containsKey(q)) {
-                                    final Pair<Set<Long>, Set<String>> subqueryResult =
-                                            executeSubquery(q, totalBytesWritten, cacheKeys, allShardsUsed, datasetsWithMissingShards);
-                                    queryToResults.put(q, subqueryResult);
-                                }
-                                final Pair<Set<Long>, Set<String>> result = queryToResults.get(q);
-                                final FieldSet field = fieldInQuery.field;
-
-                                final List<DocFilter> filters = new ArrayList<>();
-                                if (result.getSecond() != null) {
-                                    filters.add(new DocFilter.StringFieldIn(datasetsMetadata, field, result.getSecond()));
-                                } else if (result.getFirst() != null) {
-                                    filters.add(new DocFilter.IntFieldIn(datasetsMetadata, field, result.getFirst()));
-                                }
-                                final DocFilter orred = DocFilter.Or.create(filters);
-                                final DocFilter maybeNegated;
-                                if (fieldInQuery.isNegated) {
-                                    maybeNegated = new DocFilter.Not(orred);
-                                } else {
-                                    maybeNegated = orred;
-                                }
-                                return maybeNegated;
-                            }
-                            return input;
-                        }
-                    }
-            );
-
-            timer.push("compute commands");
-            final List<Command> commands = Queries.queryCommands(incrementQueryLimit(query), datasetsMetadata);
-            timer.pop();
-
-            if (!skipValidation) {
-                timer.push("validate commands");
-                final Set<String> errors = new HashSet<>();
-                final Set<String> warnings = new HashSet<>();
-                CommandValidator.validate(commands, query, datasetsMetadata, errors, warnings);
-
-                if (errors.size() != 0) {
-                    throw new IqlKnownException.ParseErrorException("Errors found when validating query: " + errors);
-                }
-                if (warnings.size() != 0) {
-                    this.warnings.addAll(warnings);
-                }
-                timer.pop();
-            }
 
             final Set<String> conflictFieldsUsed = Sets.intersection(queryInfo.datasetFields, datasetsMetadata.getTypeConflictDatasetFieldNames());
             if (conflictFieldsUsed.size() > 0) {
@@ -556,58 +447,71 @@ public class SelectQueryExecution {
                 warnings.add(conflictWarning);
             }
 
-            final ComputeCacheKey computeCacheKey = computeCacheKey(timer, query, commands, imhotepClient, resultFormat);
-            final Map<String, List<Shard>> mutableDatasetToChosenShards = computeCacheKey.datasetToChosenShards;
-            remapShardsIfNecessary(mutableDatasetToChosenShards, query.options);
-            final Map<String, List<Shard>> datasetToChosenShards = Collections.unmodifiableMap(mutableDatasetToChosenShards);
-            allShardsUsed.putAll(Multimaps.forMap(datasetToChosenShards));
-            datasetsWithMissingShards.addAll(computeCacheKey.datasetsWithMissingShards);
+            timer.push("compute hash");
+            final CacheKey cacheKey = CacheKey.computeCacheKey(query, resultFormat);
+            queryInfo.cacheHashes = query.allCacheKeys(resultFormat);
+            timer.pop();
+
+            final ListMultimap<String, List<Shard>> allShardsUsed = query.allShardsUsed();
+            final List<DatasetWithMissingShards> datasetsWithMissingShards = query.allMissingShards();
             if (isTopLevelQuery) {
                 queryMetadata.addItem("IQL-Newest-Shard", ISODateTimeFormat.dateTime().print(newestStaticShard(allShardsUsed).or(-1L)), returnNewestShardVersionHeader);
-
                 for(DatasetWithMissingShards datasetWithMissingShards : datasetsWithMissingShards) {
                     warnings.addAll(QueryServlet.missingShardsToWarnings(datasetWithMissingShards.dataset,
                             datasetWithMissingShards.start, datasetWithMissingShards.end, datasetWithMissingShards.timeIntervalsMissingShards));
                 }
 
                 final List<Interval> missingIntervals = datasetsWithMissingShards.stream()
-                        .map(DatasetWithMissingShards::getTimeIntervalsMissingShards).collect(ArrayList::new, List::addAll, List::addAll);
-                if(missingIntervals.size() > 0) {
+                        .flatMap(x -> x.getTimeIntervalsMissingShards().stream())
+                        .collect(Collectors.toList());
+                if (!missingIntervals.isEmpty()) {
                     final String missingIntervalsString = QueryServlet.intervalListToString(missingIntervals);
                     queryMetadata.addItem("IQL-Missing-Shards", missingIntervalsString, true);
                 }
             }
 
-            // TODO: if HEAD query, return here
-
-            cacheKeys.add(computeCacheKey.rawHash);
-
             final CountingConsumer<String> countingExternalOutput = new CountingConsumer<>(externalOutput);
-
             Consumer<String> out = countingExternalOutput;
 
-            final boolean skipCache = query.options.contains(QueryOptions.NO_CACHE);
+            timer.push("cache check");
+            final String cacheFileName = cacheKey.cacheFileName;
+            final InputStream cacheInputStream = strictCloser.registerOrClose(queryCache.getInputStream(cacheFileName));
+            final boolean isCached = cacheInputStream != null;
+            timer.pop();
 
+            if (headOnly) {
+                final SelectExecutionInformation selectExecutionInformation = new SelectExecutionInformation(
+                        allShardsUsed,
+                        datasetsWithMissingShards,
+                        isCached,
+                        0L,
+                        null,
+                        Collections.emptyList(),
+                        query.totalNumDocs(),
+                        0,
+                        0,
+                        false,
+                        null,
+                        null
+                );
+
+                finalizeQueryExecution(countingExternalOutput, selectExecutionInformation);
+
+                return selectExecutionInformation;
+            }
+
+            final boolean skipCache = query.options.contains(QueryOptions.NO_CACHE);
             final boolean cacheEnabled = queryCache.isEnabled() && !skipCache;
             final File cacheFile;
             final TruncatingBufferedOutputStream cacheWriter;
 
             try (final StrictCloser innerStrictCloser = new StrictCloser()) {
                 strictCloser.registerOrClose(innerStrictCloser);
-                final String cacheFileName = computeCacheKey.cacheFileName;
                 if (cacheEnabled) {
-                    timer.push("cache check");
-                    final InputStream cacheInputStream = queryCache.getInputStream(cacheFileName);
-                    final boolean isCached = cacheInputStream != null;
-                    timer.pop();
-
-                    queryCached.put(query, isCached);
-
                     if (isCached) {
                         timer.push("read cache");
                         if (isTopLevelQuery) {
-                            boolean allQueriesCached = queryCached.values().stream().allMatch((queryIsCached) -> queryIsCached);
-                            queryMetadata.addItem("IQL-Cached", allQueriesCached, true);
+                            queryMetadata.addItem("IQL-Cached", true, true);
                             // read metadata from cache
                             try {
                                 final InputStream metadataCacheStream = queryCache.getInputStream(cacheFileName + METADATA_FILE_SUFFIX);
@@ -624,7 +528,7 @@ public class SelectQueryExecution {
                         final boolean hasMoreRows = sendCachedQuery(out, query.rowLimit, cacheInputStream);
                         timer.pop();
                         final SelectExecutionInformation selectExecutionInformation = new SelectExecutionInformation(allShardsUsed, datasetsWithMissingShards,
-                                queryCached, totalBytesWritten[0], null, cacheKeys,
+                                true, totalBytesWritten[0], null,
                                 Collections.<String>emptyList(), 0, 0, 0, hasMoreRows, null, null);
 
                         finalizeQueryExecution(countingExternalOutput, selectExecutionInformation);
@@ -673,17 +577,28 @@ public class SelectQueryExecution {
                     };
                 }
 
-                final List<Queries.QueryDataset> datasets = Queries.createDatasetMap(query);
+                final Query substitutedQuery = executeAndSubstituteSubQueries(query, totalBytesWritten, queryToResults);
+
+                if (query.options.contains(QueryOptions.PARANOID)) {
+                    timer.push("re-validate substituted query (paranoid mode)");
+                    final HashSet<String> errors = new HashSet<>();
+                    CommandValidator.validate(substitutedQuery, datasetsMetadata, new ErrorCollector(errors, warnings));
+                    if (!errors.isEmpty()) {
+                        throw new IqlKnownException.ParseErrorException("Errors found when (re-)validating query: " + errors);
+                    }
+                    timer.pop();
+                }
+
+                final List<Queries.QueryDataset> datasets = Queries.createDatasetMap(substitutedQuery);
 
                 final InfoCollectingProgressCallback infoCollectingProgressCallback = new InfoCollectingProgressCallback();
                 final ProgressCallback compositeProgressCallback = CompositeProgressCallback.create(progressCallback, infoCollectingProgressCallback);
                 try {
                     final Session.CreateSessionResult createResult = Session.createSession(
                             imhotepClient,
-                            datasetToChosenShards,
                             groupLimit,
                             Sets.newHashSet(query.options),
-                            commands,
+                            substitutedQuery.commands(),
                             datasets,
                             innerStrictCloser,
                             out,
@@ -699,14 +614,13 @@ public class SelectQueryExecution {
                     final SelectExecutionInformation selectExecutionInformation = new SelectExecutionInformation(
                             allShardsUsed,
                             datasetsWithMissingShards,
-                            queryCached,
+                            isCached,
                             createResult.tempFileBytesWritten + totalBytesWritten[0],
                             createResult.imhotepPerformanceStats,
-                            cacheKeys,
                             infoCollectingProgressCallback.getSessionIds(),
-                            infoCollectingProgressCallback.getTotalNumDocs(),
+                            query.totalNumDocs(),
                             infoCollectingProgressCallback.getMaxNumGroups(),
-                            infoCollectingProgressCallback.getMaxConcurrentSessions(),
+                            query.maxConcurrentSessions(),
                             hasMoreRows.get(),
                             (cacheWriter != null) ? cacheWriter.getAttemptedTotalWriteBytes() : null,
                             (cacheWriter != null) ? cacheWriter.isOverflowed() : null
@@ -768,12 +682,93 @@ public class SelectQueryExecution {
             }
         }
 
+        private Query executeAndSubstituteSubQueries(final Query query, final int[] totalBytesWritten, final Map<Query, Pair<Set<Long>, Set<String>>> queryToResults) {
+            timer.push("execute subqueries");
+            final Query result = query.transform(
+                    new Function<GroupBy, GroupBy>() {
+                        @Nullable
+                        @Override
+                        public GroupBy apply(final GroupBy input) {
+                            if (input instanceof GroupBy.GroupByFieldInQuery) {
+                                final GroupBy.GroupByFieldInQuery fieldInQuery = (GroupBy.GroupByFieldInQuery) input;
+                                final Query q = fieldInQuery.query;
+                                if (!queryToResults.containsKey(q)) {
+                                    final Pair<Set<Long>, Set<String>> subqueryResult =
+                                            executeSubquery(q, totalBytesWritten);
+                                    queryToResults.put(q, subqueryResult);
+                                }
+                                final Pair<Set<Long>, Set<String>> result = queryToResults.get(q);
+                                if (fieldInQuery.isNegated) {
+                                    // if negated then we have to iterate all terms and filter out result of subquery.
+                                    final AggregateFilter filter;
+                                    if (result.getFirst() != null) {
+                                        final Iterable<Term> terms = Iterables.transform(result.getFirst(), Term::term);
+                                        filter = AggregateFilters.aggregateInHelper(terms, true);
+                                    } else if (result.getSecond() != null) {
+                                        final Iterable<Term> terms = Iterables.transform(result.getSecond(), Term::term);
+                                        filter = AggregateFilters.aggregateInHelper(terms, true);
+                                    } else {
+                                        filter = null;
+                                    }
+                                    return new GroupBy.GroupByField(fieldInQuery.field, Optional.fromNullable(filter), Optional.absent(), Optional.absent(), fieldInQuery.withDefault);
+                                } else {
+                                    // if not-negated then we do group by field in terms-set.
+                                    final LongArrayList intTerms = (result.getFirst() == null) ?
+                                            new LongArrayList(0) : new LongArrayList(result.getFirst());
+                                    final List<String> stringTerms = (result.getSecond() == null) ?
+                                            new ArrayList<>(0) : new ArrayList<>(result.getSecond());
+                                    Arrays.sort(intTerms.elements());
+                                    stringTerms.sort(String::compareTo);
+                                    return new GroupBy.GroupByFieldIn(fieldInQuery.field, intTerms, stringTerms, fieldInQuery.withDefault);
+                                }
+                            }
+                            return input;
+                        }
+                    },
+                    Functions.identity(),
+                    Functions.identity(),
+                    Functions.identity(),
+                    new Function<DocFilter, DocFilter>() {
+                        @Nullable
+                        @Override
+                        public DocFilter apply(final DocFilter input) {
+                            if (input instanceof DocFilter.FieldInQuery) {
+                                final DocFilter.FieldInQuery fieldInQuery = (DocFilter.FieldInQuery) input;
+                                final Query q = fieldInQuery.query;
+                                if (!queryToResults.containsKey(q)) {
+                                    final Pair<Set<Long>, Set<String>> subqueryResult =
+                                            executeSubquery(q, totalBytesWritten);
+                                    queryToResults.put(q, subqueryResult);
+                                }
+                                final Pair<Set<Long>, Set<String>> result = queryToResults.get(q);
+                                final FieldSet field = fieldInQuery.field;
+
+                                final List<DocFilter> filters = new ArrayList<>();
+                                if (result.getSecond() != null) {
+                                    filters.add(new DocFilter.StringFieldIn(datasetsMetadata, field, result.getSecond()));
+                                } else if (result.getFirst() != null) {
+                                    filters.add(new DocFilter.IntFieldIn(datasetsMetadata, field, result.getFirst()));
+                                }
+                                final DocFilter orred = DocFilter.Or.create(filters);
+                                final DocFilter maybeNegated;
+                                if (fieldInQuery.isNegated) {
+                                    maybeNegated = new DocFilter.Not(orred);
+                                } else {
+                                    maybeNegated = orred;
+                                }
+                                return maybeNegated;
+                            }
+                            return input;
+                        }
+                    }
+            );
+            timer.pop();
+            return result;
+        }
+
         private Pair<Set<Long>, Set<String>> executeSubquery(
                 final Query q,
-                final int[] totalBytesWritten,
-                final Set<String> cacheKeys,
-                final ListMultimap<String, List<Shard>> allShardsUsed,
-                final List<DatasetWithMissingShards> datasetsWithMissingShards) {
+                final int[] totalBytesWritten) {
             final Set<Long> terms = new LongOpenHashSet();
             final Set<String> stringTerms = new HashSet<>();
             timer.push("Execute sub-query", "Execute sub-query: \"" + q + "\"");
@@ -806,9 +801,6 @@ public class SelectQueryExecution {
                     }
                 }, warnings, ResultFormat.CSV, new SessionOpenedOnlyProgressCallback(progressCallback), q, groupLimit, selectQuery, strictCloser).executeParsedQuery();
                 totalBytesWritten[0] += execInfo.imhotepTempBytesWritten;
-                cacheKeys.addAll(execInfo.cacheKeys);
-                allShardsUsed.putAll(execInfo.datasetToShards);
-                datasetsWithMissingShards.addAll(execInfo.datasetsWithMissingShards);
             } catch (IOException e) {
                 throw Throwables.propagate(e);
             }
@@ -870,7 +862,7 @@ public class SelectQueryExecution {
     }
 
     // increment query limit so that we know that whether it filters the response data size
-    private Query incrementQueryLimit(final Query query) {
+    public static Query incrementQueryLimit(final Query query) {
         final Optional<Integer> newRowLimit = query.rowLimit.transform(new Function<Integer, Integer>() {
             @Nullable
             @Override
@@ -881,7 +873,7 @@ public class SelectQueryExecution {
         return new Query(query.datasets, query.filter, query.groupBys, query.selects, query.formatStrings, query.options, newRowLimit, query.useLegacy);
     }
 
-    private static class DatasetWithMissingShards {
+    public static class DatasetWithMissingShards {
         public final String dataset;
         public final DateTime start;
         public final DateTime end;
@@ -897,45 +889,6 @@ public class SelectQueryExecution {
         public List<Interval> getTimeIntervalsMissingShards() {
             return timeIntervalsMissingShards;
         }
-    }
-
-    public static ComputeCacheKey computeCacheKey(TracingTreeTimer timer, Query query, List<Command> commands, ImhotepClient imhotepClient, ResultFormat resultFormat) {
-        timer.push("compute hash");
-        final Set<Pair<String, String>> shards = Sets.newHashSet();
-        final Set<DatasetWithTimeRangeAndAliases> datasetsWithTimeRange = Sets.newHashSet();
-        final Map<String, List<Shard>> datasetToChosenShards = Maps.newHashMap();
-        final List<DatasetWithMissingShards> datasetsWithMissingShards = new ArrayList<>();
-        for (final Dataset dataset : query.datasets) {
-            timer.push("get chosen shards");
-            final String actualDataset = dataset.dataset.unwrap();
-            final String sessionName = dataset.alias.or(dataset.dataset).unwrap();
-            final DateTime startTime = dataset.startInclusive.unwrap();
-            final DateTime endTime = dataset.endExclusive.unwrap();
-            ImhotepClient.SessionBuilder imhotepSessionBuilder =
-                    imhotepClient.sessionBuilder(actualDataset, startTime, endTime);
-            final List<Shard> chosenShards = imhotepSessionBuilder.getChosenShards();
-            datasetsWithMissingShards.add(new DatasetWithMissingShards(sessionName, startTime, endTime, imhotepSessionBuilder.getTimeIntervalsMissingShards()));
-            timer.pop();
-            for (final Shard chosenShard : chosenShards) {
-                // This needs to be associated with the session name, not just the actualDataset.
-                shards.add(Pair.of(sessionName, chosenShard.getShardId() + "-" + chosenShard.getVersion()));
-            }
-            final Set<FieldAlias> fieldAliases = Sets.newHashSet();
-            for (final Map.Entry<Positioned<String>, Positioned<String>> e : dataset.fieldAliases.entrySet()) {
-                fieldAliases.add(new FieldAlias(e.getValue().unwrap(), e.getKey().unwrap()));
-            }
-            datasetsWithTimeRange.add(new DatasetWithTimeRangeAndAliases(actualDataset, dataset.startInclusive.unwrap().getMillis(), dataset.endExclusive.unwrap().getMillis(), fieldAliases));
-            final List<Shard> oldShards = datasetToChosenShards.put(sessionName, chosenShards);
-            if (oldShards != null) {
-                throw new IllegalArgumentException("Overwrote shard list for " + sessionName);
-            }
-        }
-        final TreeSet<String> sortedOptions = Sets.newTreeSet(query.options);
-        final String queryHash = computeQueryHash(commands, query.rowLimit, sortedOptions, shards, datasetsWithTimeRange, query.useLegacy, SelectQuery.VERSION_FOR_HASHING, resultFormat);
-        final String cacheFileName = "IQL2-" + queryHash + ".tsv";
-        timer.pop();
-
-        return new ComputeCacheKey(datasetToChosenShards, datasetsWithMissingShards, queryHash, cacheFileName);
     }
 
     private static boolean sendCachedQuery(Consumer<String> out, Optional<Integer> rowLimit, InputStream cacheInputStream) throws IOException {
@@ -954,116 +907,6 @@ public class SelectQueryExecution {
             }
         }
         return hasMoreRows;
-    }
-
-    private static String computeQueryHash(List<Command> commands, Optional<Integer> rowLimit, final Collection<String> sortedOptions, Set<Pair<String, String>> shards, Set<DatasetWithTimeRangeAndAliases> datasets, final boolean useLegacy, int version, final ResultFormat resultFormat) {
-        final MessageDigest sha1;
-        try {
-            sha1 = MessageDigest.getInstance("SHA-1");
-        } catch (NoSuchAlgorithmException e) {
-            log.error("Failed to init SHA1", e);
-            throw Throwables.propagate(e);
-        }
-        sha1.update(Ints.toByteArray(version));
-        sha1.update(Ints.toByteArray(useLegacy ? 1 : 2));
-        sha1.update(resultFormat.toString().getBytes());
-        for (final Command command : commands) {
-            sha1.update(command.toString().getBytes(Charsets.UTF_8));
-        }
-        for (final DatasetWithTimeRangeAndAliases dataset : datasets) {
-            sha1.update(dataset.dataset.getBytes(Charsets.UTF_8));
-            sha1.update(Longs.toByteArray(dataset.start));
-            sha1.update(Longs.toByteArray(dataset.end));
-            final List<FieldAlias> sortedFieldAliases = Lists.newArrayList(dataset.fieldAliases);
-            Collections.sort(sortedFieldAliases, new Comparator<FieldAlias>() {
-                @Override
-                public int compare(FieldAlias o1, FieldAlias o2) {
-                    return o1.newName.compareTo(o2.newName);
-                }
-            });
-            for (final FieldAlias fieldAlias : sortedFieldAliases) {
-                sha1.update(fieldAlias.toString().getBytes(Charsets.UTF_8));
-            }
-        }
-        for (final String option : sortedOptions) {
-            if (QueryOptions.includeInCacheKey(option)) {
-                sha1.update(option.getBytes(Charsets.UTF_8));
-            }
-        }
-        sha1.update(Ints.toByteArray(rowLimit.or(-1)));
-        for (final Pair<String, String> pair : shards) {
-            sha1.update(pair.getFirst().getBytes(Charsets.UTF_8));
-            sha1.update(pair.getSecond().getBytes(Charsets.UTF_8));
-        }
-        return Base64.encodeBase64URLSafeString(sha1.digest());
-    }
-
-    private static void remapShardsIfNecessary(final Map<String, List<Shard>> datasetToChosenShards, final List<String> queryOptions) {
-        if (QueryOptions.Experimental.hasHosts(queryOptions)) {
-            final List<Host> hostsFromOption = QueryOptions.Experimental.parseHosts(queryOptions);
-            final QueryOptions.HostsMappingMethod method = QueryOptions.Experimental.parseHostMappingMethod(queryOptions);
-
-            for (final Map.Entry<String, List<Shard>> entry : datasetToChosenShards.entrySet()) {
-                List<Shard> remappedShards;
-                switch (method) {
-                    case NUMDOC_MAPPING:
-                        remappedShards = remapShardsByNumDocs(entry.getValue(), hostsFromOption);
-                        break;
-
-                    case MODULO_MAPPING:
-                    default:
-                        remappedShards = remapShardsByModulo(entry.getValue(), hostsFromOption);
-                        break;
-                }
-                entry.setValue(remappedShards);
-            }
-        }
-    }
-
-    private static List<Shard> remapShardsByModulo(final List<Shard> shards, final List<Host> hosts) {
-        Preconditions.checkArgument(!hosts.isEmpty());
-
-        return shards.stream()
-                .map(shard -> {
-                    final int hostIndex = Math.abs(shard.hashCode()) % hosts.size();
-                    return shard.withHost(hosts.get(hostIndex));
-                })
-                .collect(Collectors.toList());
-    }
-
-    // It's a NP-complete K-partition problem: https://en.wikipedia.org/wiki/Partition_problem
-    // and we take the greedy approximate algorithm https://en.wikipedia.org/wiki/Partition_problem#The_greedy_algorithm
-    private static List<Shard> remapShardsByNumDocs(final List<Shard> shards, final List<Host> hosts) {
-        Preconditions.checkArgument(!hosts.isEmpty());
-
-        // sort numdocs in descending order and keep pair<NumDoc, ShardIndex> in the list
-        final List<Pair<Integer, Integer>> shardNumDocs = IntStream.range(0, shards.size())
-                .mapToObj(i -> Pair.of(shards.get(i).getNumDocs(), i))
-                .sorted((s1, s2) -> s2.getFirst().compareTo(s1.getFirst()))
-                .collect(Collectors.toList());
-
-        // greedy partition algorithm, keep pair<Sum of numDoc, list of shard indices> in the heap
-        final PriorityQueue<Pair<Long, List<Integer>>> docSumQueue = new PriorityQueue<>(
-                hosts.size(), (p1, p2) -> p1.getFirst().compareTo(p2.getFirst()));
-        hosts.stream().forEach(host -> { docSumQueue.add(Pair.of(0L, new ArrayList<>())); });
-        shardNumDocs.stream().forEach(
-                numDocPair -> {
-                    final Pair<Long, List<Integer>> poll = docSumQueue.poll();
-                    poll.getSecond().add(numDocPair.getSecond());
-                    docSumQueue.add(Pair.of(poll.getFirst() + numDocPair.getFirst(), poll.getSecond()));
-                }
-        );
-
-        final List<Shard> remappedShards = Lists.newArrayListWithCapacity(shards.size());
-        int hostIndex = 0;
-        while (!docSumQueue.isEmpty()) {
-            final Pair<Long, List<Integer>> poll = docSumQueue.poll();
-            for (final int shardIndex : poll.getSecond()) {
-                remappedShards.add(shards.get(shardIndex).withHost(hosts.get(hostIndex)));
-            }
-            hostIndex++;
-        }
-        return remappedShards;
     }
 
     public static Optional<Long> newestStaticShard(Multimap<String, List<Shard>> datasetToShards) {
@@ -1085,11 +928,10 @@ public class SelectQueryExecution {
     private static class SelectExecutionInformation {
         public final Multimap<String, List<Shard>> datasetToShards;
         public final List<DatasetWithMissingShards> datasetsWithMissingShards;
-        public final Map<Query, Boolean> queryCached;
+        public final boolean cached;
         public final long imhotepTempBytesWritten;
         @Nullable
         public final PerformanceStats imhotepPerformanceStats;
-        public final Set<String> cacheKeys;
 
         public final Set<String> sessionIds;
         public final long totalNumDocs;
@@ -1103,15 +945,14 @@ public class SelectQueryExecution {
         public final Boolean cacheUploadSkipped;
 
         private SelectExecutionInformation(Multimap<String, List<Shard>> datasetToShards, List<DatasetWithMissingShards> datasetsWithMissingShards,
-                                           Map<Query, Boolean> queryCached, long imhotepTempBytesWritten, PerformanceStats imhotepPerformanceStats,
-                                           Set<String> cacheKeys, List<String> sessionIds, long totalNumDocs, int maxNumGroups, int maxConcurrentSessions,
+                                           final boolean cached, long imhotepTempBytesWritten, PerformanceStats imhotepPerformanceStats,
+                                           List<String> sessionIds, long totalNumDocs, int maxNumGroups, int maxConcurrentSessions,
                                            final boolean hasMoreRows, @Nullable final Long resultBytes, @Nullable final Boolean cacheUploadSkipped) {
             this.datasetToShards = datasetToShards;
             this.datasetsWithMissingShards = datasetsWithMissingShards;
-            this.queryCached = queryCached;
+            this.cached = cached;
             this.imhotepTempBytesWritten = imhotepTempBytesWritten;
             this.imhotepPerformanceStats = imhotepPerformanceStats;
-            this.cacheKeys = ImmutableSet.copyOf(cacheKeys);
             this.sessionIds = ImmutableSet.copyOf(sessionIds);
             this.totalNumDocs = totalNumDocs;
             this.maxNumGroups = maxNumGroups;
@@ -1119,109 +960,6 @@ public class SelectQueryExecution {
             this.hasMoreRows = hasMoreRows;
             this.resultBytes = resultBytes;
             this.cacheUploadSkipped = cacheUploadSkipped;
-        }
-
-        public boolean allCached() {
-            for (final boolean b : queryCached.values()) {
-                if (!b) {
-                    return false;
-                }
-            }
-            return true;
-        }
-    }
-
-    private static class DatasetWithTimeRangeAndAliases {
-        public final String dataset;
-        public final long start;
-        public final long end;
-        public final Set<FieldAlias> fieldAliases;
-
-        private DatasetWithTimeRangeAndAliases(String dataset, long start, long end, Set<FieldAlias> fieldAliases) {
-            this.dataset = dataset;
-            this.start = start;
-            this.end = end;
-            this.fieldAliases = fieldAliases;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-            DatasetWithTimeRangeAndAliases that = (DatasetWithTimeRangeAndAliases) o;
-            return start == that.start &&
-                    end == that.end &&
-                    Objects.equals(dataset, that.dataset) &&
-                    Objects.equals(fieldAliases, that.fieldAliases);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(dataset, start, end, fieldAliases);
-        }
-
-        @Override
-        public String toString() {
-            return "DatasetWithTimeRangeAndAliases{" +
-                    "dataset='" + dataset + '\'' +
-                    ", start=" + start +
-                    ", end=" + end +
-                    ", fieldAliases=" + fieldAliases +
-                    '}';
-        }
-    }
-
-    public static class ComputeCacheKey {
-        public final Map<String, List<Shard>> datasetToChosenShards;
-        public final List<DatasetWithMissingShards> datasetsWithMissingShards;
-        public final String rawHash;
-        public final String cacheFileName;
-
-        private ComputeCacheKey(Map<String, List<Shard>> datasetToChosenShards, List<DatasetWithMissingShards> datasetsWithMissingShards, String rawHash, String cacheFileName) {
-            this.datasetToChosenShards = datasetToChosenShards;
-            this.datasetsWithMissingShards = datasetsWithMissingShards;
-            this.rawHash = rawHash;
-            this.cacheFileName = cacheFileName;
-        }
-    }
-
-    private static class FieldAlias {
-        public final String originalName;
-        public final String newName;
-
-        private FieldAlias(String originalName, String newName) {
-            this.originalName = originalName;
-            this.newName = newName;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) {
-                return true;
-            }
-            if ((o == null) || (getClass() != o.getClass())) {
-                return false;
-            }
-            FieldAlias that = (FieldAlias) o;
-            return Objects.equals(originalName, that.originalName) &&
-                    Objects.equals(newName, that.newName);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(originalName, newName);
-        }
-
-        @Override
-        public String toString() {
-            return "FieldAlias{" +
-                    "originalName='" + originalName + '\'' +
-                    ", newName='" + newName + '\'' +
-                    '}';
         }
     }
 }

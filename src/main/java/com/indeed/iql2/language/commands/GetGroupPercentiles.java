@@ -17,10 +17,10 @@ package com.indeed.iql2.language.commands;
 import com.google.common.base.Function;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
-import com.indeed.iql2.language.Validator;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
+import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 
 import java.util.Arrays;
 import java.util.List;
@@ -36,11 +36,11 @@ public class GetGroupPercentiles implements Command {
     }
 
     @Override
-    public void validate(ValidationHelper validationHelper, Validator validator) {
-        ValidationUtil.validateIntField(field, validationHelper, validator, this);
+    public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {
+        ValidationUtil.validateIntField(field, validationHelper, errorCollector, this);
         for (final double percentile : percentiles) {
             if ((percentile < 0) || (percentile > 100.0)) {
-                validator.error("Percentile must be in [0, 100] range, user value is " + percentile);
+                errorCollector.error("Percentile must be in [0, 100] range, user value is " + percentile);
             }
         }
     }
