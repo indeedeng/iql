@@ -55,4 +55,19 @@ public class TSVEscapingTest extends BasicTest {
         expected.add(ImmutableList.of("NormalTerm", "[2015-01-01 00:00:00, 2015-01-02 00:00:00)", "1"));
         QueryServletTestUtils.testAll(expected, "from tsvescape yesterday today group by sField, time(1d)", OPTIONS);
     }
+
+    @Test
+    public void testTsvSubQueryFiltering() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("", "2"));
+        QueryServletTestUtils.testIQL2(expected, "from tsvescape yesterday today where sField in (from same group by sField)", OPTIONS);
+    }
+
+    @Test
+    public void testTsvSubQueryGroupBy() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("Crazy\uFFFDTerm\uFFFD!\uFFFD\uFFFD", "1"));
+        expected.add(ImmutableList.of("NormalTerm", "1"));
+        QueryServletTestUtils.testIQL2(expected, "from tsvescape yesterday today group by sField in (from same group by sField)", OPTIONS);
+    }
 }
