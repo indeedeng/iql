@@ -202,7 +202,6 @@ public class GroupBys {
 
             @Override
             public void enterTimeGroupBy(JQLParser.TimeGroupByContext ctx) {
-
                 final boolean isRelative = ctx.groupByTime().isRelative != null;
 
                 if (ctx.groupByTime().timePeriod() == null) {

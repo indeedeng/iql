@@ -353,7 +353,7 @@ public class Query extends AbstractPositional {
     }
 
     public List<Dataset> getDatasets() {
-        return this.datasets;
+        return Collections.unmodifiableList(this.datasets);
     }
 
     public List<Dataset> getDatasetsFromScope(Set<String> scope) {
