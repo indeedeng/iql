@@ -351,7 +351,7 @@ public abstract class GroupBy extends AbstractPositional {
         @Override
         public ExecutionStep executionStep(List<Dataset> datasets) {
             final long periodMillis = TimePeriods.getTimePeriodFromBucket(Dataset.getEarliestStart(datasets), Dataset.getLatestEnd(datasets), numBuckets);
-            return new ExecutionStep.ExplodeTimePeriod(periodMillis, Optional.absent(), Optional.absent(), false);
+            return new ExecutionStep.ExplodeTimePeriod(periodMillis, field, format, false);
         }
 
         @Override
