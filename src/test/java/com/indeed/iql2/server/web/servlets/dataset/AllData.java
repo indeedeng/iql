@@ -42,6 +42,7 @@ public class AllData {
         // Defines keywords, from, where, group, select, and limit
         datasets.add(KeywordDatasets.create());
         datasets.add(ConflictFieldDataset.create());
+        datasets.add(LogLossDataset.create());
 
         final List<Dataset.DatasetShard> shards = new ArrayList<>();
         for (final Dataset allDataset : datasets) {

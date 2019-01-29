@@ -111,6 +111,71 @@ public interface AggregateMetric extends Pushable {
         abstract AggregateStatTree toImhotep(final AggregateStatTree operand);
     }
 
+    // Base class for a-metric function but with a constant factor
+    abstract class FactorUnary implements AggregateMetric {
+        private final AggregateMetric operand;
+        protected final int factor;
+
+        public FactorUnary(final AggregateMetric operand, final int factor) {
+            this.operand = operand;
+            this.factor = factor;
+        }
+
+        abstract double eval(final double value, final int factor);
+
+        @Override
+        public Set<QualifiedPush> requires() {
+            return operand.requires();
+        }
+
+        @Override
+        public void register(final Map<QualifiedPush, Integer> metricIndexes,
+                             final GroupKeySet groupKeySet) {
+            operand.register(metricIndexes, groupKeySet);
+        }
+
+        @Override
+        public double[] getGroupStats(final long[][] stats, final int numGroups) {
+            final double[] result = operand.getGroupStats(stats, numGroups);
+            for (int i = 0; i < result.length; i++) {
+                result[i] = eval(result[i], factor);
+            }
+            return result;
+        }
+
+        @Override
+        public double apply(final String term, final long[] stats, final int group) {
+            return eval(operand.apply(term, stats, group), factor);
+        }
+
+        @Override
+        public double apply(final long term, final long[] stats, final int group) {
+            return eval(operand.apply(term, stats, group), factor);
+        }
+
+        @Override
+        public boolean needSorted() {
+            return operand.needSorted();
+        }
+
+        @Override
+        public boolean needGroup() {
+            return operand.needGroup();
+        }
+
+        @Override
+        public boolean needStats() {
+            return operand.needStats();
+        }
+
+        @Override
+        public final AggregateStatTree toImhotep(final Map<QualifiedPush, AggregateStatTree> atomicStats) {
+            return toImhotep(operand.toImhotep(atomicStats));
+        }
+
+        abstract AggregateStatTree toImhotep(final AggregateStatTree operand);
+    }
+
     // Base class for binary function
     abstract class Binary implements AggregateMetric {
         private final AggregateMetric left;

@@ -65,6 +65,24 @@ public class AggregateMetricTransformTest {
     }
 
     @Test
+    public void testFloor() {
+        test("floor(oji)");
+        test("floor(oji, 2)");
+    }
+
+    @Test
+    public void testCeil() {
+        test("ceil(oji)");
+        test("ceil(oji, 2)");
+    }
+
+    @Test
+    public void testRound() {
+        test("round(oji)");
+        test("round(oji, 2)");
+    }
+
+    @Test
     public void testSubstract() {
         test("oji - ojc");
     }

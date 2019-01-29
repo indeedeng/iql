@@ -14,11 +14,15 @@ RATIODIFF: 'RATIODIFF';
 SINGLESCORE : 'SINGLESCORE' ;
 RATIOSCORE : 'RATIOSCORE' ;
 RMSERROR : 'RMSERROR' ;
+LOGLOSS : 'LOGLOSS' ;
 AVG: 'AVG' ;
 VARIANCE : 'VARIANCE' ;
 STDEV : 'STDEV' ;
 LOG : 'LOG' ;
 ABS : 'ABS' ;
+FLOOR: 'FLOOR' ;
+CEIL: 'CEIL' ;
+ROUND: 'ROUND' ;
 SUM_OVER : 'SUM_OVER' ;
 AVG_OVER : 'AVG_OVER' ;
 WHERE : 'WHERE' ;
@@ -122,7 +126,7 @@ BACKQUOTED_ID : '`' ~[`]+ '`';
 // TODO: How to keep this up to date with new lexer tokens..?
 identifier
     : ID | LAG | RUNNING | PARENT | DISTINCT | DISTINCT_WINDOW | WINDOW | PERCENTILE | MEDIAN | PDIFF | DIFF | RATIODIFF | SINGLESCORE
-    | RATIOSCORE | AVG | VARIANCE | STDEV | LOG | ABS | SUM_OVER | AVG_OVER | WHERE | HASSTR | HASINT | FROM | GROUP | BY
+    | RATIOSCORE | RMSERROR | LOGLOSS | AVG | VARIANCE | STDEV | LOG | ABS | SUM_OVER | AVG_OVER | WHERE | HASSTR | HASINT | FROM | GROUP | BY | FLOOR | CEIL | ROUND
     | AGO | COUNT | AS | NOT | LUCENE | QUERY | TOP | BOTTOM | WITH | DEFAULT| TIME | TIMEBUCKETS | TO
     | BUCKETS | BUCKET | IN | DESCENDING | DESC | ASCENDING | ASC | DAYOFWEEK | QUANTILES | BETWEEN
     | SAMPLE | AND | OR | TRUE | FALSE | IF | THEN | ELSE | FLOATSCALE | SIGNUM | LIMIT | HAVING
@@ -190,11 +194,15 @@ jqlAggregateMetric
     | SINGLESCORE '(' controlGrp=jqlAggregateMetric ',' testGrp=jqlAggregateMetric ')' # AggregateSingleScorer
     | RATIOSCORE '(' controlClcMetric = jqlAggregateMetric ',' controlImpMetric=jqlAggregateMetric ',' testClcMetric=jqlAggregateMetric ',' testImpMetric=jqlAggregateMetric ')' #AggregateRatioScorer
     | RMSERROR '('  predictedVal = jqlAggregateMetric ',' actualVal=jqlAggregateMetric ',' total=jqlAggregateMetric ','  grouping=jqlDocMetric ',' lowerLimit=integer ',' upperLimit=integer ',' stepSize=integer (',' useRatio=identifier)?')' #AggregateRMSError
+    | LOGLOSS '('  label=jqlDocFilter ',' score=jqlDocMetric ',' scale=number ')' # AggregateLogLoss
     | AVG '(' jqlAggregateMetric ')' # AggregateAvg
     | VARIANCE '(' jqlDocMetric ')' # AggregateVariance
     | STDEV '(' jqlDocMetric ')' # AggregateStandardDeviation
     | LOG '(' jqlAggregateMetric ')' # AggregateLog
     | ABS '(' jqlAggregateMetric ')' # AggregateAbs
+    | FLOOR '(' jqlAggregateMetric (',' digits = integer)? ')' # AggregateFloor
+    | CEIL '(' jqlAggregateMetric (',' digits = integer)? ')' # AggregateCeil
+    | ROUND '(' jqlAggregateMetric (',' digits = integer)? ')' # AggregateRound
     | FIELD_MIN '(' scopedField (BY aggregate=jqlAggregateMetric)? (HAVING filter=jqlAggregateFilter)? ')' # AggregateFieldMin
     | FIELD_MAX '(' scopedField (BY aggregate=jqlAggregateMetric)? (HAVING filter=jqlAggregateFilter)? ')' # AggregateFieldMax
     | MIN '(' metrics+=jqlAggregateMetric (',' metrics+=jqlAggregateMetric)* ')' # AggregateMetricMin

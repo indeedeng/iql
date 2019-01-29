@@ -32,6 +32,7 @@ import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 import org.apache.commons.codec.binary.Base64;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -2080,11 +2081,14 @@ public abstract class DocMetric extends AbstractPositional {
 
     private static String makePercentages(final int max) {
         final StringBuilder percentages = new StringBuilder();
+        final DecimalFormat decimalFormat = new DecimalFormat();
+        // DecimalFormat.DOUBLE_FRACTION_DIGITS is 340
+        decimalFormat.setMaximumFractionDigits(340);
         for (int i = 1; i < max; i++) {
             if (percentages.length() > 0) {
                 percentages.append(',');
             }
-            percentages.append(((double)i) / max);
+            percentages.append(decimalFormat.format(((double) i) / max));
         }
         return percentages.toString();
     }

@@ -15,7 +15,6 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
-import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -25,7 +24,7 @@ public class AggregateMetricsTest extends BasicTest {
     @Test
     public void testLog() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
-        //log(100), log(151)
+        //log(100), log(151) 
         expected.add(ImmutableList.of("", String.valueOf(4.6051702), String.valueOf(5.0172798)));
         QueryServletTestUtils.testIQL2(expected, "from organic yesterday today select log(100), log(count())");
     }
@@ -35,6 +34,146 @@ public class AggregateMetricsTest extends BasicTest {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("", "100.5", "100.5", "151"));
         QueryServletTestUtils.testIQL2(expected, "from organic yesterday today select abs(100.5), abs(-100.5), abs(count())");
+    }
+
+    @Test
+    public void testFloor() throws Exception {
+        //floor(x, 0)
+        QueryServletTestUtils.testIQL2(
+                ImmutableList.of(ImmutableList.of("", "101", "101", "-106", "-106", "151")),
+                "from organic yesterday today select floor(101.46), floor(101.64), floor(-105.46), floor(-105.64), floor(count())");
+
+        //floor(x, 1)
+        QueryServletTestUtils.testIQL2(
+                ImmutableList.of(ImmutableList.of("", "101.4", "101.6", "-105.5", "-105.7", "151")),
+                "from organic yesterday today select floor(101.46, 1), floor(101.64, 1), floor(-105.46, 1), floor(-105.64, 1), floor(count(), 1)");
+
+        //floor(x, -1)
+        QueryServletTestUtils.testIQL2(
+                ImmutableList.of(ImmutableList.of("", "100", "100", "-110", "-110", "150")),
+                "from organic yesterday today select floor(101.46, -1), floor(101.64, -1), floor(-105.46, -1), floor(-105.64, -1), floor(count(), -1)");
+
+        //multi-ftgs
+        QueryServletTestUtils.testIQL2(
+                ImmutableList.of(
+                        ImmutableList.of("a", "5.7142857", "5.7", "0", "-5.8", "-10"),
+                        ImmutableList.of("b", "6.4705882", "6.4", "0", "-6.5", "-10"),
+                        ImmutableList.of("c", "49.047619", "49", "40", "-49.1", "-50"),
+                        ImmutableList.of("d", "5.6436782", "5.6", "0", "-5.7", "-10")),
+                "from organic yesterday today group by tk select oji/ojc, floor(oji/ojc, 1), floor(oji/ojc,-1), floor(-oji/ojc, 1), floor(-oji/ojc, -1)");
+
+        //special cases
+        QueryServletTestUtils.testIQL2(
+                ImmutableList.of(ImmutableList.of("", "0", "0", "-1", "∞", "-∞", "NaN")),
+                "from organic yesterday today select floor(0.0), floor(-0.0), floor(-0.3), floor(1.0/0.0), floor(-1.0/0.0), floor(0.0/0.0)");
+    }
+
+    @Test
+    public void testFloorDigitsOverLimit() {
+        QueryServletTestUtils.expectException(
+                
+                "from organic yesterday today select floor(101.46, 11)",
+                QueryServletTestUtils.LanguageVersion.IQL2,
+                errorMsg -> errorMsg.contains("The max digits for FLOOR is 10"));
+
+        QueryServletTestUtils.expectException(
+                
+                "from organic yesterday today select floor(101.46, -11)",
+                QueryServletTestUtils.LanguageVersion.IQL2,
+                errorMsg -> errorMsg.contains("The max digits for FLOOR is 10"));
+    }
+
+    @Test
+    public void testCeil() throws Exception {
+        //ceil(x, 0)
+        QueryServletTestUtils.testIQL2(
+                ImmutableList.of(ImmutableList.of("", "102", "102", "-105", "-105", "151")),
+                "from organic yesterday today select ceil(101.46), ceil(101.64), ceil(-105.46), ceil(-105.64), ceil(count())");
+
+        //ceil(x, 1)
+        QueryServletTestUtils.testIQL2(
+                ImmutableList.of(ImmutableList.of("", "101.5", "101.7", "-105.4", "-105.6", "151")),
+                "from organic yesterday today select ceil(101.46, 1), ceil(101.64, 1), ceil(-105.46, 1), ceil(-105.64, 1), ceil(count(), 1)");
+
+        //ceil(x, -1)
+        QueryServletTestUtils.testIQL2(
+                ImmutableList.of(ImmutableList.of("", "110", "110", "-100", "-100", "160")),
+                "from organic yesterday today select ceil(101.46, -1), ceil(101.64, -1), ceil(-105.46, -1), ceil(-105.64, -1), ceil(count(), -1)");
+
+        //multi-ftgs
+        QueryServletTestUtils.testIQL2(
+                ImmutableList.of(
+                        ImmutableList.of("a", "5.7142857", "5.8", "10", "-5.7", "0"),
+                        ImmutableList.of("b", "6.4705882", "6.5", "10", "-6.4", "0"),
+                        ImmutableList.of("c", "49.047619", "49.1", "50", "-49", "-40"),
+                        ImmutableList.of("d", "5.6436782", "5.7", "10", "-5.6", "0")),
+                "from organic yesterday today group by tk select oji/ojc, ceil(oji/ojc, 1), ceil(oji/ojc,-1), ceil(-oji/ojc, 1), ceil(-oji/ojc, -1)");
+
+        //special cases
+        QueryServletTestUtils.testIQL2(
+                ImmutableList.of(ImmutableList.of("", "0", "0", "0", "∞", "-∞", "NaN")),
+                "from organic yesterday today select ceil(0.0), ceil(-0.0), ceil(-0.3), ceil(1.0/0.0), ceil(-1.0/0.0), ceil(0.0/0.0)");
+    }
+
+    @Test
+    public void testCeilDigitsOverLimit() {
+        QueryServletTestUtils.expectException(
+                
+                "from organic yesterday today select ceil(101.46, 11)",
+                QueryServletTestUtils.LanguageVersion.IQL2,
+                errorMsg -> errorMsg.contains("The max digits for CEIL is 10"));
+
+        QueryServletTestUtils.expectException(
+                
+                "from organic yesterday today select ceil(101.46, -11)",
+                QueryServletTestUtils.LanguageVersion.IQL2,
+                errorMsg -> errorMsg.contains("The max digits for CEIL is 10"));
+    }
+
+    @Test
+    public void testRound() throws Exception {
+        //round(x, 0)
+        QueryServletTestUtils.testIQL2(
+                ImmutableList.of(ImmutableList.of("", "101", "102", "-105", "-106", "151")),
+                "from organic yesterday today select round(101.46), round(101.64), round(-105.46), round(-105.64), round(count())");
+
+        //round(x, 1)
+        QueryServletTestUtils.testIQL2(
+                ImmutableList.of(ImmutableList.of("", "101.5", "101.6", "-105.5", "-105.6", "151")),
+                "from organic yesterday today select round(101.46, 1), round(101.64, 1), round(-105.46, 1), round(-105.64, 1), round(count(), 1)");
+
+        //round(x, -1)
+        QueryServletTestUtils.testIQL2(
+                ImmutableList.of(ImmutableList.of("", "100", "100", "-110", "-110", "150")),
+                "from organic yesterday today select round(101.46, -1), round(101.64, -1), round(-105.46, -1), round(-105.64, -1), round(count(), -1)");
+
+        //multi-ftgs
+        QueryServletTestUtils.testIQL2(
+                ImmutableList.of(
+                        ImmutableList.of("a", "5.7142857", "5.7", "10", "-5.7", "-10"),
+                        ImmutableList.of("b", "6.4705882", "6.5", "10", "-6.5", "-10"),
+                        ImmutableList.of("c", "49.047619", "49", "50", "-49", "-50"),
+                        ImmutableList.of("d", "5.6436782", "5.6", "10", "-5.6", "-10")),
+                "from organic yesterday today group by tk select oji/ojc, round(oji/ojc, 1), round(oji/ojc,-1), round(-oji/ojc, 1), round(-oji/ojc, -1)");
+
+        //special cases
+        QueryServletTestUtils.testIQL2(
+                ImmutableList.of(ImmutableList.of("", "0", "0", "0", "∞", "-∞", "NaN")),
+                "from organic yesterday today select round(0.0), round(-0.0), round(-0.3), round(1.0/0.0), round(-1.0/0.0), round(0.0/0.0)");
+    }
+
+    @Test
+    public void testRoundDigitsOverLimit() {
+        QueryServletTestUtils.expectException(
+                
+                "from organic yesterday today select round(101.46, 11)",
+                QueryServletTestUtils.LanguageVersion.IQL2,
+                errorMsg -> errorMsg.contains("The max digits for ROUND is 10"));
+        QueryServletTestUtils.expectException(
+                
+                "from organic yesterday today select round(101.46, -11)",
+                QueryServletTestUtils.LanguageVersion.IQL2,
+                errorMsg -> errorMsg.contains("The max digits for ROUND is 10"));
     }
 
     @Test
@@ -269,5 +408,84 @@ public class AggregateMetricsTest extends BasicTest {
         QueryServletTestUtils.testIQL2(expected,
                 "from organic 2015-01-01 00:00 2015-01-01 01:00 as o1, organic 2015-01-01 01:00 2015-01-01 02:00 as o2 " +
                         "SELECT AVG(o1.oji), AVG(o2.oji), AVG(DISTINCT(o1.tk)), PRINTF('%.2f', AVG(oji)), PRINTF('%.2f', AVG(o1.oji+o2.oji))");
+    }
+
+
+    @Test
+    public void testPercentile() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("", "599", "2999", "5399"));
+        QueryServletTestUtils.testAll(expected, "from big yesterday today select percentile(field, 10), percentile(field, 50), percentile(field, 90)", true);
+    }
+
+    @Test
+    public void testDivideByConstant() throws Exception {
+        // In this test we check that in IQL1 and Legacy mode metric/constant
+        // is treated as sum (metric per doc) / constant
+        // and not as sum (metric per doc/constant).
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("", "500.5", "500500"));
+        QueryServletTestUtils.testAll(expected, "from big yesterday today where field <= 1000 select field/1000, field");
+        QueryServletTestUtils.testAll(expected, "from big yesterday today where field <= 1000 select field/1/1000, field");
+    }
+
+    @Test
+    public void testStdev() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("", "289.0"));
+        QueryServletTestUtils.testIQL2(expected, "from big yesterday today where field <= 1000 select stdev(field) rounding 1");
+    }
+
+    @Test
+    public void testDiffPdiff() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("", "2347.00", "766.99"));
+        QueryServletTestUtils.testIQL2(expected, "from organic yesterday today select diff(ojc, oji), pdiff(ojc, oji) rounding 2");
+    }
+
+    @Test
+    public void testRatioDiff() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("", "8.555"));
+        QueryServletTestUtils.testIQL2(expected, "from organic yesterday today select ratiodiff(ojc, oji, oji, ojc) rounding 3");
+    }
+
+    @Test
+    public void testSingleScore() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("a", "2.386"));
+        expected.add(ImmutableList.of("b", "4.312"));
+        expected.add(ImmutableList.of("c", "97.801"));
+        expected.add(ImmutableList.of("d", "0.000"));
+        QueryServletTestUtils.testIQL2(expected, "from organic yesterday today group by tk select singlescore(oji, ojc) rounding 3");
+    }
+
+    @Test
+    public void testRatioScore() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("a", "0.070"));
+        expected.add(ImmutableList.of("b", "0.131"));
+        expected.add(ImmutableList.of("c", "3.035"));
+        expected.add(ImmutableList.of("d", "0.000"));
+        QueryServletTestUtils.testIQL2(expected, "from organic yesterday today group by tk select ratioscore(oji, ojc, ojc, oji) rounding 3");
+    }
+
+    @Test
+    public void testRMSError() throws Exception {
+        QueryServletTestUtils.testIQL2(
+                ImmutableList.of(ImmutableList.of("", "2347")),
+                "from organic yesterday today select rmserror(oji, ojc, count(), tk, 0, 100, 10)");
+        QueryServletTestUtils.testIQL2(
+                ImmutableList.of(ImmutableList.of("", "7.670")),
+                "from organic yesterday today select rmserror(oji, if ojc = 0 then 1 else ojc, count(), tk, 0, 100, 10, true) rounding 3");
+    }
+
+    @Test
+    public void testLogLoss() throws Exception {
+        QueryServletTestUtils.testIQL2(
+                ImmutableList.of(ImmutableList.of("", "0.51", "1.448")),
+                "from logloss yesterday today " +
+                        "select logloss(label=1, score, 100), logloss(label=0, score, 100)"
+        );
     }
 }

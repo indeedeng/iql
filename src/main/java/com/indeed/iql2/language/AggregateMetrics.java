@@ -29,6 +29,9 @@ import java.util.Collections;
 import java.util.List;
 
 public class AggregateMetrics {
+    // The max digits after decimal point for floor/ceil/round
+    private static final int ROUNDING_MAX_DIGITS = 10;
+
     public static AggregateMetric parseAggregateMetric(
             final JQLParser.AggregateMetricContext metricContext,
             final Query.Context context) {
@@ -395,6 +398,32 @@ public class AggregateMetrics {
             }
 
             @Override
+            public void enterAggregateLogLoss(final JQLParser.AggregateLogLossContext ctx) {
+                final DocFilter label = DocFilters.parseJQLDocFilter(ctx.label, context);
+                final DocMetric score = DocMetrics.parseJQLDocMetric(ctx.score, context);
+                final int scale = Integer.parseInt(ctx.scale.getText());
+
+                // AVG([if <label> then -log(score, scale) else -log(scale - score, scale)) / scale
+                accept(
+                        new AggregateMetric.Divide(
+                                new AggregateMetric.DivideByCount(
+                                        new AggregateMetric.DocStats(
+                                                new DocMetric.IfThenElse(
+                                                        label,
+                                                        new DocMetric.Negate(new DocMetric.Log(score, scale)),
+                                                        new DocMetric.Negate(new DocMetric.Log(new DocMetric.Subtract(
+                                                                new DocMetric.Constant(scale),
+                                                                score
+                                                        ), scale))
+                                                )
+                                        )
+                                ),
+                                new AggregateMetric.Constant(scale)
+                        )
+                );
+            }
+
+            @Override
             public void enterAggregateSum(JQLParser.AggregateSumContext ctx) {
                 accept(new AggregateMetric.DocStats(DocMetrics.parseJQLDocMetric(ctx.jqlDocMetric(), context)));
             }
@@ -407,6 +436,33 @@ public class AggregateMetrics {
             @Override
             public void enterAggregateAbs(JQLParser.AggregateAbsContext ctx) {
                 accept(new AggregateMetric.Abs(parseJQLAggregateMetric(ctx.jqlAggregateMetric(), context)));
+            }
+
+            @Override
+            public void enterAggregateFloor(final JQLParser.AggregateFloorContext ctx) {
+                final int digits = ctx.integer() == null ? 0 : Integer.parseInt(ctx.integer().getText());
+                if (Math.abs(digits) > ROUNDING_MAX_DIGITS) {
+                    throw new IllegalArgumentException("The max digits for FLOOR is " + ROUNDING_MAX_DIGITS);
+                }
+                accept(new AggregateMetric.Floor(parseJQLAggregateMetric(ctx.jqlAggregateMetric(), context), digits));
+            }
+
+            @Override
+            public void enterAggregateCeil(final JQLParser.AggregateCeilContext ctx) {
+                final int digits = ctx.integer() == null ? 0 : Integer.parseInt(ctx.integer().getText());
+                if (Math.abs(digits) > ROUNDING_MAX_DIGITS) {
+                    throw new IllegalArgumentException("The max digits for CEIL is " + ROUNDING_MAX_DIGITS);
+                }
+                accept(new AggregateMetric.Ceil(parseJQLAggregateMetric(ctx.jqlAggregateMetric(), context), digits));
+            }
+
+            @Override
+            public void enterAggregateRound(final JQLParser.AggregateRoundContext ctx) {
+                final int digits = ctx.integer() == null ? 0 : Integer.parseInt(ctx.integer().getText());
+                if (Math.abs(digits) > ROUNDING_MAX_DIGITS) {
+                    throw new IllegalArgumentException("The max digits for ROUND is " + ROUNDING_MAX_DIGITS);
+                }
+                accept(new AggregateMetric.Round(parseJQLAggregateMetric(ctx.jqlAggregateMetric(), context), digits));
             }
 
             @Override
@@ -445,7 +501,6 @@ public class AggregateMetrics {
             public void enterAggregateRunning(JQLParser.AggregateRunningContext ctx) {
                 accept(new AggregateMetric.Running(1, parseJQLAggregateMetric(ctx.jqlAggregateMetric(), context)));
             }
-
 
             @Override
             public void enterAggregateDistinct(JQLParser.AggregateDistinctContext ctx) {

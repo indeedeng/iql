@@ -45,6 +45,9 @@ public abstract class AggregateMetric extends AbstractPositional {
         T visit(Log log) throws E;
         T visit(Negate negate) throws E;
         T visit(Abs abs) throws E;
+        T visit(Floor floor) throws E;
+        T visit(Ceil ceil) throws E;
+        T visit(Round round) throws E;
         T visit(Subtract subtract) throws E;
         T visit(Multiply multiply) throws E;
         T visit(Divide divide) throws E;
@@ -247,6 +250,127 @@ public abstract class AggregateMetric extends AbstractPositional {
         @Override
         public com.indeed.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
             return new com.indeed.iql2.execution.metrics.aggregate.Abs(m1.toExecutionMetric(namedMetricLookup, groupKeySet));
+        }
+    }
+
+    public static class Floor extends FactorUnop {
+        public Floor(final AggregateMetric metric, final int digits) {
+            super(metric, digits);
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public AggregateMetric transform(final Function<AggregateMetric, AggregateMetric> f, final Function<DocMetric, DocMetric> g, final Function<AggregateFilter, AggregateFilter> h, final Function<DocFilter, DocFilter> i, final Function<GroupBy, GroupBy> groupByFunction) {
+            return f.apply(new Floor(m1.transform(f, g, h, i, groupByFunction), f1)).copyPosition(this);
+        }
+
+        @Override
+        public AggregateMetric traverse1(final Function<AggregateMetric, AggregateMetric> f) {
+            return new Floor(f.apply(m1), f1).copyPosition(this);
+        }
+
+        @Override
+        public com.indeed.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(final Function<String, PerGroupConstant> namedMetricLookup, final GroupKeySet groupKeySet) {
+            return new com.indeed.iql2.execution.metrics.aggregate.Floor(m1.toExecutionMetric(namedMetricLookup, groupKeySet), f1);
+        }
+    }
+
+    public static class Ceil extends FactorUnop {
+        public Ceil(final AggregateMetric metric, final int digits) {
+            super(metric, digits);
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public AggregateMetric transform(final Function<AggregateMetric, AggregateMetric> f, final Function<DocMetric, DocMetric> g, final Function<AggregateFilter, AggregateFilter> h, final Function<DocFilter, DocFilter> i, final Function<GroupBy, GroupBy> groupByFunction) {
+            return f.apply(new Ceil(m1.transform(f, g, h, i, groupByFunction), f1)).copyPosition(this);
+        }
+
+        @Override
+        public AggregateMetric traverse1(final Function<AggregateMetric, AggregateMetric> f) {
+            return new Ceil(f.apply(m1), f1).copyPosition(this);
+        }
+
+        @Override
+        public com.indeed.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(final Function<String, PerGroupConstant> namedMetricLookup, final GroupKeySet groupKeySet) {
+            return new com.indeed.iql2.execution.metrics.aggregate.Ceil(m1.toExecutionMetric(namedMetricLookup, groupKeySet), f1);
+        }
+    }
+
+    public static class Round extends FactorUnop {
+        public Round(final AggregateMetric metric, final int digits) {
+            super(metric, digits);
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public AggregateMetric transform(final Function<AggregateMetric, AggregateMetric> f, final Function<DocMetric, DocMetric> g, final Function<AggregateFilter, AggregateFilter> h, final Function<DocFilter, DocFilter> i, final Function<GroupBy, GroupBy> groupByFunction) {
+            return f.apply(new Round(m1.transform(f, g, h, i, groupByFunction), f1)).copyPosition(this);
+        }
+
+        @Override
+        public AggregateMetric traverse1(final Function<AggregateMetric, AggregateMetric> f) {
+            return new Round(f.apply(m1), f1).copyPosition(this);
+        }
+
+        @Override
+        public com.indeed.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(final Function<String, PerGroupConstant> namedMetricLookup, final GroupKeySet groupKeySet) {
+            return new com.indeed.iql2.execution.metrics.aggregate.Round(m1.toExecutionMetric(namedMetricLookup, groupKeySet), f1);
+        }
+    }
+
+    public abstract static class FactorUnop extends AggregateMetric {
+        public final AggregateMetric m1;
+        public final int f1;
+
+        public FactorUnop(AggregateMetric m1, int f1) {
+            this.m1 = m1;
+            this.f1 = f1;
+        }
+
+        @Override
+        public boolean isOrdered() {
+            return m1.isOrdered();
+        }
+
+        @Override
+        public void validate(Set<String> scope, ValidationHelper validationHelper, Validator validator) {
+            m1.validate(scope, validationHelper, validator);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            FactorUnop other = (FactorUnop) o;
+            return Objects.equals(m1, other.m1) && f1 == other.f1;
+        }
+
+
+        @Override
+        public int hashCode() {
+            int hash = Objects.hash(m1);
+            return hash * 31 + f1;
+        }
+
+        @Override
+        public String toString() {
+            return this.getClass().getSimpleName() + "{" +
+                    "m1=" + m1 +
+                    "f1=" + f1 +
+                    '}';
         }
     }
 
