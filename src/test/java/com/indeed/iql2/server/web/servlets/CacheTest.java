@@ -58,7 +58,13 @@ public class CacheTest extends BasicTest {
             "from organic yesterday today group by time(1h) select oji, ojc",
             "from organic yesterday today where oji=10",
             "from organic yesterday today where oji=10 group by time(1h)",
-            "from organic yesterday today where oji=10 group by time(1h) select oji"
+            "from organic yesterday today where oji=10 group by time(1h) select oji",
+            "from organic yesterday today where tk in (from same group by tk)",
+            "from organic yesterday today where tk in (from same where tk=\"a\" group by tk)",
+            "from organic yesterday today where tk in (from same where oji=10 group by tk)",
+            "from organic yesterday today where tk in (from organic 60m 0m group by tk)",
+            "from organic yesterday today where tk in (from organic 60m 0m where tk=\"a\" group by tk)",
+            "from organic yesterday today where tk in (from organic 60m 0m where oji=10 group by tk)"
     );
 
     private static String getCacheKey(final String queryString) {
