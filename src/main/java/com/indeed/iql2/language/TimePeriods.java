@@ -127,4 +127,8 @@ public class TimePeriods {
         appendTimePeriod(timeBucketSizeMillis/TimeUnit.SECOND.millis, inferedTimeStringBuilder);
         return inferedTimeStringBuilder.toString();
     }
+
+    public static long getTimePeriodFromBucket(final long earliestStart, final long latestEnd, final int numBuckets) {
+        return (latestEnd - earliestStart)/numBuckets;
+    }
 }
