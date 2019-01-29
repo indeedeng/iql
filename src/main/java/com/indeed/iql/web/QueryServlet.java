@@ -368,6 +368,7 @@ public class QueryServlet {
                         tmpDir, queryCache, limits, maxCachedQuerySizeLimitBytes, imhotepClient,
                         metadataCacheIQL2.get(), resp.getWriter(), queryInfo, clientInfo, timer, query,
                         queryRequestParams.version, queryRequestParams.isEventStream, queryRequestParams.returnNewestShardVersion, queryRequestParams.skipValidation,
+                        queryRequestParams.csv,
                         clock, queryMetadata, cacheUploadExecutorService, defaultIQL2Options.getOptions(), accessControl);
                 selectQueryExecution.processSelect(runningQueriesManager);
             } else {

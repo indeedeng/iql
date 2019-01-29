@@ -107,11 +107,11 @@ public class ExplodePerGroup implements Command {
         session.regroupWithSingleFieldRules(ruleBuilder, field, isIntType, false, true);
 
         final GroupKeySet newKeySet;
-        final GroupKey defaultKey = defaultName.isPresent() ? DefaultGroupKey.create(defaultName.get()) : null;
+        final GroupKey defaultKey = defaultName.isPresent() ? DefaultGroupKey.create(defaultName.get(), session.formatter) : null;
         if (isIntType) {
             newKeySet = new TermsGroupKeySet.IntTerms(session.groupKeySet, nextGroupIntTerms, nextGroupParents, defaultKey, isDefault);
         } else {
-            newKeySet = new TermsGroupKeySet.StringTerms(session.groupKeySet, nextGroupStringTerms, nextGroupParents, defaultKey, isDefault);
+            newKeySet = new TermsGroupKeySet.StringTerms(session.groupKeySet, nextGroupStringTerms, nextGroupParents, defaultKey, isDefault, session.formatter);
         }
 
         session.assumeDense(newKeySet);

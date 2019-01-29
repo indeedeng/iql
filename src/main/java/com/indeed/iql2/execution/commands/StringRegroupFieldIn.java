@@ -16,6 +16,7 @@ package com.indeed.iql2.execution.commands;
 
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.io.SingleFieldRegroupTools;
+import com.indeed.iql2.Formatter;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.groupkeys.DefaultGroupKey;
 import com.indeed.iql2.execution.groupkeys.GroupKey;
@@ -61,7 +62,7 @@ public class StringRegroupFieldIn implements Command {
 
         session.regroupWithSingleFieldRules(rules, field, false, false, true);
 
-        session.densify(new StringFieldInGroupKeySet(session.groupKeySet, terms, withDefault));
+        session.densify(new StringFieldInGroupKeySet(session.groupKeySet, terms, withDefault, session.formatter));
     }
 
     public static class StringFieldInGroupKeySet implements GroupKeySet {
@@ -70,13 +71,13 @@ public class StringRegroupFieldIn implements Command {
         private final boolean withDefault;
         private final StringGroupKey[] groupKeys;
 
-        public StringFieldInGroupKeySet(GroupKeySet previous, List<String> terms, boolean withDefault) {
+        public StringFieldInGroupKeySet(GroupKeySet previous, List<String> terms, boolean withDefault, final Formatter formatter) {
             this.previous = previous;
             this.terms = terms;
             this.withDefault = withDefault;
             this.groupKeys = new StringGroupKey[terms.size()];
             for (int i = 0; i < terms.size(); i++) {
-                this.groupKeys[i] = StringGroupKey.fromTerm(terms.get(i));
+                this.groupKeys[i] = StringGroupKey.fromTerm(terms.get(i), formatter);
             }
         }
 

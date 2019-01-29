@@ -17,6 +17,7 @@ package com.indeed.iql2.execution.groupkeys.sets;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.indeed.iql2.Formatter;
 import com.indeed.iql2.execution.groupkeys.GroupKey;
 import com.indeed.iql2.execution.groupkeys.StringGroupKey;
 import org.joda.time.DateTime;
@@ -38,8 +39,8 @@ public class YearMonthGroupKeySet implements GroupKeySet {
             final GroupKeySet previous,
             final int numMonths,
             final DateTime startMonth,
-            final String formatString
-    ) {
+            final String formatString,
+            final Formatter formatter) {
         this.previous = previous;
         this.numMonths = numMonths;
         this.startMonth = startMonth;
@@ -49,7 +50,7 @@ public class YearMonthGroupKeySet implements GroupKeySet {
                 .build(new CacheLoader<DateTime, StringGroupKey>() {
                     @Override
                     public StringGroupKey load(final DateTime month) {
-                        return StringGroupKey.fromTimeRange(formatter, month.getMillis(), month.plusMonths(1).getMillis());
+                        return StringGroupKey.fromTimeRange(YearMonthGroupKeySet.this.formatter, month.getMillis(), month.plusMonths(1).getMillis(), formatter);
                     }
                 });
     }

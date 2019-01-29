@@ -47,6 +47,7 @@ import com.indeed.imhotep.StrictCloser;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql.metadata.FieldType;
+import com.indeed.iql2.Formatter;
 import com.indeed.iql2.MathUtils;
 import com.indeed.iql2.execution.commands.Command;
 import com.indeed.iql2.execution.commands.GetGroupStats;
@@ -111,6 +112,8 @@ public class Session {
     private final long firstStartTimeMillis;
     public final Set<String> options;
     private final FieldType defaultFieldType;
+    public final ResultFormat resultFormat;
+    public final Formatter formatter;
 
     // Does not count group zero.
     // Exactly equivalent to maxGroup.
@@ -132,7 +135,8 @@ public class Session {
             @Nullable Integer groupLimit,
             long firstStartTimeMillis,
             final Set<String> options,
-            final FieldType defaultFieldType
+            final FieldType defaultFieldType,
+            final ResultFormat resultFormat
     ) {
         this.sessions = sessions;
         this.timer = timer;
@@ -141,6 +145,8 @@ public class Session {
         this.firstStartTimeMillis = firstStartTimeMillis;
         this.options = options;
         this.defaultFieldType = defaultFieldType;
+        this.resultFormat = resultFormat;
+        this.formatter = Formatter.forFormat(resultFormat);
     }
 
     public static class CreateSessionResult {
@@ -170,7 +176,8 @@ public class Session {
             final Long imhotepLocalTempFileSizeLimit,
             final Long imhotepDaemonTempFileSizeLimit,
             final String username,
-            final FieldType defaultFieldType
+            final FieldType defaultFieldType,
+            final ResultFormat resultFormat
     ) throws ImhotepOutOfMemoryException, IOException {
         final Map<String, ImhotepSessionInfo> sessions = Maps.newLinkedHashMap();
 
@@ -188,14 +195,14 @@ public class Session {
         progressCallback.sessionsOpened(sessions);
         treeTimer.pop();
 
-        final Session session = new Session(sessions, treeTimer, progressCallback, groupLimit, firstStartTimeMillis, optionsSet, defaultFieldType);
+        final Session session = new Session(sessions, treeTimer, progressCallback, groupLimit, firstStartTimeMillis, optionsSet, defaultFieldType, resultFormat);
         for (int i = 0; i < commands.size(); i++) {
             final com.indeed.iql2.language.commands.Command command = commands.get(i);
             final Tracer tracer = GlobalTracer.get();
             try (final ActiveSpan activeSpan = tracer.buildSpan(command.getClass().getSimpleName()).withTag("details", command.toString()).startActive()) {
                 final boolean isLast = i == commands.size() - 1;
                 if (isLast) {
-                    session.evaluateCommandToTSV(command, out, optionsList);
+                    session.evaluateCommandToOutput(command, out, optionsList);
                 } else {
                     session.evaluateCommand(command, optionsList);
                 }
@@ -370,21 +377,10 @@ public class Session {
         }
     }
 
-    public static void appendGroupString(String groupString, StringBuilder sb) {
-        for (int i = 0; i < groupString.length(); i++) {
-            final char groupChar = groupString.charAt(i);
-            if (groupChar != '\t' && groupChar != '\r' && groupChar != '\n') {
-                sb.append(groupChar);
-            } else {
-                sb.append('\ufffd');
-            }
-        }
-    }
-
-    public void evaluateCommandToTSV(final com.indeed.iql2.language.commands.Command lCommand,
-                                     final Consumer<String> out,
-                                     final List<String> options) throws ImhotepOutOfMemoryException, IOException {
-        timer.push("evaluateCommandToTSV " + lCommand.getClass().getSimpleName(), "evaluateCommandToTSV " + lCommand);
+    public void evaluateCommandToOutput(final com.indeed.iql2.language.commands.Command lCommand,
+                                        final Consumer<String> out,
+                                        final List<String> options) throws ImhotepOutOfMemoryException, IOException {
+        timer.push("evaluateCommandToOutput " + lCommand.getClass().getSimpleName(), "evaluateCommandToOutput " + lCommand);
         try {
             final Command command = lCommand.toExecutionCommand(this::namedMetricLookup, groupKeySet, options);
             try {
@@ -393,7 +389,7 @@ public class Session {
                     final SimpleIterate simpleIterate = (SimpleIterate) command;
                     final String[] formats = simpleIterate.formFormatStrings();
                     final SimpleIterate.ResultCollector collector =
-                            new SimpleIterate.ResultCollector.Streaming(out, groupKeySet, formats);
+                            new SimpleIterate.ResultCollector.Streaming(out, groupKeySet, formats, formatter);
                     simpleIterate.evaluate(this, collector);
                 } else if (command instanceof GetGroupStats) {
                     final GetGroupStats getGroupStats = (GetGroupStats) command;
@@ -410,11 +406,11 @@ public class Session {
                         if (!groupKeySet.isPresent(group)) {
                             continue;
                         }
-                        GroupKeySets.appendTo(sb, groupKeySet, group);
+                        GroupKeySets.appendTo(sb, groupKeySet, group, formatter.getSeparator());
                         if (sb.length() == 0) {
-                            sb.append('\t');
+                            sb.append(formatter.getSeparator());
                         }
-                        writeDoubleStatsWithFormatString(results, group, formatStrings, sb);
+                        writeDoubleStatsWithFormatString(results, group, formatStrings, sb, formatter.getSeparator());
                         sb.setLength(sb.length() - 1);
                         out.accept(sb.toString());
                         sb.setLength(0);
@@ -430,7 +426,7 @@ public class Session {
         }
     }
 
-    public static void writeDoubleStatWithFormatString(final double stat, final String formatString, final StringBuilder sb) {
+    public static void writeDoubleStatWithFormatString(final double stat, final String formatString, final StringBuilder sb, final char separator) {
         if (formatString != null) {
             sb.append(String.format(formatString, stat));
         } else {
@@ -441,12 +437,12 @@ public class Session {
                 sb.append(Double.isNaN(stat) ? "NaN" : DEFAULT_DECIMAL_FORMAT.get().format(stat));
             }
         }
-        sb.append('\t');
+        sb.append(separator);
     }
 
-    public static void writeDoubleStatsWithFormatString(final double[] stats, final String[] formatStrings, final StringBuilder sb) {
+    public static void writeDoubleStatsWithFormatString(final double[] stats, final String[] formatStrings, final StringBuilder sb, final char separator) {
         for (int i = 0; i < stats.length; i++) {
-            writeDoubleStatWithFormatString(stats[i], formatStrings[i], sb);
+            writeDoubleStatWithFormatString(stats[i], formatStrings[i], sb, separator);
         }
     }
 
@@ -454,9 +450,10 @@ public class Session {
             final double[][] stats,
             final int group,
             final String[] formatStrings,
-            final StringBuilder sb) {
+            final StringBuilder sb,
+            final char separator) {
         for (int i = 0; i < stats.length; i++) {
-            writeDoubleStatWithFormatString(stats[i][group], formatStrings[i], sb);
+            writeDoubleStatWithFormatString(stats[i][group], formatStrings[i], sb, separator);
         }
     }
 

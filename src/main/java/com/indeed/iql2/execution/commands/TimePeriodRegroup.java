@@ -58,7 +58,7 @@ public class TimePeriodRegroup implements Command {
         session.checkGroupLimit(numBuckets * session.numGroups);
         session.performTimeRegroup(shardStart, shardEnd, periodMillis, timeField, isRelative);
         final String format = timeFormat.or("yyyy-MM-dd HH:mm:ss");
-        final DateTimeRangeGroupKeySet groupKeySet = new DateTimeRangeGroupKeySet(session.groupKeySet, shardStart, periodMillis, numBuckets, format);
+        final DateTimeRangeGroupKeySet groupKeySet = new DateTimeRangeGroupKeySet(session.groupKeySet, shardStart, periodMillis, numBuckets, format, session.formatter);
         session.assumeDense(groupKeySet);
     }
 

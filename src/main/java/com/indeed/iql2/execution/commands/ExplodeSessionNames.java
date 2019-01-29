@@ -52,6 +52,6 @@ public class ExplodeSessionNames implements Command {
 
             index += 1;
         }
-        session.assumeDense(new SessionNameGroupKeySet(session.groupKeySet, sessionNames));
+        session.assumeDense(new SessionNameGroupKeySet(session.groupKeySet, sessionNames, session.formatter));
     }
 }

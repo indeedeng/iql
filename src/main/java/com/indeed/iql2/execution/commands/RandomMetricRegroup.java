@@ -81,6 +81,6 @@ public class RandomMetricRegroup implements Command {
             }
         });
 
-        session.assumeDense(new RandomGroupKeySet(session.groupKeySet, k + 1));
+        session.assumeDense(new RandomGroupKeySet(session.groupKeySet, k + 1, session.formatter));
     }
 }

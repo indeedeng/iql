@@ -17,6 +17,7 @@ package com.indeed.iql2.execution.groupkeys.sets;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.indeed.iql2.Formatter;
 import com.indeed.iql2.execution.groupkeys.GroupKey;
 import com.indeed.iql2.execution.groupkeys.StringGroupKey;
 import org.joda.time.format.DateTimeFormat;
@@ -34,20 +35,20 @@ public class DateTimeRangeGroupKeySet implements GroupKeySet {
 
     private final LoadingCache<Integer, StringGroupKey> buildGroupKey;
 
-    public DateTimeRangeGroupKeySet(GroupKeySet previous, long earliestStart, long periodMillis, int numBuckets, String format) {
+    public DateTimeRangeGroupKeySet(GroupKeySet previous, long earliestStart, long periodMillis, int numBuckets, String format, final Formatter formatter) {
         this.previous = previous;
         this.earliestStart = earliestStart;
         this.periodMillis = periodMillis;
         this.numBuckets = numBuckets;
         this.format = format;
-        final DateTimeFormatter formatter = DateTimeFormat.forPattern(format).withLocale(Locale.US);
+        final DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern(format).withLocale(Locale.US);
         buildGroupKey = CacheBuilder.newBuilder()
                 .build(new CacheLoader<Integer, StringGroupKey>() {
                     @Override
                     public StringGroupKey load(final Integer groupOffset) {
                         final long start = earliestStart + groupOffset * periodMillis;
                         final long end = earliestStart + (groupOffset + 1) * periodMillis;
-                        return StringGroupKey.fromTimeRange(formatter, start, end);
+                        return StringGroupKey.fromTimeRange(dateTimeFormatter, start, end, formatter);
                     }
                 });
     }

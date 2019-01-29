@@ -129,7 +129,7 @@ public class ExplodePerDocPercentile implements Command {
                 final String keyTerm = "[" + (double) bucket / numBuckets + ", " + (double) (end + 1) / numBuckets + ")";
                 final int newGroup = nextGroupKeys.size();
                 // TODO: Not use StringGroupKey this.
-                nextGroupKeys.add(StringGroupKey.fromPreEscaped(keyTerm));
+                nextGroupKeys.add(StringGroupKey.fromTerm(keyTerm, session.formatter));
                 groupParents.add(group);
                 positiveGroups.add(newGroup);
                 thresholds.add(cutoffs[group][bucket]);

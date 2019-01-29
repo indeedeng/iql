@@ -14,6 +14,8 @@
 
 package com.indeed.iql2.server.web.servlets.query;
 
+import au.com.bytecode.opencsv.CSVParser;
+import au.com.bytecode.opencsv.CSVReader;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
@@ -55,7 +57,9 @@ import com.indeed.iql.web.QueryMetadata;
 import com.indeed.iql.web.QueryServlet;
 import com.indeed.iql.web.RunningQueriesManager;
 import com.indeed.iql.web.SelectQuery;
+import com.indeed.iql2.Formatter;
 import com.indeed.iql2.execution.QueryOptions;
+import com.indeed.iql2.execution.ResultFormat;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.progress.CompositeProgressCallback;
 import com.indeed.iql2.execution.progress.ProgressCallback;
@@ -82,6 +86,7 @@ import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import org.antlr.v4.runtime.CharStream;
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
@@ -160,6 +165,7 @@ public class SelectQueryExecution {
     public final boolean isStream;
     private final boolean returnNewestShardVersionHeader;
     public final boolean skipValidation;
+    private final ResultFormat resultFormat;
     private final WallClock clock;
 
     public boolean ran = false;
@@ -180,6 +186,7 @@ public class SelectQueryExecution {
             final boolean isStream,
             final boolean returnNewestShardVersionHeader,
             final boolean skipValidation,
+            final boolean csv,
             final WallClock clock,
             final QueryMetadata queryMetadata,
             final ExecutorService cacheUploadExecutorService,
@@ -196,6 +203,7 @@ public class SelectQueryExecution {
         this.maxCachedQuerySizeLimitBytes = maxCachedQuerySizeLimitBytes;
         this.returnNewestShardVersionHeader = returnNewestShardVersionHeader;
         this.skipValidation = skipValidation;
+        this.resultFormat = csv ? ResultFormat.CSV : ResultFormat.TSV;
         this.clock = clock;
         this.imhotepClient = imhotepClient;
         this.datasetsMetadata = datasetsMetadata;
@@ -205,6 +213,8 @@ public class SelectQueryExecution {
         this.defaultIQL2Options = defaultIQL2Options;
         this.tmpDir = tmpDir;
         this.accessControl = accessControl;
+
+        Preconditions.checkArgument(!(csv && isStream), "Cannot use csv and event-stream output formats at the same time");
     }
 
     public void processSelect(final RunningQueriesManager runningQueriesManager) throws IOException {
@@ -220,6 +230,7 @@ public class SelectQueryExecution {
             outputStream.println(": This is the start of the IQL Query Stream");
             outputStream.println();
         }
+
         final Consumer<String> out = new Consumer<String>() {
             int count = 1;
 
@@ -379,7 +390,7 @@ public class SelectQueryExecution {
             selectQuery.lock();
             timer.pop();
             queryInfo.queryStartTimestamp = selectQuery.getQueryStartTimestamp().getMillis();
-            return new ParsedQueryExecution(true, parseResult.inputStream, out, warnings, progressCallback,
+            return new ParsedQueryExecution(true, parseResult.inputStream, out, warnings, resultFormat, progressCallback,
                     parseResult.query, limits.queryInMemoryRowsLimit, selectQuery, strictCloser).executeParsedQuery();
         } catch (final Exception e) {
             selectQuery.checkCancelled();
@@ -396,6 +407,7 @@ public class SelectQueryExecution {
         private final CharStream inputStream;
         private final Consumer<String> externalOutput;
         private final Set<String> warnings;
+        private final ResultFormat resultFormat;
 
         private final int groupLimit;
         private final SelectQuery selectQuery;
@@ -413,6 +425,7 @@ public class SelectQueryExecution {
                 final CharStream inputStream,
                 final Consumer<String> out,
                 final Set<String> warnings,
+                final ResultFormat resultFormat,
                 final ProgressCallback progressCallback,
                 final Query query,
                 final @Nullable Integer groupLimit,
@@ -422,6 +435,7 @@ public class SelectQueryExecution {
             this.inputStream = inputStream;
             this.externalOutput = out;
             this.warnings = warnings;
+            this.resultFormat = resultFormat;
             this.progressCallback = progressCallback;
             this.originalQuery = query;
             this.groupLimit = groupLimit == null ? 1000000 : groupLimit;
@@ -542,7 +556,7 @@ public class SelectQueryExecution {
                 warnings.add(conflictWarning);
             }
 
-            final ComputeCacheKey computeCacheKey = computeCacheKey(timer, query, commands, imhotepClient);
+            final ComputeCacheKey computeCacheKey = computeCacheKey(timer, query, commands, imhotepClient, resultFormat);
             final Map<String, List<Shard>> mutableDatasetToChosenShards = computeCacheKey.datasetToChosenShards;
             remapShardsIfNecessary(mutableDatasetToChosenShards, query.options);
             final Map<String, List<Shard>> datasetToChosenShards = Collections.unmodifiableMap(mutableDatasetToChosenShards);
@@ -678,7 +692,8 @@ public class SelectQueryExecution {
                             mbToBytes(limits.queryFTGSIQLLimitMB),
                             mbToBytes(limits.queryFTGSImhotepDaemonLimitMB),
                             clientInfo.username,
-                            (version == 2) ? FieldType.Integer : FieldType.String
+                            (version == 2) ? FieldType.Integer : FieldType.String,
+                            resultFormat
                     );
 
                     final SelectExecutionInformation selectExecutionInformation = new SelectExecutionInformation(
@@ -763,6 +778,7 @@ public class SelectQueryExecution {
             final Set<String> stringTerms = new HashSet<>();
             timer.push("Execute sub-query", "Execute sub-query: \"" + q + "\"");
             try {
+                final CSVParser csvParser = new CSVParser();
                 // TODO: This use of ProgressCallbacks looks wrong.
                 final SelectExecutionInformation execInfo = new ParsedQueryExecution(false, inputStream, new Consumer<String>() {
                     private boolean haveStringTerms = false;
@@ -771,7 +787,12 @@ public class SelectQueryExecution {
                         if ((limits.queryInMemoryRowsLimit > 0) && ((terms.size() + stringTerms.size()) >= limits.queryInMemoryRowsLimit)) {
                             throw new IqlKnownException.GroupLimitExceededException("Sub query cannot have more than [" + limits.queryInMemoryRowsLimit + "] terms!");
                         }
-                        final String term = s.split("\t")[0];
+                        final String term;
+                        try {
+                            term = csvParser.parseLineMulti(s)[0];
+                        } catch (final IOException e) {
+                            throw Throwables.propagate(e);
+                        }
                         if (haveStringTerms) {
                             stringTerms.add(term);
                         } else {
@@ -783,7 +804,7 @@ public class SelectQueryExecution {
                             }
                         }
                     }
-                }, warnings, new SessionOpenedOnlyProgressCallback(progressCallback), q, groupLimit, selectQuery, strictCloser).executeParsedQuery();
+                }, warnings, ResultFormat.CSV, new SessionOpenedOnlyProgressCallback(progressCallback), q, groupLimit, selectQuery, strictCloser).executeParsedQuery();
                 totalBytesWritten[0] += execInfo.imhotepTempBytesWritten;
                 cacheKeys.addAll(execInfo.cacheKeys);
                 allShardsUsed.putAll(execInfo.datasetToShards);
@@ -878,7 +899,7 @@ public class SelectQueryExecution {
         }
     }
 
-    public static ComputeCacheKey computeCacheKey(TracingTreeTimer timer, Query query, List<Command> commands, ImhotepClient imhotepClient) {
+    public static ComputeCacheKey computeCacheKey(TracingTreeTimer timer, Query query, List<Command> commands, ImhotepClient imhotepClient, ResultFormat resultFormat) {
         timer.push("compute hash");
         final Set<Pair<String, String>> shards = Sets.newHashSet();
         final Set<DatasetWithTimeRangeAndAliases> datasetsWithTimeRange = Sets.newHashSet();
@@ -910,7 +931,7 @@ public class SelectQueryExecution {
             }
         }
         final TreeSet<String> sortedOptions = Sets.newTreeSet(query.options);
-        final String queryHash = computeQueryHash(commands, query.rowLimit, sortedOptions, shards, datasetsWithTimeRange, query.useLegacy, SelectQuery.VERSION_FOR_HASHING);
+        final String queryHash = computeQueryHash(commands, query.rowLimit, sortedOptions, shards, datasetsWithTimeRange, query.useLegacy, SelectQuery.VERSION_FOR_HASHING, resultFormat);
         final String cacheFileName = "IQL2-" + queryHash + ".tsv";
         timer.pop();
 
@@ -935,7 +956,7 @@ public class SelectQueryExecution {
         return hasMoreRows;
     }
 
-    private static String computeQueryHash(List<Command> commands, Optional<Integer> rowLimit, final Collection<String> sortedOptions, Set<Pair<String, String>> shards, Set<DatasetWithTimeRangeAndAliases> datasets, final boolean useLegacy, int version) {
+    private static String computeQueryHash(List<Command> commands, Optional<Integer> rowLimit, final Collection<String> sortedOptions, Set<Pair<String, String>> shards, Set<DatasetWithTimeRangeAndAliases> datasets, final boolean useLegacy, int version, final ResultFormat resultFormat) {
         final MessageDigest sha1;
         try {
             sha1 = MessageDigest.getInstance("SHA-1");
@@ -945,6 +966,7 @@ public class SelectQueryExecution {
         }
         sha1.update(Ints.toByteArray(version));
         sha1.update(Ints.toByteArray(useLegacy ? 1 : 2));
+        sha1.update(resultFormat.toString().getBytes());
         for (final Command command : commands) {
             sha1.update(command.toString().getBytes(Charsets.UTF_8));
         }

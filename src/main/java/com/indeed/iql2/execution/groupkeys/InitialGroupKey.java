@@ -25,7 +25,7 @@ public class InitialGroupKey extends GroupKey {
     }
 
     @Override
-    public void appendWithTab(final StringBuilder sb) {
+    public void appendWithSeparator(final StringBuilder sb, final char separator) {
     }
 
     @Override

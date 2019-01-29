@@ -98,7 +98,7 @@ public class SampleAndRandomTest extends BasicTest {
                     "group by random(country, 10, '\"more quotes\"\\'') " +
                     "select [m(sample(country, 5, 10, '\"quotey\"'))], [random(country, 5, '\"quotey\"')]",
                 LanguageVersion.IQL2,
-                true,
+                ResultFormat.EVENT_STREAM,
                 Options.create(true),
                 Collections.emptySet()
         );

@@ -24,10 +24,10 @@ import com.indeed.imhotep.RemoteImhotepMultiSession;
 import com.indeed.imhotep.api.FTGAIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.metrics.aggregate.AggregateStatTree;
+import com.indeed.iql2.Formatter;
 import com.indeed.iql2.execution.AggregateFilter;
 import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.QualifiedPush;
-import com.indeed.iql2.execution.QueryOptions;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.TermSelects;
 import com.indeed.iql2.execution.commands.misc.FieldIterateOpts;
@@ -333,21 +333,19 @@ public class SimpleIterate implements Command {
         return topKParams;
     }
 
-    // TODO: Move this
-    public static String createRow(final StringBuilder sb, GroupKeySet groupKeySet, int groupKey, String term, double[] selectBuffer, String[] formatStrings) {
-        GroupKeySets.appendTo(sb, groupKeySet, groupKey);
-        Session.appendGroupString(term, sb);
-        sb.append('\t');
-        Session.writeDoubleStatsWithFormatString(selectBuffer, formatStrings, sb);
+    public static String createRow(final StringBuilder sb, GroupKeySet groupKeySet, int groupKey, String term, double[] selectBuffer, String[] formatStrings, final Formatter formatter) {
+        GroupKeySets.appendTo(sb, groupKeySet, groupKey, formatter.getSeparator());
+        formatter.appendEscapedString(term, sb);
+        sb.append(formatter.getSeparator());
+        Session.writeDoubleStatsWithFormatString(selectBuffer, formatStrings, sb, formatter.getSeparator());
         sb.setLength(sb.length() - 1);
         return sb.toString();
     }
 
-    // TODO: Move this
-    public static String createRow(final StringBuilder sb, GroupKeySet groupKeySet, int groupKey, long term, double[] selectBuffer, String[] formatStrings) {
-        GroupKeySets.appendTo(sb, groupKeySet, groupKey);
-        sb.append(term).append('\t');
-        Session.writeDoubleStatsWithFormatString(selectBuffer, formatStrings, sb);
+    public static String createRow(final StringBuilder sb, GroupKeySet groupKeySet, int groupKey, long term, double[] selectBuffer, String[] formatStrings, final Formatter formatter) {
+        GroupKeySets.appendTo(sb, groupKeySet, groupKey, formatter.getSeparator());
+        sb.append(term).append(formatter.getSeparator());
+        Session.writeDoubleStatsWithFormatString(selectBuffer, formatStrings, sb, formatter.getSeparator());
         sb.setLength(sb.length() - 1);
         return sb.toString();
     }
@@ -542,14 +540,17 @@ public class SimpleIterate implements Command {
             final GroupKeySet groupKeySet;
             final String[] formatStrings;
             private final StringBuilder sb = new StringBuilder();
+            private final Formatter formatter;
 
             public Streaming(
                     final Consumer<String> out,
                     final GroupKeySet groupKeySet,
-                    final String[] formatStrings) {
+                    final String[] formatStrings,
+                    final Formatter formatter) {
                 this.out = out;
                 this.groupKeySet = groupKeySet;
                 this.formatStrings = formatStrings;
+                this.formatter = formatter;
             }
 
             @Override
@@ -563,9 +564,9 @@ public class SimpleIterate implements Command {
                 if (groupKeySet.isPresent(group)) {
                     sb.setLength(0);
                     if (termSelects.stringTerm == null) {
-                        out.accept(createRow(sb, groupKeySet, group, termSelects.intTerm, termSelects.selects, formatStrings));
+                        out.accept(createRow(sb, groupKeySet, group, termSelects.intTerm, termSelects.selects, formatStrings, formatter));
                     } else {
-                        out.accept(createRow(sb, groupKeySet, group, termSelects.stringTerm, termSelects.selects, formatStrings));
+                        out.accept(createRow(sb, groupKeySet, group, termSelects.stringTerm, termSelects.selects, formatStrings, formatter));
                     }
                 }
                 // we could stream forever so pretend nothing have changed.
