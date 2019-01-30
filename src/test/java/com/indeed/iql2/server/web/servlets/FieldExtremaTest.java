@@ -97,4 +97,18 @@ public class FieldExtremaTest extends BasicTest {
             true
         );       
     }
+
+    @Test
+    public void testMultipleDataSets() throws Exception {
+        final List<String> expected = ImmutableList.of("", "1", "1000", "3", "1000");
+        QueryServletTestUtils.testIQL2(
+            ImmutableList.of(expected),
+            "from organic 1w today AS long, "
+            + "organic yesterday today AS short "
+            + "select "
+            + "FIELD_MIN(long.oji), FIELD_MAX(long.oji), "
+            + "FIELD_MIN(short.oji), FIELD_MAX(short.oji)",
+            true
+        );       
+    }
 }
