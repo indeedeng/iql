@@ -44,4 +44,20 @@ public class DocMetricsTest extends BasicTest {
         // supported only in IQL1
         QueryServletTestUtils.testOriginalIQL1(expected, "from big yesterday today where field < 1000 select field, shldiv(10, field, 512)");
     }
+
+    @Test
+    public void testHasStr() throws Exception {
+        QueryServletTestUtils.testIQL1(
+                ImmutableList.of(ImmutableList.of("", "151", "151", "0")),
+                "from organic yesterday today select hasstr(country, \"US\"), hasstr(country, US), hasstr(country, 1)"
+        );
+        QueryServletTestUtils.testIQL1(
+                ImmutableList.of(ImmutableList.of("", "50")),
+                "from stringAsInt1 yesterday today select hasstr(page, 1)"
+        );
+        QueryServletTestUtils.testIQL1(
+                ImmutableList.of(ImmutableList.of("", "1", "1", "1", "1", "1")),
+                "from keywords yesterday today select hasstr(from, from), hasstr(where, where), hasstr(group, group), hasstr(by, by), hasstr(limit, limit)"
+        );
+    }
 }

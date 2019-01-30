@@ -269,9 +269,9 @@ jqlSyntacticallyAtomicDocMetricAtom
     ;
 
 legacyDocMetricAtom
-    : field=identifier '=' term=(STRING_LITERAL | ID | TIME_UNIT) # LegacyDocMetricAtomHasString
-    | HASSTR '(' field=identifier ',' term=(STRING_LITERAL | ID | TIME_UNIT) ')' # LegacyDocMetricAtomHasString
-    | field=identifier '!=' term=(STRING_LITERAL | ID | TIME_UNIT) # LegacyDocMetricAtomHasntString
+    : field=identifier '=' (quotedTerm=STRING_LITERAL | idTerm=identifier) # LegacyDocMetricAtomHasString
+    | HASSTR '(' field=identifier ',' (quotedTerm=STRING_LITERAL | idTerm=identifier  | numTerm=number) ')' # LegacyDocMetricAtomHasString
+    | field=identifier '!=' (quotedTerm=STRING_LITERAL | idTerm=identifier) # LegacyDocMetricAtomHasntString
     | field=identifier '=' term=integer # LegacyDocMetricAtomHasInt
     | HASINT '(' field=identifier ',' term=integer ')' # LegacyDocMetricAtomHasInt
     | field=identifier '!=' integer # LegacyDocMetricAtomHasntInt
