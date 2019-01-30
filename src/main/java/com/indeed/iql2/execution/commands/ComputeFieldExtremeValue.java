@@ -63,7 +63,12 @@ public class ComputeFieldExtremeValue implements Command {
             public boolean offer(final int group, final TermSelects termSelects) {
                 if (termSelects.stringTerm != null && !termSelects.stringTerm.isEmpty()) {
                     // TODO: Support string term on FIELD_MAX/FIELD_MIN
-                    result[group] = Double.NaN;
+                    //
+                    try {
+                        result[group] = Long.parseLong(termSelects.stringTerm);
+                    } catch(NumberFormatException e) {
+                        result[group] = Double.NaN;
+                    }
                 } else {
                     result[group] = termSelects.intTerm;
                 }

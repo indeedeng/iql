@@ -111,4 +111,16 @@ public class FieldExtremaTest extends BasicTest {
             true
         );       
     }
+
+    @Test
+    public void testStringAsInt() throws Exception {
+        final List<String> expected = ImmutableList.of("", "0", "1", "0", "1");
+        QueryServletTestUtils.testIQL2(
+            ImmutableList.of(expected),
+            "from stringAsInt1 yesterday today select "
+            + "FIELD_MIN(page), FIELD_MAX(page), "
+            + "FIELD_MIN(vp), FIELD_MAX(vp)",
+            true
+        );
+    }
 }
