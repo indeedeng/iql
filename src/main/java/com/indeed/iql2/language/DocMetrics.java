@@ -171,17 +171,29 @@ public class DocMetrics {
             @Override
             public void enterLegacyDocMetricAtomHasString(final JQLParser.LegacyDocMetricAtomHasStringContext ctx) {
                 final String term;
-                if (ctx.term != null) {
-                    term = ParserCommon.unquote(ctx.term.getText());
-                } else {
+                if (ctx.quotedTerm != null) {
+                    term = ParserCommon.unquote(ctx.quotedTerm.getText());
+                } else if (ctx.idTerm != null) {
+                    term = Identifiers.extractIdentifier(ctx.idTerm);
+                } else if (ctx.numTerm != null) {
                     term = ctx.numTerm.getText();
+                } else {
+                    throw new IllegalStateException("Did not handle term value in: " + ctx.getText());
                 }
                 accept(new DocMetric.HasString(fieldResolver.resolve(ctx.field), term, false));
             }
 
             @Override
             public void enterLegacyDocMetricAtomHasntString(final JQLParser.LegacyDocMetricAtomHasntStringContext ctx) {
-                accept(negateMetric(new DocMetric.HasString(fieldResolver.resolve(ctx.field), ParserCommon.unquote(ctx.term.getText()), false)));
+                final String term;
+                if (ctx.quotedTerm != null) {
+                    term = ParserCommon.unquote(ctx.quotedTerm.getText());
+                } else if (ctx.idTerm != null) {
+                    term = Identifiers.extractIdentifier(ctx.idTerm);
+                } else {
+                    throw new IllegalStateException("Did not handle term value in: " + ctx.getText());
+                }
+                accept(negateMetric(new DocMetric.HasString(fieldResolver.resolve(ctx.field), term, false)));
             }
 
             @Override
