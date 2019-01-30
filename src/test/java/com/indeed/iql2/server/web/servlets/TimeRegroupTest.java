@@ -294,4 +294,11 @@ public class TimeRegroupTest extends BasicTest {
         QueryServletTestUtils.testAll(expected, "from organic 2015-01-01 03:00:00 2015-01-02 00:00:00 group by time() select count()"); // inferred time 1 hour
     }
 
+    @Test
+    public void TestGroupByTimeField() throws  Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("[2015-01-01 03:00:00, 2015-01-01 13:30:00)", "0"));
+        expected.add(ImmutableList.of("[2015-01-01 13:30:00, 2015-01-02 00:00:00)", "0"));
+        QueryServletTestUtils.testIQL2(expected, "from organic 2015-01-01 03:00:00 2015-01-02 00:00:00 group by time(2b,'YYYY-MM-dd HH:mm:ss', ojc) select count()", true);
+    }
 }
