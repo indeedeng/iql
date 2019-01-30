@@ -55,5 +55,9 @@ public class DocMetricsTest extends BasicTest {
                 ImmutableList.of(ImmutableList.of("", "50")),
                 "from stringAsInt1 yesterday today select hasstr(page, 1)"
         );
+        QueryServletTestUtils.testIQL1(
+                ImmutableList.of(ImmutableList.of("", "1", "1", "1", "1", "1")),
+                "from keywords yesterday today select hasstr(from, from), hasstr(where, where), hasstr(group, group), hasstr(by, by), hasstr(limit, limit)"
+        );
     }
 }
