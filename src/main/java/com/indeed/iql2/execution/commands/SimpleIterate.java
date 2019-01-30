@@ -241,7 +241,9 @@ public class SimpleIterate implements Command {
         for (final Map.Entry<String, Session.ImhotepSessionInfo> entry : session.sessions.entrySet()) {
             final ImhotepSessionHolder sessionHolder = entry.getValue().session;
             final String dataset = sessionHolder.getDatasetName();
-            sessionFields.add(sessionHolder.buildSessionField(field.datasetFieldName(dataset)));
+            if (field.containsDataset(dataset)) {
+                sessionFields.add(sessionHolder.buildSessionField(field.datasetFieldName(dataset)));
+            }
         }
 
         // If we do TopK, we will automatically sort in a new way
