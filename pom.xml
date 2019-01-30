@@ -8,7 +8,7 @@
     </parent>
 
     <artifactId>iql</artifactId>
-    <version>1.0.170</version>
+    <version>9999-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>IQL Server</name>
