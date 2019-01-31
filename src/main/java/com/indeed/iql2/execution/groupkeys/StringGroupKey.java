@@ -19,8 +19,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.joda.time.format.DateTimeFormatter;
 
-import java.util.Objects;
-
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class StringGroupKey extends GroupKey {

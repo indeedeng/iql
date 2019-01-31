@@ -16,7 +16,6 @@ package com.indeed.iql2.language.execution;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.AggregateFilter;

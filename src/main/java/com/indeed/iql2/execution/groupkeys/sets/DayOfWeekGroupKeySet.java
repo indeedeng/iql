@@ -18,8 +18,6 @@ import com.indeed.iql2.execution.commands.ExplodeDayOfWeek;
 import com.indeed.iql2.execution.groupkeys.GroupKey;
 import lombok.Data;
 
-import java.util.Objects;
-
 @Data
 public class DayOfWeekGroupKeySet implements GroupKeySet {
     private final GroupKeySet previous;

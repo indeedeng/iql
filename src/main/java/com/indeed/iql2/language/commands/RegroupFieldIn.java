@@ -27,7 +27,6 @@ import it.unimi.dsi.fastutil.longs.LongList;
 import lombok.Data;
 
 import java.util.List;
-import java.util.Objects;
 
 @Data
 public class RegroupFieldIn implements Command {

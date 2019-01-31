@@ -27,9 +27,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
-import java.util.Arrays;
-import java.util.Objects;
-
 @Data
 public class IntRegroupFieldIn implements Command {
     private final FieldSet field;

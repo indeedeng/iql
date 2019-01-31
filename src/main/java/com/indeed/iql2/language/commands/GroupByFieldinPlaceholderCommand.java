@@ -1,7 +1,6 @@
 package com.indeed.iql2.language.commands;
 
 import com.google.common.base.Function;
-import com.google.common.base.Objects;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.execution.ResultFormat;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
@@ -13,7 +12,6 @@ import com.indeed.iql2.language.util.ErrorMessages;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.server.web.servlets.query.CommandValidator;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
-import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
 

@@ -18,8 +18,6 @@ import com.indeed.iql2.Formatter;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
-import java.util.Objects;
-
 @EqualsAndHashCode(callSuper = false)
 @ToString
 public class RangeGroupKey extends GroupKey {

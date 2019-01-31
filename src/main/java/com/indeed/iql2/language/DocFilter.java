@@ -44,7 +44,6 @@ import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.iql2.server.web.servlets.query.CommandValidator;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
-import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;

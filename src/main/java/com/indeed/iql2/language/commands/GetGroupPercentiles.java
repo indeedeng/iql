@@ -23,9 +23,7 @@ import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 import lombok.Data;
 
-import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 
 @Data
 public class GetGroupPercentiles implements Command {

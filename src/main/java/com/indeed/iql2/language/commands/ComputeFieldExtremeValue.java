@@ -18,8 +18,8 @@ import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
-import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.AggregateFilter;
+import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
@@ -27,7 +27,6 @@ import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 import lombok.Data;
 
 import java.util.List;
-import java.util.Objects;
 
 @Data
 public class ComputeFieldExtremeValue implements Command {

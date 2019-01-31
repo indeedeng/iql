@@ -27,9 +27,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
-import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 
 @Data
 public class StringRegroupFieldIn implements Command {

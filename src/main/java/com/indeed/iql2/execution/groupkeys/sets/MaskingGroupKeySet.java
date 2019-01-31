@@ -18,7 +18,6 @@ import com.indeed.iql2.execution.groupkeys.GroupKey;
 import lombok.Data;
 
 import java.util.BitSet;
-import java.util.Objects;
 
 @Data
 public class MaskingGroupKeySet implements GroupKeySet {

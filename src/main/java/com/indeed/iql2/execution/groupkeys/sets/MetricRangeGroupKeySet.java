@@ -27,8 +27,6 @@ import com.indeed.iql2.execution.groupkeys.RangeGroupKey;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
-import java.util.Objects;
-
 @EqualsAndHashCode
 @ToString
 public class MetricRangeGroupKeySet implements GroupKeySet {

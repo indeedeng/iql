@@ -31,8 +31,8 @@ import com.indeed.iql2.language.precomputed.Precomputed;
 import com.indeed.iql2.language.query.Dataset;
 import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.Query;
-import com.indeed.iql2.language.util.Optionals;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
+import com.indeed.iql2.language.util.Optionals;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import lombok.Data;
 
@@ -42,10 +42,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 public class ExtractPrecomputed {
     public static Extracted extractPrecomputed(Query query) {

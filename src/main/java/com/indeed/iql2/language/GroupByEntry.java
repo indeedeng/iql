@@ -19,8 +19,6 @@ import com.google.common.base.Optional;
 import com.indeed.iql2.language.query.GroupBy;
 import lombok.Data;
 
-import java.util.Objects;
-
 // TODO: Make Positional
 @Data
 public class GroupByEntry {

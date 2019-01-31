@@ -21,8 +21,6 @@ import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.AggregateMetric;
 import lombok.Data;
 
-import java.util.Objects;
-
 @Data
 public class TopK {
     public final Optional<Long> limit;

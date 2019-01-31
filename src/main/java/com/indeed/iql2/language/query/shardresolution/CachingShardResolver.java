@@ -4,13 +4,10 @@ import com.google.common.base.Throwables;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.indeed.imhotep.Shard;
 import lombok.Data;
 import org.joda.time.DateTime;
 
 import javax.annotation.Nullable;
-import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
 /**

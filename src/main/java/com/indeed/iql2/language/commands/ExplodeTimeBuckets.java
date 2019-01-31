@@ -26,7 +26,6 @@ import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 import lombok.Data;
 
 import java.util.List;
-import java.util.Objects;
 
 @Data
 public class ExplodeTimeBuckets implements Command {
