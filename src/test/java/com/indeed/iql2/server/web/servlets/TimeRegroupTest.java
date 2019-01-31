@@ -269,7 +269,7 @@ public class TimeRegroupTest extends BasicTest {
         QueryServletTestUtils.expectExceptionAll("FROM organic 10d today group by time(3d) select count()", containsTimeBucketErrorMessage.and(e -> e.contains("increase the time range by 2 days or reduce the time range by 1 days")));
         QueryServletTestUtils.expectExceptionAll("FROM organic 2015-01-01T0:0:0 2015-01-01T0:0:3  group by time(2s) select count()", containsTimeBucketErrorMessage.and(e -> e.contains("increase the time range by 1 seconds or reduce the time range by 1 seconds")));
         QueryServletTestUtils.expectExceptionAll("FROM organic 10s today group by time(3b) select count()" , containsTimeBucketErrorMessage.and(e -> e.contains("increase the time range by 2 seconds or reduce the time range by 1 seconds")));
-        QueryServletTestUtils.expectExceptionAll("FROM organic 100 today group by time(7b) select count()" , containsTimeBucketErrorMessage.and(e -> e.contains("increase the time range by 5 seconds or reduce the time range by 2 seconds")));
+        QueryServletTestUtils.expectExceptionAll("FROM organic 100s today group by time(7b) select count()" , containsTimeBucketErrorMessage.and(e -> e.contains("increase the time range by 12 seconds or reduce the time range by 2 seconds")));
     }
 
     @Test
