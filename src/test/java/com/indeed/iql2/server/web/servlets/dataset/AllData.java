@@ -43,6 +43,7 @@ public class AllData {
         datasets.add(KeywordDatasets.create());
         datasets.add(ConflictFieldDataset.create());
         datasets.add(LogLossDataset.create());
+        datasets.add(MultiYearDataset.create());
 
         final List<Dataset.DatasetShard> shards = new ArrayList<>();
         for (final Dataset allDataset : datasets) {
