@@ -1148,7 +1148,7 @@ public final class IQLTranslator {
                 if(bucketCount < 1) {
                     throw new IqlKnownException.ParseErrorException("Number of time buckets has to be at least 1");
                 }
-                return (long)Math.ceil((max-min) / (double)bucketCount); // bucket size rounded up
+                bucketSize = (max-min) / bucketCount; // Same as IQL2 bucket size
             } else {
                 Period period = PeriodParser.parseString(bucketSizeStr);
                 if(period == null) {

@@ -286,7 +286,7 @@ public abstract class GroupBy extends AbstractPositional {
 
         @Override
         public ExecutionStep executionStep(List<Dataset> datasets) {
-            final long periodMillis = TimePeriods.inferTimeBucketSize(Dataset.getEarliestStart(datasets), Dataset.getLatestEnd(datasets));
+            final long periodMillis = TimePeriods.inferTimeBucketSize(Dataset.getEarliestStart(datasets), Dataset.getLatestEnd(datasets), Dataset.getLongestRange(datasets), isRelative);
             return new ExecutionStep.ExplodeTimePeriod(periodMillis, Optional.absent(), Optional.absent(), isRelative);
         }
 
@@ -325,11 +325,13 @@ public abstract class GroupBy extends AbstractPositional {
         public final int numBuckets;
         public final Optional<FieldSet> field;
         public final Optional<String> format;
+        public final boolean isRelative;
 
-        public GroupByTimeBuckets(int numBuckets, Optional<FieldSet> field, Optional<String> format) {
+        public GroupByTimeBuckets(int numBuckets, Optional<FieldSet> field, Optional<String> format, boolean isRelative) {
             this.numBuckets = numBuckets;
             this.field = field;
             this.format = format;
+            this.isRelative = isRelative;
         }
 
         @Override
@@ -339,7 +341,7 @@ public abstract class GroupBy extends AbstractPositional {
 
         @Override
         public GroupBy transform(Function<GroupBy, GroupBy> groupBy, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
-            return groupBy.apply(new GroupByTimeBuckets(numBuckets, field, format))
+            return groupBy.apply(new GroupByTimeBuckets(numBuckets, field, format, isRelative))
                     .copyPosition(this);
         }
 
@@ -350,8 +352,8 @@ public abstract class GroupBy extends AbstractPositional {
 
         @Override
         public ExecutionStep executionStep(List<Dataset> datasets) {
-            final long periodMillis = TimePeriods.getTimePeriodFromBucket(Dataset.getEarliestStart(datasets), Dataset.getLatestEnd(datasets), numBuckets);
-            return new ExecutionStep.ExplodeTimePeriod(periodMillis, field, format, false);
+            final long periodMillis = TimePeriods.getTimePeriodFromBucket(Dataset.getEarliestStart(datasets), Dataset.getLatestEnd(datasets), Dataset.getLongestRange(datasets), numBuckets, isRelative);
+            return new ExecutionStep.ExplodeTimePeriod(periodMillis, field, format, isRelative);
         }
 
         @Override
@@ -368,21 +370,16 @@ public abstract class GroupBy extends AbstractPositional {
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
-
             GroupByTimeBuckets that = (GroupByTimeBuckets) o;
-
-            if (numBuckets != that.numBuckets) return false;
-            if (field != null ? !field.equals(that.field) : that.field != null) return false;
-            return !(format != null ? !format.equals(that.format) : that.format != null);
-
+            return numBuckets == that.numBuckets &&
+                    isRelative == that.isRelative &&
+                    Objects.equals(field, that.field) &&
+                    Objects.equals(format, that.format);
         }
 
         @Override
         public int hashCode() {
-            int result = numBuckets;
-            result = 31 * result + (field != null ? field.hashCode() : 0);
-            result = 31 * result + (format != null ? format.hashCode() : 0);
-            return result;
+            return Objects.hash(numBuckets, field, format, isRelative);
         }
 
         @Override
@@ -391,6 +388,7 @@ public abstract class GroupBy extends AbstractPositional {
                     "numBuckets=" + numBuckets +
                     ", field=" + field +
                     ", format=" + format +
+                    ", isRelative=" + isRelative +
                     '}';
         }
     }

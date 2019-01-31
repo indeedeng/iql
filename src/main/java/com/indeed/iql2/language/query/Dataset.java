@@ -283,6 +283,10 @@ public class Dataset extends AbstractPositional {
         return datasets.stream().map(dataset -> dataset.startInclusive.unwrap().getMillis()).min(Long::compareTo).get();
     }
 
+    public static long getLongestRange(final List<Dataset> datasets) {
+        return datasets.stream().map(dataset -> dataset.endExclusive.unwrap().getMillis() - dataset.startInclusive.unwrap().getMillis()).max(Long::compareTo).get();
+    }
+
     @Override
     public boolean equals(final Object o) {
         if (this == o) {

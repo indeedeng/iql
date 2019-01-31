@@ -245,7 +245,7 @@ public class GroupBys {
                     }
 
                     if (unit == TimeUnit.BUCKETS) {
-                        accept(new GroupBy.GroupByTimeBuckets(coeff, timeField, timeFormat));
+                        accept(new GroupBy.GroupByTimeBuckets(coeff, timeField, timeFormat, isRelative));
                         return;
                     }
                     if (unit == TimeUnit.MONTH) {
