@@ -314,7 +314,10 @@ public class QueryServletTestUtils extends BasicTest {
     }
 
     static void testWarning(List<String> expectedWarnings, String query, LanguageVersion version) throws Exception {
-        final Options options = Options.create();
+        testWarning(expectedWarnings, query, version, Options.create());
+    }
+
+    static void testWarning(List<String> expectedWarnings, String query, LanguageVersion version, final Options options) throws Exception {
         final ImhotepClient client = options.dataset.getNormalClient();
         final JsonNode header = getQueryHeader(client, query, version, options);
         if (expectedWarnings.isEmpty()) {
@@ -330,9 +333,13 @@ public class QueryServletTestUtils extends BasicTest {
     }
 
     static void testWarning(List<String> expectedWarnings, String query) throws Exception {
-        testWarning(expectedWarnings, query, LanguageVersion.ORIGINAL_IQL1);
-        testWarning(expectedWarnings, query, LanguageVersion.IQL1_LEGACY_MODE);
-        testWarning(expectedWarnings, query, LanguageVersion.IQL2);
+        testWarning(expectedWarnings, query, Options.create());
+    }
+
+    static void testWarning(List<String> expectedWarnings, String query, final Options options) throws Exception {
+        testWarning(expectedWarnings, query, LanguageVersion.ORIGINAL_IQL1, options);
+        testWarning(expectedWarnings, query, LanguageVersion.IQL1_LEGACY_MODE, options);
+        testWarning(expectedWarnings, query, LanguageVersion.IQL2, options);
     }
 
     // test only original IQL1

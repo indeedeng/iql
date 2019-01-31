@@ -228,6 +228,10 @@ public class DatasetMetadata {
         return iql1ExpressionAliases;
     }
 
+    public boolean isDeprecatedOrDescriptionDeprecated() {
+        return deprecated || Strings.nullToEmpty(description).toLowerCase().contains("deprecated");
+    }
+
     /**
      * Should be called when the metadata loading is complete to update caches.
      */

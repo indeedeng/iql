@@ -190,7 +190,7 @@ public final class IQLTranslator {
         optimizeGroupings(groupings, limits);
 
         return new IQLQuery(client, stats, fromClause.getDataset(), fromClause.getStart(), fromClause.getEnd(),
-                conditions, groupings, parse.limit, username, limits, fieldNames, queryInfo, strictCloser);
+                conditions, groupings, parse.limit, username, limits, fieldNames, datasetMetadata, queryInfo, strictCloser);
     }
 
     private static void ensureDistinctSelectDoesntMatchGroupings(List<Grouping> groupings, DistinctGrouping distinctGrouping) {
