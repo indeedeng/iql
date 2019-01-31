@@ -19,16 +19,14 @@ import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
+import lombok.Data;
 
 import java.util.List;
 import java.util.Objects;
 
+@Data
 public class RegroupIntoParent implements Command {
     private final GroupLookupMergeType mergeType;
-
-    public RegroupIntoParent(GroupLookupMergeType mergeType) {
-        this.mergeType = mergeType;
-    }
 
     @Override
     public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {
@@ -38,25 +36,5 @@ public class RegroupIntoParent implements Command {
     @Override
     public com.indeed.iql2.execution.commands.Command toExecutionCommand(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet, List<String> options) {
         return new com.indeed.iql2.execution.commands.RegroupIntoParent(mergeType.toExecution());
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        RegroupIntoParent that = (RegroupIntoParent) o;
-        return Objects.equals(mergeType, that.mergeType);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(mergeType);
-    }
-
-    @Override
-    public String toString() {
-        return "RegroupIntoParent{" +
-                "mergeType=" + mergeType +
-                '}';
     }
 }

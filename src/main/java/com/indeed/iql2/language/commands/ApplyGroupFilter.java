@@ -20,16 +20,14 @@ import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
+import lombok.Data;
 
 import java.util.List;
 import java.util.Objects;
 
+@Data
 public class ApplyGroupFilter implements Command {
     private final AggregateFilter filter;
-
-    public ApplyGroupFilter(AggregateFilter filter) {
-        this.filter = filter;
-    }
 
     @Override
     public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {
@@ -41,25 +39,5 @@ public class ApplyGroupFilter implements Command {
         return new com.indeed.iql2.execution.commands.ApplyGroupFilter(
                 filter.toExecutionFilter(namedMetricLookup, groupKeySet)
         );
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ApplyGroupFilter that = (ApplyGroupFilter) o;
-        return Objects.equals(filter, that.filter);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(filter);
-    }
-
-    @Override
-    public String toString() {
-        return "ApplyGroupFilter{" +
-                "filter=" + filter +
-                '}';
     }
 }

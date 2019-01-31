@@ -15,12 +15,18 @@
 package com.indeed.iql2.execution.groupkeys;
 
 import com.indeed.iql2.Formatter;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.Objects;
 
+@EqualsAndHashCode(callSuper = false)
+@ToString
 public class RangeGroupKey extends GroupKey {
     private final long minInclusive;
     private final long maxExclusive;
+    @EqualsAndHashCode.Exclude
+    @ToString.Exclude
     private final String rendered;
 
     public RangeGroupKey(long minInclusive, long maxExclusive, final Formatter formatter) {
@@ -37,27 +43,5 @@ public class RangeGroupKey extends GroupKey {
     @Override
     public boolean isDefault() {
         return false;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        RangeGroupKey that = (RangeGroupKey) o;
-        return minInclusive == that.minInclusive &&
-                maxExclusive == that.maxExclusive;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(minInclusive, maxExclusive);
-    }
-
-    @Override
-    public String toString() {
-        return "RangeGroupKey{" +
-                "minInclusive=" + minInclusive +
-                ", maxExclusive=" + maxExclusive +
-                '}';
     }
 }

@@ -42,7 +42,6 @@ import java.util.stream.Collectors;
 public class FieldExtractor {
 
 	public static class DatasetField {
-
 		@Nonnull public String dataset;
 		@Nonnull public String field;
 		boolean aliasResolved;

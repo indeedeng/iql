@@ -22,24 +22,19 @@ import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
+import lombok.Data;
 
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
+@Data
 public class QueryAction implements Action {
     public final Map<String, Query> perDatasetQuery;
 
     public final int targetGroup;
     public final int positiveGroup;
     public final int negativeGroup;
-
-    public QueryAction(Map<String, Query> perDatasetQuery, int targetGroup, int positiveGroup, int negativeGroup) {
-        this.perDatasetQuery = ImmutableMap.copyOf(perDatasetQuery);
-        this.targetGroup = targetGroup;
-        this.positiveGroup = positiveGroup;
-        this.negativeGroup = negativeGroup;
-    }
 
     public Set<String> scope() {
         return Collections.unmodifiableSet(perDatasetQuery.keySet());
@@ -58,15 +53,5 @@ public class QueryAction implements Action {
                 positiveGroup,
                 negativeGroup
         );
-    }
-
-    @Override
-    public String toString() {
-        return "QueryAction{" +
-                "perDatasetQuery=" + perDatasetQuery +
-                ", targetGroup=" + targetGroup +
-                ", positiveGroup=" + positiveGroup +
-                ", negativeGroup=" + negativeGroup +
-                '}';
     }
 }

@@ -14,14 +14,13 @@
 
 package com.indeed.iql2.execution.groupkeys;
 
-import java.util.Objects;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
+@Data
+@EqualsAndHashCode(callSuper = false)
 public class IntTermGroupKey extends GroupKey {
     public final long value;
-
-    public IntTermGroupKey(long value) {
-        this.value = value;
-    }
 
     @Override
     public String render() {
@@ -37,25 +36,5 @@ public class IntTermGroupKey extends GroupKey {
     @Override
     public boolean isDefault() {
         return false;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        IntTermGroupKey that = (IntTermGroupKey) o;
-        return value == that.value;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(value);
-    }
-
-    @Override
-    public String toString() {
-        return "IntTermGroupKey{" +
-                "value=" + value +
-                '}';
     }
 }

@@ -21,17 +21,15 @@ import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.actions.Action;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
+import lombok.Data;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+@Data
 public class ApplyFilterActions implements Command {
-    public final ImmutableList<Action> actions;
-
-    public ApplyFilterActions(List<Action> actions) {
-        this.actions = ImmutableList.copyOf(actions);
-    }
+    public final List<Action> actions;
 
     @Override
     public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {
@@ -48,25 +46,5 @@ public class ApplyFilterActions implements Command {
                 .map(x -> x.toExecutionAction(namedMetricLookup, groupKeySet))
                 .collect(Collectors.toList())
         );
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ApplyFilterActions that = (ApplyFilterActions) o;
-        return Objects.equals(actions, that.actions);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(actions);
-    }
-
-    @Override
-    public String toString() {
-        return "ApplyFilterActions{" +
-                "actions=" + actions +
-                '}';
     }
 }

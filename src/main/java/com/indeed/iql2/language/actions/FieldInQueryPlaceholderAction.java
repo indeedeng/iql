@@ -13,21 +13,22 @@ import com.indeed.iql2.language.util.ErrorMessages;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.server.web.servlets.query.CommandValidator;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.RequiredArgsConstructor;
+import lombok.ToString;
 
 /**
  * Exists so that we can transform a Query with subqueries into a
  * List&lt;Command&gt; in order to validate it.
  */
+@EqualsAndHashCode
+@RequiredArgsConstructor
 public class FieldInQueryPlaceholderAction implements Action {
     private final FieldSet field;
     private final Query query;
+    @EqualsAndHashCode.Exclude
     private final DatasetsMetadata datasetsMetadata;
-
-    public FieldInQueryPlaceholderAction(final FieldSet field, final Query query, final DatasetsMetadata datasetsMetadata) {
-        this.field = field;
-        this.query = query;
-        this.datasetsMetadata = datasetsMetadata;
-    }
 
     @Override
     public void validate(final ValidationHelper validationHelper, final ErrorCollector errorCollector) {
@@ -43,20 +44,6 @@ public class FieldInQueryPlaceholderAction implements Action {
     @Override
     public com.indeed.iql2.execution.actions.Action toExecutionAction(final Function<String, PerGroupConstant> namedMetricLookup, final GroupKeySet groupKeySet) {
         throw new UnsupportedOperationException("Must transform the FieldInQueryPlaceholderAction out before doing a .getExecutionActions()");
-    }
-
-    @Override
-    public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        final FieldInQueryPlaceholderAction that = (FieldInQueryPlaceholderAction) o;
-        return Objects.equal(field, that.field) &&
-                Objects.equal(query, that.query);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(field, query);
     }
 
     @Override

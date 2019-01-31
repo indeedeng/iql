@@ -23,21 +23,17 @@ import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
+import lombok.Data;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
+@Data
 public class IterateAndExplode implements Command {
     public final FieldSet field;
     public final FieldIterateOpts fieldOpts;
     public final Optional<String> explodeDefaultName;
-
-    public IterateAndExplode(FieldSet field, FieldIterateOpts fieldOpts, Optional<String> explodeDefaultName) {
-        this.field = field;
-        this.fieldOpts = fieldOpts;
-        this.explodeDefaultName = explodeDefaultName;
-    }
 
     @Override
     public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {
@@ -64,29 +60,5 @@ public class IterateAndExplode implements Command {
                 fieldOpts.toExecution(namedMetricLookup, groupKeySet),
                 explodeDefaultName
         );
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        IterateAndExplode that = (IterateAndExplode) o;
-        return Objects.equals(field, that.field) &&
-                Objects.equals(fieldOpts, that.fieldOpts) &&
-                Objects.equals(explodeDefaultName, that.explodeDefaultName);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(field, fieldOpts, explodeDefaultName);
-    }
-
-    @Override
-    public String toString() {
-        return "IterateAndExplode{" +
-                "field='" + field + '\'' +
-                ", fieldOpts=" + fieldOpts +
-                ", explodeDefaultName=" + explodeDefaultName +
-                '}';
     }
 }

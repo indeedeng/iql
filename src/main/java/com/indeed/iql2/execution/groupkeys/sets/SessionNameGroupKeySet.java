@@ -17,6 +17,8 @@ package com.indeed.iql2.execution.groupkeys.sets;
 import com.indeed.iql2.Formatter;
 import com.indeed.iql2.execution.groupkeys.GroupKey;
 import com.indeed.iql2.execution.groupkeys.StringGroupKey;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,6 +26,8 @@ import java.util.List;
 /**
  * This class allocates nothing for any non-constructor method calls.
  */
+@EqualsAndHashCode
+@ToString
 public class SessionNameGroupKeySet implements GroupKeySet {
     private final GroupKeySet previous;
     private final List<StringGroupKey> groupKeys;
@@ -60,19 +64,5 @@ public class SessionNameGroupKeySet implements GroupKeySet {
     @Override
     public boolean isPresent(int group) {
         return group > 0 && group <= numGroups() && previous.isPresent(parentGroup(group));
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        SessionNameGroupKeySet that = (SessionNameGroupKeySet) o;
-        return com.google.common.base.Objects.equal(previous, that.previous) &&
-                com.google.common.base.Objects.equal(groupKeys, that.groupKeys);
-    }
-
-    @Override
-    public int hashCode() {
-        return com.google.common.base.Objects.hashCode(previous, groupKeys);
     }
 }

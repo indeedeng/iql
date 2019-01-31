@@ -23,20 +23,16 @@ import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
+import lombok.Data;
 
 import java.util.List;
 import java.util.Objects;
 
+@Data
 public class ExplodeTimeBuckets implements Command {
     private final int numBuckets;
     private final Optional<FieldSet> timeField;
     private final Optional<String> timeFormat;
-
-    public ExplodeTimeBuckets(int numBuckets, Optional<FieldSet> timeField, Optional<String> timeFormat) {
-        this.numBuckets = numBuckets;
-        this.timeField = timeField;
-        this.timeFormat = timeFormat;
-    }
 
     @Override
     public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {
@@ -56,29 +52,5 @@ public class ExplodeTimeBuckets implements Command {
                 timeField,
                 timeFormat
         );
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ExplodeTimeBuckets that = (ExplodeTimeBuckets) o;
-        return Objects.equals(numBuckets, that.numBuckets) &&
-                Objects.equals(timeField, that.timeField) &&
-                Objects.equals(timeFormat, that.timeFormat);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(numBuckets, timeField, timeFormat);
-    }
-
-    @Override
-    public String toString() {
-        return "ExplodeTimeBuckets{" +
-                "numBuckets=" + numBuckets +
-                ", timeField=" + timeField +
-                ", timeFormat=" + timeFormat +
-                '}';
     }
 }

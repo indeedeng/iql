@@ -20,19 +20,15 @@ import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
+import lombok.Data;
 
 import java.util.Set;
 
+@Data
 public class UnconditionalAction implements Action {
-    public final ImmutableSet<String> scope;
+    public final Set<String> scope;
     public final int targetGroup;
     public final int newGroup;
-
-    public UnconditionalAction(Set<String> scope, int targetGroup, int newGroup) {
-        this.scope = ImmutableSet.copyOf(scope);
-        this.targetGroup = targetGroup;
-        this.newGroup = newGroup;
-    }
 
     @Override
     public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {
@@ -44,14 +40,5 @@ public class UnconditionalAction implements Action {
         return new com.indeed.iql2.execution.actions.UnconditionalAction(
                 scope, targetGroup, newGroup
         );
-    }
-
-    @Override
-    public String toString() {
-        return "UnconditionalAction{" +
-                "scope=" + scope +
-                ", targetGroup=" + targetGroup +
-                ", newGroup=" + newGroup +
-                '}';
     }
 }

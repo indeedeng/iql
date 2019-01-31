@@ -21,24 +21,18 @@ import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
+import lombok.Data;
 
 import java.util.Set;
 
+@Data
 public class IntOrAction implements Action {
     public final FieldSet field;
-    public final ImmutableSet<Long> terms;
+    public final Set<Long> terms;
 
     public final int targetGroup;
     public final int positiveGroup;
     public final int negativeGroup;
-
-    public IntOrAction(FieldSet field, Set<Long> terms, int targetGroup, int positiveGroup, int negativeGroup) {
-        this.field = field;
-        this.terms = ImmutableSet.copyOf(terms);
-        this.targetGroup = targetGroup;
-        this.positiveGroup = positiveGroup;
-        this.negativeGroup = negativeGroup;
-    }
 
     @Override
     public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {
@@ -56,16 +50,5 @@ public class IntOrAction implements Action {
                 positiveGroup,
                 negativeGroup
         );
-    }
-
-    @Override
-    public String toString() {
-        return "IntOrAction{" +
-                "field=" + field +
-                ", terms=" + terms +
-                ", targetGroup=" + targetGroup +
-                ", positiveGroup=" + positiveGroup +
-                ", negativeGroup=" + negativeGroup +
-                '}';
     }
 }

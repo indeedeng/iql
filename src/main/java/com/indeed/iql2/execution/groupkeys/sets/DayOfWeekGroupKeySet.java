@@ -16,15 +16,13 @@ package com.indeed.iql2.execution.groupkeys.sets;
 
 import com.indeed.iql2.execution.commands.ExplodeDayOfWeek;
 import com.indeed.iql2.execution.groupkeys.GroupKey;
+import lombok.Data;
 
 import java.util.Objects;
 
+@Data
 public class DayOfWeekGroupKeySet implements GroupKeySet {
     private final GroupKeySet previous;
-
-    public DayOfWeekGroupKeySet(GroupKeySet previous) {
-        this.previous = previous;
-    }
 
     @Override
     public GroupKeySet previous() {
@@ -50,18 +48,5 @@ public class DayOfWeekGroupKeySet implements GroupKeySet {
     @Override
     public boolean isPresent(int group) {
         return group > 0 && group <= numGroups() && previous.isPresent(parentGroup(group));
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        DayOfWeekGroupKeySet that = (DayOfWeekGroupKeySet) o;
-        return Objects.equals(previous, that.previous);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(previous);
     }
 }

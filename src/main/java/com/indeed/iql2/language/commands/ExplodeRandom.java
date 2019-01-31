@@ -22,19 +22,15 @@ import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
+import lombok.Data;
 
 import java.util.List;
 
+@Data
 public class ExplodeRandom implements Command {
     private final FieldSet field;
     private final int k;
     private final String salt;
-
-    public ExplodeRandom(FieldSet field, int k, String salt) {
-        this.field = field;
-        this.k = k;
-        this.salt = salt;
-    }
 
     @Override
     public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {
@@ -54,29 +50,5 @@ public class ExplodeRandom implements Command {
                 k,
                 salt
         );
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ExplodeRandom that = (ExplodeRandom) o;
-        return k == that.k &&
-                Objects.equal(field, that.field) &&
-                Objects.equal(salt, that.salt);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(field, k, salt);
-    }
-
-    @Override
-    public String toString() {
-        return "ExplodeRandom{" +
-                "field='" + field + '\'' +
-                ", k=" + k +
-                ", salt='" + salt + '\'' +
-                '}';
     }
 }

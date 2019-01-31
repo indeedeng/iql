@@ -22,21 +22,17 @@ import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
+import lombok.Data;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+@Data
 public class GetGroupStats implements Command {
     public final List<AggregateMetric> metrics;
     public final List<Optional<String>> formatStrings;
     public final boolean returnGroupKeys;
-
-    public GetGroupStats(List<AggregateMetric> metrics, List<Optional<String>> formatStrings, boolean returnGroupKeys) {
-        this.metrics = metrics;
-        this.formatStrings = formatStrings;
-        this.returnGroupKeys = returnGroupKeys;
-    }
 
     @Override
     public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {
@@ -57,29 +53,5 @@ public class GetGroupStats implements Command {
                 formatStrings,
                 returnGroupKeys
         );
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        GetGroupStats that = (GetGroupStats) o;
-        return returnGroupKeys == that.returnGroupKeys &&
-                Objects.equals(metrics, that.metrics) &&
-                Objects.equals(formatStrings, that.formatStrings);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(metrics, formatStrings, returnGroupKeys);
-    }
-
-    @Override
-    public String toString() {
-        return "GetGroupStats{" +
-                "metrics=" + metrics +
-                ", formatStrings=" + formatStrings +
-                ", returnGroupKeys=" + returnGroupKeys +
-                '}';
     }
 }

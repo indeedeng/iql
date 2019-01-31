@@ -22,18 +22,15 @@ import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
+import lombok.Data;
 
 import java.util.List;
 import java.util.Objects;
 
+@Data
 public class ExplodePerDocPercentile implements Command {
     public final FieldSet field;
     public final int numBuckets;
-
-    public ExplodePerDocPercentile(FieldSet field, int numBuckets) {
-        this.field = field;
-        this.numBuckets = numBuckets;
-    }
 
     @Override
     public void validate(final ValidationHelper validationHelper, final ErrorCollector errorCollector) {
@@ -50,27 +47,5 @@ public class ExplodePerDocPercentile implements Command {
                 field,
                 numBuckets
         );
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ExplodePerDocPercentile that = (ExplodePerDocPercentile) o;
-        return Objects.equals(numBuckets, that.numBuckets) &&
-                Objects.equals(field, that.field);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(field, numBuckets);
-    }
-
-    @Override
-    public String toString() {
-        return "ExplodePerDocPercentile{" +
-                "field='" + field + '\'' +
-                ", numBuckets=" + numBuckets +
-                '}';
     }
 }

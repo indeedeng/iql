@@ -13,6 +13,9 @@ import com.indeed.iql2.language.util.ErrorMessages;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.server.web.servlets.query.CommandValidator;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 
@@ -20,16 +23,13 @@ import java.util.List;
  * Exists so that we can transform a Query with subqueries into a
  * List&lt;Command&gt; in order to validate it.
  */
+@EqualsAndHashCode
+@RequiredArgsConstructor
 public class GroupByFieldinPlaceholderCommand implements Command {
     private final FieldSet field;
     private final Query query;
+    @EqualsAndHashCode.Exclude
     private final DatasetsMetadata datasetsMetadata;
-
-    public GroupByFieldinPlaceholderCommand(final FieldSet field, final Query query, final DatasetsMetadata datasetsMetadata) {
-        this.field = field;
-        this.query = query;
-        this.datasetsMetadata = datasetsMetadata;
-    }
 
     @Override
     public void validate(final ValidationHelper validationHelper, final ErrorCollector errorCollector) {
@@ -45,20 +45,6 @@ public class GroupByFieldinPlaceholderCommand implements Command {
     @Override
     public com.indeed.iql2.execution.commands.Command toExecutionCommand(final Function<String, PerGroupConstant> namedMetricLookup, final GroupKeySet groupKeySet, final List<String> options) {
         throw new IllegalStateException("GroupByFieldInQuery must be already transformed into another GroupBy");
-    }
-
-    @Override
-    public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        final GroupByFieldinPlaceholderCommand that = (GroupByFieldinPlaceholderCommand) o;
-        return Objects.equal(field, that.field) &&
-                Objects.equal(query, that.query);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(field, query);
     }
 
     @Override

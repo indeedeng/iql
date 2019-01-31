@@ -34,6 +34,7 @@ import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.util.Optionals;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import lombok.Data;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -417,40 +418,11 @@ public class ExtractPrecomputed {
         }
     }
 
+    @Data
     private static class ComputationInfo {
         private final Precomputed precomputed;
         private final int depth;
         private final Set<String> scope;
-
-        private ComputationInfo(Precomputed precomputed, int depth, Set<String> scope) {
-            this.precomputed = precomputed;
-            this.depth = depth;
-            this.scope = scope;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            ComputationInfo that = (ComputationInfo) o;
-            return Objects.equals(depth, that.depth) &&
-                    Objects.equals(precomputed, that.precomputed) &&
-                    Objects.equals(scope, that.scope);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(precomputed, depth, scope);
-        }
-
-        @Override
-        public String toString() {
-            return "ComputationInfo{" +
-                    "precomputed=" + precomputed +
-                    ", depth=" + depth +
-                    ", scope=" + scope +
-                    '}';
-        }
     }
 
     private enum ComputationType {

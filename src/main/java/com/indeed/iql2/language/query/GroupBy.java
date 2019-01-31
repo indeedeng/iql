@@ -31,6 +31,10 @@ import com.indeed.iql2.language.execution.ExecutionStep;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.RequiredArgsConstructor;
+import lombok.ToString;
 
 import java.util.List;
 import java.util.Map;
@@ -78,6 +82,9 @@ public abstract class GroupBy extends AbstractPositional {
         return this;
     }
 
+    @RequiredArgsConstructor
+    @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class GroupByMetric extends GroupBy {
         public final DocMetric metric;
         public final long min;
@@ -85,15 +92,6 @@ public abstract class GroupBy extends AbstractPositional {
         public final long interval;
         public final boolean excludeGutters;
         public final boolean withDefault;
-
-        public GroupByMetric(DocMetric metric, long min, long max, long interval, boolean excludeGutters, boolean withDefault) {
-            this.metric = metric;
-            this.min = min;
-            this.max = max;
-            this.interval = interval;
-            this.excludeGutters = excludeGutters;
-            this.withDefault = withDefault;
-        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -133,59 +131,15 @@ public abstract class GroupBy extends AbstractPositional {
             }
             return new GroupByMetric(metric, min, max, interval, true, true);
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-
-            GroupByMetric that = (GroupByMetric) o;
-
-            if (min != that.min) return false;
-            if (max != that.max) return false;
-            if (interval != that.interval) return false;
-            if (excludeGutters != that.excludeGutters) return false;
-            if (withDefault != that.withDefault) return false;
-            return !(metric != null ? !metric.equals(that.metric) : that.metric != null);
-
-        }
-
-        @Override
-        public int hashCode() {
-            int result = metric != null ? metric.hashCode() : 0;
-            result = 31 * result + (int) (min ^ (min >>> 32));
-            result = 31 * result + (int) (max ^ (max >>> 32));
-            result = 31 * result + (int) (interval ^ (interval >>> 32));
-            result = 31 * result + (excludeGutters ? 1 : 0);
-            result = 31 * result + (withDefault ? 1 : 0);
-            return result;
-        }
-
-        @Override
-        public String toString() {
-            return "GroupByMetric{" +
-                    "metric=" + metric +
-                    ", min=" + min +
-                    ", max=" + max +
-                    ", interval=" + interval +
-                    ", excludeGutters=" + excludeGutters +
-                    ", withDefault=" + withDefault +
-                    '}';
-        }
     }
 
+    @Data
+    @EqualsAndHashCode(callSuper = false)
     public static class GroupByTime extends GroupBy {
         public final long periodMillis;
         public final Optional<FieldSet> field;
         public final Optional<String> format;
         public final boolean isRelative;
-
-        public GroupByTime(long periodMillis, Optional<FieldSet> field, Optional<String> format, boolean isRelative) {
-            this.periodMillis = periodMillis;
-            this.field = field;
-            this.format = format;
-            this.isRelative = isRelative;
-        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -217,57 +171,12 @@ public abstract class GroupBy extends AbstractPositional {
         public GroupBy makeTotal() throws CannotMakeTotalException {
             return this;
         }
-
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-
-            final GroupByTime that = (GroupByTime) o;
-
-            if (periodMillis != that.periodMillis) {
-                return false;
-            }
-            if (isRelative != that.isRelative) {
-                return false;
-            }
-            if (field != null ? !field.equals(that.field) : that.field != null) {
-                return false;
-            }
-            return format != null ? format.equals(that.format) : that.format == null;
-
-        }
-
-        @Override
-        public int hashCode() {
-            int result = (int) (periodMillis ^ (periodMillis >>> 32));
-            result = 31 * result + (field != null ? field.hashCode() : 0);
-            result = 31 * result + (format != null ? format.hashCode() : 0);
-            result = 31 * result + (isRelative ? 1 : 0);
-            return result;
-        }
-
-        @Override
-        public String toString() {
-            return "GroupByTime{" +
-                    "periodMillis=" + periodMillis +
-                    ", field=" + field +
-                    ", format=" + format +
-                    ", isRelative=" + isRelative +
-                    '}';
-        }
     }
 
+    @Data
+    @EqualsAndHashCode(callSuper = false)
     public static class GroupByInferredTime extends GroupBy {
         public final boolean isRelative;
-
-        public GroupByInferredTime(boolean isRelative) {
-            this.isRelative = isRelative;
-        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -300,38 +209,14 @@ public abstract class GroupBy extends AbstractPositional {
         public GroupBy makeTotal() throws CannotMakeTotalException {
             return this;
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            GroupByInferredTime that = (GroupByInferredTime) o;
-            return isRelative == that.isRelative;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(isRelative);
-        }
-
-        @Override
-        public String toString() {
-            return "GroupByInferredTime{" +
-                    "isRelative=" + isRelative +
-                    '}';
-        }
     }
 
+    @Data
+    @EqualsAndHashCode(callSuper = false)
     public static class GroupByTimeBuckets extends GroupBy {
         public final int numBuckets;
         public final Optional<FieldSet> field;
         public final Optional<String> format;
-
-        public GroupByTimeBuckets(int numBuckets, Optional<FieldSet> field, Optional<String> format) {
-            this.numBuckets = numBuckets;
-            this.field = field;
-            this.format = format;
-        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -363,46 +248,13 @@ public abstract class GroupBy extends AbstractPositional {
         public GroupBy makeTotal() throws CannotMakeTotalException {
             return this;
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-
-            GroupByTimeBuckets that = (GroupByTimeBuckets) o;
-
-            if (numBuckets != that.numBuckets) return false;
-            if (field != null ? !field.equals(that.field) : that.field != null) return false;
-            return !(format != null ? !format.equals(that.format) : that.format != null);
-
-        }
-
-        @Override
-        public int hashCode() {
-            int result = numBuckets;
-            result = 31 * result + (field != null ? field.hashCode() : 0);
-            result = 31 * result + (format != null ? format.hashCode() : 0);
-            return result;
-        }
-
-        @Override
-        public String toString() {
-            return "GroupByTimeBuckets{" +
-                    "numBuckets=" + numBuckets +
-                    ", field=" + field +
-                    ", format=" + format +
-                    '}';
-        }
     }
 
+    @Data
+    @EqualsAndHashCode(callSuper = false)
     public static class GroupByMonth extends GroupBy {
         public final Optional<FieldSet> timeField;
         public final Optional<String> timeFormat;
-
-        public GroupByMonth(Optional<FieldSet> field, Optional<String> timeFormat) {
-            this.timeField = field;
-            this.timeFormat = timeFormat;
-        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -437,35 +289,10 @@ public abstract class GroupBy extends AbstractPositional {
         public GroupBy makeTotal() throws CannotMakeTotalException {
             return this;
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-
-            GroupByMonth that = (GroupByMonth) o;
-
-            if (timeField != null ? !timeField.equals(that.timeField) : that.timeField != null) return false;
-            return !(timeFormat != null ? !timeFormat.equals(that.timeFormat) : that.timeFormat != null);
-
-        }
-
-        @Override
-        public int hashCode() {
-            int result = timeField != null ? timeField.hashCode() : 0;
-            result = 31 * result + (timeFormat != null ? timeFormat.hashCode() : 0);
-            return result;
-        }
-
-        @Override
-        public String toString() {
-            return "GroupByMonth{" +
-                    "timeField=" + timeField +
-                    ", timeFormat=" + timeFormat +
-                    '}';
-        }
     }
 
+    @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class GroupByFieldIn extends GroupBy {
         public final FieldSet field;
         public final LongList intTerms;
@@ -525,53 +352,18 @@ public abstract class GroupBy extends AbstractPositional {
         public GroupBy makeTotal() throws CannotMakeTotalException {
             return new GroupByFieldIn(field, intTerms, stringTerms, true);
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            GroupByFieldIn that = (GroupByFieldIn) o;
-            return withDefault == that.withDefault &&
-                    Objects.equals(field, that.field) &&
-                    Objects.equals(intTerms, that.intTerms) &&
-                    Objects.equals(stringTerms, that.stringTerms);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(field, intTerms, stringTerms, withDefault);
-        }
-
-        @Override
-        public String toString() {
-            return "GroupByFieldIn{" +
-                    "field='" + field + '\'' +
-                    ", intTerms=" + intTerms +
-                    ", stringTerms=" + stringTerms +
-                    ", withDefault=" + withDefault +
-                    '}';
-        }
     }
 
+    @Data
+    @EqualsAndHashCode(callSuper = false)
     public static class GroupByFieldInQuery extends GroupBy {
         public final FieldSet field;
         public final Query query;
         public final boolean isNegated;
         public final boolean withDefault;
+        @ToString.Exclude
+        @EqualsAndHashCode.Exclude
         private final DatasetsMetadata datasetsMetadata;
-
-        public GroupByFieldInQuery(
-                final FieldSet field,
-                final Query query,
-                final boolean isNegated,
-                final boolean withDefault,
-                final DatasetsMetadata datasetsMetadata) {
-            this.field = field;
-            this.query = query;
-            this.isNegated = isNegated;
-            this.withDefault = withDefault;
-            this.datasetsMetadata = datasetsMetadata;
-        }
 
         @Override
         public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {
@@ -608,38 +400,10 @@ public abstract class GroupBy extends AbstractPositional {
         public GroupBy makeTotal() throws CannotMakeTotalException {
             throw new IllegalStateException("GroupByFieldInQuery must be already transformed into another GroupBy");
         }
-
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) {
-                return true;
-            }
-            if ((o == null) || (getClass() != o.getClass())) {
-                return false;
-            }
-            final GroupByFieldInQuery that = (GroupByFieldInQuery) o;
-            return (isNegated == that.isNegated) &&
-                    (withDefault == that.withDefault) &&
-                    Objects.equals(field, that.field) &&
-                    Objects.equals(query, that.query);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(field, query, isNegated, withDefault);
-        }
-
-        @Override
-        public String toString() {
-            return "GroupByFieldIn{" +
-                    "field='" + field + '\'' +
-                    ", query=" + query +
-                    ", isNegated=" + isNegated +
-                    ", withDefault=" + withDefault +
-                    '}';
-        }
     }
 
+    @ToString
+    @EqualsAndHashCode(callSuper = false)
     public static class GroupByField extends GroupBy {
         public final FieldSet field;
         public final Optional<AggregateFilter> filter;
@@ -713,42 +477,6 @@ public abstract class GroupBy extends AbstractPositional {
         @Override
         public GroupBy makeTotal() throws CannotMakeTotalException {
             return new GroupByField(field, filter, limit, metric, true);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-
-            GroupByField that = (GroupByField) o;
-
-            if (withDefault != that.withDefault) return false;
-            if (field != null ? !field.equals(that.field) : that.field != null) return false;
-            if (filter != null ? !filter.equals(that.filter) : that.filter != null) return false;
-            if (limit != null ? !limit.equals(that.limit) : that.limit != null) return false;
-            return !(metric != null ? !metric.equals(that.metric) : that.metric != null);
-
-        }
-
-        @Override
-        public int hashCode() {
-            int result = field != null ? field.hashCode() : 0;
-            result = 31 * result + (filter != null ? filter.hashCode() : 0);
-            result = 31 * result + (limit != null ? limit.hashCode() : 0);
-            result = 31 * result + (metric != null ? metric.hashCode() : 0);
-            result = 31 * result + (withDefault ? 1 : 0);
-            return result;
-        }
-
-        @Override
-        public String toString() {
-            return "GroupByField{" +
-                    "field='" + field + '\'' +
-                    ", filter=" + filter +
-                    ", limit=" + limit +
-                    ", metric=" + metric +
-                    ", withDefault=" + withDefault +
-                    '}';
         }
     }
 
@@ -846,14 +574,11 @@ public abstract class GroupBy extends AbstractPositional {
         }
     }
 
+    @Data
+    @EqualsAndHashCode(callSuper = false)
     public static class GroupByQuantiles extends GroupBy {
         public final FieldSet field;
         public final int numBuckets;
-
-        public GroupByQuantiles(FieldSet field, int numBuckets) {
-            this.field = field;
-            this.numBuckets = numBuckets;
-        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -886,41 +611,12 @@ public abstract class GroupBy extends AbstractPositional {
         public GroupBy makeTotal() throws CannotMakeTotalException {
             return this;
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-
-            GroupByQuantiles that = (GroupByQuantiles) o;
-
-            if (numBuckets != that.numBuckets) return false;
-            return !(field != null ? !field.equals(that.field) : that.field != null);
-
-        }
-
-        @Override
-        public int hashCode() {
-            int result = field != null ? field.hashCode() : 0;
-            result = 31 * result + numBuckets;
-            return result;
-        }
-
-        @Override
-        public String toString() {
-            return "GroupByQuantiles{" +
-                    "field='" + field + '\'' +
-                    ", numBuckets=" + numBuckets +
-                    '}';
-        }
     }
 
+    @Data
+    @EqualsAndHashCode(callSuper = false)
     public static class GroupByPredicate extends GroupBy {
         public final DocFilter docFilter;
-
-        public GroupByPredicate(DocFilter docFilter) {
-            this.docFilter = docFilter;
-        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -957,38 +653,14 @@ public abstract class GroupBy extends AbstractPositional {
         public GroupBy makeTotal() throws CannotMakeTotalException {
             return this;
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            GroupByPredicate that = (GroupByPredicate) o;
-            return Objects.equals(docFilter, that.docFilter);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(docFilter);
-        }
-
-        @Override
-        public String toString() {
-            return "GroupByPredicate{" +
-                    "docFilter=" + docFilter +
-                    '}';
-        }
     }
 
+    @Data
+    @EqualsAndHashCode(callSuper = false)
     public static class GroupByRandom extends GroupBy {
         public final FieldSet field;
         public final int k;
         public final String salt;
-
-        public GroupByRandom(FieldSet field, int k, String salt) {
-            this.field = field;
-            this.k = k;
-            this.salt = salt;
-        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -1020,42 +692,14 @@ public abstract class GroupBy extends AbstractPositional {
         public GroupBy makeTotal() throws CannotMakeTotalException {
             return this;
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            GroupByRandom that = (GroupByRandom) o;
-            return k == that.k &&
-                    com.google.common.base.Objects.equal(field, that.field) &&
-                    com.google.common.base.Objects.equal(salt, that.salt);
-        }
-
-        @Override
-        public int hashCode() {
-            return com.google.common.base.Objects.hashCode(field, k, salt);
-        }
-
-        @Override
-        public String toString() {
-            return "GroupByRandom{" +
-                    "field=" + field +
-                    ", k=" + k +
-                    ", salt='" + salt + '\'' +
-                    '}';
-        }
     }
 
+    @Data
+    @EqualsAndHashCode(callSuper = false)
     public static class GroupByRandomMetric extends GroupBy {
         public final DocMetric metric;
         public final int k;
         public final String salt;
-
-        public GroupByRandomMetric(final DocMetric metric, final int k, final String salt) {
-            this.metric = metric;
-            this.k = k;
-            this.salt = salt;
-        }
 
         @Override
         public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {
@@ -1095,35 +739,6 @@ public abstract class GroupBy extends AbstractPositional {
         @Override
         public GroupBy makeTotal() throws CannotMakeTotalException {
             return this;
-        }
-
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) {
-                return true;
-            }
-            if ((o == null) || (getClass() != o.getClass())) {
-                return false;
-            }
-
-            final GroupByRandomMetric that = (GroupByRandomMetric) o;
-            return com.google.common.base.Objects.equal(metric, that.metric)
-                    && (k == that.k)
-                    && com.google.common.base.Objects.equal(salt, that.salt);
-        }
-
-        @Override
-        public int hashCode() {
-            return com.google.common.base.Objects.hashCode(metric, k, salt);
-        }
-
-        @Override
-        public String toString() {
-            return "GroupByRandomMetric{" +
-                    "metric =" + metric +
-                    ", k=" + k +
-                    ", salt='" + salt + '\'' +
-                    '}';
         }
     }
 }

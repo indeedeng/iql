@@ -29,6 +29,8 @@ import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -134,6 +136,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         return this;
     }
 
+    @EqualsAndHashCode(callSuper = false)
     public abstract static class Unop extends AggregateMetric {
         public final AggregateMetric m1;
 
@@ -152,20 +155,6 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Unop unop = (Unop) o;
-            return Objects.equals(m1, unop.m1);
-        }
-
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(m1);
-        }
-
-        @Override
         public String toString() {
             return this.getClass().getSimpleName() + "{" +
                     "m1=" + m1 +
@@ -173,6 +162,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
+    @EqualsAndHashCode(callSuper = true)
     public static class Log extends Unop {
         public Log(AggregateMetric m1) {
             super(m1);
@@ -199,6 +189,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
+    @EqualsAndHashCode(callSuper = true)
     public static class Negate extends Unop {
         public Negate(AggregateMetric m1) {
             super(m1);
@@ -228,6 +219,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
+    @EqualsAndHashCode(callSuper = true)
     public static class Abs extends Unop {
         public Abs(AggregateMetric m1) {
             super(m1);
@@ -254,6 +246,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
+    @EqualsAndHashCode(callSuper = true)
     public static class Floor extends FactorUnop {
         public Floor(final AggregateMetric metric, final int digits) {
             super(metric, digits);
@@ -280,6 +273,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
+    @EqualsAndHashCode(callSuper = true)
     public static class Ceil extends FactorUnop {
         public Ceil(final AggregateMetric metric, final int digits) {
             super(metric, digits);
@@ -306,6 +300,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
+    @EqualsAndHashCode(callSuper = true)
     public static class Round extends FactorUnop {
         public Round(final AggregateMetric metric, final int digits) {
             super(metric, digits);
@@ -332,6 +327,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
+    @EqualsAndHashCode(callSuper = false)
     public abstract static class FactorUnop extends AggregateMetric {
         public final AggregateMetric m1;
         public final int f1;
@@ -352,21 +348,6 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            FactorUnop other = (FactorUnop) o;
-            return Objects.equals(m1, other.m1) && f1 == other.f1;
-        }
-
-
-        @Override
-        public int hashCode() {
-            int hash = Objects.hash(m1);
-            return hash * 31 + f1;
-        }
-
-        @Override
         public String toString() {
             return this.getClass().getSimpleName() + "{" +
                     "m1=" + m1 +
@@ -375,6 +356,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
+    @EqualsAndHashCode(callSuper = false)
     public abstract static class Binop extends AggregateMetric {
         public final AggregateMetric m1;
         public final AggregateMetric m2;
@@ -393,21 +375,6 @@ public abstract class AggregateMetric extends AbstractPositional {
         public void validate(Set<String> scope, ValidationHelper validationHelper, ErrorCollector errorCollector) {
             m1.validate(scope, validationHelper, errorCollector);
             m2.validate(scope, validationHelper, errorCollector);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Binop binop = (Binop) o;
-            return Objects.equals(m1, binop.m1) &&
-                    Objects.equals(m2, binop.m2);
-        }
-
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(m1, m2);
         }
 
         @Override
@@ -565,6 +532,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
+    @EqualsAndHashCode(callSuper = false)
     public static class Subtract extends Binop {
         public Subtract(AggregateMetric m1, AggregateMetric m2) {
             super(m1, m2);
@@ -596,6 +564,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
+    @EqualsAndHashCode(callSuper = false)
     public static class Multiply extends Binop {
         public Multiply(AggregateMetric m1, AggregateMetric m2) {
             super(m1, m2);
@@ -626,6 +595,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
+    @EqualsAndHashCode(callSuper = false)
     public static class Divide extends Binop {
         public Divide(AggregateMetric m1, AggregateMetric m2) {
             super(m1, m2);
@@ -657,6 +627,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
+    @EqualsAndHashCode(callSuper = false)
     public static class Modulus extends Binop {
         public Modulus(AggregateMetric m1, AggregateMetric m2) {
             super(m1, m2);
@@ -688,6 +659,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
+    @EqualsAndHashCode(callSuper = false)
     public static class Power extends Binop {
         public Power(AggregateMetric m1, AggregateMetric m2) {
             super(m1, m2);
@@ -731,12 +703,10 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
+    @Data
+    @EqualsAndHashCode(callSuper = false)
     public static class Parent extends AggregateMetric {
         public final AggregateMetric metric;
-
-        public Parent(AggregateMetric metric) {
-            this.metric = metric;
-        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -768,36 +738,13 @@ public abstract class AggregateMetric extends AbstractPositional {
         public com.indeed.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
             throw new IllegalStateException(PRECOMPUTED_EXCEPTION);
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Parent parent = (Parent) o;
-            return Objects.equals(metric, parent.metric);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(metric);
-        }
-
-        @Override
-        public String toString() {
-            return "Parent{" +
-                    "metric=" + metric +
-                    '}';
-        }
     }
 
+    @Data
+    @EqualsAndHashCode(callSuper = false)
     public static class Lag extends AggregateMetric {
         public final int lag;
         public final AggregateMetric metric;
-
-        public Lag(int lag, AggregateMetric metric) {
-            this.lag = lag;
-            this.metric = metric;
-        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -829,36 +776,12 @@ public abstract class AggregateMetric extends AbstractPositional {
         public com.indeed.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
             return new ParentLag(lag, metric.toExecutionMetric(namedMetricLookup, groupKeySet));
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Lag lag1 = (Lag) o;
-            return Objects.equals(lag, lag1.lag) &&
-                    Objects.equals(metric, lag1.metric);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(lag, metric);
-        }
-
-        @Override
-        public String toString() {
-            return "Lag{" +
-                    "lag=" + lag +
-                    ", metric=" + metric +
-                    '}';
-        }
     }
 
+    @Data
+    @EqualsAndHashCode(callSuper = false)
     public static class DivideByCount extends AggregateMetric {
         public final AggregateMetric metric;
-
-        public DivideByCount(AggregateMetric metric) {
-            this.metric = metric;
-        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -891,40 +814,13 @@ public abstract class AggregateMetric extends AbstractPositional {
         public com.indeed.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
             throw new IllegalStateException(PRECOMPUTED_EXCEPTION);
         }
-
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-            final DivideByCount that = (DivideByCount) o;
-            return com.google.common.base.Objects.equal(metric, that.metric);
-        }
-
-        @Override
-        public int hashCode() {
-            return com.google.common.base.Objects.hashCode(metric);
-        }
-
-        @Override
-        public String toString() {
-            return "DivideByCount{" +
-                    "metric=" + metric +
-                    '}';
-        }
     }
 
+    @Data
+    @EqualsAndHashCode(callSuper = false)
     public static class IterateLag extends AggregateMetric {
         public final int lag;
         public final AggregateMetric metric;
-
-        public IterateLag(int lag, AggregateMetric metric) {
-            this.lag = lag;
-            this.metric = metric;
-        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -960,30 +856,10 @@ public abstract class AggregateMetric extends AbstractPositional {
                     metric.toExecutionMetric(namedMetricLookup, groupKeySet)
             );
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            IterateLag that = (IterateLag) o;
-            return Objects.equals(lag, that.lag) &&
-                    Objects.equals(metric, that.metric);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(lag, metric);
-        }
-
-        @Override
-        public String toString() {
-            return "IterateLag{" +
-                    "lag=" + lag +
-                    ", metric=" + metric +
-                    '}';
-        }
     }
 
+    @Data
+    @EqualsAndHashCode(callSuper = false)
     public static class Window extends AggregateMetric {
         public final int window;
         public final AggregateMetric metric;
@@ -1026,38 +902,13 @@ public abstract class AggregateMetric extends AbstractPositional {
                     metric.toExecutionMetric(namedMetricLookup, groupKeySet)
             );
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Window window1 = (Window) o;
-            return Objects.equals(window, window1.window) &&
-                    Objects.equals(metric, window1.metric);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(window, metric);
-        }
-
-        @Override
-        public String toString() {
-            return "Window{" +
-                    "window=" + window +
-                    ", metric=" + metric +
-                    '}';
-        }
     }
 
+    @Data
+    @EqualsAndHashCode(callSuper = false)
     public static class Qualified extends AggregateMetric {
         public final List<String> scope;
         public final AggregateMetric metric;
-
-        public Qualified(List<String> scope, AggregateMetric metric) {
-            this.scope = scope;
-            this.metric = metric;
-        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -1095,30 +946,10 @@ public abstract class AggregateMetric extends AbstractPositional {
         public com.indeed.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
             throw new IllegalStateException(PRECOMPUTED_EXCEPTION);
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Qualified qualified = (Qualified) o;
-            return Objects.equals(scope, qualified.scope) &&
-                    Objects.equals(metric, qualified.metric);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(scope, metric);
-        }
-
-        @Override
-        public String toString() {
-            return "Qualified{" +
-                    "scope=" + scope +
-                    ", metric=" + metric +
-                    '}';
-        }
     }
 
+    @Data
+    @EqualsAndHashCode(callSuper = false)
     public static class DocStatsPushes extends AggregateMetric {
         public final String dataset;
         public final DocMetric pushes;
@@ -1158,39 +989,15 @@ public abstract class AggregateMetric extends AbstractPositional {
         public com.indeed.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
             return new DocumentLevelMetric(dataset, pushes.getPushes(dataset));
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            DocStatsPushes that = (DocStatsPushes) o;
-            return Objects.equals(dataset, that.dataset) &&
-                    Objects.equals(pushes, that.pushes);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(dataset, pushes);
-        }
-
-        @Override
-        public String toString() {
-            return "DocStatsPushes{" +
-                    "dataset='" + dataset + '\'' +
-                    ", pushes=" + pushes +
-                    '}';
-        }
     }
 
     /**
      * DocStats in which there is no explicit sum, but a single atomic, unambiguous atom.
      */
+    @Data
+    @EqualsAndHashCode(callSuper = false)
     public static class DocStats extends AggregateMetric {
         public final DocMetric docMetric;
-
-        public DocStats(DocMetric docMetric) {
-            this.docMetric = docMetric;
-        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -1223,34 +1030,12 @@ public abstract class AggregateMetric extends AbstractPositional {
         public com.indeed.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
             throw new IllegalStateException(PRECOMPUTED_EXCEPTION);
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            DocStats that = (DocStats) o;
-            return Objects.equals(docMetric, that.docMetric);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(docMetric);
-        }
-
-        @Override
-        public String toString() {
-            return "DocStats{" +
-                    "docMetric=" + docMetric +
-                    '}';
-        }
     }
 
+    @Data
+    @EqualsAndHashCode(callSuper = false)
     public static class Constant extends AggregateMetric {
         public final double value;
-
-        public Constant(double value) {
-            this.value = value;
-        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -1281,36 +1066,13 @@ public abstract class AggregateMetric extends AbstractPositional {
         public com.indeed.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
             return new com.indeed.iql2.execution.metrics.aggregate.Constant(value);
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Constant constant = (Constant) o;
-            return Objects.equals(value, constant.value);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(value);
-        }
-
-        @Override
-        public String toString() {
-            return "Constant{" +
-                    "value=" + value +
-                    '}';
-        }
     }
 
+    @Data
+    @EqualsAndHashCode(callSuper = false)
     public static class Percentile extends RequiresFTGSMetric {
         public final FieldSet field;
         public final double percentile;
-
-        public Percentile(FieldSet field, double percentile) {
-            this.field = field;
-            this.percentile = percentile;
-        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -1336,38 +1098,13 @@ public abstract class AggregateMetric extends AbstractPositional {
         public com.indeed.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
             throw new IllegalStateException(PRECOMPUTED_EXCEPTION);
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Percentile that = (Percentile) o;
-            return Objects.equals(percentile, that.percentile) &&
-                    Objects.equals(field, that.field);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(field, percentile);
-        }
-
-        @Override
-        public String toString() {
-            return "Percentile{" +
-                    "field='" + field + '\'' +
-                    ", percentile=" + percentile +
-                    '}';
-        }
     }
 
+    @Data
+    @EqualsAndHashCode(callSuper = false)
     public static class Running extends AggregateMetric {
         public final int offset;
         public final AggregateMetric metric;
-
-        public Running(int offset, AggregateMetric metric) {
-            this.offset = offset;
-            this.metric = metric;
-        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -1402,40 +1139,14 @@ public abstract class AggregateMetric extends AbstractPositional {
                     offset
             );
         }
-
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            final Running running = (Running) o;
-            return offset == running.offset &&
-                    Objects.equals(metric, running.metric);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(offset, metric);
-        }
-
-        @Override
-        public String toString() {
-            return "Running{" +
-                    "offset=" + offset +
-                    ", metric=" + metric +
-                    '}';
-        }
     }
 
+    @Data
+    @EqualsAndHashCode(callSuper = false)
     public static class Distinct extends RequiresFTGSMetric {
         public final FieldSet field;
         public final Optional<AggregateFilter> filter;
         public final Optional<Integer> windowSize;
-
-        public Distinct(FieldSet field, Optional<AggregateFilter> filter, Optional<Integer> windowSize) {
-            this.field = field;
-            this.filter = filter;
-            this.windowSize = windowSize;
-        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -1471,42 +1182,13 @@ public abstract class AggregateMetric extends AbstractPositional {
         public com.indeed.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
             throw new IllegalStateException(PRECOMPUTED_EXCEPTION);
         }
-
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Distinct distinct = (Distinct) o;
-            return Objects.equals(field, distinct.field) &&
-                    Objects.equals(filter, distinct.filter) &&
-                    Objects.equals(windowSize, distinct.windowSize);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(field, filter, windowSize);
-        }
-
-        @Override
-        public String toString() {
-            return "Distinct{" +
-                    "field='" + field + '\'' +
-                    ", filter=" + filter +
-                    ", windowSize=" + windowSize +
-                    '}';
-        }
     }
 
+    @Data
+    @EqualsAndHashCode(callSuper = false)
     public static class Named extends AggregateMetric {
-
         public final AggregateMetric metric;
         public final Positioned<String> name;
-
-        public Named(AggregateMetric metric, Positioned<String> name) {
-            this.metric = metric;
-            this.name = name;
-        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -1539,36 +1221,12 @@ public abstract class AggregateMetric extends AbstractPositional {
         public com.indeed.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
             throw new IllegalStateException(PRECOMPUTED_EXCEPTION);
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Named named = (Named) o;
-            return Objects.equals(metric, named.metric) &&
-                    Objects.equals(name, named.name);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(metric, name);
-        }
-
-        @Override
-        public String toString() {
-            return "Named{" +
-                    "metric=" + metric +
-                    ", name='" + name + '\'' +
-                    '}';
-        }
     }
 
+    @Data
+    @EqualsAndHashCode(callSuper = false)
     public static class NeedsSubstitution extends AggregateMetric {
         public final String substitutionName;
-
-        public NeedsSubstitution(final String substitutionName) {
-            this.substitutionName = substitutionName;
-        }
 
         @Override
         public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {
@@ -1598,27 +1256,12 @@ public abstract class AggregateMetric extends AbstractPositional {
         public com.indeed.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(final Function<String, PerGroupConstant> namedMetricLookup, final GroupKeySet groupKeySet) {
             throw new UnsupportedOperationException("Should be replaced by something else");
         }
-
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            final NeedsSubstitution that = (NeedsSubstitution) o;
-            return Objects.equals(substitutionName, that.substitutionName);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(substitutionName);
-        }
     }
 
+    @Data
+    @EqualsAndHashCode(callSuper = false)
     public static class GroupStatsLookup extends AggregateMetric {
         public final String name;
-
-        public GroupStatsLookup(String name) {
-            this.name = name;
-        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -1651,36 +1294,13 @@ public abstract class AggregateMetric extends AbstractPositional {
         public com.indeed.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
             return namedMetricLookup.apply(name);
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            GroupStatsLookup that = (GroupStatsLookup) o;
-            return Objects.equals(name, that.name);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(name);
-        }
-
-        @Override
-        public String toString() {
-            return "GroupStatsLookup{" +
-                    "name='" + name + '\'' +
-                    '}';
-        }
     }
 
+    @Data
+    @EqualsAndHashCode(callSuper = false)
     public static class SumAcross extends RequiresFTGSMetric {
         public final GroupBy groupBy;
         public final AggregateMetric metric;
-
-        public SumAcross(GroupBy groupBy, AggregateMetric metric) {
-            this.groupBy = groupBy;
-            this.metric = metric;
-        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -1708,41 +1328,14 @@ public abstract class AggregateMetric extends AbstractPositional {
         public com.indeed.iql2.execution.metrics.aggregate.AggregateMetric toExecutionMetric(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
             throw new IllegalStateException(PRECOMPUTED_EXCEPTION);
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            SumAcross sumAcross = (SumAcross) o;
-            return Objects.equals(groupBy, sumAcross.groupBy) &&
-                    Objects.equals(metric, sumAcross.metric);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(groupBy, metric);
-        }
-
-
-        @Override
-        public String toString() {
-            return "SumAcross{" +
-                    "groupBy=" + groupBy +
-                    ", metric=" + metric +
-                    '}';
-        }
     }
 
+    @Data
+    @EqualsAndHashCode(callSuper = false)
     public static class IfThenElse extends AggregateMetric {
         public final AggregateFilter condition;
         public final AggregateMetric trueCase;
         public final AggregateMetric falseCase;
-
-        public IfThenElse(AggregateFilter condition, AggregateMetric trueCase, AggregateMetric falseCase) {
-            this.condition = condition;
-            this.trueCase = trueCase;
-            this.falseCase = falseCase;
-        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -1789,46 +1382,14 @@ public abstract class AggregateMetric extends AbstractPositional {
                     falseCase.toExecutionMetric(namedMetricLookup, groupKeySet)
             );
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            IfThenElse that = (IfThenElse) o;
-            return Objects.equals(condition, that.condition) &&
-                    Objects.equals(trueCase, that.trueCase) &&
-                    Objects.equals(falseCase, that.falseCase);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(condition, trueCase, falseCase);
-        }
-
-        @Override
-        public String toString() {
-            return "IfThenElse{" +
-                    "condition=" + condition +
-                    ", trueCase=" + trueCase +
-                    ", falseCase=" + falseCase +
-                    '}';
-        }
     }
 
+    @Data
+    @EqualsAndHashCode(callSuper = false)
     public static class FieldMin extends RequiresFTGSMetric {
         public final FieldSet field;
         public final Optional<AggregateMetric> metric;
         public final Optional<AggregateFilter> filter;
-
-        public FieldMin(
-            final FieldSet field,
-            final Optional<AggregateMetric> metric,
-            final Optional<AggregateFilter> filter
-        ) {
-            this.field = field;
-            this.metric = metric;
-            this.filter = filter;
-        }
 
         @Override
         public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {
@@ -1873,46 +1434,14 @@ public abstract class AggregateMetric extends AbstractPositional {
         ) {
             throw new IllegalStateException(PRECOMPUTED_EXCEPTION);
         }
-
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            FieldMin fieldMin = (FieldMin) o;
-            return Objects.equals(field, fieldMin.field) &&
-                Objects.equals(metric, fieldMin.metric) &&
-                Objects.equals(filter, fieldMin.filter);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(field, metric, filter);
-        }
-
-        @Override
-        public String toString() {
-            return "FieldMin{" +
-                    "field='" + field + '\'' +
-                    ", metric='" + metric + '\'' +
-                    ", filter='" + filter + '\'' +
-                    '}';
-        }
     }
 
+    @Data
+    @EqualsAndHashCode(callSuper = false)
     public static class FieldMax extends RequiresFTGSMetric {
         public final FieldSet field;
         public final Optional<AggregateMetric> metric;
         public final Optional<AggregateFilter> filter;
-
-        public FieldMax(
-            final FieldSet field,
-            final Optional<AggregateMetric> metric,
-            final Optional<AggregateFilter> filter
-        ) {
-            this.field = field;
-            this.metric = metric;
-            this.filter = filter;
-        }
 
         @Override
         public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {
@@ -1957,38 +1486,12 @@ public abstract class AggregateMetric extends AbstractPositional {
         ) {
             throw new IllegalStateException(PRECOMPUTED_EXCEPTION);
         }
-
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            FieldMax fieldMax = (FieldMax) o;
-            return Objects.equals(field, fieldMax.field) &&
-                Objects.equals(metric, fieldMax.metric) &&
-                Objects.equals(filter, fieldMax.filter);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(field, metric, filter);
-        }
-
-        @Override
-        public String toString() {
-            return "FieldMax{" +
-                    "field='" + field + '\'' +
-                    ", metric='" + metric + '\'' +
-                    ", filter='" + filter + '\'' +
-                    '}';
-        }
     }
 
+    @Data
+    @EqualsAndHashCode(callSuper = false)
     public static class Min extends AggregateMetric {
         public final List<AggregateMetric> metrics;
-
-        public Min(List<AggregateMetric> metrics) {
-            this.metrics = metrics;
-        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -2042,34 +1545,12 @@ public abstract class AggregateMetric extends AbstractPositional {
                         .collect(Collectors.toList())
             );
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Min min = (Min) o;
-            return Objects.equals(metrics, min.metrics);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(metrics);
-        }
-
-        @Override
-        public String toString() {
-            return "Min{" +
-                    "metrics=" + metrics +
-                    '}';
-        }
     }
 
+    @Data
+    @EqualsAndHashCode(callSuper = false)
     public static class Max extends AggregateMetric {
         public final List<AggregateMetric> metrics;
-
-        public Max(List<AggregateMetric> metrics) {
-            this.metrics = metrics;
-        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -2123,26 +1604,6 @@ public abstract class AggregateMetric extends AbstractPositional {
                         .collect(Collectors.toList())
             );
 
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Max max = (Max) o;
-            return Objects.equals(metrics, max.metrics);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(metrics);
-        }
-
-        @Override
-        public String toString() {
-            return "Max{" +
-                    "metrics=" + metrics +
-                    '}';
         }
     }
 }

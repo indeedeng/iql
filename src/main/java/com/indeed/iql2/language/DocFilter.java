@@ -45,6 +45,9 @@ import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.iql2.server.web.servlets.query.CommandValidator;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -105,6 +108,7 @@ public abstract class DocFilter extends AbstractPositional {
         return this;
     }
 
+    @EqualsAndHashCode(callSuper = false)
     public abstract static class FieldTermEqual extends DocFilter {
         public final FieldSet field;
         public final Term term;
@@ -125,6 +129,7 @@ public abstract class DocFilter extends AbstractPositional {
         }
     }
 
+    @EqualsAndHashCode(callSuper = true)
     public static class FieldIs extends FieldTermEqual {
         public FieldIs(FieldSet field, Term term) {
             super(field, term);
@@ -161,20 +166,6 @@ public abstract class DocFilter extends AbstractPositional {
         }
 
         @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            FieldIs fieldIs = (FieldIs) o;
-            return Objects.equals(field, fieldIs.field) &&
-                    Objects.equals(term, fieldIs.term);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(field, term);
-        }
-
-        @Override
         public String toString() {
             return "FieldIs{" +
                     "field='" + field + '\'' +
@@ -183,6 +174,7 @@ public abstract class DocFilter extends AbstractPositional {
         }
     }
 
+    @EqualsAndHashCode(callSuper = true)
     public static class FieldIsnt extends FieldTermEqual {
         public FieldIsnt(FieldSet field, Term term) {
             super(field, term);
@@ -209,20 +201,6 @@ public abstract class DocFilter extends AbstractPositional {
         }
 
         @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            FieldIsnt fieldIsnt = (FieldIsnt) o;
-            return Objects.equals(field, fieldIsnt.field) &&
-                    Objects.equals(term, fieldIsnt.term);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(field, term);
-        }
-
-        @Override
         public String toString() {
             return "FieldIsnt{" +
                     "field='" + field + '\'' +
@@ -231,18 +209,15 @@ public abstract class DocFilter extends AbstractPositional {
         }
     }
 
+    @Data
+    @EqualsAndHashCode(callSuper = false)
     public static class FieldInQuery extends DocFilter {
         public final com.indeed.iql2.language.query.Query query;
         public final FieldSet field;
         public final boolean isNegated; // true if <field> NOT IN <query>
+        @ToString.Exclude
+        @EqualsAndHashCode.Exclude
         private final DatasetsMetadata datasetsMetadata;
-
-        public FieldInQuery(com.indeed.iql2.language.query.Query query, FieldSet field, boolean isNegated, DatasetsMetadata datasetsMetadata) {
-            this.query = query;
-            this.field = field;
-            this.isNegated = isNegated;
-            this.datasetsMetadata = datasetsMetadata;
-        }
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
@@ -268,54 +243,15 @@ public abstract class DocFilter extends AbstractPositional {
         public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
             CommandValidator.validate(query, datasetsMetadata, errorCollector);
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-
-            FieldInQuery that = (FieldInQuery) o;
-
-            if (isNegated != that.isNegated) return false;
-            if (query != null ? !query.equals(that.query) : that.query != null) return false;
-            return !(field != null ? !field.equals(that.field) : that.field != null);
-
-        }
-
-        @Override
-        public int hashCode() {
-            int result = query != null ? query.hashCode() : 0;
-            result = 31 * result + (field != null ? field.hashCode() : 0);
-            result = 31 * result + (isNegated ? 1 : 0);
-            return result;
-        }
-
-        @Override
-        public String toString() {
-            return "FieldInQuery{" +
-                    "query=" + query +
-                    ", field='" + field + '\'' +
-                    ", isNegated=" + isNegated +
-                    '}';
-        }
     }
 
+    @Data
+    @EqualsAndHashCode(callSuper = false)
     public static class Between extends DocFilter {
         public final FieldSet field;
         public final long lowerBound;
         public final long upperBound;
         public final boolean isUpperInclusive;
-
-        public Between(
-                final FieldSet field,
-                final long lowerBound,
-                final long upperBound,
-                final boolean isUpperInclusive) {
-            this.field = field;
-            this.lowerBound = lowerBound;
-            this.upperBound = upperBound;
-            this.isUpperInclusive = isUpperInclusive;
-        }
 
         public DocFilter forMetric(final DocMetric metric) {
             return forMetric(metric, lowerBound, upperBound, isUpperInclusive);
@@ -362,34 +298,9 @@ public abstract class DocFilter extends AbstractPositional {
         public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
             ValidationUtil.validateIntField(ImmutableSet.of(dataset), field.datasetFieldName(dataset), validationHelper, errorCollector, this);
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Between between = (Between) o;
-            return (lowerBound == between.lowerBound) &&
-                    (upperBound == between.upperBound) &&
-                    (isUpperInclusive == between.isUpperInclusive) &&
-                    Objects.equals(field, between.field);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(field, lowerBound, upperBound, isUpperInclusive);
-        }
-
-        @Override
-        public String toString() {
-            return "Between{" +
-                    "field='" + field + '\'' +
-                    ", lowerBound=" + lowerBound +
-                    ", upperBound=" + upperBound +
-                    ", isUpperInclusive=" + isUpperInclusive +
-                    '}';
-        }
     }
 
+    @EqualsAndHashCode(callSuper = false)
     public abstract static class MetricBinop extends DocFilter {
         public final DocMetric m1;
         public final DocMetric m2;
@@ -420,6 +331,7 @@ public abstract class DocFilter extends AbstractPositional {
         }
     }
 
+    @EqualsAndHashCode(callSuper = true)
     public static class MetricEqual extends MetricBinop {
         public MetricEqual(DocMetric m1, DocMetric m2) {
             super(m1, m2);
@@ -460,20 +372,6 @@ public abstract class DocFilter extends AbstractPositional {
         }
 
         @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            MetricEqual that = (MetricEqual) o;
-            return Objects.equals(m1, that.m1) &&
-                    Objects.equals(m2, that.m2);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(m1, m2);
-        }
-
-        @Override
         public String toString() {
             return "MetricEqual{" +
                     "m1=" + m1 +
@@ -482,6 +380,7 @@ public abstract class DocFilter extends AbstractPositional {
         }
     }
 
+    @EqualsAndHashCode(callSuper = true)
     public static class MetricNotEqual extends MetricBinop {
         public MetricNotEqual(DocMetric m1, DocMetric m2) {
             super(m1, m2);
@@ -527,20 +426,6 @@ public abstract class DocFilter extends AbstractPositional {
         }
 
         @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            MetricNotEqual that = (MetricNotEqual) o;
-            return Objects.equals(m1, that.m1) &&
-                    Objects.equals(m2, that.m2);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(m1, m2);
-        }
-
-        @Override
         public String toString() {
             return "MetricNotEqual{" +
                     "m1=" + m1 +
@@ -549,6 +434,7 @@ public abstract class DocFilter extends AbstractPositional {
         }
     }
 
+    @EqualsAndHashCode(callSuper = true)
     public static class MetricGt extends MetricBinop {
         public MetricGt(DocMetric m1, DocMetric m2) {
             super(m1, m2);
@@ -591,20 +477,6 @@ public abstract class DocFilter extends AbstractPositional {
         }
 
         @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            MetricGt metricGt = (MetricGt) o;
-            return Objects.equals(m1, metricGt.m1) &&
-                    Objects.equals(m2, metricGt.m2);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(m1, m2);
-        }
-
-        @Override
         public String toString() {
             return "MetricGt{" +
                     "m1=" + m1 +
@@ -613,6 +485,7 @@ public abstract class DocFilter extends AbstractPositional {
         }
     }
 
+    @EqualsAndHashCode(callSuper = true)
     public static class MetricGte extends MetricBinop {
         public MetricGte(DocMetric m1, DocMetric m2) {
             super(m1, m2);
@@ -655,20 +528,6 @@ public abstract class DocFilter extends AbstractPositional {
         }
 
         @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            MetricGte metricGte = (MetricGte) o;
-            return Objects.equals(m1, metricGte.m1) &&
-                    Objects.equals(m2, metricGte.m2);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(m1, m2);
-        }
-
-        @Override
         public String toString() {
             return "MetricGte{" +
                     "m1=" + m1 +
@@ -677,6 +536,7 @@ public abstract class DocFilter extends AbstractPositional {
         }
     }
 
+    @EqualsAndHashCode(callSuper = true)
     public static class MetricLt extends MetricBinop {
         public MetricLt(DocMetric m1, DocMetric m2) {
             super(m1, m2);
@@ -719,20 +579,6 @@ public abstract class DocFilter extends AbstractPositional {
         }
 
         @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            MetricLt metricLt = (MetricLt) o;
-            return Objects.equals(m1, metricLt.m1) &&
-                    Objects.equals(m2, metricLt.m2);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(m1, m2);
-        }
-
-        @Override
         public String toString() {
             return "MetricLt{" +
                     "m1=" + m1 +
@@ -741,6 +587,7 @@ public abstract class DocFilter extends AbstractPositional {
         }
     }
 
+    @EqualsAndHashCode(callSuper = true)
     public static class MetricLte extends MetricBinop {
         public MetricLte(DocMetric m1, DocMetric m2) {
             super(m1, m2);
@@ -780,20 +627,6 @@ public abstract class DocFilter extends AbstractPositional {
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            MetricLte metricLte = (MetricLte) o;
-            return Objects.equals(m1, metricLte.m1) &&
-                    Objects.equals(m2, metricLte.m2);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(m1, m2);
         }
 
         @Override
@@ -1066,12 +899,10 @@ public abstract class DocFilter extends AbstractPositional {
         }
     }
 
+    @Data
+    @EqualsAndHashCode(callSuper = false)
     public static class Not extends DocFilter {
         public final DocFilter filter;
-
-        public Not(DocFilter filter) {
-            this.filter = filter;
-        }
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
@@ -1097,28 +928,10 @@ public abstract class DocFilter extends AbstractPositional {
         public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
             filter.validate(dataset, validationHelper, errorCollector);
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Not not = (Not) o;
-            return Objects.equals(filter, not.filter);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(filter);
-        }
-
-        @Override
-        public String toString() {
-            return "Not{" +
-                    "filter=" + filter +
-                    '}';
-        }
     }
 
+    @ToString
+    @EqualsAndHashCode(callSuper = false)
     public static class Regex extends DocFilter {
         public final FieldSet field;
         public final String regex;
@@ -1155,30 +968,10 @@ public abstract class DocFilter extends AbstractPositional {
                 errorCollector.error(ErrorMessages.missingStringField(dataset, field.datasetFieldName(dataset), this));
             }
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Regex regex1 = (Regex) o;
-            return Objects.equals(field, regex1.field) &&
-                    Objects.equals(regex, regex1.regex);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(field, regex);
-        }
-
-        @Override
-        public String toString() {
-            return "Regex{" +
-                    "field='" + field + '\'' +
-                    ", regex='" + regex + '\'' +
-                    '}';
-        }
     }
 
+    @ToString
+    @EqualsAndHashCode(callSuper = false)
     public static class NotRegex extends DocFilter {
         public final FieldSet field;
         public final String regex;
@@ -1216,38 +1009,13 @@ public abstract class DocFilter extends AbstractPositional {
                 errorCollector.error(ErrorMessages.missingStringField(dataset, fieldName, this));
             }
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            NotRegex notRegex = (NotRegex) o;
-            return Objects.equals(field, notRegex.field) &&
-                    Objects.equals(regex, notRegex.regex);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(field, regex);
-        }
-
-        @Override
-        public String toString() {
-            return "NotRegex{" +
-                    "field='" + field + '\'' +
-                    ", regex='" + regex + '\'' +
-                    '}';
-        }
     }
 
+    @Data
+    @EqualsAndHashCode(callSuper = false)
     public static class FieldEqual extends DocFilter {
         public final FieldSet field1;
         public final FieldSet field2;
-
-        public FieldEqual(FieldSet field1, FieldSet field2) {
-            this.field1 = field1;
-            this.field2 = field2;
-        }
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
@@ -1273,44 +1041,14 @@ public abstract class DocFilter extends AbstractPositional {
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
         }
-
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-            final FieldEqual that = (FieldEqual) o;
-            return com.google.common.base.Objects.equal(field1, that.field1) &&
-                    com.google.common.base.Objects.equal(field2, that.field2);
-        }
-
-        @Override
-        public int hashCode() {
-            return com.google.common.base.Objects.hashCode(field1, field2);
-        }
-
-        @Override
-        public String toString() {
-            return "FieldEqual{" +
-                    "field1=" + field1 +
-                    ", field2=" + field2 +
-                    '}';
-        }
-
     }
 
+    @Data
+    @EqualsAndHashCode(callSuper = false)
     public static class Qualified extends DocFilter {
         // TODO: Why is this a List<String> instead of a single string? A per-document thing can only be one dataset!
         public final List<String> scope;
         public final DocFilter filter;
-
-        public Qualified(List<String> scope, DocFilter filter) {
-            this.scope = scope;
-            this.filter = filter;
-        }
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
@@ -1348,40 +1086,18 @@ public abstract class DocFilter extends AbstractPositional {
             }
             ValidationUtil.validateScope(scope, validationHelper, errorCollector);
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Qualified qualified = (Qualified) o;
-            return Objects.equals(scope, qualified.scope) &&
-                    Objects.equals(filter, qualified.filter);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(scope, filter);
-        }
-
-        @Override
-        public String toString() {
-            return "Qualified{" +
-                    "scope=" + scope +
-                    ", filter=" + filter +
-                    '}';
-        }
     }
 
+    @Data
+    @EqualsAndHashCode(callSuper = false)
     public static class Lucene extends DocFilter {
         public final String query;
+        @ToString.Exclude
+        @EqualsAndHashCode.Exclude
         private final ScopedFieldResolver fieldResolver;
+        @ToString.Exclude
+        @EqualsAndHashCode.Exclude
         private final DatasetsMetadata datasetsMetadata;
-
-        public Lucene(String query, ScopedFieldResolver fieldResolver, DatasetsMetadata datasetsMetadata) {
-            this.query = query;
-            this.fieldResolver = fieldResolver;
-            this.datasetsMetadata = datasetsMetadata;
-        }
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
@@ -1415,42 +1131,16 @@ public abstract class DocFilter extends AbstractPositional {
             final Query flamdexQuery = ParserUtil.getFlamdexQuery(query, dataset, datasetsMetadata, fieldResolver);
             ValidationUtil.validateQuery(validationHelper, ImmutableMap.of(dataset, flamdexQuery), errorCollector, this);
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Lucene lucene = (Lucene) o;
-            return Objects.equals(query, lucene.query);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(query);
-        }
-
-        @Override
-        public String toString() {
-            return "Lucene{" +
-                    "query='" + query + '\'' +
-                    '}';
-        }
     }
 
+    @Data
+    @EqualsAndHashCode(callSuper = false)
     public static class Sample extends DocFilter {
         public final FieldSet field;
         public final boolean isIntField;
         public final long numerator;
         public final long denominator;
         public final String seed;
-
-        public Sample(FieldSet field, final boolean isIntField, long numerator, long denominator, String seed) {
-            this.field = field;
-            this.isIntField = isIntField;
-            this.numerator = numerator;
-            this.denominator = denominator;
-            this.seed = seed;
-        }
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
@@ -1485,46 +1175,15 @@ public abstract class DocFilter extends AbstractPositional {
                 errorCollector.error(ErrorMessages.missingField(dataset, fieldName, this));
             }
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Sample sample = (Sample) o;
-            return Objects.equals(numerator, sample.numerator) &&
-                    Objects.equals(denominator, sample.denominator) &&
-                    Objects.equals(field, sample.field) &&
-                    Objects.equals(seed, sample.seed);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(field, numerator, denominator, seed);
-        }
-
-        @Override
-        public String toString() {
-            return "Sample{" +
-                    "field='" + field + '\'' +
-                    ", numerator=" + numerator +
-                    ", denominator=" + denominator +
-                    ", seed='" + seed + '\'' +
-                    '}';
-        }
     }
 
+    @Data
+    @EqualsAndHashCode(callSuper = false)
     public static class SampleDocMetric extends DocFilter {
         public final DocMetric metric;
         public final long numerator;
         public final long denominator;
         public final String seed;
-
-        public SampleDocMetric(final DocMetric metric, final long numerator, final long denominator, final String seed) {
-            this.metric = metric;
-            this.numerator = numerator;
-            this.denominator = denominator;
-            this.seed = seed;
-        }
 
         @Override
         public DocFilter transform(final Function<DocMetric, DocMetric> g,
@@ -1566,36 +1225,6 @@ public abstract class DocFilter extends AbstractPositional {
                              final ValidationHelper validationHelper,
                              final ErrorCollector errorCollector) {
             metric.validate(dataset, validationHelper, errorCollector);
-        }
-
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) {
-                return true;
-            }
-            if ((o == null) || (getClass() != o.getClass())) {
-                return false;
-            }
-            final SampleDocMetric sample = (SampleDocMetric) o;
-            return Objects.equals(metric, sample.metric) &&
-                    Objects.equals(numerator, sample.numerator) &&
-                    Objects.equals(denominator, sample.denominator) &&
-                    Objects.equals(seed, sample.seed);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(metric, numerator, denominator, seed);
-        }
-
-        @Override
-        public String toString() {
-            return "SampleDocMetric{" +
-                    "metric=" + metric +
-                    ", numerator=" + numerator +
-                    ", denominator=" + denominator +
-                    ", seed='" + seed + '\'' +
-                    '}';
         }
     }
 
@@ -1683,19 +1312,12 @@ public abstract class DocFilter extends AbstractPositional {
         }
     }
 
+    @Data
+    @EqualsAndHashCode(callSuper = false)
     public static class StringFieldIn extends DocFilter {
         public final DatasetsMetadata datasetsMetadata;
         public final FieldSet field;
         public final Set<String> terms;
-
-        public StringFieldIn(DatasetsMetadata datasetsMetadata, FieldSet field, Set<String> terms) {
-            this.datasetsMetadata = datasetsMetadata;
-            if (terms.isEmpty()) {
-                throw new IqlKnownException.ParseErrorException("Cannot have empty set of terms!");
-            }
-            this.field = field;
-            this.terms = ImmutableSet.copyOf(terms);
-        }
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
@@ -1726,48 +1348,25 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
+            if (terms.isEmpty()) {
+                errorCollector.error("Cannot have empty set of terms in [" + getTextOrToString() + "]");
+            }
             final String fieldName = this.field.datasetFieldName(dataset);
             if (!validationHelper.containsStringField(dataset, fieldName)) {
                 errorCollector.error(ErrorMessages.missingStringField(dataset, fieldName, this));
             }
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            StringFieldIn that = (StringFieldIn) o;
-            return Objects.equals(field, that.field) &&
-                    Objects.equals(terms, that.terms);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(field, terms);
-        }
-
-        @Override
-        public String toString() {
-            return "StringFieldIn{" +
-                    "field='" + field + '\'' +
-                    ", terms=" + terms +
-                    '}';
-        }
     }
 
+    @Data
+    @EqualsAndHashCode(callSuper = false)
     public static class IntFieldIn extends DocFilter {
-        public final FieldSet field;
-        public final Set<Long> terms;
+        @ToString.Exclude
+        @EqualsAndHashCode.Exclude
         public final DatasetsMetadata datasetsMetadata;
 
-        public IntFieldIn(DatasetsMetadata datasetsMetadata, FieldSet field, Set<Long> terms) {
-            if (terms.isEmpty()) {
-                throw new IqlKnownException.ParseErrorException("Cannot have empty set of terms!");
-            }
-            this.field = field;
-            this.terms = new LongOpenHashSet(terms);
-            this.datasetsMetadata = datasetsMetadata;
-        }
+        public final FieldSet field;
+        public final Set<Long> terms;
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
@@ -1797,45 +1396,22 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
+            if (terms.isEmpty()) {
+                errorCollector.error("Cannot have empty set of terms in [" + getTextOrToString() + "]");
+            }
             final String fieldName = field.datasetFieldName(dataset);
             if (!validationHelper.containsField(dataset, fieldName)) {
                 errorCollector.error(ErrorMessages.missingField(dataset, fieldName, this));
             }
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            IntFieldIn that = (IntFieldIn) o;
-            return Objects.equals(field, that.field) &&
-                    Objects.equals(terms, that.terms);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(field, terms);
-        }
-
-        @Override
-        public String toString() {
-            return "IntFieldIn{" +
-                    "field='" + field + '\'' +
-                    ", terms=" + terms +
-                    '}';
-        }
     }
 
+    @Data
+    @EqualsAndHashCode(callSuper = false)
     public static class ExplainFieldIn extends DocFilter {
         public final com.indeed.iql2.language.query.Query query;
         private final FieldSet field;
         private final boolean isNegated;
-
-        public ExplainFieldIn(final com.indeed.iql2.language.query.Query query, FieldSet field, boolean isNegated) {
-            this.query = query;
-            this.field = field;
-            this.isNegated = isNegated;
-        }
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
@@ -1867,14 +1443,5 @@ public abstract class DocFilter extends AbstractPositional {
         @Override
         public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
         }
-
-        @Override
-        public String toString() {
-            return "ExplainFieldIn{" +
-                    "query=" + query +
-                    ", field=" + field +
-                    '}';
-        }
     }
-
 }

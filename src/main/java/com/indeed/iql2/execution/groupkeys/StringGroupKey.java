@@ -15,10 +15,14 @@
 package com.indeed.iql2.execution.groupkeys;
 
 import com.indeed.iql2.Formatter;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 import org.joda.time.format.DateTimeFormatter;
 
 import java.util.Objects;
 
+@Data
+@EqualsAndHashCode(callSuper = false)
 public class StringGroupKey extends GroupKey {
     public final String term;
 
@@ -46,25 +50,5 @@ public class StringGroupKey extends GroupKey {
     @Override
     public boolean isDefault() {
         return false;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        StringGroupKey that = (StringGroupKey) o;
-        return Objects.equals(term, that.term);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(term);
-    }
-
-    @Override
-    public String toString() {
-        return "StringGroupKey{" +
-                "term='" + term + '\'' +
-                '}';
     }
 }

@@ -30,6 +30,7 @@ import com.indeed.iql2.language.query.Dataset;
 import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.util.core.Pair;
+import lombok.Data;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -169,14 +170,10 @@ public class GroupIterations {
         return dependencies;
     }
 
+    @Data
     private static class PrecomputedContext {
         private final List<Dataset> datasets;
         private final Optional<FieldSet> field;
-
-        private PrecomputedContext(List<Dataset> datasets, Optional<FieldSet> field) {
-            this.datasets = datasets;
-            this.field = field;
-        }
 
         // TODO: Make this a visitor to avoid being able to forget handling new ones
         public static PrecomputedContext create(ExecutionStep.ComputePrecomputed computePrecomputed) {
@@ -202,20 +199,6 @@ public class GroupIterations {
             } else {
                 throw new IllegalStateException("Failed to handle: [" + computePrecomputed + "]'s computation: [" + computation + "]");
             }
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            PrecomputedContext that = (PrecomputedContext) o;
-            return Objects.equals(datasets, that.datasets) &&
-                    Objects.equals(field, that.field);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(datasets, field);
         }
     }
 

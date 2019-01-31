@@ -19,18 +19,15 @@ import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
+import lombok.Data;
 
 import java.util.List;
 import java.util.Objects;
 
+@Data
 public class ComputeAndCreateGroupStatsLookup implements Command {
     public final Command computation;
     public final String name;
-
-    public ComputeAndCreateGroupStatsLookup(Command computation, String name) {
-        this.computation = computation;
-        this.name = name;
-    }
 
     @Override
     public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {
@@ -44,27 +41,5 @@ public class ComputeAndCreateGroupStatsLookup implements Command {
                 computation.toExecutionCommand(namedMetricLookup, groupKeySet, options),
                 name
         );
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ComputeAndCreateGroupStatsLookup that = (ComputeAndCreateGroupStatsLookup) o;
-        return Objects.equals(computation, that.computation) &&
-                Objects.equals(name, that.name);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(computation, name);
-    }
-
-    @Override
-    public String toString() {
-        return "ComputeAndCreateGroupStatsLookup{" +
-                "computation=" + computation +
-                ", name=" + name +
-                '}';
     }
 }
