@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.indeed.imhotep.Shard;
@@ -53,6 +54,7 @@ import com.indeed.iql1.sql.ast2.IQL1SelectStatement;
 import com.indeed.iql1.sql.ast2.SelectClause;
 import com.indeed.iql1.sql.parser.SelectStatementParser;
 import com.indeed.iql2.IQL2Options;
+import com.indeed.iql2.execution.QueryOptions;
 import com.indeed.iql2.server.web.servlets.query.EventStreamProgressCallback;
 import com.indeed.iql2.server.web.servlets.query.ExplainQueryExecution;
 import com.indeed.iql2.server.web.servlets.query.SelectQueryExecution;
@@ -364,13 +366,18 @@ public class QueryServlet {
             if (queryRequestParams.version == 2 || queryRequestParams.legacyMode) {
                 // IQL2
 
+                final Set<String> iql2Options = Sets.newHashSet(defaultIQL2Options.getOptions());
+                if (queryRequestParams.cacheReadDisabled && queryRequestParams.cacheWriteDisabled) {
+                    iql2Options.add(QueryOptions.NO_CACHE);
+                }
+
                 final SelectQueryExecution selectQueryExecution = new SelectQueryExecution(
                         tmpDir, queryCache, limits, maxCachedQuerySizeLimitBytes, imhotepClient,
                         metadataCacheIQL2.get(), resp.getWriter(), queryInfo, clientInfo, timer, query,
                         queryRequestParams.headOnly,
                         queryRequestParams.version, queryRequestParams.isEventStream, queryRequestParams.returnNewestShardVersion, queryRequestParams.skipValidation,
                         queryRequestParams.csv,
-                        clock, queryMetadata, cacheUploadExecutorService, defaultIQL2Options.getOptions(), accessControl);
+                        clock, queryMetadata, cacheUploadExecutorService, ImmutableSet.copyOf(iql2Options), accessControl);
                 selectQueryExecution.processSelect(runningQueriesManager);
             } else {
                 // IQL1
