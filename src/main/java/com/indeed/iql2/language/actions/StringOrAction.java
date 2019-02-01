@@ -15,6 +15,7 @@
 package com.indeed.iql2.language.actions;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableSet;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
@@ -28,7 +29,7 @@ import java.util.Set;
 @Data
 public class StringOrAction implements Action {
     public final FieldSet field;
-    public final Set<String> terms;
+    public final ImmutableSet<String> terms;
 
     public final int targetGroup;
     public final int positiveGroup;

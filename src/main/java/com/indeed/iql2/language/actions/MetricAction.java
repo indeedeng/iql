@@ -15,6 +15,7 @@
 package com.indeed.iql2.language.actions;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableSet;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.DocFilter;
@@ -27,7 +28,7 @@ import java.util.stream.Collectors;
 
 @Data
 public class MetricAction implements Action {
-    public final Set<String> scope;
+    public final ImmutableSet<String> scope;
     public final DocFilter filter;
 
     public final int targetGroup;

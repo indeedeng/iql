@@ -16,6 +16,7 @@ package com.indeed.iql2.language.commands;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.DocMetric;
@@ -29,7 +30,7 @@ import java.util.stream.Collectors;
 
 @Data
 public class RandomMetricRegroup implements Command {
-    private final Map<String, DocMetric> perDatasetMetric;
+    private final ImmutableMap<String, DocMetric> perDatasetMetric;
     private final int k;
     private final String salt;
 

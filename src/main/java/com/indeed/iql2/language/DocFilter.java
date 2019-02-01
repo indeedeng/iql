@@ -317,9 +317,9 @@ public abstract class DocFilter extends AbstractPositional {
             } else if (!scope.keySet().containsAll(qualifications)) {
                 throw new IqlKnownException.ParseErrorException("Scope does not contain qualifications! scope = [" + scope.keySet() + "], qualifications = [" + qualifications + "]");
             } else if (qualifications.size() == 1) {
-                return Collections.<Action>singletonList(new MetricAction(qualifications, this, target, positive, negative));
+                return Collections.singletonList(new MetricAction(ImmutableSet.copyOf(qualifications), this, target, positive, negative));
             } else {
-                return Collections.<Action>singletonList(new MetricAction(scope.keySet(), this, target, positive, negative));
+                return Collections.singletonList(new MetricAction(ImmutableSet.copyOf(scope.keySet()), this, target, positive, negative));
             }
         }
 
@@ -798,8 +798,8 @@ public abstract class DocFilter extends AbstractPositional {
                 for (final DocFilter filter : filters) {
                     result.addAll(filter.getExecutionActions(scope, target, target, newGroup, groupSupplier));
                 }
-                result.add(new UnconditionalAction(scope.keySet(), target, positive));
-                result.add(new UnconditionalAction(scope.keySet(), newGroup, target));
+                result.add(new UnconditionalAction(ImmutableSet.copyOf(scope.keySet()), target, positive));
+                result.add(new UnconditionalAction(ImmutableSet.copyOf(scope.keySet()), newGroup, target));
                 groupSupplier.release(newGroup);
             }
             return result;
@@ -885,8 +885,8 @@ public abstract class DocFilter extends AbstractPositional {
                 for (final DocFilter filter : filters) {
                     result.addAll(filter.getExecutionActions(scope, target, newGroup, target, groupSupplier));
                 }
-                result.add(new UnconditionalAction(scope.keySet(), target, negative));
-                result.add(new UnconditionalAction(scope.keySet(), newGroup, positive));
+                result.add(new UnconditionalAction(ImmutableSet.copyOf(scope.keySet()), target, negative));
+                result.add(new UnconditionalAction(ImmutableSet.copyOf(scope.keySet()), newGroup, positive));
                 groupSupplier.release(newGroup);
             }
             return result;
@@ -1028,7 +1028,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
-            return Collections.<Action>singletonList(new MetricAction(scope.keySet(), this, target, positive, negative));
+            return Collections.singletonList(new MetricAction(ImmutableSet.copyOf(scope.keySet()), this, target, positive, negative));
         }
 
         @Override
@@ -1240,7 +1240,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
-            return Collections.<Action>singletonList(new UnconditionalAction(scope.keySet(), target, positive));
+            return Collections.singletonList(new UnconditionalAction(ImmutableSet.copyOf(scope.keySet()), target, positive));
         }
 
         @Override
@@ -1282,7 +1282,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
-            return Collections.<Action>singletonList(new UnconditionalAction(scope.keySet(), target, negative));
+            return Collections.singletonList(new UnconditionalAction(ImmutableSet.copyOf(scope.keySet()), target, negative));
         }
 
         @Override
@@ -1316,7 +1316,7 @@ public abstract class DocFilter extends AbstractPositional {
     public static class StringFieldIn extends DocFilter {
         public final DatasetsMetadata datasetsMetadata;
         public final FieldSet field;
-        public final Set<String> terms;
+        public final ImmutableSet<String> terms;
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
@@ -1385,7 +1385,7 @@ public abstract class DocFilter extends AbstractPositional {
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             Preconditions.checkState(scope.keySet().equals(field.datasets()));
-            return Collections.singletonList(new IntOrAction(field, terms, target, positive, negative));
+            return Collections.singletonList(new IntOrAction(field, ImmutableSet.copyOf(terms), target, positive, negative));
         }
 
         @Override
@@ -1431,7 +1431,7 @@ public abstract class DocFilter extends AbstractPositional {
                 positive = negative;
                 negative = tmp;
             }
-            return Collections.singletonList(new StringOrAction(field, fakeTerms, target, positive, negative));
+            return Collections.singletonList(new StringOrAction(field, ImmutableSet.copyOf(fakeTerms), target, positive, negative));
         }
 
         @Override

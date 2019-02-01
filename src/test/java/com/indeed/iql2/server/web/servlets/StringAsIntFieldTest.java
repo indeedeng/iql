@@ -46,7 +46,7 @@ public class StringAsIntFieldTest {
                         "[QueryAction(perDatasetQuery={stringAsInt1=int:vp:0}, targetGroup=1, positiveGroup=0, negativeGroup=1)]"),
                 "from stringAsInt1 yesterday today where vp != 0", QueryServletTestUtils.LanguageVersion.IQL2);
         testWarning(ImmutableList.of("Field \"vp\" in Dataset \"stringAsInt1\" is a string field but it is used as an int field in " +
-                        "[IntOrAction(field={stringAsInt1=vp}, terms={3, 1, 2}, targetGroup=1, positiveGroup=1, negativeGroup=0)]"),
+                        "[IntOrAction(field={stringAsInt1=vp}, terms=[3, 1, 2], targetGroup=1, positiveGroup=1, negativeGroup=0)]"),
                 "from stringAsInt1 yesterday today where vp in (1, 2, 3)", QueryServletTestUtils.LanguageVersion.IQL2);
 
         testWarning(ImmutableList.of(), "from stringAsInt1 yesterday today where vp != 0", QueryServletTestUtils.LanguageVersion.ORIGINAL_IQL1);

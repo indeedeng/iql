@@ -16,6 +16,8 @@ package com.indeed.iql2.language.execution;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.AggregateFilter;
@@ -208,7 +210,7 @@ public interface ExecutionStep {
 
         @Override
         public List<Command> commands() {
-            return Collections.singletonList(new MetricRegroup(Maps.filterKeys(perDatasetMetric, scope::contains), lowerBound, upperBound, interval, excludeGutters, withDefault, fromPredicate));
+            return Collections.singletonList(new MetricRegroup(ImmutableMap.copyOf(Maps.filterKeys(perDatasetMetric, scope::contains)), lowerBound, upperBound, interval, excludeGutters, withDefault, fromPredicate));
         }
 
         @Override
@@ -397,7 +399,7 @@ public interface ExecutionStep {
     @Data
     @EqualsAndHashCode(callSuper = false)
     class FilterActions implements ExecutionStep {
-        private final List<Action> actions;
+        private final ImmutableList<Action> actions;
 
         @Override
         public List<Command> commands() {
@@ -454,7 +456,7 @@ public interface ExecutionStep {
 
         @Override
         public List<Command> commands() {
-            return Collections.singletonList(new RandomMetricRegroup(Maps.filterKeys(perDatasetMetric, scope::contains), k, salt));
+            return Collections.singletonList(new RandomMetricRegroup(ImmutableMap.copyOf(Maps.filterKeys(perDatasetMetric, scope::contains)), k, salt));
         }
 
         @Override

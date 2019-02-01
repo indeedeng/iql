@@ -16,6 +16,7 @@ package com.indeed.iql2.language.commands;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.DocMetric;
@@ -30,7 +31,7 @@ import java.util.stream.Collectors;
 
 @Data
 public class MetricRegroup implements Command {
-    public final Map<String, DocMetric> perDatasetMetric;
+    public final ImmutableMap<String, DocMetric> perDatasetMetric;
     public final long min;
     public final long max;
     public final long interval;

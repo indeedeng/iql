@@ -109,11 +109,11 @@ public abstract class DocMetric extends AbstractPositional {
     @Data
     @EqualsAndHashCode(callSuper = false)
     public static class PerDatasetDocMetric extends DocMetric {
-        public final Map<String, DocMetric> datasetToMetric;
+        public final ImmutableMap<String, DocMetric> datasetToMetric;
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return g.apply(new PerDatasetDocMetric(Maps.transformValues(datasetToMetric, d -> d.transform(g, i))))
+            return g.apply(new PerDatasetDocMetric(ImmutableMap.copyOf(Maps.transformValues(datasetToMetric, d -> d.transform(g, i)))))
                     .copyPosition(this);
         }
 

@@ -15,6 +15,7 @@
 package com.indeed.iql2.language.commands;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.actions.Action;
@@ -27,7 +28,7 @@ import java.util.stream.Collectors;
 
 @Data
 public class ApplyFilterActions implements Command {
-    public final List<Action> actions;
+    public final ImmutableList<Action> actions;
 
     @Override
     public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {

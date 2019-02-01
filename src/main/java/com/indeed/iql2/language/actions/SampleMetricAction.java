@@ -15,6 +15,7 @@
 package com.indeed.iql2.language.actions;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableMap;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.DocMetric;
@@ -26,7 +27,7 @@ import java.util.Map;
 
 @Data
 public class SampleMetricAction implements Action {
-    final Map<String, DocMetric> perDatasetMetric;
+    final ImmutableMap<String, DocMetric> perDatasetMetric;
     public final double probability;
     public final String seed;
 
