@@ -39,8 +39,10 @@ import javax.annotation.Nullable;
 import java.io.File;
 import java.io.InputStream;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -72,7 +74,9 @@ public class CacheTest extends BasicTest {
             "from organic yesterday today where tk not in (from same where oji=10 group by tk)",
             "from organic yesterday today where tk not in (from organic 60m 0m group by tk)",
             "from organic yesterday today where tk not in (from organic 60m 0m where tk=\"a\" group by tk)",
-            "from organic yesterday today where tk not in (from organic 60m 0m where oji=10 group by tk)"
+            "from organic yesterday today where tk not in (from organic 60m 0m where oji=10 group by tk)",
+            "from organic yesterday today group by tk in (from organic 60m 0m where tk=\"a\" group by tk)",
+            "from organic yesterday today group by tk not in (from organic 60m 0m where tk=\"a\" group by tk)"
     );
 
     private static String getCacheKey(final String queryString) {
@@ -92,11 +96,11 @@ public class CacheTest extends BasicTest {
 
     @Test
     public void testUniqueCacheValues() {
-        final Set<String> values = new HashSet<>();
+        final Map<String, String> values = new HashMap<>();
         for (final String query : uniqueQueries) {
             final String cacheKey = getCacheKey(query);
-            Assert.assertFalse("Encountered cache collision in what should be unique values", values.contains(cacheKey));
-            values.add(cacheKey);
+            Assert.assertFalse("Encountered cache collision in what should be unique values:\nq1:" + query + "\nq2:" + values.get(cacheKey), values.containsKey(cacheKey));
+            values.put(cacheKey, query);
         }
     }
 
