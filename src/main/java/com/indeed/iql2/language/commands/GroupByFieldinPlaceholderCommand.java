@@ -23,11 +23,15 @@ import java.util.List;
 public class GroupByFieldinPlaceholderCommand implements Command {
     private final FieldSet field;
     private final Query query;
+    private final boolean isNegated;
+    private final boolean withDefault;
     private final DatasetsMetadata datasetsMetadata;
 
-    public GroupByFieldinPlaceholderCommand(final FieldSet field, final Query query, final DatasetsMetadata datasetsMetadata) {
+    public GroupByFieldinPlaceholderCommand(final FieldSet field, final Query query, final boolean isNegated, final boolean withDefault, final DatasetsMetadata datasetsMetadata) {
         this.field = field;
         this.query = query;
+        this.isNegated = isNegated;
+        this.withDefault = withDefault;
         this.datasetsMetadata = datasetsMetadata;
     }
 
@@ -52,13 +56,15 @@ public class GroupByFieldinPlaceholderCommand implements Command {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         final GroupByFieldinPlaceholderCommand that = (GroupByFieldinPlaceholderCommand) o;
-        return Objects.equal(field, that.field) &&
+        return isNegated == that.isNegated &&
+                withDefault == that.withDefault &&
+                Objects.equal(field, that.field) &&
                 Objects.equal(query, that.query);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(field, query);
+        return Objects.hashCode(field, query, isNegated, withDefault);
     }
 
     @Override
@@ -66,6 +72,8 @@ public class GroupByFieldinPlaceholderCommand implements Command {
         return "GroupByFieldinPlaceholderCommand{" +
                 "field=" + field +
                 ", queryHash=" + CacheKey.computeCacheKey(query, ResultFormat.CSV).rawHash +
+                ", isNegated=" + isNegated +
+                ", withDefault=" + withDefault +
                 '}';
     }
 }

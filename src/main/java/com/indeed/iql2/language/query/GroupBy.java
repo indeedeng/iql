@@ -596,7 +596,7 @@ public abstract class GroupBy extends AbstractPositional {
 
         @Override
         public ExecutionStep executionStep(final List<Dataset> datasets) {
-            return new ExecutionStep.GroupByFieldInQueryPlaceholderExecutionStep(field, query, datasetsMetadata);
+            return new ExecutionStep.GroupByFieldInQueryPlaceholderExecutionStep(field, query, isNegated, withDefault, datasetsMetadata);
         }
 
         @Override

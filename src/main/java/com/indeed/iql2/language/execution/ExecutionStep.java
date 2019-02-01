@@ -686,17 +686,21 @@ public interface ExecutionStep {
     class GroupByFieldInQueryPlaceholderExecutionStep implements ExecutionStep {
         private final FieldSet field;
         private final Query query;
+        private final boolean isNegated;
+        private final boolean withDefault;
         private final DatasetsMetadata datasetsMetadata;
 
-        public GroupByFieldInQueryPlaceholderExecutionStep(final FieldSet field, final Query query, final DatasetsMetadata datasetsMetadata) {
+        public GroupByFieldInQueryPlaceholderExecutionStep(final FieldSet field, final Query query, final boolean isNegated, final boolean withDefault, final DatasetsMetadata datasetsMetadata) {
             this.field = field;
             this.query = query;
+            this.isNegated = isNegated;
+            this.withDefault = withDefault;
             this.datasetsMetadata = datasetsMetadata;
         }
 
         @Override
         public List<Command> commands() {
-            return Collections.singletonList(new GroupByFieldinPlaceholderCommand(field, query, datasetsMetadata));
+            return Collections.singletonList(new GroupByFieldinPlaceholderCommand(field, query, isNegated, withDefault, datasetsMetadata));
         }
 
         @Override
@@ -709,6 +713,8 @@ public interface ExecutionStep {
             return "GroupByFieldInQueryPlaceholderExecutionStep{" +
                     "field=" + field +
                     ", query=" + query +
+                    ", isNegated=" + isNegated +
+                    ", withDefault=" + withDefault +
                     '}';
         }
     }
