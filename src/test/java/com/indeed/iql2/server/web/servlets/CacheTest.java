@@ -66,7 +66,13 @@ public class CacheTest extends BasicTest {
             "from organic yesterday today where tk in (from same where oji=10 group by tk)",
             "from organic yesterday today where tk in (from organic 60m 0m group by tk)",
             "from organic yesterday today where tk in (from organic 60m 0m where tk=\"a\" group by tk)",
-            "from organic yesterday today where tk in (from organic 60m 0m where oji=10 group by tk)"
+            "from organic yesterday today where tk in (from organic 60m 0m where oji=10 group by tk)",
+            "from organic yesterday today where tk not in (from same group by tk)",
+            "from organic yesterday today where tk not in (from same where tk=\"a\" group by tk)",
+            "from organic yesterday today where tk not in (from same where oji=10 group by tk)",
+            "from organic yesterday today where tk not in (from organic 60m 0m group by tk)",
+            "from organic yesterday today where tk not in (from organic 60m 0m where tk=\"a\" group by tk)",
+            "from organic yesterday today where tk not in (from organic 60m 0m where oji=10 group by tk)"
     );
 
     private static String getCacheKey(final String queryString) {
@@ -89,7 +95,7 @@ public class CacheTest extends BasicTest {
         final Set<String> values = new HashSet<>();
         for (final String query : uniqueQueries) {
             final String cacheKey = getCacheKey(query);
-            Assert.assertFalse(values.contains(cacheKey));
+            Assert.assertFalse("Encountered cache collision in what should be unique values", values.contains(cacheKey));
             values.add(cacheKey);
         }
     }

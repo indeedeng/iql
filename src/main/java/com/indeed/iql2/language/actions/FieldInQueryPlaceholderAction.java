@@ -21,12 +21,20 @@ import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 public class FieldInQueryPlaceholderAction implements Action {
     private final FieldSet field;
     private final Query query;
+    private final boolean isNegated;
     private final DatasetsMetadata datasetsMetadata;
+    private final int target;
+    private final int positive;
+    private final int negative;
 
-    public FieldInQueryPlaceholderAction(final FieldSet field, final Query query, final DatasetsMetadata datasetsMetadata) {
+    public FieldInQueryPlaceholderAction(final FieldSet field, final Query query, final boolean isNegated, final DatasetsMetadata datasetsMetadata, final int target, final int positive, final int negative) {
         this.field = field;
         this.query = query;
+        this.isNegated = isNegated;
         this.datasetsMetadata = datasetsMetadata;
+        this.target = target;
+        this.positive = positive;
+        this.negative = negative;
     }
 
     @Override
@@ -50,13 +58,17 @@ public class FieldInQueryPlaceholderAction implements Action {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         final FieldInQueryPlaceholderAction that = (FieldInQueryPlaceholderAction) o;
-        return Objects.equal(field, that.field) &&
+        return isNegated == that.isNegated &&
+                target == that.target &&
+                positive == that.positive &&
+                negative == that.negative &&
+                Objects.equal(field, that.field) &&
                 Objects.equal(query, that.query);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(field, query);
+        return Objects.hashCode(field, query, isNegated, target, positive, negative);
     }
 
     @Override
@@ -64,6 +76,10 @@ public class FieldInQueryPlaceholderAction implements Action {
         return "FieldInQueryPlaceholderAction{" +
                 "field=" + field +
                 ", queryHash=" + CacheKey.computeCacheKey(query, ResultFormat.CSV).rawHash +
+                ", isNegated=" + isNegated +
+                ", target=" + target +
+                ", positive=" + positive +
+                ", negative=" + negative +
                 '}';
     }
 }
