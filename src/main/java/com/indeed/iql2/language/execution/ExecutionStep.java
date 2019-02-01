@@ -474,13 +474,15 @@ public interface ExecutionStep {
     class GroupByFieldInQueryPlaceholderExecutionStep implements ExecutionStep {
         private final FieldSet field;
         private final Query query;
+        private final boolean isNegated;
+        private final boolean withDefault;
         @ToString.Exclude
         @EqualsAndHashCode.Exclude
         private final DatasetsMetadata datasetsMetadata;
 
         @Override
         public List<Command> commands() {
-            return Collections.singletonList(new GroupByFieldinPlaceholderCommand(field, query, datasetsMetadata));
+            return Collections.singletonList(new GroupByFieldinPlaceholderCommand(field, query, isNegated, withDefault, datasetsMetadata));
         }
 
         @Override

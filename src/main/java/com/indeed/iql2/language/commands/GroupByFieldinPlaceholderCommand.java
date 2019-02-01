@@ -26,6 +26,8 @@ import java.util.List;
 public class GroupByFieldinPlaceholderCommand implements Command {
     private final FieldSet field;
     private final Query query;
+    private final boolean isNegated;
+    private final boolean withDefault;
     @EqualsAndHashCode.Exclude
     private final DatasetsMetadata datasetsMetadata;
 
@@ -50,6 +52,8 @@ public class GroupByFieldinPlaceholderCommand implements Command {
         return "GroupByFieldinPlaceholderCommand{" +
                 "field=" + field +
                 ", queryHash=" + CacheKey.computeCacheKey(query, ResultFormat.CSV).rawHash +
+                ", isNegated=" + isNegated +
+                ", withDefault=" + withDefault +
                 '}';
     }
 }
