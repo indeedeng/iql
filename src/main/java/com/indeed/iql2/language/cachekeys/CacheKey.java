@@ -5,6 +5,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
+import com.indeed.imhotep.Shard;
 import com.indeed.iql.web.SelectQuery;
 import com.indeed.iql2.execution.QueryOptions;
 import com.indeed.iql2.execution.ResultFormat;
@@ -59,6 +60,9 @@ public class CacheKey {
                     .collect(Collectors.toList());
             for (final FieldAlias fieldAlias : sortedFieldAliases) {
                 sha1.update(fieldAlias.toString().getBytes(Charsets.UTF_8));
+            }
+            for (final Shard shard : dataset.shards) {
+                sha1.update((shard.shardId + "-" + shard.version).getBytes(Charsets.UTF_8));
             }
         }
         for (final String option : sortedOptions) {

@@ -16,7 +16,9 @@ package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 import com.google.common.io.Files;
+import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.iql.cache.CompletableOutputStream;
 import com.indeed.iql.cache.QueryCache;
@@ -27,24 +29,25 @@ import com.indeed.iql2.language.cachekeys.CacheKey;
 import com.indeed.iql2.language.query.Queries;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.shardresolution.ImhotepClientShardResolver;
+import com.indeed.iql2.language.query.shardresolution.ShardResolver;
 import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import com.indeed.util.core.time.StoppedClock;
 import com.indeed.util.logging.TracingTreeTimer;
-import junit.framework.Assert;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
+import org.joda.time.Interval;
+import org.junit.Assert;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
 import java.io.File;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
 
 import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.LanguageVersion.IQL2;
 import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.ResultFormat.EVENT_STREAM;
@@ -52,6 +55,7 @@ import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.ResultFo
 public class CacheTest extends BasicTest {
     // TODO: can we lower this?
     public static final long CACHE_WRITE_TIMEOUT = 1000L;
+    public static final DateTimeZone TIME_ZONE = DateTimeZone.forOffsetHours(-6);
     // Unique in the context of 1 day of hourly sharded data in organic yesterday (2015-01-01).
     private final ImmutableList<String> uniqueQueries = ImmutableList.of(
             "from organic yesterday today",
@@ -78,19 +82,17 @@ public class CacheTest extends BasicTest {
             "from organic yesterday today group by tk in (from organic 60m 0m where tk=\"a\" group by tk)",
             "from organic yesterday today group by tk not in (from organic 60m 0m where tk=\"a\" group by tk)"
     );
+    private static final StoppedClock CLOCK = new StoppedClock(new DateTime(2015, 1, 1, 0, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis());
 
     private static String getCacheKey(final String queryString) {
-        final DatasetsMetadata datasetsMetadata = AllData.DATASET.getDatasetsMetadata();
         final ImhotepClient imhotepClient = AllData.DATASET.getNormalClient();
-        final StoppedClock clock = new StoppedClock(new DateTime(2015, 1, 1, 0, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis());
-        final TracingTreeTimer timer = new TracingTreeTimer();
         final ImhotepClientShardResolver shardResolver = new ImhotepClientShardResolver(imhotepClient);
-        final Query query = Queries.parseQuery(queryString, false /* todo: param? */, datasetsMetadata, Collections.emptySet(), new Consumer<String>() {
-            @Override
-            public void accept(String s) {
+        return getCacheKey(queryString, shardResolver);
+    }
 
-            }
-        }, clock, timer, shardResolver).query;
+    private static String getCacheKey(final String queryString, final ShardResolver shardResolver) {
+        final DatasetsMetadata datasetsMetadata = AllData.DATASET.getDatasetsMetadata();
+        final Query query = Queries.parseQuery(queryString, false /* todo: param? */, datasetsMetadata, Collections.emptySet(), s -> {}, CLOCK, new TracingTreeTimer(), shardResolver).query;
         return CacheKey.computeCacheKey(query, ResultFormat.TSV).cacheFileName;
     }
 
@@ -111,6 +113,117 @@ public class CacheTest extends BasicTest {
             final String cacheKey2 = getCacheKey(query);
             Assert.assertEquals(cacheKey1, cacheKey2);
         }
+    }
+
+    @Test
+    public void testNewShards() {
+        // Ensure that we get different cache keys when new shards arrive
+        final String oneShardKey = getCacheKey("from organic yesterday today", new ShardResolver() {
+            @Nullable
+            @Override
+            public ShardResolutionResult resolve(final String dataset, final DateTime start, final DateTime end) {
+                Assert.assertEquals("organic", dataset);
+                Assert.assertEquals(new DateTime(2014, 12, 31, 0, 0, TIME_ZONE), start);
+                Assert.assertEquals(new DateTime(2015, 1, 1, 0, 0, TIME_ZONE), end);
+                return new ShardResolutionResult(
+                        Collections.singletonList(new Shard("index20141231.00", 10, 123L)),
+                        Collections.singletonList(new Interval(
+                                new DateTime(2014, 12, 31, 1, 0, TIME_ZONE),
+                                new DateTime(2015, 1, 1, 0, 0, TIME_ZONE)
+                        ))
+                );
+            }
+        });
+        final String twoShardKey = getCacheKey("from organic yesterday today", new ShardResolver() {
+            @Nullable
+            @Override
+            public ShardResolutionResult resolve(final String dataset, final DateTime start, final DateTime end) {
+                Assert.assertEquals("organic", dataset);
+                Assert.assertEquals(new DateTime(2014, 12, 31, 0, 0, TIME_ZONE), start);
+                Assert.assertEquals(new DateTime(2015, 1, 1, 0, 0, TIME_ZONE), end);
+                return new ShardResolutionResult(
+                        Arrays.asList(
+                                new Shard("index20141231.00", 10, 123L),
+                                new Shard("index20141231.01", 15, 234L)
+                        ),
+                        Collections.singletonList(new Interval(
+                                new DateTime(2014, 12, 31, 2, 0, TIME_ZONE),
+                                new DateTime(2015, 1, 1, 0, 0, TIME_ZONE)
+                        ))
+                );
+            }
+        });
+        Assert.assertFalse("Should have different cache keys for 1 shard and 2 shards", oneShardKey.equals(twoShardKey));
+        final String twelveShards = getCacheKey("from organic yesterday today", new ShardResolver() {
+            @Nullable
+            @Override
+            public ShardResolutionResult resolve(final String dataset, final DateTime start, final DateTime end) {
+                Assert.assertEquals("organic", dataset);
+                Assert.assertEquals(new DateTime(2014, 12, 31, 0, 0, TIME_ZONE), start);
+                Assert.assertEquals(new DateTime(2015, 1, 1, 0, 0, TIME_ZONE), end);
+                return new ShardResolutionResult(
+                        Arrays.asList(
+                                new Shard("index20141231.00", 10, 123L),
+                                new Shard("index20141231.01", 10, 234L),
+                                new Shard("index20141231.02", 10, 125L),
+                                new Shard("index20141231.03", 10, 126L),
+                                new Shard("index20141231.04", 10, 127L),
+                                new Shard("index20141231.05", 10, 128L),
+                                new Shard("index20141231.06", 10, 129L),
+                                new Shard("index20141231.07", 10, 130L),
+                                new Shard("index20141231.08", 10, 131L),
+                                new Shard("index20141231.09", 10, 132L),
+                                new Shard("index20141231.10", 10, 133L),
+                                new Shard("index20141231.11", 10, 134L),
+                                new Shard("index20141231.12", 15, 234L)
+                        ),
+                        Collections.singletonList(new Interval(
+                                new DateTime(2014, 12, 31, 13, 0, TIME_ZONE),
+                                new DateTime(2015, 1, 1, 0, 0, TIME_ZONE)
+                        ))
+                );
+            }
+        });
+        final Set<String> keys = Sets.newHashSet(oneShardKey, twoShardKey, twelveShards);
+        Assert.assertEquals("Expect unique cache keys for 1, 2, 12 shards", 3, keys.size());
+    }
+
+    @Test
+    public void testShardUpdate() {
+        // Ensure that we get different cache keys when shards get updated
+        final String firstShardKey = getCacheKey("from organic yesterday today", new ShardResolver() {
+            @Nullable
+            @Override
+            public ShardResolutionResult resolve(final String dataset, final DateTime start, final DateTime end) {
+                Assert.assertEquals("organic", dataset);
+                Assert.assertEquals(new DateTime(2014, 12, 31, 0, 0, TIME_ZONE), start);
+                Assert.assertEquals(new DateTime(2015, 1, 1, 0, 0, TIME_ZONE), end);
+                return new ShardResolutionResult(
+                        Collections.singletonList(new Shard("index20141231.00", 10, 123L)),
+                        Collections.singletonList(new Interval(
+                                new DateTime(2014, 12, 31, 1, 0, TIME_ZONE),
+                                new DateTime(2015, 1, 1, 0, 0, TIME_ZONE)
+                        ))
+                );
+            }
+        });
+        final String secondShardKey = getCacheKey("from organic yesterday today", new ShardResolver() {
+            @Nullable
+            @Override
+            public ShardResolutionResult resolve(final String dataset, final DateTime start, final DateTime end) {
+                Assert.assertEquals("organic", dataset);
+                Assert.assertEquals(new DateTime(2014, 12, 31, 0, 0, TIME_ZONE), start);
+                Assert.assertEquals(new DateTime(2015, 1, 1, 0, 0, TIME_ZONE), end);
+                return new ShardResolutionResult(
+                        Collections.singletonList(new Shard("index20141231.00", 10, 124L)),
+                        Collections.singletonList(new Interval(
+                                new DateTime(2014, 12, 31, 1, 0, TIME_ZONE),
+                                new DateTime(2015, 1, 1, 0, 0, TIME_ZONE)
+                        ))
+                );
+            }
+        });
+        Assert.assertFalse("Should have different cache keys for two different versions of a shard", firstShardKey.equals(secondShardKey));
     }
 
     @Test
