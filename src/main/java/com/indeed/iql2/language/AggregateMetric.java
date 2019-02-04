@@ -131,6 +131,13 @@ public abstract class AggregateMetric extends AbstractPositional {
     );
 
     @Override
+    public abstract boolean equals(final Object other);
+    @Override
+    public abstract int hashCode();
+    @Override
+    public abstract String toString();
+
+    @Override
     public AggregateMetric copyPosition(final Positional positional) {
         super.copyPosition(positional);
         return this;

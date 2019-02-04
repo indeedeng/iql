@@ -102,6 +102,13 @@ public abstract class DocFilter extends AbstractPositional {
     public abstract void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector);
 
     @Override
+    public abstract boolean equals(final Object other);
+    @Override
+    public abstract int hashCode();
+    @Override
+    public abstract String toString();
+
+    @Override
     public DocFilter copyPosition(Positional positional) {
         super.copyPosition(positional);
         return this;

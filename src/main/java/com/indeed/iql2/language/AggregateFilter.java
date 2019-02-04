@@ -73,6 +73,13 @@ public abstract class AggregateFilter extends AbstractPositional {
     public abstract com.indeed.iql2.execution.AggregateFilter toExecutionFilter(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet);
 
     @Override
+    public abstract boolean equals(final Object other);
+    @Override
+    public abstract int hashCode();
+    @Override
+    public abstract String toString();
+
+    @Override
     public AggregateFilter copyPosition(final Positional positional) {
         super.copyPosition(positional);
         return this;
