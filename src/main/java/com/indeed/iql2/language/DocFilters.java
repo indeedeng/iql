@@ -483,7 +483,7 @@ public class DocFilters {
                     termSet.add(term.stringTerm);
                 }
             }
-            filter = new DocFilter.StringFieldIn(datasetsMetadata, field, ImmutableSet.copyOf(termSet));
+            filter = new DocFilter.StringFieldIn(field, ImmutableSet.copyOf(termSet));
         } else {
             final Set<Long> termSet = new LongOpenHashSet();
             for (final Term term : termsList) {
