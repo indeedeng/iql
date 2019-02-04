@@ -745,7 +745,7 @@ public class SelectQueryExecution {
 
                                 final List<DocFilter> filters = new ArrayList<>();
                                 if (result.getSecond() != null) {
-                                    filters.add(new DocFilter.StringFieldIn(datasetsMetadata, field, ImmutableSet.copyOf(result.getSecond())));
+                                    filters.add(new DocFilter.StringFieldIn(field, ImmutableSet.copyOf(result.getSecond())));
                                 } else if (result.getFirst() != null) {
                                     filters.add(new DocFilter.IntFieldIn(field, result.getFirst()));
                                 }
