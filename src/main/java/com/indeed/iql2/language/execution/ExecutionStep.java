@@ -61,7 +61,6 @@ public interface ExecutionStep {
     ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f);
 
     @Data
-    @EqualsAndHashCode
     class ComputePrecomputed implements ExecutionStep {
         public final List<Dataset> datasets;
         public final Precomputed computation;
@@ -84,7 +83,6 @@ public interface ExecutionStep {
     }
 
     @Data
-    @EqualsAndHashCode
     class ComputeManyPrecomputed implements ExecutionStep {
         public final List<Dataset> datasets;
         public final List<Pair<Precomputed, String>> computations;
@@ -123,7 +121,6 @@ public interface ExecutionStep {
     }
 
     @Data
-    @EqualsAndHashCode
     class ExplodeAndRegroup implements ExecutionStep {
         public final FieldSet field;
         public final Optional<AggregateFilter> filter;
@@ -169,7 +166,6 @@ public interface ExecutionStep {
     }
 
     @Data
-    @EqualsAndHashCode
     class ExplodeFieldIn implements ExecutionStep {
         public final FieldSet field;
         public final List<String> stringTerms;
@@ -197,7 +193,6 @@ public interface ExecutionStep {
     }
 
     @Data
-    @EqualsAndHashCode
     class ExplodeMetric implements ExecutionStep {
         private final Map<String, DocMetric> perDatasetMetric;
         private final long lowerBound;
@@ -220,7 +215,6 @@ public interface ExecutionStep {
     }
 
     @Data
-    @EqualsAndHashCode
     class ExplodeTimePeriod implements ExecutionStep {
         private final long periodMillis;
         private final Optional<FieldSet> timeField;
@@ -239,7 +233,6 @@ public interface ExecutionStep {
     }
 
     @Data
-    @EqualsAndHashCode
     class ExplodeTimeBuckets implements ExecutionStep {
         private final int numBuckets;
         private final Optional<FieldSet> timeField;
@@ -274,7 +267,6 @@ public interface ExecutionStep {
     }
 
     @Data
-    @EqualsAndHashCode
     class ExplodeMonthOfYear implements ExecutionStep {
         private final Optional<FieldSet> timeField;
         private final Optional<String> timeFormat;
@@ -308,7 +300,6 @@ public interface ExecutionStep {
     }
 
     @Data
-    @EqualsAndHashCode
     class IterateStats implements ExecutionStep {
         private final FieldSet field;
         private final Optional<AggregateFilter> filter;
@@ -359,7 +350,6 @@ public interface ExecutionStep {
     }
 
     @Data
-    @EqualsAndHashCode
     class GetGroupStats implements ExecutionStep {
         public final List<AggregateMetric> stats;
         public final List<Optional<String>> formatStrings;
@@ -380,7 +370,6 @@ public interface ExecutionStep {
     }
 
     @Data
-    @EqualsAndHashCode
     class ExplodePerDocPercentile implements ExecutionStep {
         private final FieldSet field;
         private final int numBuckets;
@@ -397,7 +386,6 @@ public interface ExecutionStep {
     }
 
     @Data
-    @EqualsAndHashCode
     class FilterActions implements ExecutionStep {
         private final ImmutableList<Action> actions;
 
@@ -413,7 +401,6 @@ public interface ExecutionStep {
     }
 
     @Data
-    @EqualsAndHashCode
     class FilterGroups implements ExecutionStep {
         private final AggregateFilter filter;
 
@@ -429,7 +416,6 @@ public interface ExecutionStep {
     }
 
     @Data
-    @EqualsAndHashCode
     class ExplodeRandom implements ExecutionStep {
         private final FieldSet field;
         private final int k;
@@ -447,7 +433,6 @@ public interface ExecutionStep {
     }
 
     @Data
-    @EqualsAndHashCode
     class ExplodeRandomMetric implements ExecutionStep {
         private final Map<String, DocMetric> perDatasetMetric;
         private final Set<String> scope;
@@ -470,7 +455,6 @@ public interface ExecutionStep {
      * List&lt;Command&gt; in order to validate it.
      */
     @Data
-    @EqualsAndHashCode
     class GroupByFieldInQueryPlaceholderExecutionStep implements ExecutionStep {
         private final FieldSet field;
         private final Query query;
