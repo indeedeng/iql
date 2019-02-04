@@ -1360,16 +1360,12 @@ public abstract class DocFilter extends AbstractPositional {
     @Data
     @EqualsAndHashCode(callSuper = false)
     public static class IntFieldIn extends DocFilter {
-        @ToString.Exclude
-        @EqualsAndHashCode.Exclude
-        public final DatasetsMetadata datasetsMetadata;
-
         public final FieldSet field;
         public final Set<Long> terms;
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(new IntFieldIn(datasetsMetadata, field, terms)).copyPosition(this);
+            return i.apply(new IntFieldIn(field, terms)).copyPosition(this);
         }
 
         @Override

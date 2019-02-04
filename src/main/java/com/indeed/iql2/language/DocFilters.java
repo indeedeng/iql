@@ -500,7 +500,7 @@ public class DocFilters {
                     }
                 }
             }
-            filter = new DocFilter.IntFieldIn(datasetsMetadata, field, termSet);
+            filter = new DocFilter.IntFieldIn(field, termSet);
         }
         if (negate) {
             return new DocFilter.Not(filter);

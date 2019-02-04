@@ -747,7 +747,7 @@ public class SelectQueryExecution {
                                 if (result.getSecond() != null) {
                                     filters.add(new DocFilter.StringFieldIn(datasetsMetadata, field, ImmutableSet.copyOf(result.getSecond())));
                                 } else if (result.getFirst() != null) {
-                                    filters.add(new DocFilter.IntFieldIn(datasetsMetadata, field, result.getFirst()));
+                                    filters.add(new DocFilter.IntFieldIn(field, result.getFirst()));
                                 }
                                 final DocFilter orred = DocFilter.Or.create(filters);
                                 final DocFilter maybeNegated;

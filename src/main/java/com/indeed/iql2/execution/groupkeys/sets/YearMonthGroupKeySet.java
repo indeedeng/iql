@@ -38,10 +38,6 @@ public class YearMonthGroupKeySet implements GroupKeySet {
 
     @EqualsAndHashCode.Exclude
     @ToString.Exclude
-    private final DateTimeFormatter formatter;
-
-    @EqualsAndHashCode.Exclude
-    @ToString.Exclude
     private final LoadingCache<DateTime, StringGroupKey> buildGroupKey;
 
     public YearMonthGroupKeySet(
@@ -54,12 +50,12 @@ public class YearMonthGroupKeySet implements GroupKeySet {
         this.numMonths = numMonths;
         this.startMonth = startMonth;
         this.formatString = formatString;
-        this.formatter = DateTimeFormat.forPattern(formatString).withLocale(Locale.US);
+        final DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern(formatString).withLocale(Locale.US);
         buildGroupKey = CacheBuilder.newBuilder()
                 .build(new CacheLoader<DateTime, StringGroupKey>() {
                     @Override
                     public StringGroupKey load(final DateTime month) {
-                        return StringGroupKey.fromTimeRange(YearMonthGroupKeySet.this.formatter, month.getMillis(), month.plusMonths(1).getMillis(), formatter);
+                        return StringGroupKey.fromTimeRange(dateTimeFormatter, month.getMillis(), month.plusMonths(1).getMillis(), formatter);
                     }
                 });
     }
