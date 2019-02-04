@@ -805,17 +805,11 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
-    @ToString
+    @Data
     @EqualsAndHashCode(callSuper = false)
     public static class RegexMetric extends DocMetric {
         public final FieldSet field;
         public final String regex;
-
-        public RegexMetric(FieldSet field, String regex) {
-            this.field = field;
-            ValidationUtil.compileRegex(regex);
-            this.regex = regex;
-        }
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
@@ -834,6 +828,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
+            ValidationUtil.compileRegex(regex);
             final String fieldName = field.datasetFieldName(dataset);
             if (!validationHelper.containsStringField(dataset, fieldName)) {
                 errorCollector.error(ErrorMessages.missingStringField(dataset, fieldName, this));
