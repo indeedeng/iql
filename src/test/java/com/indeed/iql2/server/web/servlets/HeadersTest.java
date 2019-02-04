@@ -47,47 +47,25 @@ public class HeadersTest extends BasicTest {
         checkTotals("from organic yesterday today group by tk in (\"a\", \"b\") select oji", "[2653.0]");
     }
 
-
     @Test
-    public void testStatsTotalsPercentile() throws Exception {
+    public void testStatsTotalsPercentileAndDistinct() throws Exception {
         // In case of percentile or distinct IQL1 does not put it as totals.
-        // Legacy mode returns all stats.
 
         // percentile
-        final List<List<String>> percentile = ImmutableList.of(ImmutableList.of("", "10", "2653"));
-        testAll(percentile, "from organic yesterday today select percentile(oji, 50), oji", true);
-
-        checkTotals("from organic yesterday today select percentile(oji, 50)", "[]", LanguageVersion.ORIGINAL_IQL1);
-        checkTotals("from organic yesterday today group by tk select percentile(oji, 50)", "[]", LanguageVersion.ORIGINAL_IQL1);
-        checkTotals("from organic yesterday today group by tk in (\"a\", \"b\") select percentile(oji, 50)", "[]", LanguageVersion.ORIGINAL_IQL1);
-        checkTotals("from organic yesterday today select percentile(oji, 50), oji", "[2653.0]", LanguageVersion.ORIGINAL_IQL1);
-        checkTotals("from organic yesterday today group by tk select percentile(oji, 50), oji", "[2653.0]", LanguageVersion.ORIGINAL_IQL1);
-        checkTotals("from organic yesterday today group by tk in (\"a\", \"b\") select percentile(oji, 50), oji", "[2653.0]", LanguageVersion.ORIGINAL_IQL1);
-
-        checkTotals("from organic yesterday today select percentile(oji, 50)", "[10.0]", LanguageVersion.IQL1_LEGACY_MODE);
-        checkTotals("from organic yesterday today group by tk select percentile(oji, 50)", "[10.0]", LanguageVersion.IQL1_LEGACY_MODE);
-        checkTotals("from organic yesterday today group by tk in (\"a\", \"b\") select percentile(oji, 50)", "[10.0]", LanguageVersion.IQL1_LEGACY_MODE);
-        checkTotals("from organic yesterday today select percentile(oji, 50), oji", "[10.0, 2653.0]", LanguageVersion.IQL1_LEGACY_MODE);
-        checkTotals("from organic yesterday today group by tk select percentile(oji, 50), oji", "[10.0, 2653.0]", LanguageVersion.IQL1_LEGACY_MODE);
-        checkTotals("from organic yesterday today group by tk in (\"a\", \"b\") select percentile(oji, 50), oji", "[10.0, 2653.0]", LanguageVersion.IQL1_LEGACY_MODE);
+        checkTotals("from organic yesterday today select percentile(oji, 50)", "[]");
+        checkTotals("from organic yesterday today group by tk select percentile(oji, 50)", "[]");
+        checkTotals("from organic yesterday today group by tk in (\"a\", \"b\") select percentile(oji, 50)", "[]");
+        checkTotals("from organic yesterday today select percentile(oji, 50), oji", "[2653.0]");
+        checkTotals("from organic yesterday today group by tk select percentile(oji, 50), oji", "[2653.0]");
+        checkTotals("from organic yesterday today group by tk in (\"a\", \"b\") select percentile(oji, 50), oji", "[2653.0]");
 
         // distinct
-        final List<List<String>> distinct = ImmutableList.of(ImmutableList.of("", "23", "2653"));
-        testAll(distinct, "from organic yesterday today select distinct(oji), oji", true);
-
-        checkTotals("from organic yesterday today select distinct(oji)", "[]", LanguageVersion.ORIGINAL_IQL1);
-        checkTotals("from organic yesterday today group by tk select distinct(oji)", "[]", LanguageVersion.ORIGINAL_IQL1);
-        checkTotals("from organic yesterday today group by tk in (\"a\", \"b\") select distinct(oji)", "[]", LanguageVersion.ORIGINAL_IQL1);
-        checkTotals("from organic yesterday today select distinct(oji), oji", "[2653.0]", LanguageVersion.ORIGINAL_IQL1);
-        checkTotals("from organic yesterday today group by tk select distinct(oji), oji", "[2653.0]", LanguageVersion.ORIGINAL_IQL1);
-        checkTotals("from organic yesterday today group by tk in (\"a\", \"b\") select distinct(oji), oji", "[2653.0]", LanguageVersion.ORIGINAL_IQL1);
-
-        checkTotals("from organic yesterday today select distinct(oji)", "[23.0]", LanguageVersion.IQL1_LEGACY_MODE);
-        checkTotals("from organic yesterday today group by tk select distinct(oji)", "[23.0]", LanguageVersion.IQL1_LEGACY_MODE);
-        checkTotals("from organic yesterday today group by tk in (\"a\", \"b\") select distinct(oji)", "[23.0]", LanguageVersion.IQL1_LEGACY_MODE);
-        checkTotals("from organic yesterday today select distinct(oji), oji", "[23.0, 2653.0]", LanguageVersion.IQL1_LEGACY_MODE);
-        checkTotals("from organic yesterday today group by tk select distinct(oji), oji", "[23.0, 2653.0]", LanguageVersion.IQL1_LEGACY_MODE);
-        checkTotals("from organic yesterday today group by tk in (\"a\", \"b\") select distinct(oji), oji", "[23.0, 2653.0]", LanguageVersion.IQL1_LEGACY_MODE);
+        checkTotals("from organic yesterday today select distinct(oji)", "[]");
+        checkTotals("from organic yesterday today group by tk select distinct(oji)", "[]");
+        checkTotals("from organic yesterday today group by tk in (\"a\", \"b\") select distinct(oji)", "[]");
+        checkTotals("from organic yesterday today select distinct(oji), oji", "[2653.0]");
+        checkTotals("from organic yesterday today group by tk select distinct(oji), oji", "[2653.0]");
+        checkTotals("from organic yesterday today group by tk in (\"a\", \"b\") select distinct(oji), oji", "[2653.0]");
     }
 
     // TODO: add more tests for other header values.

@@ -83,7 +83,7 @@ public class ExtractPrecomputed {
             }
         }
         List<AggregateMetric> totals = null;
-        if (extractTotals && !query.groupBys.isEmpty()) {
+        if (extractTotals) {
             // Extracting totals only if there are some regroupings.
             // Otherwise totals are the same as stats.
             totals = new ArrayList<>();
@@ -92,6 +92,12 @@ public class ExtractPrecomputed {
             processor.setMaxDepth(1);
 
             for (final AggregateMetric select : query.selects) {
+                if ((select instanceof AggregateMetric.Percentile) ||
+                        (select instanceof AggregateMetric.Distinct)) {
+                    // percentile and distinct are processed with ftgs in IQL1
+                    // and don't appear in totals.
+                    continue;
+                }
                 final AggregateMetric processed = processor.apply(select);
                 totals.add(processed);
             }

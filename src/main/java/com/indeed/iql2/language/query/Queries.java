@@ -452,7 +452,7 @@ public class Queries {
         Loggers.trace(log, "query4 = %s", query4);
         final boolean extractTotals = totals.isPresent() && query4.useLegacy;
         final ExtractPrecomputed.Extracted extracted = ExtractPrecomputed.extractPrecomputed(query4, extractTotals);
-        if (extracted.totals.isPresent()) {
+        if (extractTotals) {
             totals.get().addAll(extracted.totals.get());
         }
         Loggers.trace(log, "extracted = %s", extracted);
