@@ -539,7 +539,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    @EqualsAndHashCode(callSuper = false)
+    @EqualsAndHashCode(callSuper = true)
     public static class Subtract extends Binop {
         public Subtract(AggregateMetric m1, AggregateMetric m2) {
             super(m1, m2);
@@ -571,7 +571,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    @EqualsAndHashCode(callSuper = false)
+    @EqualsAndHashCode(callSuper = true)
     public static class Multiply extends Binop {
         public Multiply(AggregateMetric m1, AggregateMetric m2) {
             super(m1, m2);
@@ -602,7 +602,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    @EqualsAndHashCode(callSuper = false)
+    @EqualsAndHashCode(callSuper = true)
     public static class Divide extends Binop {
         public Divide(AggregateMetric m1, AggregateMetric m2) {
             super(m1, m2);
@@ -634,7 +634,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    @EqualsAndHashCode(callSuper = false)
+    @EqualsAndHashCode(callSuper = true)
     public static class Modulus extends Binop {
         public Modulus(AggregateMetric m1, AggregateMetric m2) {
             super(m1, m2);
@@ -666,7 +666,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    @EqualsAndHashCode(callSuper = false)
+    @EqualsAndHashCode(callSuper = true)
     public static class Power extends Binop {
         public Power(AggregateMetric m1, AggregateMetric m2) {
             super(m1, m2);
