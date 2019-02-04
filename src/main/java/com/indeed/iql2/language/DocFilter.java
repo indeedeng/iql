@@ -1314,13 +1314,12 @@ public abstract class DocFilter extends AbstractPositional {
     @Data
     @EqualsAndHashCode(callSuper = false)
     public static class StringFieldIn extends DocFilter {
-        public final DatasetsMetadata datasetsMetadata;
         public final FieldSet field;
         public final ImmutableSet<String> terms;
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(new StringFieldIn(datasetsMetadata, field, terms)).copyPosition(this);
+            return i.apply(new StringFieldIn(field, terms)).copyPosition(this);
         }
 
         @Override
