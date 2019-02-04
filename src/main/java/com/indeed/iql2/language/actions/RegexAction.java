@@ -22,11 +22,9 @@ import com.indeed.iql2.language.util.ErrorMessages;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
+import lombok.Data;
 
-@EqualsAndHashCode
-@ToString
+@Data
 public class RegexAction implements Action {
     public final FieldSet field;
     public final String regex;
@@ -35,17 +33,9 @@ public class RegexAction implements Action {
     public final int positiveGroup;
     public final int negativeGroup;
 
-    public RegexAction(FieldSet field, String regex, int targetGroup, int positiveGroup, int negativeGroup) {
-        this.field = field;
-        ValidationUtil.compileRegex(regex);
-        this.regex = regex;
-        this.targetGroup = targetGroup;
-        this.positiveGroup = positiveGroup;
-        this.negativeGroup = negativeGroup;
-    }
-
     @Override
     public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {
+        ValidationUtil.compileRegex(regex);
         for (final String dataset : field.datasets()) {
             final String fieldName = field.datasetFieldName(dataset);
             if (!validationHelper.containsStringField(dataset, fieldName)) {

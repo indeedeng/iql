@@ -936,17 +936,11 @@ public abstract class DocFilter extends AbstractPositional {
         }
     }
 
-    @ToString
+    @Data
     @EqualsAndHashCode(callSuper = false)
     public static class Regex extends DocFilter {
         public final FieldSet field;
         public final String regex;
-
-        public Regex(FieldSet field, String regex) {
-            this.field = field;
-            ValidationUtil.compileRegex(regex);
-            this.regex = regex;
-        }
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
@@ -970,23 +964,18 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
+            ValidationUtil.compileRegex(regex);
             if (!validationHelper.containsStringField(dataset, field.datasetFieldName(dataset))) {
                 errorCollector.error(ErrorMessages.missingStringField(dataset, field.datasetFieldName(dataset), this));
             }
         }
     }
 
-    @ToString
+    @Data
     @EqualsAndHashCode(callSuper = false)
     public static class NotRegex extends DocFilter {
         public final FieldSet field;
         public final String regex;
-
-        public NotRegex(FieldSet field, String regex) {
-            this.field = field;
-            ValidationUtil.compileRegex(regex);
-            this.regex = regex;
-        }
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
@@ -1010,6 +999,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
+            ValidationUtil.compileRegex(regex);
             final String fieldName = field.datasetFieldName(dataset);
             if (!validationHelper.containsStringField(dataset, fieldName)) {
                 errorCollector.error(ErrorMessages.missingStringField(dataset, fieldName, this));

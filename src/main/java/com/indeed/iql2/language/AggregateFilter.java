@@ -25,6 +25,7 @@ import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ErrorMessages;
 import com.indeed.iql2.language.util.ValidationHelper;
+import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -723,6 +724,7 @@ public abstract class AggregateFilter extends AbstractPositional {
 
         @Override
         public void validate(Set<String> scope, ValidationHelper validationHelper, ErrorCollector errorCollector) {
+            ValidationUtil.compileRegex(regex);
             Preconditions.checkState(field.datasets().equals(scope));
             for (final String dataset : scope) {
                 final String fieldName = field.datasetFieldName(dataset);
