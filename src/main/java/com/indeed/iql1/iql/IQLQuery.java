@@ -15,6 +15,7 @@
 
 import au.com.bytecode.opencsv.CSVWriter;
 import com.google.common.base.Charsets;
+import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.io.CharStreams;
@@ -93,6 +94,7 @@ public final class IQLQuery implements Closeable {
     // session used for the current execution
     private EZImhotepSession session;
     private final Set<String> fields;
+    private final DatasetMetadata datasetMetadata;
     private final QueryInfo queryInfo;
     private final Set<String> datasetFields;
 
@@ -108,6 +110,7 @@ public final class IQLQuery implements Closeable {
             final String username,
             final Limits limits,
             final Set<String> fields,
+            final DatasetMetadata datasetMetadata,
             final QueryInfo queryInfo,
             final StrictCloser strictCloser
     ) {
@@ -120,6 +123,7 @@ public final class IQLQuery implements Closeable {
         this.rowLimit = rowLimit;
         this.limits = limits;
         this.fields = fields;
+        this.datasetMetadata = datasetMetadata;
         this.queryInfo = queryInfo;
         this.datasetFields = fields.stream().map(field -> dataset + "." + field).collect(Collectors.toSet());
         this.strictCloser = strictCloser;
@@ -666,6 +670,12 @@ public final class IQLQuery implements Closeable {
 
     public String getDataset() {
         return dataset;
+    }
+
+    public void addDeprecatedDatasetWarningIfNecessary(final List<String> warningList) {
+        if (datasetMetadata.isDeprecatedOrDescriptionDeprecated()) {
+            warningList.add("Dataset '" + dataset + "' is deprecated. Check the dataset description for alternative data sources.");
+        }
     }
 
     @Override

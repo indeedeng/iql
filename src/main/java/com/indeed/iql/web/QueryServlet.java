@@ -454,6 +454,7 @@ public class QueryServlet {
         queryMetadata.addItem("IQL-Newest-Shard", newestShard, args.returnNewestShardVersion);
 
         ArrayList<String> warningList = new ArrayList<>();
+        iqlQuery.addDeprecatedDatasetWarningIfNecessary(warningList);
 
         final List<Interval> timeIntervalsMissingShards= iqlQuery.getTimeIntervalsMissingShards();
         warningList.addAll(missingShardsToWarnings(dataset, startTime, endTime, timeIntervalsMissingShards));

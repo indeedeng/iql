@@ -39,6 +39,7 @@ import com.indeed.iql.cache.CompletableOutputStream;
 import com.indeed.iql.cache.QueryCache;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.io.TruncatingBufferedOutputStream;
+import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql.metadata.FieldType;
 import com.indeed.iql.web.AccessControl;
@@ -349,6 +350,10 @@ public class SelectQueryExecution {
                     continue;
                 }
                 accessControl.checkAllowedDatasetAccess(clientInfo.username, actualDataset);
+                final Optional<DatasetMetadata> metadata = datasetsMetadata.getMetadata(actualDataset);
+                if (metadata.isPresent() && metadata.get().isDeprecatedOrDescriptionDeprecated()) {
+                    warnings.add("Dataset '" + actualDataset + "' is deprecated. Check the dataset description for alternative data sources.");
+                }
                 queryInfo.datasets.add(actualDataset);
                 datasetRangeSum = datasetRangeSum.plus(new Duration(dataset.startInclusive.unwrap(), dataset.endExclusive.unwrap()));
             }
