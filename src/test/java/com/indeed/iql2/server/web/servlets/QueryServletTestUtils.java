@@ -153,6 +153,10 @@ public class QueryServletTestUtils extends BasicTest {
         return run(client, query, version, EVENT_STREAM, options, new IQL2Options()).header;
     }
 
+    public static JsonNode getQueryHeader(final String query, LanguageVersion version) throws Exception {
+        return getQueryHeader(Options.create().dataset.getNormalClient(), query, version, Options.create());
+    }
+
     @SuppressWarnings("WeakerAccess")
     public static QueryResult run(ImhotepClient client, String query, LanguageVersion version, ResultFormat resultFormat, Options options, final IQL2Options defaultOptions) throws Exception {
         final QueryServlet queryServlet = create(client, version, options, defaultOptions);

@@ -450,7 +450,14 @@ public class Queries {
         return parser;
     }
 
-    public static List<Command> queryCommands(Query query) {
+    public static List<Command> queryCommands(final Query query) {
+        return queryCommands(query, Optional.absent());
+    }
+
+
+    public static List<Command> queryCommands(
+            final Query query,
+            final Optional<List<AggregateMetric>> totals) {
         Loggers.trace(log, "query = %s", query);
         final Query query1 = FixTopKHaving.apply(query);
         Loggers.trace(log, "query1 = %s", query1);
@@ -461,7 +468,11 @@ public class Queries {
         Loggers.trace(log, "query3 = %s", query3);
         final Query query4 = ConstantFolding.apply(query3);
         Loggers.trace(log, "query4 = %s", query4);
-        final ExtractPrecomputed.Extracted extracted = ExtractPrecomputed.extractPrecomputed(query4);
+        final boolean extractTotals = totals.isPresent() && query4.useLegacy;
+        final ExtractPrecomputed.Extracted extracted = ExtractPrecomputed.extractPrecomputed(query4, extractTotals);
+        if (extractTotals) {
+            totals.get().addAll(extracted.totals.get());
+        }
         Loggers.trace(log, "extracted = %s", extracted);
         final HandleWhereClause.Result query5Result = HandleWhereClause.handleWhereClause(extracted.query);
         final List<ExecutionStep> firstSteps = query5Result.steps;

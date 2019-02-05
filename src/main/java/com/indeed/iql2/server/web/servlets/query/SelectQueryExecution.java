@@ -150,6 +150,7 @@ public class SelectQueryExecution {
     private final boolean returnNewestShardVersionHeader;
     public final boolean skipValidation;
     private final ResultFormat resultFormat;
+    public final boolean getTotals;
     private final WallClock clock;
 
     public boolean ran = false;
@@ -171,6 +172,7 @@ public class SelectQueryExecution {
             final boolean isStream,
             final boolean returnNewestShardVersionHeader,
             final boolean skipValidation,
+            final boolean getTotals,
             final boolean csv,
             final WallClock clock,
             final QueryMetadata queryMetadata,
@@ -190,6 +192,7 @@ public class SelectQueryExecution {
         this.returnNewestShardVersionHeader = returnNewestShardVersionHeader;
         this.skipValidation = skipValidation;
         this.resultFormat = csv ? ResultFormat.CSV : ResultFormat.TSV;
+        this.getTotals = getTotals;
         this.clock = clock;
         this.imhotepClient = imhotepClient;
         this.datasetsMetadata = datasetsMetadata;
@@ -599,6 +602,7 @@ public class SelectQueryExecution {
                             groupLimit,
                             Sets.newHashSet(query.options),
                             substitutedQuery.commands(),
+                            substitutedQuery.getTotals(),
                             datasets,
                             innerStrictCloser,
                             out,
@@ -625,6 +629,10 @@ public class SelectQueryExecution {
                             (cacheWriter != null) ? cacheWriter.getAttemptedTotalWriteBytes() : null,
                             (cacheWriter != null) ? cacheWriter.isOverflowed() : null
                     );
+
+                    if (createResult.totals.isPresent()) {
+                        queryMetadata.addItem("IQL-Totals", Arrays.toString(createResult.totals.get()), getTotals);
+                    }
 
                     finalizeQueryExecution(countingExternalOutput, selectExecutionInformation);
 

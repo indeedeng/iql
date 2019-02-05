@@ -77,6 +77,7 @@ public class Query extends AbstractPositional {
 
     // Lazily initialized on use
     private List<Command> commands = null;
+    private Optional<List<AggregateMetric>> totals = null;
 
     // Helper class for data that necessary while parsing query.
     public static class Context {
@@ -508,10 +509,16 @@ public class Query extends AbstractPositional {
 
     public List<Command> commands() {
         if (commands == null) {
+            totals = useLegacy ? Optional.of(new ArrayList<>()) : Optional.absent();
             // TODO: incrementQueryLimit here seems *very* strange
-            commands = Queries.queryCommands(SelectQueryExecution.incrementQueryLimit(this));
+            commands = Queries.queryCommands(SelectQueryExecution.incrementQueryLimit(this), totals);
         }
         return commands;
+    }
+
+    public Optional<List<AggregateMetric>> getTotals() {
+        commands(); // initializing if not yet
+        return totals;
     }
 
     public CacheKey cacheKey(final ResultFormat resultFormat) {

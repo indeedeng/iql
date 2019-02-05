@@ -1,7 +1,6 @@
 package com.indeed.iql2.execution;
 
 import com.indeed.imhotep.AsynchronousRemoteImhotepMultiSession;
-import com.indeed.imhotep.AsynchronousRemoteImhotepSession;
 import com.indeed.imhotep.QueryRemapRule;
 import com.indeed.imhotep.RemoteImhotepMultiSession;
 import com.indeed.imhotep.api.FTGSIterator;
@@ -72,6 +71,10 @@ public class ImhotepSessionHolder implements Closeable {
 
     public long getNumDocs() {
         return session.getNumDocs();
+    }
+
+    public int getNumGroups() {
+        return session.getNumGroups();
     }
 
     public void metricRegroup(
