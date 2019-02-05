@@ -18,6 +18,7 @@ package com.indeed.iql2.server.web.servlets;
 import com.google.common.base.Throwables;
 import com.indeed.iql.cache.CompletableOutputStream;
 import com.indeed.iql.cache.QueryCache;
+import com.indeed.iql2.server.web.servlets.query.SelectQueryExecution;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.log4j.Logger;
 
@@ -129,7 +130,7 @@ public class CollisionCheckingQueryCache implements QueryCache {
     }
 
     private void observed(final String cacheFileName, final String resultHash) {
-        if (cacheFileName.endsWith(".meta")) {
+        if (cacheFileName.endsWith(SelectQueryExecution.METADATA_FILE_SUFFIX)) {
             return;
         }
         final String oldResult = cacheHashToResultsHash.put(cacheFileName, resultHash);
