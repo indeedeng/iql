@@ -18,9 +18,7 @@ public class FieldInQueryDataset {
     static Dataset createAll() {
         final List<DatasetShard> shards = new ArrayList<>();
         shards.addAll(create("other1", "thefield", Collections.emptyList(), Arrays.asList("a", "b")));
-        shards.addAll(create("other2", "thefield", Collections.emptyList(), Arrays.asList("a", "b")));
         shards.addAll(create("other3", "thefield", Arrays.asList(1, 10), Collections.emptyList()));
-        shards.addAll(create("other4", "thefield", Arrays.asList(1, 10), Collections.emptyList()));
 
         {
             final int count = 10000;
