@@ -507,6 +507,12 @@ public class QueryServletTestUtils extends BasicTest {
     }
 
     private static boolean shouldRun(final Options options, final ResultFormat resultFormat) {
+        if (CSV.equals(resultFormat) && !options.onlyCsv && FAST_TEST) {
+            return false;
+        }
+        if (EVENT_STREAM.equals(resultFormat) && FAST_TEST) {
+            return false;
+        }
         if (options.skipCsv && CSV.equals(resultFormat)) {
             return false;
         }
