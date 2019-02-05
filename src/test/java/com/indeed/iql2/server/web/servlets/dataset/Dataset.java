@@ -30,12 +30,14 @@ import com.indeed.iql.web.FieldFrequencyCache;
 import it.unimi.dsi.fastutil.longs.LongList;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 /**
  * dataset for normal and dimension shards
@@ -47,7 +49,6 @@ import java.util.concurrent.TimeoutException;
  * for other queries use: eg: testAll(dataset, query), it will check the normal shards and dimension shards
  */
 public class Dataset {
-
     public final List<DatasetShard> shards;
     private final ImsClientInterface dimensionImsClient;
 
@@ -99,15 +100,22 @@ public class Dataset {
         return dimensionShards;
     }
 
+    private static int hash(final List<Shard> shards) {
+        return shards.stream()
+                .sorted(Comparator.comparing((Shard x) -> x.dataset).thenComparing(x -> x.shardId))
+                .map(s -> s.dataset + " " + s.shardId + " " + s.flamdex.hashCode())
+                .collect(Collectors.joining())
+                .hashCode();
+    }
+
     private ImhotepClient normalClient;
     private ShardMasterAndImhotepDaemonClusterRunner normalCluster;
 
     public ImhotepClient getNormalClient() {
         if (normalClient == null) {
             try {
-                normalCluster = makeCluster();
-                normalClient = makeClient(normalCluster, getShards());
-            } catch (Exception e) {
+                normalClient = makeClient(getShards());
+            } catch (final Exception e) {
                 throw Throwables.propagate(e);
             }
         }
@@ -115,43 +123,41 @@ public class Dataset {
     }
 
     private ImhotepClient dimensionsClient;
-    private ShardMasterAndImhotepDaemonClusterRunner dimensionsCluster;
 
     public ImhotepClient getDimensionsClient() {
         if (dimensionsClient == null) {
             try {
-                dimensionsCluster = makeCluster();
-                dimensionsClient = makeClient(dimensionsCluster, getDimensionShards());
-            } catch (Exception e) {
+                dimensionsClient = makeClient(getDimensionShards());
+            } catch (final Exception e) {
                 throw Throwables.propagate(e);
             }
         }
         return dimensionsClient;
     }
 
-    private static ImhotepClient makeClient(final ShardMasterAndImhotepDaemonClusterRunner cluster, final List<Shard> shards) throws IOException, TimeoutException, InterruptedException {
-        for (final Shard shard : shards) {
-            shard.addTo(cluster);
+    private static ImhotepClient makeClient(final List<Shard> shards) throws InterruptedException, IOException, TimeoutException {
+        final String tmpDir = System.getProperty("java.io.tmpdir");
+        final Path tempDir = Paths.get(tmpDir).resolve("iql_test_shardmaster_" + hash(shards));
+        final boolean aleadyExisted = tempDir.toFile().exists();
+        final ShardMasterAndImhotepDaemonClusterRunner cluster = new ShardMasterAndImhotepDaemonClusterRunner(tempDir.resolve("shards").toFile(), tempDir.toFile());
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            try {
+                cluster.stop();
+            } catch (final IOException e) {
+                throw Throwables.propagate(e);
+            }
+        }));
+        if (!aleadyExisted) {
+            for (final Shard shard : shards) {
+                shard.addTo(cluster);
+            }
         }
         // TODO: is this a good idea?
         cluster.startDaemon();
         cluster.startDaemon();
         cluster.startDaemon();
-        return cluster.createClient();
-    }
-
-    private static ShardMasterAndImhotepDaemonClusterRunner makeCluster() throws IOException {
-        final Path tempDir = Files.createTempDirectory("iqltest");
-        tempDir.toFile().deleteOnExit();
-        final ShardMasterAndImhotepDaemonClusterRunner cluster = new ShardMasterAndImhotepDaemonClusterRunner(tempDir.resolve("shards").toFile(), tempDir.toFile());
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            try {
-                cluster.stop();
-            } catch (IOException e) {
-                throw Throwables.propagate(e);
-            }
-        }));
-        return cluster;
+        final ImhotepClient client = cluster.createClient();
+        return client;
     }
 
     private List<Shard> flamdexShards(boolean isDimension) {

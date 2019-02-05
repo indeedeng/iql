@@ -73,17 +73,26 @@ public class QueryServletTestUtils extends BasicTest {
                 new NamedThreadFactory("IQL-Worker")
         );
 
+    public static final boolean FAST_TEST = "1".equals(System.getenv("FAST_TEST"));
+
     // This is list of not-production-ready features which are available only with "... OPTIONS['xxx']"
     // Add here features you want to test.
     // Each tested query will run with each option from this list.
     // Be sure not to delete empty set (no options) from the list to test main execution path.
-    private static final List<Set<String>> OPTIONS_TO_TEST =
-            ImmutableList.of(
+    private static final List<Set<String>> OPTIONS_TO_TEST;
+
+    static {
+        if (FAST_TEST) {
+            OPTIONS_TO_TEST = ImmutableList.of(ImmutableSet.of());
+        } else {
+            OPTIONS_TO_TEST = ImmutableList.of(
                     ImmutableSet.of(),
                     ImmutableSet.of(QueryOptions.PARANOID),
                     ImmutableSet.of(QueryOptions.Experimental.ASYNC),
                     ImmutableSet.of(QueryOptions.Experimental.ASYNC, QueryOptions.PARANOID)
             );
+        }
+    }
 
     public static QueryServlet create(ImhotepClient client, final LanguageVersion version, Options options, final IQL2Options defaultOptions) {
         final ImhotepMetadataCache metadataCache = new ImhotepMetadataCache(options.imsClient, client, "", new FieldFrequencyCache(null), LanguageVersion.IQL2.equals(version));
@@ -347,7 +356,7 @@ public class QueryServletTestUtils extends BasicTest {
     static void testOriginalIQL1(final List<List<String>> expected, final String query, final Options options) throws Exception {
         final Dataset dataset = options.dataset;
         testOriginalIQL1(dataset.getNormalClient(), expected, query, options);
-        if (!options.skipTestDimension) {
+        if (!FAST_TEST && !options.skipTestDimension) {
             testOriginalIQL1(dataset.getDimensionsClient(), expected, query, options.copy().setImsClient(dataset.getDimensionImsClient()));
         }
     }
@@ -375,7 +384,7 @@ public class QueryServletTestUtils extends BasicTest {
     static void testIQL1LegacyMode(final List<List<String>> expected, final String query, final Options options) throws Exception {
         final Dataset dataset = options.dataset;
         testIQL1LegacyMode(dataset.getNormalClient(), expected, query, options);
-        if (!options.skipTestDimension) {
+        if (!FAST_TEST && !options.skipTestDimension) {
             testIQL1LegacyMode(dataset.getDimensionsClient(), expected, query, options.copy().setImsClient(dataset.getDimensionImsClient()));
         }
     }
@@ -403,7 +412,7 @@ public class QueryServletTestUtils extends BasicTest {
     static void testIQL1(List<List<String>> expected, String query, Options options) throws Exception {
         final Dataset dataset = options.dataset;
         testIQL1(dataset.getNormalClient(), expected, query, options);
-        if (!options.skipTestDimension) {
+        if (!FAST_TEST && !options.skipTestDimension) {
             testIQL1(dataset.getDimensionsClient(), expected, query, options.copy().setImsClient(dataset.getDimensionImsClient()));
         }
     }
@@ -445,7 +454,7 @@ public class QueryServletTestUtils extends BasicTest {
     static void testIQL2(List<List<String>> expected, String query, Options options) throws Exception {
         final Dataset dataset = options.dataset;
         testIQL2(dataset.getNormalClient(), expected, query, options);
-        if (!options.skipTestDimension) {
+        if (!FAST_TEST && !options.skipTestDimension) {
             testIQL2(dataset.getDimensionsClient(), expected, query, options.copy().setImsClient(dataset.getDimensionImsClient()));
         }
     }
@@ -524,7 +533,7 @@ public class QueryServletTestUtils extends BasicTest {
     static void testAll(List<List<String>> expected, String query, Options options) throws Exception {
         final Dataset dataset = options.dataset;
         testAll(dataset.getNormalClient(), expected, query, options);
-        if (!options.skipTestDimension) {
+        if (!FAST_TEST && !options.skipTestDimension) {
             testAll(dataset.getDimensionsClient(), expected, query, options.copy().setImsClient(dataset.getDimensionImsClient()));
         }
     }
