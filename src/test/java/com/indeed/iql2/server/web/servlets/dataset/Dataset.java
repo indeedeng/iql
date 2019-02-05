@@ -29,6 +29,7 @@ import com.indeed.iql.metadata.ImhotepMetadataCache;
 import com.indeed.iql.web.FieldFrequencyCache;
 import it.unimi.dsi.fastutil.longs.LongList;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -136,8 +137,9 @@ public class Dataset {
     }
 
     private static ImhotepClient makeClient(final List<Shard> shards) throws InterruptedException, IOException, TimeoutException {
-        final String tmpDir = System.getProperty("java.io.tmpdir");
-        final Path tempDir = Paths.get(tmpDir).resolve("iql_test_shardmaster_" + hash(shards));
+        // directory representing $PROJECT/target/
+        final File targetDir = new File(Dataset.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getParentFile();
+        final Path tempDir = targetDir.toPath().resolve("iql_test_shardmaster_" + hash(shards));
         final boolean aleadyExisted = tempDir.toFile().exists();
         final ShardMasterAndImhotepDaemonClusterRunner cluster = new ShardMasterAndImhotepDaemonClusterRunner(tempDir.resolve("shards").toFile(), tempDir.toFile());
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
