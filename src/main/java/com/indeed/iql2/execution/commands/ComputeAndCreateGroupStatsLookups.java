@@ -36,6 +36,7 @@ import com.indeed.util.core.Pair;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -116,8 +117,10 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
     static boolean tryMultiDistinct(Session session, List<Pair<Command, String>> namedComputations) throws IOException, ImhotepOutOfMemoryException {
         session.timer.push("checking aggregate distinct eligibility");
         final Map<String, AggregateFilter> namedFilters = new TreeMap<>();
-        boolean allNonWindowedDistinct = true;
+        boolean allDistinct = true;
         boolean allNonOrdered = true;
+        boolean anyWindowed = false;
+        final List<Integer> windowSizes = new ArrayList<>();
         final Set<FieldSet> fields = new HashSet<>();
         for (final Pair<Command, String> computation : namedComputations) {
             final Command command = computation.getFirst();
@@ -126,18 +129,28 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
                 fields.add(distinct.field);
                 final AggregateFilter filter = distinct.filter.or(new AggregateFilter.Constant(true));
                 allNonOrdered &= !filter.needSorted();
+                windowSizes.add(1);
                 namedFilters.put(computation.getSecond(), filter);
             } else if (command instanceof GetSimpleGroupDistincts) {
                 final GetSimpleGroupDistincts distinct = (GetSimpleGroupDistincts) command;
                 fields.add(FieldSet.of(distinct.scope, distinct.field));
+                windowSizes.add(1);
                 namedFilters.put(computation.getSecond(), new AggregateFilter.Constant(true));
+            } else if (command instanceof GetGroupDistinctsWindowed) {
+                final GetGroupDistinctsWindowed distinct = (GetGroupDistinctsWindowed) command;
+                fields.add(distinct.field);
+                final AggregateFilter filter = distinct.filter.or(new AggregateFilter.Constant(true));
+                allNonOrdered &= !filter.needSorted();
+                anyWindowed = true;
+                windowSizes.add(distinct.windowSize);
+                namedFilters.put(computation.getSecond(), filter);
             } else {
-                allNonWindowedDistinct = false;
+                allDistinct = false;
             }
         }
         session.timer.pop();
 
-        if (!(allNonWindowedDistinct && allNonOrdered)) {
+        if (!(allDistinct && allNonOrdered)) {
             return false;
         }
 
@@ -170,7 +183,13 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
         session.timer.pop();
 
         session.timer.push("requesting aggregate distinct");
-        try (GroupStatsIterator groupStatsIterator = RemoteImhotepMultiSession.aggregateDistinct(sessionFields, filterTrees, session.isIntField(field))) {
+        try (final GroupStatsIterator groupStatsIterator = RemoteImhotepMultiSession.aggregateDistinct(
+                sessionFields,
+                filterTrees,
+                windowSizes,
+                session.isIntField(field),
+                anyWindowed ? session.groupKeySet.getParents() : null
+        )) {
             session.timer.pop();
             session.timer.push("consuming aggregate distinct");
             int i = 0;
