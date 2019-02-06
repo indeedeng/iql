@@ -73,6 +73,22 @@ public class MetricRegroupTest extends BasicTest {
     }
 
     @Test
+    public void testEmptyBuckets() throws Exception {
+        final String query = "from organic yesterday today group by bucket(ojc, 0, 100, 50) select count(), ojc";
+        final List<List<String>> expected = new ArrayList<>();
+
+        // IQL1 deletes empty last groups.
+        expected.add(ImmutableList.of("[0, 50)", "151", "306"));
+        QueryServletTestUtils.testIQL1(expected, query);
+
+        // IQL2 keeps all groups.
+        expected.add(ImmutableList.of("[50, 100)", "0", "0"));
+        expected.add(ImmutableList.of("< 0", "0", "0"));
+        expected.add(ImmutableList.of(">= 100", "0", "0"));
+        QueryServletTestUtils.testIQL2(expected, query);
+    }
+
+    @Test
     public void testMetricRegroupIntervalsWithDefault() throws Exception {
         // TODO: Is inadvertently introducing WITH DEFAULT to iql1 bad?
         final List<List<String>> expected = new ArrayList<>();

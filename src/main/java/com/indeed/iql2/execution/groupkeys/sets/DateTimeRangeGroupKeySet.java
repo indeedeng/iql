@@ -31,15 +31,24 @@ public class DateTimeRangeGroupKeySet implements GroupKeySet {
     private final long earliestStart;
     private final long periodMillis;
     private final int numBuckets;
+    private final int numGroups;
     private final String format;
 
     private final LoadingCache<Integer, StringGroupKey> buildGroupKey;
 
-    public DateTimeRangeGroupKeySet(GroupKeySet previous, long earliestStart, long periodMillis, int numBuckets, String format, final Formatter formatter) {
+    public DateTimeRangeGroupKeySet(
+            final GroupKeySet previous,
+            final long earliestStart,
+            final long periodMillis,
+            final int numBuckets,
+            final int numGroups,
+            final String format,
+            final Formatter formatter) {
         this.previous = previous;
         this.earliestStart = earliestStart;
         this.periodMillis = periodMillis;
         this.numBuckets = numBuckets;
+        this.numGroups = numGroups;
         this.format = format;
         final DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern(format).withLocale(Locale.US);
         buildGroupKey = CacheBuilder.newBuilder()
@@ -72,7 +81,7 @@ public class DateTimeRangeGroupKeySet implements GroupKeySet {
 
     @Override
     public int numGroups() {
-        return previous.numGroups() * numBuckets;
+        return numGroups;
     }
 
     @Override
@@ -88,12 +97,13 @@ public class DateTimeRangeGroupKeySet implements GroupKeySet {
         return earliestStart == that.earliestStart &&
                 periodMillis == that.periodMillis &&
                 numBuckets == that.numBuckets &&
+                numGroups == that.numGroups &&
                 Objects.equals(previous, that.previous) &&
                 Objects.equals(format, that.format);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(previous, earliestStart, periodMillis, numBuckets, format);
+        return Objects.hash(previous, earliestStart, periodMillis, numBuckets, numGroups, format);
     }
 }

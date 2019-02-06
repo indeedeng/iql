@@ -16,7 +16,6 @@ package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.junit.Test;
@@ -25,9 +24,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testAll;
+import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testIQL1;
 import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testIQL2;
-import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testIQL2AndLegacy;
-import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testOriginalIQL1;
 
 public class DistinctTest extends BasicTest {
 
@@ -55,10 +53,10 @@ public class DistinctTest extends BasicTest {
                 ImmutableList.of("[2015-01-06 00:00:00, 2015-01-07 00:00:00)", "3"),
                 ImmutableList.of("[2015-01-07 00:00:00, 2015-01-08 00:00:00)", "2"));
         // IQL1 filters out groups with zero results.
-        testOriginalIQL1(expected, query);
+        testIQL1(expected, query);
         expected.add(ImmutableList.of("[2015-01-08 00:00:00, 2015-01-09 00:00:00)", "0"));
         expected.add(ImmutableList.of("[2015-01-09 00:00:00, 2015-01-10 00:00:00)", "0"));
-        testIQL2AndLegacy(expected, query);
+        testIQL2(expected, query);
     }
 
     @Test

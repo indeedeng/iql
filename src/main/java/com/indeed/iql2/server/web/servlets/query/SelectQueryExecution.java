@@ -617,7 +617,8 @@ public class SelectQueryExecution {
                             mbToBytes(limits.queryFTGSImhotepDaemonLimitMB),
                             clientInfo.username,
                             (version == 2) ? FieldType.Integer : FieldType.String,
-                            resultFormat
+                            resultFormat,
+                            version
                     );
 
                     final SelectExecutionInformation selectExecutionInformation = new SelectExecutionInformation(
