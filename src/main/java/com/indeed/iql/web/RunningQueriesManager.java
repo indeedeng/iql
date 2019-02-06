@@ -166,7 +166,7 @@ public class RunningQueriesManager {
                 if (queriesPendingForIdentity > perUserPendingQueriesLimit) {
                     log.debug("Aborting query " + runningQuery.qHash + " before it starts running due to too many pending queries for identity.");
                     pendingQuery.cancellationException = new IqlKnownException.TooManyPendingQueriesException(
-                            "Number of currently pending queries for user \"" + queriesPendingForIdentity + "\" is too high" +
+                            "Number of currently pending queries \"" + queriesPendingForIdentity + "\" for user \"" + username + "\" is too high" +
                             "(" + queriesPendingForIdentity + " >= " + perUserPendingQueriesLimit + "). " +
                             "Please wait for earlier queries to complete before submitting new queries."
                     );
