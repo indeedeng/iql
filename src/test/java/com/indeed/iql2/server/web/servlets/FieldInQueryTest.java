@@ -42,7 +42,7 @@ public class FieldInQueryTest extends BasicTest {
         expected.add(ImmutableList.of("DEFAULT", "0", "0"));
         QueryServletTestUtils.testIQL2(
                 expected,
-                "from organic yesterday today where tk not in (from other2 1d 0d group by thefield) group by tk with default select count(), distinct(tk)", true);
+                "from organic yesterday today where tk not in (from other1 1d 0d group by thefield) group by tk with default select count(), distinct(tk)", true);
     }
 
     // Test for IQL-616
@@ -106,7 +106,7 @@ public class FieldInQueryTest extends BasicTest {
         expected.add(ImmutableList.of("DEFAULT", "0", "0"));
         QueryServletTestUtils.testIQL2(
                 expected,
-                "from organic yesterday today where ojc not in (from other4 1d 0d group by thefield) group by ojc with default select count(), distinct(tk)", true);
+                "from organic yesterday today where ojc not in (from other3 1d 0d group by thefield) group by ojc with default select count(), distinct(tk)", true);
     }
 
     @Test

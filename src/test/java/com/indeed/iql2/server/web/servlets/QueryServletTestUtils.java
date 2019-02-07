@@ -233,7 +233,7 @@ public class QueryServletTestUtils extends BasicTest {
         @Nullable
         private File tmpDir = null; // null == system default temporary directory
         private Long subQueryTermLimit = 1_000_000L;
-        private QueryCache queryCache = new NoOpQueryCache();
+        private QueryCache queryCache = CollisionCheckingQueryCache.INSTANCE;
         private ImsClientInterface imsClient;
         private boolean skipTestDimension = false;
         private WallClock wallClock = new StoppedClock(new DateTime(2015, 1, 2, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis());
