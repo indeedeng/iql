@@ -73,17 +73,26 @@ public class QueryServletTestUtils extends BasicTest {
                 new NamedThreadFactory("IQL-Worker")
         );
 
+    public static final boolean FAST_TEST = "1".equals(System.getenv("FAST_TEST"));
+
     // This is list of not-production-ready features which are available only with "... OPTIONS['xxx']"
     // Add here features you want to test.
     // Each tested query will run with each option from this list.
     // Be sure not to delete empty set (no options) from the list to test main execution path.
-    private static final List<Set<String>> OPTIONS_TO_TEST =
-            ImmutableList.of(
+    private static final List<Set<String>> OPTIONS_TO_TEST;
+
+    static {
+        if (FAST_TEST) {
+            OPTIONS_TO_TEST = ImmutableList.of(ImmutableSet.of());
+        } else {
+            OPTIONS_TO_TEST = ImmutableList.of(
                     ImmutableSet.of(),
                     ImmutableSet.of(QueryOptions.PARANOID),
                     ImmutableSet.of(QueryOptions.Experimental.ASYNC),
                     ImmutableSet.of(QueryOptions.Experimental.ASYNC, QueryOptions.PARANOID)
             );
+        }
+    }
 
     public static QueryServlet create(ImhotepClient client, final LanguageVersion version, Options options, final IQL2Options defaultOptions) {
         final ImhotepMetadataCache metadataCache = new ImhotepMetadataCache(options.imsClient, client, "", new FieldFrequencyCache(null), LanguageVersion.IQL2.equals(version));
@@ -235,7 +244,7 @@ public class QueryServletTestUtils extends BasicTest {
         private Long subQueryTermLimit = 1_000_000L;
         private QueryCache queryCache = CollisionCheckingQueryCache.INSTANCE;
         private ImsClientInterface imsClient;
-        private boolean skipTestDimension = false;
+        private boolean skipTestDimension = FAST_TEST;
         private WallClock wallClock = new StoppedClock(new DateTime(2015, 1, 2, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis());
         @Nullable
         private Long maxCacheQuerySizeLimitBytes;
@@ -509,6 +518,12 @@ public class QueryServletTestUtils extends BasicTest {
     }
 
     private static boolean shouldRun(final Options options, final ResultFormat resultFormat) {
+        if (CSV.equals(resultFormat) && !options.onlyCsv && FAST_TEST) {
+            return false;
+        }
+        if (EVENT_STREAM.equals(resultFormat) && FAST_TEST) {
+            return false;
+        }
         if (options.skipCsv && CSV.equals(resultFormat)) {
             return false;
         }
