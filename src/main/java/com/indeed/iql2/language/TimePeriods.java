@@ -112,9 +112,10 @@ public class TimePeriods {
         }
     }
 
-    public static long inferTimeBucketSize(final long earliestStart, final long latestEnd) {
-        for (final TimeUnit timeUnit: inferenceBucketSizeOptions) {
-            if ((latestEnd - earliestStart)/timeUnit.millis < MAX_RECOMMENDED_BUCKETS) {
+    public static long inferTimeBucketSize(final long earliestStart, final long latestEnd, final long longestRange, final boolean isRelative) {
+        final long timeRange = isRelative ? longestRange: latestEnd - earliestStart;
+        for (final TimeUnit timeUnit : inferenceBucketSizeOptions) {
+            if (timeRange / timeUnit.millis < MAX_RECOMMENDED_BUCKETS) {
                 return timeUnit.millis;
             }
         }
@@ -122,9 +123,14 @@ public class TimePeriods {
     }
 
     public static String inferTimeBucketSizeString(final DateTime start,final DateTime end) {
-        final long timeBucketSizeMillis = inferTimeBucketSize(start.getMillis(), end.getMillis());
+        final long timeBucketSizeMillis = inferTimeBucketSize(start.getMillis(), end.getMillis(), end.getMillis() - start.getMillis(), false);
         final StringBuilder inferedTimeStringBuilder = new StringBuilder();
         appendTimePeriod(timeBucketSizeMillis/TimeUnit.SECOND.millis, inferedTimeStringBuilder);
         return inferedTimeStringBuilder.toString();
+    }
+
+    public static long getTimePeriodFromBucket(final long earliestStart, final long latestEnd, final long longestRange, final int numBuckets, final boolean isRelative) {
+        final long timeRange = isRelative ? longestRange: latestEnd - earliestStart;
+        return timeRange/numBuckets;
     }
 }

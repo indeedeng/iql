@@ -330,37 +330,6 @@ public interface ExecutionStep {
         }
     }
 
-    class ExplodeTimeBuckets implements ExecutionStep {
-        private final int numBuckets;
-        private final Optional<FieldSet> timeField;
-        private final Optional<String> timeFormat;
-
-        public ExplodeTimeBuckets(int numBuckets, Optional<FieldSet> timeField, Optional<String> timeFormat) {
-            this.numBuckets = numBuckets;
-            this.timeField = timeField;
-            this.timeFormat = timeFormat;
-        }
-
-        @Override
-        public List<Command> commands() {
-            return Collections.<Command>singletonList(new com.indeed.iql2.language.commands.ExplodeTimeBuckets(numBuckets, timeField, timeFormat));
-        }
-
-        @Override
-        public ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f) {
-            return this;
-        }
-
-        @Override
-        public String toString() {
-            return "ExplodeTimeBuckets{" +
-                    "numBuckets=" + numBuckets +
-                    ", timeField=" + timeField +
-                    ", timeFormat=" + timeFormat +
-                    '}';
-        }
-    }
-
     class ExplodeDayOfWeek implements ExecutionStep {
         @Override
         public List<Command> commands() {

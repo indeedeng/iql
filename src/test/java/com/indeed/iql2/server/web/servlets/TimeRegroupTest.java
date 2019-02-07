@@ -265,13 +265,15 @@ public class TimeRegroupTest extends BasicTest {
         QueryServletTestUtils.expectExceptionAll("FROM organic 2015-01-01 2015-03-01 group by time(1w) select count()", containsTimeBucketErrorMessage.and(e -> e.contains("increase the time range by 4 days or reduce the time range by 3 days")));
         QueryServletTestUtils.expectExceptionAll("FROM organic 10d today group by time(3d) select count()", containsTimeBucketErrorMessage.and(e -> e.contains("increase the time range by 2 days or reduce the time range by 1 days")));
         QueryServletTestUtils.expectExceptionAll("FROM organic 2015-01-01T0:0:0 2015-01-01T0:0:3  group by time(2s) select count()", containsTimeBucketErrorMessage.and(e -> e.contains("increase the time range by 1 seconds or reduce the time range by 1 seconds")));
+        QueryServletTestUtils.expectExceptionAll("FROM organic 10s today group by time(3b) select count()" , containsTimeBucketErrorMessage.and(e -> e.contains("increase the time range by 2 seconds or reduce the time range by 1 seconds")));
+        QueryServletTestUtils.expectExceptionAll("FROM organic 100s today group by time(7b) select count()" , containsTimeBucketErrorMessage.and(e -> e.contains("increase the time range by 12 seconds or reduce the time range by 2 seconds")));
     }
 
     @Test
     public void GroupByInferredTime() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         DateTime startDate = new DateTime("2015-01-01T01:00:00");
-        final DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern("YYYY-MM-DD HH:mm:ss");
+        final DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern("YYYY-MM-dd HH:mm:ss");
         for (int i = 0; i < 60; i++) {
             expected.add(ImmutableList.of("[" + startDate.toString(dateTimeFormatter) + ", " + startDate.plusMinutes(1).toString(dateTimeFormatter) + ")", "1"));
             startDate = startDate.plusMinutes(1);
@@ -282,7 +284,7 @@ public class TimeRegroupTest extends BasicTest {
     @Test
     public void GroupByInferredTime1() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
-        final DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern("YYYY-MM-DD HH:mm:ss");
+        final DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern("YYYY-MM-dd HH:mm:ss");
         DateTime startDate = new DateTime("2015-01-01T03:00:00");
         for (int i = 0; i < 21; i++) {
             expected.add(ImmutableList.of("[" + startDate.toString(dateTimeFormatter) + ", " + startDate.plusHours(1).toString(dateTimeFormatter) + ")", "1"));
@@ -291,4 +293,41 @@ public class TimeRegroupTest extends BasicTest {
         QueryServletTestUtils.testAll(expected, "from organic 2015-01-01 03:00:00 2015-01-02 00:00:00 group by time() select count()"); // inferred time 1 hour
     }
 
+    @Test
+    public void GroupByInferredTimeRelative() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        //QueryServletTestUtils.testIQL2(expected, "from dataset1 2014-12-01 2014-12-20 group by time(1d) select count()");
+        final DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern("YYYY-MM-dd HH:mm:ss");
+        DateTime startDateJan = new DateTime("2015-01-01T00:00:00");
+        expected.add(ImmutableList.of("[" + startDateJan.toString(dateTimeFormatter) + ", " + startDateJan.plusDays(1).toString(dateTimeFormatter) + ")", "2"));
+        startDateJan = startDateJan.plusDays(1);
+        for (int i = 0; i < 30; i++) {
+            expected.add(ImmutableList.of("[" + startDateJan.toString(dateTimeFormatter) + ", " + startDateJan.plusDays(1).toString(dateTimeFormatter) + ")", "0"));
+            startDateJan = startDateJan.plusDays(1);
+        }
+
+        DateTime startDateFeb = new DateTime("2015-02-01T00:00:00");
+        expected.add(ImmutableList.of("[" + startDateFeb.toString(dateTimeFormatter) + ", " + startDateFeb.plusDays(1).toString(dateTimeFormatter) + ")", "2"));
+        startDateFeb = startDateFeb.plusDays(1);
+        for (int i = 0; i < 27; i++) {
+            expected.add(ImmutableList.of("[" + startDateFeb.toString(dateTimeFormatter) + ", " + startDateFeb.plusDays(1).toString(dateTimeFormatter) + ")", "0"));
+            startDateFeb = startDateFeb.plusDays(1);
+        }
+        QueryServletTestUtils.testIQL2(expected, "from multiyeardataset 2015-01-01 2015-03-01, multiyeardataset 2019-01-01 2019-03-01 as multiyear1 group by time(relative) select count()"); // infered time 1 day instead of 1 week
+    }
+
+    @Test
+    public void GroupByInferredTimeRelativeBucket() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("[2015-02-01 00:00:00, 2015-02-15 00:00:00)","2")); expected.add(ImmutableList.of("[2015-02-15 00:00:00, 2015-03-01 00:00:00)", "0"));
+        QueryServletTestUtils.testIQL2(expected, "from multiyeardataset 2015-02-01 2015-03-01, multiyeardataset 2019-02-01 2019-03-01 as multiyear1 group by time(2b relative) select count()"); // infered time 1 day instead of 1 week
+    }
+
+    @Test
+    public void TestGroupByTimeField() throws  Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("[2015-01-01 03:00:00, 2015-01-01 13:30:00)", "0"));
+        expected.add(ImmutableList.of("[2015-01-01 13:30:00, 2015-01-02 00:00:00)", "0"));
+        QueryServletTestUtils.testIQL2(expected, "from organic 2015-01-01 03:00:00 2015-01-02 00:00:00 group by time(2b,'YYYY-MM-dd HH:mm:ss', ojc) select count()", true);
+    }
 }
