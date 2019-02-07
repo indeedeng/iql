@@ -15,14 +15,21 @@
 package com.indeed.iql2.execution.groupkeys.sets;
 
 import com.indeed.iql2.execution.groupkeys.GroupKey;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.BitSet;
 
-@Data
+@EqualsAndHashCode
+@ToString
 public class MaskingGroupKeySet implements GroupKeySet {
     private final GroupKeySet wrapped;
     private final BitSet presentMask;
+
+    public MaskingGroupKeySet(final GroupKeySet wrapped, final BitSet presentMask) {
+        this.wrapped = wrapped;
+        this.presentMask = presentMask;
+    }
 
     @Override
     public GroupKeySet previous() {

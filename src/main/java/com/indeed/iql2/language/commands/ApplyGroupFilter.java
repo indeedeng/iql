@@ -20,13 +20,19 @@ import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.List;
 
-@Data
+@EqualsAndHashCode
+@ToString
 public class ApplyGroupFilter implements Command {
     private final AggregateFilter filter;
+
+    public ApplyGroupFilter(final AggregateFilter filter) {
+        this.filter = filter;
+    }
 
     @Override
     public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {

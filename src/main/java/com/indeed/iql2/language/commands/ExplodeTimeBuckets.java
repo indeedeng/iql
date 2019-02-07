@@ -23,15 +23,23 @@ import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.List;
 
-@Data
+@EqualsAndHashCode
+@ToString
 public class ExplodeTimeBuckets implements Command {
     private final int numBuckets;
     private final Optional<FieldSet> timeField;
     private final Optional<String> timeFormat;
+
+    public ExplodeTimeBuckets(final int numBuckets, final Optional<FieldSet> timeField, final Optional<String> timeFormat) {
+        this.numBuckets = numBuckets;
+        this.timeField = timeField;
+        this.timeFormat = timeFormat;
+    }
 
     @Override
     public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {

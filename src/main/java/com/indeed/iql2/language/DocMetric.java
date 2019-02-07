@@ -31,7 +31,6 @@ import com.indeed.iql2.language.util.ParserUtil;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
-import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.apache.commons.codec.binary.Base64;
@@ -40,7 +39,6 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -113,10 +111,14 @@ public abstract class DocMetric extends AbstractPositional {
         return this;
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class PerDatasetDocMetric extends DocMetric {
         public final ImmutableMap<String, DocMetric> datasetToMetric;
+
+        public PerDatasetDocMetric(final ImmutableMap<String, DocMetric> datasetToMetric) {
+            this.datasetToMetric = datasetToMetric;
+        }
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
@@ -291,11 +293,16 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Log extends DocMetric {
         public final DocMetric metric;
         public final int scaleFactor;
+
+        public Log(final DocMetric metric, final int scaleFactor) {
+            this.metric = metric;
+            this.scaleFactor = scaleFactor;
+        }
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
@@ -321,11 +328,16 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Exponentiate extends DocMetric {
         public final DocMetric metric;
         public final int scaleFactor;
+
+        public Exponentiate(final DocMetric metric, final int scaleFactor) {
+            this.metric = metric;
+            this.scaleFactor = scaleFactor;
+        }
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
@@ -805,11 +817,16 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class RegexMetric extends DocMetric {
         public final FieldSet field;
         public final String regex;
+
+        public RegexMetric(final FieldSet field, final String regex) {
+            this.field = field;
+            this.regex = regex;
+        }
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
@@ -836,11 +853,16 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class FieldEqualMetric extends DocMetric {
         public final FieldSet field1;
         public final FieldSet field2;
+
+        public FieldEqualMetric(final FieldSet field1, final FieldSet field2) {
+            this.field1 = field1;
+            this.field2 = field2;
+        }
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
@@ -863,12 +885,18 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class FloatScale extends DocMetric {
         public final FieldSet field;
         public final double mult;
         public final double add;
+
+        public FloatScale(final FieldSet field, final double mult, final double add) {
+            this.field = field;
+            this.mult = mult;
+            this.add = add;
+        }
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
@@ -894,10 +922,14 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Constant extends DocMetric {
         public final long value;
+
+        public Constant(final long value) {
+            this.value = value;
+        }
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
@@ -920,10 +952,14 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class HasIntField extends DocMetric {
         public final FieldSet field;
+
+        public HasIntField(final FieldSet field) {
+            this.field = field;
+        }
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
@@ -946,10 +982,14 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class HasStringField extends DocMetric {
         public final FieldSet field;
+
+        public HasStringField(final FieldSet field) {
+            this.field = field;
+        }
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
@@ -972,11 +1012,16 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class HasInt extends DocMetric {
         public final FieldSet field;
         public final long term;
+
+        public HasInt(final FieldSet field, final long term) {
+            this.field = field;
+            this.term = term;
+        }
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
@@ -1000,13 +1045,19 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class HasString extends DocMetric {
         public final FieldSet field;
         public final String term;
         // In legacy mode it's legal to have 'hasstr(intField, "string")' so we need validate it differently
         private final boolean strictValidate;
+
+        public HasString(final FieldSet field, final String term, final boolean strictValidate) {
+            this.field = field;
+            this.term = term;
+            this.strictValidate = strictValidate;
+        }
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
@@ -1035,12 +1086,18 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class IfThenElse extends DocMetric {
         public final DocFilter condition;
         public final DocMetric trueCase;
         public final DocMetric falseCase;
+
+        public IfThenElse(final DocFilter condition, final DocMetric trueCase, final DocMetric falseCase) {
+            this.condition = condition;
+            this.trueCase = trueCase;
+            this.falseCase = falseCase;
+        }
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
@@ -1069,11 +1126,16 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Qualified extends DocMetric {
         public final String dataset;
         public final DocMetric metric;
+
+        public Qualified(final String dataset, final DocMetric metric) {
+            this.dataset = dataset;
+            this.metric = metric;
+        }
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
@@ -1103,12 +1165,18 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Extract extends DocMetric {
         public final FieldSet field;
         public final String regex;
         public final int groupNumber;
+
+        public Extract(final FieldSet field, final String regex, final int groupNumber) {
+            this.field = field;
+            this.regex = regex;
+            this.groupNumber = groupNumber;
+        }
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
@@ -1135,8 +1203,8 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Lucene extends DocMetric {
         public final String query;
 
@@ -1147,6 +1215,12 @@ public abstract class DocMetric extends AbstractPositional {
         @EqualsAndHashCode.Exclude
         @ToString.Exclude
         public final ScopedFieldResolver fieldResolver;
+
+        public Lucene(final String query, final DatasetsMetadata datasetsMetadata, final ScopedFieldResolver fieldResolver) {
+            this.query = query;
+            this.datasetsMetadata = datasetsMetadata;
+            this.fieldResolver = fieldResolver;
+        }
 
         @Override
         public DocMetric transform(final Function<DocMetric, DocMetric> g, final Function<DocFilter, DocFilter> i) {
@@ -1175,10 +1249,14 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class StringLen extends DocMetric {
         public final FieldSet field;
+
+        public StringLen(final FieldSet field) {
+            this.field = field;
+        }
 
         @Override
         public DocMetric transform(final Function<DocMetric, DocMetric> g, final Function<DocFilter, DocFilter> i) {
@@ -1204,10 +1282,14 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class IntTermCount extends DocMetric {
         public final FieldSet field;
+
+        public IntTermCount(final FieldSet field) {
+            this.field = field;
+        }
 
         @Override
         public DocMetric transform(final Function<DocMetric, DocMetric> g, final Function<DocFilter, DocFilter> i) {
@@ -1244,10 +1326,14 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class StrTermCount extends DocMetric {
         public final FieldSet field;
+
+        public StrTermCount(final FieldSet field) {
+            this.field = field;
+        }
 
         @Override
         public DocMetric transform(final Function<DocMetric, DocMetric> g, final Function<DocFilter, DocFilter> i) {
@@ -1285,14 +1371,22 @@ public abstract class DocMetric extends AbstractPositional {
     // 0 for documents missing the field
     // 1 for documents with hash(term, salt) < probability
     // 2 for documents with hash(term, salt) >= probability
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Sample extends DocMetric {
         public final FieldSet field;
         public final boolean isIntField;
         public final long numerator;
         public final long denominator;
         public final String salt;
+
+        public Sample(final FieldSet field, final boolean isIntField, final long numerator, final long denominator, final String salt) {
+            this.field = field;
+            this.isIntField = isIntField;
+            this.numerator = numerator;
+            this.denominator = denominator;
+            this.salt = salt;
+        }
 
         @Override
         public DocMetric transform(final Function<DocMetric, DocMetric> g, final Function<DocFilter, DocFilter> i) {
@@ -1325,13 +1419,20 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Random extends DocMetric {
         public final FieldSet field;
         public final boolean isIntField;
         public final int max;
         public final String salt;
+
+        public Random(final FieldSet field, final boolean isIntField, final int max, final String salt) {
+            this.field = field;
+            this.isIntField = isIntField;
+            this.max = max;
+            this.salt = salt;
+        }
 
         @Override
         public DocMetric transform(final Function<DocMetric, DocMetric> g, final Function<DocFilter, DocFilter> i) {
@@ -1368,13 +1469,20 @@ public abstract class DocMetric extends AbstractPositional {
     // 0 for documents missing the field
     // 1 for documents with hash(term, salt) < probability
     // 2 for documents with hash(term, salt) >= probability
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class SampleMetric extends DocMetric {
         public final DocMetric metric;
         public final long numerator;
         public final long denominator;
         public final String salt;
+
+        public SampleMetric(final DocMetric metric, final long numerator, final long denominator, final String salt) {
+            this.metric = metric;
+            this.numerator = numerator;
+            this.denominator = denominator;
+            this.salt = salt;
+        }
 
         @Override
         public DocMetric transform(final Function<DocMetric, DocMetric> g, final Function<DocFilter, DocFilter> i) {
@@ -1400,12 +1508,18 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class RandomMetric extends DocMetric {
         public final DocMetric metric;
         public final int max;
         public final String salt;
+
+        public RandomMetric(final DocMetric metric, final int max, final String salt) {
+            this.metric = metric;
+            this.max = max;
+            this.salt = salt;
+        }
 
         @Override
         public DocMetric transform(final Function<DocMetric, DocMetric> g, final Function<DocFilter, DocFilter> i) {

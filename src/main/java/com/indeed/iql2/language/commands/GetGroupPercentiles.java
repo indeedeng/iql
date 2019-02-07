@@ -21,14 +21,21 @@ import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.List;
 
-@Data
+@EqualsAndHashCode
+@ToString
 public class GetGroupPercentiles implements Command {
     public final FieldSet field;
     public final double[] percentiles;
+
+    public GetGroupPercentiles(final FieldSet field, final double[] percentiles) {
+        this.field = field;
+        this.percentiles = percentiles;
+    }
 
     @Override
     public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {

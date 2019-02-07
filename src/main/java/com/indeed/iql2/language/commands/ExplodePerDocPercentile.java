@@ -22,14 +22,21 @@ import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.List;
 
-@Data
+@EqualsAndHashCode
+@ToString
 public class ExplodePerDocPercentile implements Command {
     public final FieldSet field;
     public final int numBuckets;
+
+    public ExplodePerDocPercentile(final FieldSet field, final int numBuckets) {
+        this.field = field;
+        this.numBuckets = numBuckets;
+    }
 
     @Override
     public void validate(final ValidationHelper validationHelper, final ErrorCollector errorCollector) {

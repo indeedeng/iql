@@ -22,14 +22,16 @@ import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.text.MessageFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-@Data
+@EqualsAndHashCode
+@ToString
 public class MetricRegroup implements Command {
     public final ImmutableMap<String, DocMetric> perDatasetMetric;
     public final long min;
@@ -38,6 +40,16 @@ public class MetricRegroup implements Command {
     public final boolean excludeGutters;
     public final boolean withDefault;
     public final boolean fromPredicate;
+
+    public MetricRegroup(final ImmutableMap<String, DocMetric> perDatasetMetric, final long min, final long max, final long interval, final boolean excludeGutters, final boolean withDefault, final boolean fromPredicate) {
+        this.perDatasetMetric = perDatasetMetric;
+        this.min = min;
+        this.max = max;
+        this.interval = interval;
+        this.excludeGutters = excludeGutters;
+        this.withDefault = withDefault;
+        this.fromPredicate = fromPredicate;
+    }
 
     @Override
     public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {

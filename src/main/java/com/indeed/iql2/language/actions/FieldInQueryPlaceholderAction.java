@@ -13,14 +13,12 @@ import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.server.web.servlets.query.CommandValidator;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 import lombok.EqualsAndHashCode;
-import lombok.RequiredArgsConstructor;
 
 /**
  * Exists so that we can transform a Query with subqueries into a
  * List&lt;Command&gt; in order to validate it.
  */
 @EqualsAndHashCode
-@RequiredArgsConstructor
 public class FieldInQueryPlaceholderAction implements Action {
     private final FieldSet field;
     private final Query query;
@@ -30,6 +28,16 @@ public class FieldInQueryPlaceholderAction implements Action {
     private final int target;
     private final int positive;
     private final int negative;
+
+    public FieldInQueryPlaceholderAction(final FieldSet field, final Query query, final boolean isNegated, final DatasetsMetadata datasetsMetadata, final int target, final int positive, final int negative) {
+        this.field = field;
+        this.query = query;
+        this.isNegated = isNegated;
+        this.datasetsMetadata = datasetsMetadata;
+        this.target = target;
+        this.positive = positive;
+        this.negative = negative;
+    }
 
     @Override
     public void validate(final ValidationHelper validationHelper, final ErrorCollector errorCollector) {

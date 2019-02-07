@@ -13,7 +13,6 @@ import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.server.web.servlets.query.CommandValidator;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 import lombok.EqualsAndHashCode;
-import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 
@@ -22,7 +21,6 @@ import java.util.List;
  * List&lt;Command&gt; in order to validate it.
  */
 @EqualsAndHashCode
-@RequiredArgsConstructor
 public class GroupByFieldinPlaceholderCommand implements Command {
     private final FieldSet field;
     private final Query query;
@@ -30,6 +28,14 @@ public class GroupByFieldinPlaceholderCommand implements Command {
     private final boolean withDefault;
     @EqualsAndHashCode.Exclude
     private final DatasetsMetadata datasetsMetadata;
+
+    public GroupByFieldinPlaceholderCommand(final FieldSet field, final Query query, final boolean isNegated, final boolean withDefault, final DatasetsMetadata datasetsMetadata) {
+        this.field = field;
+        this.query = query;
+        this.isNegated = isNegated;
+        this.withDefault = withDefault;
+        this.datasetsMetadata = datasetsMetadata;
+    }
 
     @Override
     public void validate(final ValidationHelper validationHelper, final ErrorCollector errorCollector) {

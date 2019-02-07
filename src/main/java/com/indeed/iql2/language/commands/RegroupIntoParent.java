@@ -19,13 +19,19 @@ import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.List;
 
-@Data
+@EqualsAndHashCode
+@ToString
 public class RegroupIntoParent implements Command {
     private final GroupLookupMergeType mergeType;
+
+    public RegroupIntoParent(final GroupLookupMergeType mergeType) {
+        this.mergeType = mergeType;
+    }
 
     @Override
     public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {

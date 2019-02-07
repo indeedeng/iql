@@ -23,16 +23,24 @@ import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.Collections;
 import java.util.List;
 
-@Data
+@EqualsAndHashCode
+@ToString
 public class IterateAndExplode implements Command {
     public final FieldSet field;
     public final FieldIterateOpts fieldOpts;
     public final Optional<String> explodeDefaultName;
+
+    public IterateAndExplode(final FieldSet field, final FieldIterateOpts fieldOpts, final Optional<String> explodeDefaultName) {
+        this.field = field;
+        this.fieldOpts = fieldOpts;
+        this.explodeDefaultName = explodeDefaultName;
+    }
 
     @Override
     public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {

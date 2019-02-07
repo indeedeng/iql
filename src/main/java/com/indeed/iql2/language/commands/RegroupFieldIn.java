@@ -24,17 +24,27 @@ import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 import it.unimi.dsi.fastutil.longs.LongList;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.List;
 
-@Data
+@EqualsAndHashCode
+@ToString
 public class RegroupFieldIn implements Command {
     private final FieldSet field;
     private final List<String> stringTerms;
     private final LongList intTerms;
     private final boolean isIntField;
     private final boolean withDefault;
+
+    public RegroupFieldIn(final FieldSet field, final List<String> stringTerms, final LongList intTerms, final boolean isIntField, final boolean withDefault) {
+        this.field = field;
+        this.stringTerms = stringTerms;
+        this.intTerms = intTerms;
+        this.isIntField = isIntField;
+        this.withDefault = withDefault;
+    }
 
     @Override
     public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {

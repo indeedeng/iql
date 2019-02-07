@@ -26,15 +26,23 @@ import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.List;
 
-@Data
+@EqualsAndHashCode
+@ToString
 public class GetGroupDistincts implements Command {
     public final FieldSet field;
     public final Optional<AggregateFilter> filter;
     public final int windowSize;
+
+    public GetGroupDistincts(final FieldSet field, final Optional<AggregateFilter> filter, final int windowSize) {
+        this.field = field;
+        this.filter = filter;
+        this.windowSize = windowSize;
+    }
 
     @Override
     public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {

@@ -22,17 +22,25 @@ import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-@Data
+@EqualsAndHashCode
+@ToString
 public class RandomMetricRegroup implements Command {
     private final ImmutableMap<String, DocMetric> perDatasetMetric;
     private final int k;
     private final String salt;
+
+    public RandomMetricRegroup(final ImmutableMap<String, DocMetric> perDatasetMetric, final int k, final String salt) {
+        this.perDatasetMetric = perDatasetMetric;
+        this.k = k;
+        this.salt = salt;
+    }
 
     @Override
     public void validate(final ValidationHelper validationHelper, final ErrorCollector errorCollector) {

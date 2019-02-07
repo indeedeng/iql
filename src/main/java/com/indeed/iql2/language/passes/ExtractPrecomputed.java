@@ -34,7 +34,8 @@ import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.Optionals;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -417,11 +418,18 @@ public class ExtractPrecomputed {
         }
     }
 
-    @Data
+    @EqualsAndHashCode
+    @ToString
     private static class ComputationInfo {
         private final Precomputed precomputed;
         private final int depth;
         private final Set<String> scope;
+
+        public ComputationInfo(final Precomputed precomputed, final int depth, final Set<String> scope) {
+            this.precomputed = precomputed;
+            this.depth = depth;
+            this.scope = scope;
+        }
     }
 
     private enum ComputationType {

@@ -16,17 +16,25 @@ package com.indeed.iql2.execution.groupkeys.sets;
 
 import com.indeed.iql2.execution.groupkeys.GroupKey;
 import com.indeed.iql2.execution.groupkeys.InitialGroupKey;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.Arrays;
 import java.util.List;
 
-@Data
+@EqualsAndHashCode
+@ToString
 public class DumbGroupKeySet implements GroupKeySet {
     public static final DumbGroupKeySet INITIAL_GROUP_KEY_SET = new DumbGroupKeySet(null, new int[]{-1, -1}, Arrays.<GroupKey>asList(null, InitialGroupKey.INSTANCE));
     public final GroupKeySet previous;
     public final int[] groupParents;
     public final List<GroupKey> groupKeys;
+
+    public DumbGroupKeySet(final GroupKeySet previous, final int[] groupParents, final List<GroupKey> groupKeys) {
+        this.previous = previous;
+        this.groupParents = groupParents;
+        this.groupKeys = groupKeys;
+    }
 
     public static DumbGroupKeySet empty() {
         return INITIAL_GROUP_KEY_SET;

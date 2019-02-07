@@ -14,13 +14,17 @@
 
 package com.indeed.iql2.execution.groupkeys;
 
-import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
-@Data
 @EqualsAndHashCode(callSuper = false)
+@ToString
 public class LowGutterGroupKey extends GroupKey {
     private final long min;
+
+    public LowGutterGroupKey(final long min) {
+        this.min = min;
+    }
 
     @Override
     public String render() {

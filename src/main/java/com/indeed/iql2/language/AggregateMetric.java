@@ -29,8 +29,8 @@ import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
-import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -710,10 +710,14 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Parent extends AggregateMetric {
         public final AggregateMetric metric;
+
+        public Parent(final AggregateMetric metric) {
+            this.metric = metric;
+        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -747,11 +751,16 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Lag extends AggregateMetric {
         public final int lag;
         public final AggregateMetric metric;
+
+        public Lag(final int lag, final AggregateMetric metric) {
+            this.lag = lag;
+            this.metric = metric;
+        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -785,10 +794,14 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class DivideByCount extends AggregateMetric {
         public final AggregateMetric metric;
+
+        public DivideByCount(final AggregateMetric metric) {
+            this.metric = metric;
+        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -823,11 +836,16 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class IterateLag extends AggregateMetric {
         public final int lag;
         public final AggregateMetric metric;
+
+        public IterateLag(final int lag, final AggregateMetric metric) {
+            this.lag = lag;
+            this.metric = metric;
+        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -865,13 +883,13 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Window extends AggregateMetric {
         public final int window;
         public final AggregateMetric metric;
 
-        public Window(int window, AggregateMetric metric) {
+        public Window(final int window, final AggregateMetric metric) {
             this.window = window;
             this.metric = metric;
         }
@@ -911,11 +929,16 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Qualified extends AggregateMetric {
         public final List<String> scope;
         public final AggregateMetric metric;
+
+        public Qualified(final List<String> scope, final AggregateMetric metric) {
+            this.scope = scope;
+            this.metric = metric;
+        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -955,13 +978,13 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class DocStatsPushes extends AggregateMetric {
         public final String dataset;
         public final DocMetric pushes;
 
-        public DocStatsPushes(String dataset, DocMetric pushes) {
+        public DocStatsPushes(final String dataset, final DocMetric pushes) {
             this.dataset = dataset;
             this.pushes = pushes;
         }
@@ -1001,10 +1024,14 @@ public abstract class AggregateMetric extends AbstractPositional {
     /**
      * DocStats in which there is no explicit sum, but a single atomic, unambiguous atom.
      */
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class DocStats extends AggregateMetric {
         public final DocMetric docMetric;
+
+        public DocStats(final DocMetric docMetric) {
+            this.docMetric = docMetric;
+        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -1039,10 +1066,14 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Constant extends AggregateMetric {
         public final double value;
+
+        public Constant(final double value) {
+            this.value = value;
+        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -1075,11 +1106,16 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Percentile extends RequiresFTGSMetric {
         public final FieldSet field;
         public final double percentile;
+
+        public Percentile(final FieldSet field, final double percentile) {
+            this.field = field;
+            this.percentile = percentile;
+        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -1107,11 +1143,16 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Running extends AggregateMetric {
         public final int offset;
         public final AggregateMetric metric;
+
+        public Running(final int offset, final AggregateMetric metric) {
+            this.offset = offset;
+            this.metric = metric;
+        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -1148,12 +1189,18 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Distinct extends RequiresFTGSMetric {
         public final FieldSet field;
         public final Optional<AggregateFilter> filter;
         public final Optional<Integer> windowSize;
+
+        public Distinct(final FieldSet field, final Optional<AggregateFilter> filter, final Optional<Integer> windowSize) {
+            this.field = field;
+            this.filter = filter;
+            this.windowSize = windowSize;
+        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -1191,11 +1238,16 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Named extends AggregateMetric {
         public final AggregateMetric metric;
         public final Positioned<String> name;
+
+        public Named(final AggregateMetric metric, final Positioned<String> name) {
+            this.metric = metric;
+            this.name = name;
+        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -1230,10 +1282,14 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class NeedsSubstitution extends AggregateMetric {
         public final String substitutionName;
+
+        public NeedsSubstitution(final String substitutionName) {
+            this.substitutionName = substitutionName;
+        }
 
         @Override
         public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {
@@ -1265,10 +1321,14 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class GroupStatsLookup extends AggregateMetric {
         public final String name;
+
+        public GroupStatsLookup(final String name) {
+            this.name = name;
+        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -1303,11 +1363,16 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class SumAcross extends RequiresFTGSMetric {
         public final GroupBy groupBy;
         public final AggregateMetric metric;
+
+        public SumAcross(final GroupBy groupBy, final AggregateMetric metric) {
+            this.groupBy = groupBy;
+            this.metric = metric;
+        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -1337,12 +1402,18 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class IfThenElse extends AggregateMetric {
         public final AggregateFilter condition;
         public final AggregateMetric trueCase;
         public final AggregateMetric falseCase;
+
+        public IfThenElse(final AggregateFilter condition, final AggregateMetric trueCase, final AggregateMetric falseCase) {
+            this.condition = condition;
+            this.trueCase = trueCase;
+            this.falseCase = falseCase;
+        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -1391,12 +1462,18 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class FieldMin extends RequiresFTGSMetric {
         public final FieldSet field;
         public final Optional<AggregateMetric> metric;
         public final Optional<AggregateFilter> filter;
+
+        public FieldMin(final FieldSet field, final Optional<AggregateMetric> metric, final Optional<AggregateFilter> filter) {
+            this.field = field;
+            this.metric = metric;
+            this.filter = filter;
+        }
 
         @Override
         public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {
@@ -1443,12 +1520,18 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class FieldMax extends RequiresFTGSMetric {
         public final FieldSet field;
         public final Optional<AggregateMetric> metric;
         public final Optional<AggregateFilter> filter;
+
+        public FieldMax(final FieldSet field, final Optional<AggregateMetric> metric, final Optional<AggregateFilter> filter) {
+            this.field = field;
+            this.metric = metric;
+            this.filter = filter;
+        }
 
         @Override
         public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {
@@ -1495,10 +1578,14 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Min extends AggregateMetric {
         public final List<AggregateMetric> metrics;
+
+        public Min(final List<AggregateMetric> metrics) {
+            this.metrics = metrics;
+        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -1554,10 +1641,14 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Max extends AggregateMetric {
         public final List<AggregateMetric> metrics;
+
+        public Max(final List<AggregateMetric> metrics) {
+            this.metrics = metrics;
+        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {

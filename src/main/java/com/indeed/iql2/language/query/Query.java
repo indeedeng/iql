@@ -50,7 +50,6 @@ import com.indeed.util.core.Pair;
 import com.indeed.util.core.time.WallClock;
 import com.indeed.util.logging.TracingTreeTimer;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
-import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.antlr.v4.runtime.Token;
@@ -67,7 +66,8 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-@Data
+@EqualsAndHashCode
+@ToString
 public class Query extends AbstractPositional {
     public final List<Dataset> datasets;
     public final Optional<DocFilter> filter;
@@ -82,6 +82,17 @@ public class Query extends AbstractPositional {
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private List<Command> commands = null;
+
+    public Query(final List<Dataset> datasets, final Optional<DocFilter> filter, final List<GroupByEntry> groupBys, final List<AggregateMetric> selects, final List<Optional<String>> formatStrings, final List<String> options, final Optional<Integer> rowLimit, final boolean useLegacy) {
+        this.datasets = datasets;
+        this.filter = filter;
+        this.groupBys = groupBys;
+        this.selects = selects;
+        this.formatStrings = formatStrings;
+        this.options = options;
+        this.rowLimit = rowLimit;
+        this.useLegacy = useLegacy;
+    }
 
     // Helper class for data that necessary while parsing query.
     public static class Context {

@@ -4,7 +4,8 @@ import com.google.common.base.Throwables;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import org.joda.time.DateTime;
 
 import javax.annotation.Nullable;
@@ -39,10 +40,17 @@ public class CachingShardResolver implements ShardResolver {
         }
     }
 
-    @Data
+    @EqualsAndHashCode
+    @ToString
     static class Key {
         final String dataset;
         final DateTime start;
         final DateTime end;
+
+        public Key(final String dataset, final DateTime start, final DateTime end) {
+            this.dataset = dataset;
+            this.start = start;
+            this.end = end;
+        }
     }
 }

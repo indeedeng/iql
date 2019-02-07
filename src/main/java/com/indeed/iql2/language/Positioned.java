@@ -14,12 +14,12 @@
 
 package com.indeed.iql2.language;
 
-import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import org.antlr.v4.runtime.ParserRuleContext;
 
-@Data
 @EqualsAndHashCode(callSuper = false)
+@ToString
 public class Positioned<T> extends AbstractPositional implements Positional {
     private final T t;
 

@@ -14,11 +14,13 @@
 
 package com.indeed.iql2.language.query;
 
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.List;
 
-@Data
+@EqualsAndHashCode
+@ToString
 public class SplitQuery {
     public final String from;
     public final String where;
@@ -38,7 +40,25 @@ public class SplitQuery {
 
     public final List<Dataset> datasets;
 
-    @Data
+    public SplitQuery(final String from, final String where, final String groupBy, final String select, final String limit, final List<String> headers, final List<String> groupBys, final List<String> selects, final String dataset, final String start, final String startRawString, final String end, final String endRawString, final List<Dataset> datasets) {
+        this.from = from;
+        this.where = where;
+        this.groupBy = groupBy;
+        this.select = select;
+        this.limit = limit;
+        this.headers = headers;
+        this.groupBys = groupBys;
+        this.selects = selects;
+        this.dataset = dataset;
+        this.start = start;
+        this.startRawString = startRawString;
+        this.end = end;
+        this.endRawString = endRawString;
+        this.datasets = datasets;
+    }
+
+    @EqualsAndHashCode
+    @ToString
     static class Dataset {
         public final String name;
         public final String where;
@@ -46,5 +66,14 @@ public class SplitQuery {
         public final String end;
         public final String alias;
         public final String fieldAlias;
+
+        public Dataset(final String name, final String where, final String start, final String end, final String alias, final String fieldAlias) {
+            this.name = name;
+            this.where = where;
+            this.start = start;
+            this.end = end;
+            this.alias = alias;
+            this.fieldAlias = fieldAlias;
+        }
     }
 }

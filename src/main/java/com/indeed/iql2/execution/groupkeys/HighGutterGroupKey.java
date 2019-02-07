@@ -14,13 +14,17 @@
 
 package com.indeed.iql2.execution.groupkeys;
 
-import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
-@Data
 @EqualsAndHashCode(callSuper = false)
+@ToString
 public class HighGutterGroupKey extends GroupKey {
     private final long start;
+
+    public HighGutterGroupKey(final long start) {
+        this.start = start;
+    }
 
     @Override
     public String render() {

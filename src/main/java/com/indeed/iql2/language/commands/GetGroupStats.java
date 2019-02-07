@@ -22,16 +22,24 @@ import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Data
+@EqualsAndHashCode
+@ToString
 public class GetGroupStats implements Command {
     public final List<AggregateMetric> metrics;
     public final List<Optional<String>> formatStrings;
     public final boolean returnGroupKeys;
+
+    public GetGroupStats(final List<AggregateMetric> metrics, final List<Optional<String>> formatStrings, final boolean returnGroupKeys) {
+        this.metrics = metrics;
+        this.formatStrings = formatStrings;
+        this.returnGroupKeys = returnGroupKeys;
+    }
 
     @Override
     public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {

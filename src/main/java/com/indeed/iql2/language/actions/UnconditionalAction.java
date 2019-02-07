@@ -20,15 +20,22 @@ import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
-import java.util.Set;
 
-@Data
+@EqualsAndHashCode
+@ToString
 public class UnconditionalAction implements Action {
     public final ImmutableSet<String> scope;
     public final int targetGroup;
     public final int newGroup;
+
+    public UnconditionalAction(final ImmutableSet<String> scope, final int targetGroup, final int newGroup) {
+        this.scope = scope;
+        this.targetGroup = targetGroup;
+        this.newGroup = newGroup;
+    }
 
     @Override
     public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {

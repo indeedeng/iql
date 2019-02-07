@@ -20,14 +20,20 @@ import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 import com.indeed.util.core.Pair;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Data
+@EqualsAndHashCode
+@ToString
 public class ComputeAndCreateGroupStatsLookups implements Command {
     private final List<Pair<Command, String>> namedComputations;
+
+    public ComputeAndCreateGroupStatsLookups(final List<Pair<Command, String>> namedComputations) {
+        this.namedComputations = namedComputations;
+    }
 
     @Override
     public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {

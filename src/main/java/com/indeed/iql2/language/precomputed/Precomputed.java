@@ -33,7 +33,8 @@ import com.indeed.iql2.language.query.Dataset;
 import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.Optionals;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -45,11 +46,18 @@ public interface Precomputed {
     Precomputed transform(Function<Precomputed, Precomputed> precomputed, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction);
     Precomputed traverse1(Function<AggregateMetric, AggregateMetric> f);
 
-    @Data
+    @EqualsAndHashCode
+    @ToString
     class PrecomputedDistinct implements Precomputed {
         public final FieldSet field;
         public final Optional<AggregateFilter> filter;
         public final Optional<Integer> windowSize;
+
+        public PrecomputedDistinct(final FieldSet field, final Optional<AggregateFilter> filter, final Optional<Integer> windowSize) {
+            this.field = field;
+            this.filter = filter;
+            this.windowSize = windowSize;
+        }
 
         @Override
         public Precomputation commands(List<Dataset> datasets) {
@@ -73,10 +81,16 @@ public interface Precomputed {
         }
     }
 
-    @Data
+    @EqualsAndHashCode
+    @ToString
     class PrecomputedPercentile implements Precomputed {
         public final FieldSet field;
         public final double percentile;
+
+        public PrecomputedPercentile(final FieldSet field, final double percentile) {
+            this.field = field;
+            this.percentile = percentile;
+        }
 
         @Override
         public Precomputation commands(List<Dataset> datasets) {
@@ -94,9 +108,14 @@ public interface Precomputed {
         }
     }
 
-    @Data
+    @EqualsAndHashCode
+    @ToString
     class PrecomputedRawStats implements Precomputed {
         public final DocMetric docMetric;
+
+        public PrecomputedRawStats(final DocMetric docMetric) {
+            this.docMetric = docMetric;
+        }
 
         @Override
         public Precomputation commands(final List<Dataset> datasets) {
@@ -121,11 +140,18 @@ public interface Precomputed {
         }
     }
 
-    @Data
+    @EqualsAndHashCode
+    @ToString
     class PrecomputedSumAcross implements Precomputed {
         public final FieldSet field;
         public final AggregateMetric metric;
         public final Optional<AggregateFilter> filter;
+
+        public PrecomputedSumAcross(final FieldSet field, final AggregateMetric metric, final Optional<AggregateFilter> filter) {
+            this.field = field;
+            this.metric = metric;
+            this.filter = filter;
+        }
 
         @Override
         public Precomputation commands(List<Dataset> datasets) {
@@ -144,10 +170,16 @@ public interface Precomputed {
         }
     }
 
-    @Data
+    @EqualsAndHashCode
+    @ToString
     class PrecomputedSumAcrossGroupBy implements Precomputed {
         public final GroupBy groupBy;
         public final AggregateMetric metric;
+
+        public PrecomputedSumAcrossGroupBy(final GroupBy groupBy, final AggregateMetric metric) {
+            this.groupBy = groupBy;
+            this.metric = metric;
+        }
 
         @Override
         public Precomputation commands(List<Dataset> datasets) {
@@ -169,11 +201,18 @@ public interface Precomputed {
         }
     }
 
-    @Data
+    @EqualsAndHashCode
+    @ToString
     class PrecomputedFieldExtremeValue implements Precomputed {
         public final FieldSet field;
         public final AggregateMetric metric;
         public final Optional<AggregateFilter> filter;
+
+        public PrecomputedFieldExtremeValue(final FieldSet field, final AggregateMetric metric, final Optional<AggregateFilter> filter) {
+            this.field = field;
+            this.metric = metric;
+            this.filter = filter;
+        }
 
         @Override
         public Precomputation commands(final List<Dataset> datasets) {
@@ -203,11 +242,18 @@ public interface Precomputed {
         }
     }
 
-    @Data
+    @EqualsAndHashCode
+    @ToString
     class Precomputation {
         public final List<Command> beforeCommands;
         public final Command computationCommand;
         public final List<Command> afterCommands;
+
+        public Precomputation(final List<Command> beforeCommands, final Command computationCommand, final List<Command> afterCommands) {
+            this.beforeCommands = beforeCommands;
+            this.computationCommand = computationCommand;
+            this.afterCommands = afterCommands;
+        }
 
         public static Precomputation noContext(Command command) {
             return new Precomputation(Collections.<Command>emptyList(), command, Collections.<Command>emptyList());

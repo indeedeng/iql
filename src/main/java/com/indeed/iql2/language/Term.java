@@ -14,13 +14,21 @@
 
 package com.indeed.iql2.language;
 
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
-@Data
+@EqualsAndHashCode
+@ToString
 public class Term {
     public final String stringTerm;
     public final long intTerm;
     public final boolean isIntTerm;
+
+    public Term(final String stringTerm, final long intTerm, final boolean isIntTerm) {
+        this.stringTerm = stringTerm;
+        this.intTerm = intTerm;
+        this.isIntTerm = isIntTerm;
+    }
 
     public static Term term(String term) {
         return new Term(term, 0, false);

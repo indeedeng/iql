@@ -16,11 +16,17 @@ package com.indeed.iql2.execution.groupkeys.sets;
 
 import com.indeed.iql2.execution.commands.ExplodeDayOfWeek;
 import com.indeed.iql2.execution.groupkeys.GroupKey;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
-@Data
+@EqualsAndHashCode
+@ToString
 public class DayOfWeekGroupKeySet implements GroupKeySet {
     private final GroupKeySet previous;
+
+    public DayOfWeekGroupKeySet(final GroupKeySet previous) {
+        this.previous = previous;
+    }
 
     @Override
     public GroupKeySet previous() {

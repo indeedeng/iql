@@ -21,11 +21,11 @@ import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
-import java.util.Map;
-
-@Data
+@EqualsAndHashCode
+@ToString
 public class SampleMetricAction implements Action {
     final ImmutableMap<String, DocMetric> perDatasetMetric;
     public final double probability;
@@ -34,6 +34,15 @@ public class SampleMetricAction implements Action {
     public final int targetGroup;
     public final int positiveGroup;
     public final int negativeGroup;
+
+    public SampleMetricAction(final ImmutableMap<String, DocMetric> perDatasetMetric, final double probability, final String seed, final int targetGroup, final int positiveGroup, final int negativeGroup) {
+        this.perDatasetMetric = perDatasetMetric;
+        this.probability = probability;
+        this.seed = seed;
+        this.targetGroup = targetGroup;
+        this.positiveGroup = positiveGroup;
+        this.negativeGroup = negativeGroup;
+    }
 
     @Override
     public void validate(final ValidationHelper validationHelper, final ErrorCollector errorCollector) {

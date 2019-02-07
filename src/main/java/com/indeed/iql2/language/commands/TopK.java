@@ -19,12 +19,19 @@ import com.google.common.base.Optional;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.AggregateMetric;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
-@Data
+@EqualsAndHashCode
+@ToString
 public class TopK {
     public final Optional<Long> limit;
     public final Optional<AggregateMetric> metric;
+
+    public TopK(final Optional<Long> limit, final Optional<AggregateMetric> metric) {
+        this.limit = limit;
+        this.metric = metric;
+    }
 
     public com.indeed.iql2.execution.commands.misc.TopK toExecution(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
         return new com.indeed.iql2.execution.commands.misc.TopK(

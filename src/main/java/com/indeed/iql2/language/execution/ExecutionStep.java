@@ -45,7 +45,6 @@ import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.util.core.Pair;
 import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.fastutil.longs.LongLists;
-import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
@@ -60,11 +59,18 @@ public interface ExecutionStep {
     List<Command> commands();
     ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f);
 
-    @Data
+    @EqualsAndHashCode
+    @ToString
     class ComputePrecomputed implements ExecutionStep {
         public final List<Dataset> datasets;
         public final Precomputed computation;
         public final String name;
+
+        public ComputePrecomputed(final List<Dataset> datasets, final Precomputed computation, final String name) {
+            this.datasets = datasets;
+            this.computation = computation;
+            this.name = name;
+        }
 
         @Override
         public List<Command> commands() {
@@ -82,10 +88,16 @@ public interface ExecutionStep {
         }
     }
 
-    @Data
+    @EqualsAndHashCode
+    @ToString
     class ComputeManyPrecomputed implements ExecutionStep {
         public final List<Dataset> datasets;
         public final List<Pair<Precomputed, String>> computations;
+
+        public ComputeManyPrecomputed(final List<Dataset> datasets, final List<Pair<Precomputed, String>> computations) {
+            this.datasets = datasets;
+            this.computations = computations;
+        }
 
         @Override
         public List<Command> commands() {
@@ -120,13 +132,22 @@ public interface ExecutionStep {
         }
     }
 
-    @Data
+    @EqualsAndHashCode
+    @ToString
     class ExplodeAndRegroup implements ExecutionStep {
         public final FieldSet field;
         public final Optional<AggregateFilter> filter;
         public final Optional<Long> limit;
         public final Optional<AggregateMetric> metric;
         public final boolean withDefault;
+
+        public ExplodeAndRegroup(final FieldSet field, final Optional<AggregateFilter> filter, final Optional<Long> limit, final Optional<AggregateMetric> metric, final boolean withDefault) {
+            this.field = field;
+            this.filter = filter;
+            this.limit = limit;
+            this.metric = metric;
+            this.withDefault = withDefault;
+        }
 
         @Override
         public List<Command> commands() {
@@ -165,13 +186,22 @@ public interface ExecutionStep {
         }
     }
 
-    @Data
+    @EqualsAndHashCode
+    @ToString
     class ExplodeFieldIn implements ExecutionStep {
         public final FieldSet field;
         public final List<String> stringTerms;
         public final LongList intTerms;
         public final boolean isIntField;
         public final boolean withDefault;
+
+        public ExplodeFieldIn(final FieldSet field, final List<String> stringTerms, final LongList intTerms, final boolean isIntField, final boolean withDefault) {
+            this.field = field;
+            this.stringTerms = stringTerms;
+            this.intTerms = intTerms;
+            this.isIntField = isIntField;
+            this.withDefault = withDefault;
+        }
 
         public static ExplodeFieldIn intExplode(FieldSet field, LongList terms, boolean withDefault) {
             return new ExplodeFieldIn(field, Collections.<String>emptyList(), terms, true, withDefault);
@@ -192,7 +222,8 @@ public interface ExecutionStep {
         }
     }
 
-    @Data
+    @EqualsAndHashCode
+    @ToString
     class ExplodeMetric implements ExecutionStep {
         private final Map<String, DocMetric> perDatasetMetric;
         private final long lowerBound;
@@ -202,6 +233,17 @@ public interface ExecutionStep {
         private final boolean excludeGutters;
         private final boolean withDefault;
         private final boolean fromPredicate;
+
+        public ExplodeMetric(final Map<String, DocMetric> perDatasetMetric, final long lowerBound, final long upperBound, final long interval, final Set<String> scope, final boolean excludeGutters, final boolean withDefault, final boolean fromPredicate) {
+            this.perDatasetMetric = perDatasetMetric;
+            this.lowerBound = lowerBound;
+            this.upperBound = upperBound;
+            this.interval = interval;
+            this.scope = scope;
+            this.excludeGutters = excludeGutters;
+            this.withDefault = withDefault;
+            this.fromPredicate = fromPredicate;
+        }
 
         @Override
         public List<Command> commands() {
@@ -214,12 +256,20 @@ public interface ExecutionStep {
         }
     }
 
-    @Data
+    @EqualsAndHashCode
+    @ToString
     class ExplodeTimePeriod implements ExecutionStep {
         private final long periodMillis;
         private final Optional<FieldSet> timeField;
         private final Optional<String> timeFormat;
         private final boolean isRelative;
+
+        public ExplodeTimePeriod(final long periodMillis, final Optional<FieldSet> timeField, final Optional<String> timeFormat, final boolean isRelative) {
+            this.periodMillis = periodMillis;
+            this.timeField = timeField;
+            this.timeFormat = timeFormat;
+            this.isRelative = isRelative;
+        }
 
         @Override
         public List<Command> commands() {
@@ -232,11 +282,18 @@ public interface ExecutionStep {
         }
     }
 
-    @Data
+    @EqualsAndHashCode
+    @ToString
     class ExplodeTimeBuckets implements ExecutionStep {
         private final int numBuckets;
         private final Optional<FieldSet> timeField;
         private final Optional<String> timeFormat;
+
+        public ExplodeTimeBuckets(final int numBuckets, final Optional<FieldSet> timeField, final Optional<String> timeFormat) {
+            this.numBuckets = numBuckets;
+            this.timeField = timeField;
+            this.timeFormat = timeFormat;
+        }
 
         @Override
         public List<Command> commands() {
@@ -266,10 +323,16 @@ public interface ExecutionStep {
         }
     }
 
-    @Data
+    @EqualsAndHashCode
+    @ToString
     class ExplodeMonthOfYear implements ExecutionStep {
         private final Optional<FieldSet> timeField;
         private final Optional<String> timeFormat;
+
+        public ExplodeMonthOfYear(final Optional<FieldSet> timeField, final Optional<String> timeFormat) {
+            this.timeField = timeField;
+            this.timeFormat = timeFormat;
+        }
 
         @Override
         public List<Command> commands() {
@@ -299,7 +362,8 @@ public interface ExecutionStep {
         }
     }
 
-    @Data
+    @EqualsAndHashCode
+    @ToString
     class IterateStats implements ExecutionStep {
         private final FieldSet field;
         private final Optional<AggregateFilter> filter;
@@ -312,6 +376,18 @@ public interface ExecutionStep {
 
         private final List<AggregateMetric> stats;
         private final List<Optional<String>> formatStrings;
+
+        public IterateStats(final FieldSet field, final Optional<AggregateFilter> filter, final Optional<Long> limit, final Optional<Integer> queryLimit, final Optional<AggregateMetric> metric, final Optional<Set<String>> stringTermSubset, final Optional<Set<Long>> intTermSubset, final List<AggregateMetric> stats, final List<Optional<String>> formatStrings) {
+            this.field = field;
+            this.filter = filter;
+            this.limit = limit;
+            this.queryLimit = queryLimit;
+            this.metric = metric;
+            this.stringTermSubset = stringTermSubset;
+            this.intTermSubset = intTermSubset;
+            this.stats = stats;
+            this.formatStrings = formatStrings;
+        }
 
         @Override
         public List<Command> commands() {
@@ -349,10 +425,16 @@ public interface ExecutionStep {
         }
     }
 
-    @Data
+    @EqualsAndHashCode
+    @ToString
     class GetGroupStats implements ExecutionStep {
         public final List<AggregateMetric> stats;
         public final List<Optional<String>> formatStrings;
+
+        public GetGroupStats(final List<AggregateMetric> stats, final List<Optional<String>> formatStrings) {
+            this.stats = stats;
+            this.formatStrings = formatStrings;
+        }
 
         @Override
         public List<Command> commands() {
@@ -369,10 +451,16 @@ public interface ExecutionStep {
         }
     }
 
-    @Data
+    @EqualsAndHashCode
+    @ToString
     class ExplodePerDocPercentile implements ExecutionStep {
         private final FieldSet field;
         private final int numBuckets;
+
+        public ExplodePerDocPercentile(final FieldSet field, final int numBuckets) {
+            this.field = field;
+            this.numBuckets = numBuckets;
+        }
 
         @Override
         public List<Command> commands() {
@@ -385,9 +473,14 @@ public interface ExecutionStep {
         }
     }
 
-    @Data
+    @EqualsAndHashCode
+    @ToString
     class FilterActions implements ExecutionStep {
         private final ImmutableList<Action> actions;
+
+        public FilterActions(final ImmutableList<Action> actions) {
+            this.actions = actions;
+        }
 
         @Override
         public List<Command> commands() {
@@ -400,9 +493,14 @@ public interface ExecutionStep {
         }
     }
 
-    @Data
+    @EqualsAndHashCode
+    @ToString
     class FilterGroups implements ExecutionStep {
         private final AggregateFilter filter;
+
+        public FilterGroups(final AggregateFilter filter) {
+            this.filter = filter;
+        }
 
         @Override
         public List<Command> commands() {
@@ -415,11 +513,18 @@ public interface ExecutionStep {
         }
     }
 
-    @Data
+    @EqualsAndHashCode
+    @ToString
     class ExplodeRandom implements ExecutionStep {
         private final FieldSet field;
         private final int k;
         private final String salt;
+
+        public ExplodeRandom(final FieldSet field, final int k, final String salt) {
+            this.field = field;
+            this.k = k;
+            this.salt = salt;
+        }
 
         @Override
         public List<Command> commands() {
@@ -432,12 +537,20 @@ public interface ExecutionStep {
         }
     }
 
-    @Data
+    @EqualsAndHashCode
+    @ToString
     class ExplodeRandomMetric implements ExecutionStep {
         private final Map<String, DocMetric> perDatasetMetric;
         private final Set<String> scope;
         private final int k;
         private final String salt;
+
+        public ExplodeRandomMetric(final Map<String, DocMetric> perDatasetMetric, final Set<String> scope, final int k, final String salt) {
+            this.perDatasetMetric = perDatasetMetric;
+            this.scope = scope;
+            this.k = k;
+            this.salt = salt;
+        }
 
         @Override
         public List<Command> commands() {
@@ -454,7 +567,8 @@ public interface ExecutionStep {
      * Exists so that we can transform a Query with subqueries into a
      * List&lt;Command&gt; in order to validate it.
      */
-    @Data
+    @EqualsAndHashCode
+    @ToString
     class GroupByFieldInQueryPlaceholderExecutionStep implements ExecutionStep {
         private final FieldSet field;
         private final Query query;
@@ -463,6 +577,14 @@ public interface ExecutionStep {
         @ToString.Exclude
         @EqualsAndHashCode.Exclude
         private final DatasetsMetadata datasetsMetadata;
+
+        public GroupByFieldInQueryPlaceholderExecutionStep(final FieldSet field, final Query query, final boolean isNegated, final boolean withDefault, final DatasetsMetadata datasetsMetadata) {
+            this.field = field;
+            this.query = query;
+            this.isNegated = isNegated;
+            this.withDefault = withDefault;
+            this.datasetsMetadata = datasetsMetadata;
+        }
 
         @Override
         public List<Command> commands() {

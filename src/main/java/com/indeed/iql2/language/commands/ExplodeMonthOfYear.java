@@ -21,14 +21,21 @@ import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.List;
 
-@Data
+@EqualsAndHashCode
+@ToString
 public class ExplodeMonthOfYear implements Command {
     private final Optional<FieldSet> timeField;
     private final Optional<String> timeFormat;
+
+    public ExplodeMonthOfYear(final Optional<FieldSet> timeField, final Optional<String> timeFormat) {
+        this.timeField = timeField;
+        this.timeFormat = timeFormat;
+    }
 
     @Override
     public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {

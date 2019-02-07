@@ -17,14 +17,22 @@ package com.indeed.iql2.language;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.indeed.iql2.language.query.GroupBy;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 // TODO: Make Positional
-@Data
+@EqualsAndHashCode
+@ToString
 public class GroupByEntry {
     public final GroupBy groupBy;
     public final Optional<AggregateFilter> filter;
     public final Optional<String> alias;
+
+    public GroupByEntry(final GroupBy groupBy, final Optional<AggregateFilter> filter, final Optional<String> alias) {
+        this.groupBy = groupBy;
+        this.filter = filter;
+        this.alias = alias;
+    }
 
     public GroupByEntry transform(
             final Function<GroupBy, GroupBy> groupByF,

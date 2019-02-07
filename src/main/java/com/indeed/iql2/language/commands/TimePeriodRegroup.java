@@ -23,17 +23,26 @@ import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-@Data
+@EqualsAndHashCode
+@ToString
 public class TimePeriodRegroup implements Command {
     private final long periodMillis;
     private final Optional<FieldSet> timeField;
     private final Optional<String> timeFormat;
     private final boolean isRelative;
+
+    public TimePeriodRegroup(final long periodMillis, final Optional<FieldSet> timeField, final Optional<String> timeFormat, final boolean isRelative) {
+        this.periodMillis = periodMillis;
+        this.timeField = timeField;
+        this.timeFormat = timeFormat;
+        this.isRelative = isRelative;
+    }
 
     @Override
     public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {

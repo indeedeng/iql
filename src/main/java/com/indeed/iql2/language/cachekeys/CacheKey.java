@@ -11,7 +11,8 @@ import com.indeed.iql2.execution.ResultFormat;
 import com.indeed.iql2.language.commands.Command;
 import com.indeed.iql2.language.query.Dataset;
 import com.indeed.iql2.language.query.Query;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.log4j.Logger;
 
@@ -72,9 +73,15 @@ public class CacheKey {
         return new CacheKey(queryHash, cacheFileName);
     }
 
-    @Data
+    @EqualsAndHashCode
+    @ToString
     private static class FieldAlias {
         public final String originalName;
         public final String newName;
+
+        public FieldAlias(final String originalName, final String newName) {
+            this.originalName = originalName;
+            this.newName = newName;
+        }
     }
 }

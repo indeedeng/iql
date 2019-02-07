@@ -31,9 +31,7 @@ import com.indeed.iql2.language.execution.ExecutionStep;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
-import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 
 import java.util.List;
@@ -81,7 +79,6 @@ public abstract class GroupBy extends AbstractPositional {
         return this;
     }
 
-    @RequiredArgsConstructor
     @EqualsAndHashCode(callSuper = false)
     @ToString
     public static class GroupByMetric extends GroupBy {
@@ -91,6 +88,15 @@ public abstract class GroupBy extends AbstractPositional {
         public final long interval;
         public final boolean excludeGutters;
         public final boolean withDefault;
+
+        public GroupByMetric(final DocMetric metric, final long min, final long max, final long interval, final boolean excludeGutters, final boolean withDefault) {
+            this.metric = metric;
+            this.min = min;
+            this.max = max;
+            this.interval = interval;
+            this.excludeGutters = excludeGutters;
+            this.withDefault = withDefault;
+        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -132,13 +138,20 @@ public abstract class GroupBy extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class GroupByTime extends GroupBy {
         public final long periodMillis;
         public final Optional<FieldSet> field;
         public final Optional<String> format;
         public final boolean isRelative;
+
+        public GroupByTime(final long periodMillis, final Optional<FieldSet> field, final Optional<String> format, final boolean isRelative) {
+            this.periodMillis = periodMillis;
+            this.field = field;
+            this.format = format;
+            this.isRelative = isRelative;
+        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -172,10 +185,14 @@ public abstract class GroupBy extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class GroupByInferredTime extends GroupBy {
         public final boolean isRelative;
+
+        public GroupByInferredTime(final boolean isRelative) {
+            this.isRelative = isRelative;
+        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -210,12 +227,18 @@ public abstract class GroupBy extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class GroupByTimeBuckets extends GroupBy {
         public final int numBuckets;
         public final Optional<FieldSet> field;
         public final Optional<String> format;
+
+        public GroupByTimeBuckets(final int numBuckets, final Optional<FieldSet> field, final Optional<String> format) {
+            this.numBuckets = numBuckets;
+            this.field = field;
+            this.format = format;
+        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -249,11 +272,16 @@ public abstract class GroupBy extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class GroupByMonth extends GroupBy {
         public final Optional<FieldSet> timeField;
         public final Optional<String> timeFormat;
+
+        public GroupByMonth(final Optional<FieldSet> timeField, final Optional<String> timeFormat) {
+            this.timeField = timeField;
+            this.timeFormat = timeFormat;
+        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -353,8 +381,8 @@ public abstract class GroupBy extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class GroupByFieldInQuery extends GroupBy {
         public final FieldSet field;
         public final Query query;
@@ -363,6 +391,14 @@ public abstract class GroupBy extends AbstractPositional {
         @ToString.Exclude
         @EqualsAndHashCode.Exclude
         private final DatasetsMetadata datasetsMetadata;
+
+        public GroupByFieldInQuery(final FieldSet field, final Query query, final boolean isNegated, final boolean withDefault, final DatasetsMetadata datasetsMetadata) {
+            this.field = field;
+            this.query = query;
+            this.isNegated = isNegated;
+            this.withDefault = withDefault;
+            this.datasetsMetadata = datasetsMetadata;
+        }
 
         @Override
         public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {
@@ -573,11 +609,16 @@ public abstract class GroupBy extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class GroupByQuantiles extends GroupBy {
         public final FieldSet field;
         public final int numBuckets;
+
+        public GroupByQuantiles(final FieldSet field, final int numBuckets) {
+            this.field = field;
+            this.numBuckets = numBuckets;
+        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -612,10 +653,14 @@ public abstract class GroupBy extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class GroupByPredicate extends GroupBy {
         public final DocFilter docFilter;
+
+        public GroupByPredicate(final DocFilter docFilter) {
+            this.docFilter = docFilter;
+        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -654,12 +699,18 @@ public abstract class GroupBy extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class GroupByRandom extends GroupBy {
         public final FieldSet field;
         public final int k;
         public final String salt;
+
+        public GroupByRandom(final FieldSet field, final int k, final String salt) {
+            this.field = field;
+            this.k = k;
+            this.salt = salt;
+        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -693,12 +744,18 @@ public abstract class GroupBy extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class GroupByRandomMetric extends GroupBy {
         public final DocMetric metric;
         public final int k;
         public final String salt;
+
+        public GroupByRandomMetric(final DocMetric metric, final int k, final String salt) {
+            this.metric = metric;
+            this.k = k;
+            this.salt = salt;
+        }
 
         @Override
         public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {

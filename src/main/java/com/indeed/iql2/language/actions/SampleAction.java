@@ -21,9 +21,11 @@ import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ErrorMessages;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
-@Data
+@EqualsAndHashCode
+@ToString
 public class SampleAction implements Action {
     public final FieldSet field;
     public final double probability;
@@ -32,6 +34,15 @@ public class SampleAction implements Action {
     public final int targetGroup;
     public final int positiveGroup;
     public final int negativeGroup;
+
+    public SampleAction(final FieldSet field, final double probability, final String seed, final int targetGroup, final int positiveGroup, final int negativeGroup) {
+        this.field = field;
+        this.probability = probability;
+        this.seed = seed;
+        this.targetGroup = targetGroup;
+        this.positiveGroup = positiveGroup;
+        this.negativeGroup = negativeGroup;
+    }
 
     @Override
     public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {

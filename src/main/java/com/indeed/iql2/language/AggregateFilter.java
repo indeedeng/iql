@@ -27,8 +27,8 @@ import com.indeed.iql2.language.util.ErrorMessages;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
-import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -86,10 +86,14 @@ public abstract class AggregateFilter extends AbstractPositional {
         return this;
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class TermIs extends AggregateFilter {
         public final Term term;
+
+        public TermIs(final Term term) {
+            this.term = term;
+        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -121,10 +125,14 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class TermRegex extends AggregateFilter {
         public final Term term;
+
+        public TermRegex(final Term term) {
+            this.term = term;
+        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -207,11 +215,16 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class MetricIs extends AggregateFilter {
         public final AggregateMetric m1;
         public final AggregateMetric m2;
+
+        public MetricIs(final AggregateMetric m1, final AggregateMetric m2) {
+            this.m1 = m1;
+            this.m2 = m2;
+        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -249,11 +262,16 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class MetricIsnt extends AggregateFilter {
         public final AggregateMetric m1;
         public final AggregateMetric m2;
+
+        public MetricIsnt(final AggregateMetric m1, final AggregateMetric m2) {
+            this.m1 = m1;
+            this.m2 = m2;
+        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -291,11 +309,16 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Gt extends AggregateFilter {
         public final AggregateMetric m1;
         public final AggregateMetric m2;
+
+        public Gt(final AggregateMetric m1, final AggregateMetric m2) {
+            this.m1 = m1;
+            this.m2 = m2;
+        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -332,11 +355,16 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Gte extends AggregateFilter {
         public final AggregateMetric m1;
         public final AggregateMetric m2;
+
+        public Gte(final AggregateMetric m1, final AggregateMetric m2) {
+            this.m1 = m1;
+            this.m2 = m2;
+        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -373,11 +401,16 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Lt extends AggregateFilter {
         public final AggregateMetric m1;
         public final AggregateMetric m2;
+
+        public Lt(final AggregateMetric m1, final AggregateMetric m2) {
+            this.m1 = m1;
+            this.m2 = m2;
+        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -414,11 +447,16 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Lte extends AggregateFilter {
         public final AggregateMetric m1;
         public final AggregateMetric m2;
+
+        public Lte(final AggregateMetric m1, final AggregateMetric m2) {
+            this.m1 = m1;
+            this.m2 = m2;
+        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -663,10 +701,14 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Not extends AggregateFilter {
         public final AggregateFilter filter;
+
+        public Not(final AggregateFilter filter) {
+            this.filter = filter;
+        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -701,11 +743,16 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Regex extends AggregateFilter {
         public final FieldSet field;
         public final String regex;
+
+        public Regex(final FieldSet field, final String regex) {
+            this.field = field;
+            this.regex = regex;
+        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {

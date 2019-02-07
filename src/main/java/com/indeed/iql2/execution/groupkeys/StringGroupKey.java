@@ -15,12 +15,12 @@
 package com.indeed.iql2.execution.groupkeys;
 
 import com.indeed.iql2.Formatter;
-import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import org.joda.time.format.DateTimeFormatter;
 
-@Data
 @EqualsAndHashCode(callSuper = false)
+@ToString
 public class StringGroupKey extends GroupKey {
     public final String term;
 

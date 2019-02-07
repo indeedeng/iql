@@ -14,15 +14,22 @@
 
 package com.indeed.iql2.execution;
 
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.List;
 
 /**
  * @author jwolfe
  */
-@Data
+@EqualsAndHashCode
+@ToString
 public class QualifiedPush {
     public final String sessionName;
     public final List<String> pushes;
+
+    public QualifiedPush(final String sessionName, final List<String> pushes) {
+        this.sessionName = sessionName;
+        this.pushes = pushes;
+    }
 }

@@ -24,15 +24,23 @@ import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.List;
 
-@Data
+@EqualsAndHashCode
+@ToString
 public class ComputeFieldExtremeValue implements Command {
     private final FieldSet field;
     private final AggregateMetric metric;
     private final Optional<AggregateFilter> filter;
+
+    public ComputeFieldExtremeValue(final FieldSet field, final AggregateMetric metric, final Optional<AggregateFilter> filter) {
+        this.field = field;
+        this.metric = metric;
+        this.filter = filter;
+    }
 
     @Override
     public void validate(final ValidationHelper validationHelper, final ErrorCollector errorCollector) {

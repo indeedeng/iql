@@ -21,15 +21,23 @@ import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.List;
 
-@Data
+@EqualsAndHashCode
+@ToString
 public class ExplodeRandom implements Command {
     private final FieldSet field;
     private final int k;
     private final String salt;
+
+    public ExplodeRandom(final FieldSet field, final int k, final String salt) {
+        this.field = field;
+        this.k = k;
+        this.salt = salt;
+    }
 
     @Override
     public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {

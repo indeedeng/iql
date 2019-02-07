@@ -44,7 +44,6 @@ import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.iql2.server.web.servlets.query.CommandValidator;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
-import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
@@ -215,8 +214,8 @@ public abstract class DocFilter extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class FieldInQuery extends DocFilter {
         public final com.indeed.iql2.language.query.Query query;
         public final FieldSet field;
@@ -224,6 +223,13 @@ public abstract class DocFilter extends AbstractPositional {
         @ToString.Exclude
         @EqualsAndHashCode.Exclude
         private final DatasetsMetadata datasetsMetadata;
+
+        public FieldInQuery(final com.indeed.iql2.language.query.Query query, final FieldSet field, final boolean isNegated, final DatasetsMetadata datasetsMetadata) {
+            this.query = query;
+            this.field = field;
+            this.isNegated = isNegated;
+            this.datasetsMetadata = datasetsMetadata;
+        }
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
@@ -251,13 +257,20 @@ public abstract class DocFilter extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Between extends DocFilter {
         public final FieldSet field;
         public final long lowerBound;
         public final long upperBound;
         public final boolean isUpperInclusive;
+
+        public Between(final FieldSet field, final long lowerBound, final long upperBound, final boolean isUpperInclusive) {
+            this.field = field;
+            this.lowerBound = lowerBound;
+            this.upperBound = upperBound;
+            this.isUpperInclusive = isUpperInclusive;
+        }
 
         public DocFilter forMetric(final DocMetric metric) {
             return forMetric(metric, lowerBound, upperBound, isUpperInclusive);
@@ -905,10 +918,14 @@ public abstract class DocFilter extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Not extends DocFilter {
         public final DocFilter filter;
+
+        public Not(final DocFilter filter) {
+            this.filter = filter;
+        }
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
@@ -936,11 +953,16 @@ public abstract class DocFilter extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Regex extends DocFilter {
         public final FieldSet field;
         public final String regex;
+
+        public Regex(final FieldSet field, final String regex) {
+            this.field = field;
+            this.regex = regex;
+        }
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
@@ -971,11 +993,16 @@ public abstract class DocFilter extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class NotRegex extends DocFilter {
         public final FieldSet field;
         public final String regex;
+
+        public NotRegex(final FieldSet field, final String regex) {
+            this.field = field;
+            this.regex = regex;
+        }
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
@@ -1007,11 +1034,16 @@ public abstract class DocFilter extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class FieldEqual extends DocFilter {
         public final FieldSet field1;
         public final FieldSet field2;
+
+        public FieldEqual(final FieldSet field1, final FieldSet field2) {
+            this.field1 = field1;
+            this.field2 = field2;
+        }
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
@@ -1039,12 +1071,17 @@ public abstract class DocFilter extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Qualified extends DocFilter {
         // TODO: Why is this a List<String> instead of a single string? A per-document thing can only be one dataset!
         public final List<String> scope;
         public final DocFilter filter;
+
+        public Qualified(final List<String> scope, final DocFilter filter) {
+            this.scope = scope;
+            this.filter = filter;
+        }
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
@@ -1084,8 +1121,8 @@ public abstract class DocFilter extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Lucene extends DocFilter {
         public final String query;
         @ToString.Exclude
@@ -1094,6 +1131,12 @@ public abstract class DocFilter extends AbstractPositional {
         @ToString.Exclude
         @EqualsAndHashCode.Exclude
         private final DatasetsMetadata datasetsMetadata;
+
+        public Lucene(final String query, final ScopedFieldResolver fieldResolver, final DatasetsMetadata datasetsMetadata) {
+            this.query = query;
+            this.fieldResolver = fieldResolver;
+            this.datasetsMetadata = datasetsMetadata;
+        }
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
@@ -1129,14 +1172,22 @@ public abstract class DocFilter extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Sample extends DocFilter {
         public final FieldSet field;
         public final boolean isIntField;
         public final long numerator;
         public final long denominator;
         public final String seed;
+
+        public Sample(final FieldSet field, final boolean isIntField, final long numerator, final long denominator, final String seed) {
+            this.field = field;
+            this.isIntField = isIntField;
+            this.numerator = numerator;
+            this.denominator = denominator;
+            this.seed = seed;
+        }
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
@@ -1173,13 +1224,20 @@ public abstract class DocFilter extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class SampleDocMetric extends DocFilter {
         public final DocMetric metric;
         public final long numerator;
         public final long denominator;
         public final String seed;
+
+        public SampleDocMetric(final DocMetric metric, final long numerator, final long denominator, final String seed) {
+            this.metric = metric;
+            this.numerator = numerator;
+            this.denominator = denominator;
+            this.seed = seed;
+        }
 
         @Override
         public DocFilter transform(final Function<DocMetric, DocMetric> g,
@@ -1308,11 +1366,16 @@ public abstract class DocFilter extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class StringFieldIn extends DocFilter {
         public final FieldSet field;
         public final ImmutableSet<String> terms;
+
+        public StringFieldIn(final FieldSet field, final ImmutableSet<String> terms) {
+            this.field = field;
+            this.terms = terms;
+        }
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
@@ -1353,11 +1416,16 @@ public abstract class DocFilter extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class IntFieldIn extends DocFilter {
         public final FieldSet field;
         public final Set<Long> terms;
+
+        public IntFieldIn(final FieldSet field, final Set<Long> terms) {
+            this.field = field;
+            this.terms = terms;
+        }
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
@@ -1397,12 +1465,18 @@ public abstract class DocFilter extends AbstractPositional {
         }
     }
 
-    @Data
     @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class ExplainFieldIn extends DocFilter {
         public final com.indeed.iql2.language.query.Query query;
         private final FieldSet field;
         private final boolean isNegated;
+
+        public ExplainFieldIn(final com.indeed.iql2.language.query.Query query, final FieldSet field, final boolean isNegated) {
+            this.query = query;
+            this.field = field;
+            this.isNegated = isNegated;
+        }
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {

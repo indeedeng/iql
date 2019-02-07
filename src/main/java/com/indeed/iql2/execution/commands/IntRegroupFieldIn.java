@@ -23,15 +23,21 @@ import com.indeed.iql2.execution.groupkeys.IntTermGroupKey;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import it.unimi.dsi.fastutil.longs.LongList;
-import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
-@Data
+@EqualsAndHashCode
+@ToString
 public class IntRegroupFieldIn implements Command {
     private final FieldSet field;
     private final LongList intTerms;
     private final boolean withDefault;
+
+    public IntRegroupFieldIn(final FieldSet field, final LongList intTerms, final boolean withDefault) {
+        this.field = field;
+        this.intTerms = intTerms;
+        this.withDefault = withDefault;
+    }
 
     @Override
     public void execute(final Session session) throws ImhotepOutOfMemoryException {

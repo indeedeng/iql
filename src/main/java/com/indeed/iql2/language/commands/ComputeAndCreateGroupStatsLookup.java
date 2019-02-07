@@ -19,14 +19,21 @@ import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.List;
 
-@Data
+@EqualsAndHashCode
+@ToString
 public class ComputeAndCreateGroupStatsLookup implements Command {
     public final Command computation;
     public final String name;
+
+    public ComputeAndCreateGroupStatsLookup(final Command computation, final String name) {
+        this.computation = computation;
+        this.name = name;
+    }
 
     @Override
     public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {

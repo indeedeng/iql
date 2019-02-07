@@ -23,17 +23,23 @@ import com.indeed.iql2.execution.groupkeys.GroupKey;
 import com.indeed.iql2.execution.groupkeys.StringGroupKey;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
-import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 import java.util.List;
 
-@Data
+@EqualsAndHashCode
+@ToString
 public class StringRegroupFieldIn implements Command {
     private final FieldSet field;
     private final List<String> terms;
     private final boolean withDefault;
+
+    public StringRegroupFieldIn(final FieldSet field, final List<String> terms, final boolean withDefault) {
+        this.field = field;
+        this.terms = terms;
+        this.withDefault = withDefault;
+    }
 
     @Override
     public void execute(final Session session) throws ImhotepOutOfMemoryException {

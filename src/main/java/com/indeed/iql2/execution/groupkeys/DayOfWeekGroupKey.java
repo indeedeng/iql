@@ -15,13 +15,17 @@
 package com.indeed.iql2.execution.groupkeys;
 
 import com.indeed.iql2.execution.commands.ExplodeDayOfWeek;
-import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
-@Data
 @EqualsAndHashCode(callSuper = false)
+@ToString
 public class DayOfWeekGroupKey extends GroupKey {
     private final int dayOfWeek;
+
+    public DayOfWeekGroupKey(final int dayOfWeek) {
+        this.dayOfWeek = dayOfWeek;
+    }
 
     @Override
     public String render() {
