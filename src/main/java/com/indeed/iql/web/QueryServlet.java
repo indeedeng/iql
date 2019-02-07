@@ -131,7 +131,7 @@ public class QueryServlet {
     private static final String METADATA_FILE_SUFFIX = ".meta";
     private static String hostname;
 
-    private static final Set<String> USED_PARAMS = Sets.newHashSet("view", "sync", "csv", "json", "interactive",
+    private static final Set<String> USED_PARAMS = Sets.newHashSet("view", "csv", "json", "interactive",
             "nocache", "head", "progress", "totals", "nocacheread", "nocachewrite", "sql", "skipValidation", "legacymode",
             "getversion");
 
