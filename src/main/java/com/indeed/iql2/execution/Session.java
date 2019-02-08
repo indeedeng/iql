@@ -587,7 +587,7 @@ public class Session {
         final int oldNumGroups = this.numGroups;
         // TODO: Parallelize
         final int maxPossibleGroups = (int) (oldNumGroups * Math.ceil(((double) end - start) / unitSize));
-        int newNumGroups = deleteEmptyGroups ? 0 : maxPossibleGroups;
+        int newNumGroups = 0;
         for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
             timer.push("session", "session:" + sessionInfo.displayName);
 
@@ -614,7 +614,7 @@ public class Session {
             timer.pop();
 
             // request group count from imhotep only if we have to.
-            if (newNumGroups < maxPossibleGroups) {
+            if (deleteEmptyGroups && (newNumGroups < maxPossibleGroups)) {
                 timer.push("getNumGroups");
                 final int groups = session.getNumGroups() - 1; // imhtotep groups are with zero group.
                 newNumGroups = Math.max(newNumGroups, groups);
@@ -628,7 +628,7 @@ public class Session {
             timer.pop();
         }
         timer.pop();
-        return newNumGroups;
+        return deleteEmptyGroups ? newNumGroups : maxPossibleGroups;
     }
 
     public void densify(GroupKeySet groupKeySet) throws ImhotepOutOfMemoryException {

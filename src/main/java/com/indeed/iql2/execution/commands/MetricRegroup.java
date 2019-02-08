@@ -67,7 +67,7 @@ public class MetricRegroup implements Command {
 
         final boolean deleteEmptyGroups = (session.iqlVersion == 1) && !withDefault && !fromPredicate;
         final int[] intermediateGroups = new int[1]; // array is because of lambda
-        intermediateGroups[0] = deleteEmptyGroups ? 0 : maxIntermediateGroups;
+        intermediateGroups[0] = 0;
         session.process(new SessionCallback() {
             @Override
             public void handle(TracingTreeTimer timer, String name, ImhotepSessionHolder session) throws ImhotepOutOfMemoryException {
@@ -80,8 +80,8 @@ public class MetricRegroup implements Command {
 
                 timer.push("metricRegroup");
                 session.metricRegroup(0, min, max, interval, excludeGutters && !withDefaultBucket);
-                // do request to imhotep and update group count only if it make sence.
-                if (intermediateGroups[0] < maxIntermediateGroups) {
+                // do request to imhotep and update group count only if it make sense.
+                if (deleteEmptyGroups && (intermediateGroups[0] < maxIntermediateGroups)) {
                     final int groups = session.getNumGroups() - 1; // imhotep groups count is with zero group.
                     intermediateGroups[0] = Math.max(intermediateGroups[0], groups);
                 }
