@@ -74,6 +74,13 @@ public abstract class GroupBy extends AbstractPositional {
     public abstract GroupBy makeTotal() throws CannotMakeTotalException;
 
     @Override
+    public abstract int hashCode();
+    @Override
+    public abstract boolean equals(final Object other);
+    @Override
+    public abstract String toString();
+
+    @Override
     public GroupBy copyPosition(final Positional positional) {
         super.copyPosition(positional);
         return this;
