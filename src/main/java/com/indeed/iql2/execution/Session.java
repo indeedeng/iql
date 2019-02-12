@@ -117,6 +117,7 @@ public class Session {
     private final FieldType defaultFieldType;
     public final ResultFormat resultFormat;
     public final Formatter formatter;
+    public final int iqlVersion;
 
     // Does not count group zero.
     // Exactly equivalent to maxGroup.
@@ -139,7 +140,8 @@ public class Session {
             long firstStartTimeMillis,
             final Set<String> options,
             final FieldType defaultFieldType,
-            final ResultFormat resultFormat
+            final ResultFormat resultFormat,
+            final int iqlVersion
     ) {
         this.sessions = sessions;
         this.timer = timer;
@@ -149,6 +151,7 @@ public class Session {
         this.options = options;
         this.defaultFieldType = defaultFieldType;
         this.resultFormat = resultFormat;
+        this.iqlVersion = iqlVersion;
         this.formatter = Formatter.forFormat(resultFormat);
     }
 
@@ -183,7 +186,8 @@ public class Session {
             final Long imhotepDaemonTempFileSizeLimit,
             final String username,
             final FieldType defaultFieldType,
-            final ResultFormat resultFormat
+            final ResultFormat resultFormat,
+            final int iqlVersion
     ) throws ImhotepOutOfMemoryException, IOException {
         final Map<String, ImhotepSessionInfo> sessions = Maps.newLinkedHashMap();
 
@@ -201,7 +205,7 @@ public class Session {
         progressCallback.sessionsOpened(sessions);
         treeTimer.pop();
 
-        final Session session = new Session(sessions, treeTimer, progressCallback, groupLimit, firstStartTimeMillis, optionsSet, defaultFieldType, resultFormat);
+        final Session session = new Session(sessions, treeTimer, progressCallback, groupLimit, firstStartTimeMillis, optionsSet, defaultFieldType, resultFormat, iqlVersion);
         for (int i = 0; i < commands.size(); i++) {
             final com.indeed.iql2.language.commands.Command command = commands.get(i);
             final Tracer tracer = GlobalTracer.get();
@@ -572,10 +576,18 @@ public class Session {
         }));
     }
 
-    public int performTimeRegroup(long start, long end, long unitSize, final Optional<FieldSet> fieldOverride, boolean isRelative) throws ImhotepOutOfMemoryException {
+    public int performTimeRegroup(
+            final long start,
+            final long end,
+            final long unitSize,
+            final Optional<FieldSet> fieldOverride,
+            final boolean isRelative,
+            final boolean deleteEmptyGroups) throws ImhotepOutOfMemoryException {
         timer.push("performTimeRegroup");
         final int oldNumGroups = this.numGroups;
         // TODO: Parallelize
+        final int maxPossibleGroups = (int) (oldNumGroups * Math.ceil(((double) end - start) / unitSize));
+        int newNumGroups = 0;
         for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
             timer.push("session", "session:" + sessionInfo.displayName);
 
@@ -601,15 +613,22 @@ public class Session {
             }
             timer.pop();
 
+            // request group count from imhotep only if we have to.
+            if (deleteEmptyGroups && (newNumGroups < maxPossibleGroups)) {
+                timer.push("getNumGroups");
+                final int groups = session.getNumGroups() - 1; // imhtotep groups are with zero group.
+                newNumGroups = Math.max(newNumGroups, groups);
+                timer.pop();
+            }
+
             timer.push("popStat");
             session.popStat();
             timer.pop();
 
             timer.pop();
         }
-        final int result = (int) (oldNumGroups * Math.ceil(((double) end - start) / unitSize));
         timer.pop();
-        return result;
+        return deleteEmptyGroups ? newNumGroups : maxPossibleGroups;
     }
 
     public void densify(GroupKeySet groupKeySet) throws ImhotepOutOfMemoryException {

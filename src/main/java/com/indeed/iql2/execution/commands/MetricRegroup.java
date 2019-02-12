@@ -62,8 +62,12 @@ public class MetricRegroup implements Command {
         final int intermediateBuckets = ((excludeGutters && !withDefaultBucket) ? 0 : 2) + (int) Math.ceil(((double) max - min) / interval);
 
         final int groupsBefore = session.numGroups;
-        session.checkGroupLimit(intermediateBuckets * groupsBefore);
+        final int maxIntermediateGroups = intermediateBuckets * groupsBefore;
+        session.checkGroupLimit(maxIntermediateGroups);
 
+        final boolean deleteEmptyGroups = (session.iqlVersion == 1) && !withDefault && !fromPredicate;
+        final int[] intermediateGroups = new int[1]; // array is because of lambda
+        intermediateGroups[0] = 0;
         session.process(new SessionCallback() {
             @Override
             public void handle(TracingTreeTimer timer, String name, ImhotepSessionHolder session) throws ImhotepOutOfMemoryException {
@@ -76,6 +80,11 @@ public class MetricRegroup implements Command {
 
                 timer.push("metricRegroup");
                 session.metricRegroup(0, min, max, interval, excludeGutters && !withDefaultBucket);
+                // do request to imhotep and update group count only if it make sense.
+                if (deleteEmptyGroups && (intermediateGroups[0] < maxIntermediateGroups)) {
+                    final int groups = session.getNumGroups() - 1; // imhotep groups count is with zero group.
+                    intermediateGroups[0] = Math.max(intermediateGroups[0], groups);
+                }
                 timer.pop();
 
                 if (withDefaultBucket) {
@@ -106,6 +115,8 @@ public class MetricRegroup implements Command {
             }
         });
 
-        session.assumeDense(new MetricRangeGroupKeySet(session.groupKeySet, withDefaultBucket ? intermediateBuckets - 1 : intermediateBuckets, excludeGutters, min, interval, withDefaultBucket, fromPredicate, session.formatter));
+        final int numBuckets = withDefaultBucket ? (intermediateBuckets - 1) : intermediateBuckets;
+        final int groupsAfter = deleteEmptyGroups ? intermediateGroups[0] : (numBuckets * session.groupKeySet.numGroups());
+        session.assumeDense(new MetricRangeGroupKeySet(session.groupKeySet, numBuckets, excludeGutters, min, interval, withDefaultBucket, fromPredicate, groupsAfter, session.formatter));
     }
 }

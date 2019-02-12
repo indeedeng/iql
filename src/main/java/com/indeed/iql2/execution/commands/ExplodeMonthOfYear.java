@@ -65,7 +65,7 @@ public class ExplodeMonthOfYear implements Command {
         ).getMonths();
         session.checkGroupLimit(numMonths * session.numGroups);
 
-        final int numGroups = session.performTimeRegroup(realStart, realEnd, unitSize, timeField, false);
+        final int numGroups = session.performTimeRegroup(realStart, realEnd, unitSize, timeField, false, false);
         session.checkGroupLimit(numGroups);
 
         session.timer.push("compute month remapping");

@@ -56,9 +56,10 @@ public class TimePeriodRegroup implements Command {
 
         final int numBuckets = (int)((shardEnd - shardStart)/periodMillis);
         session.checkGroupLimit(numBuckets * session.numGroups);
-        session.performTimeRegroup(shardStart, shardEnd, periodMillis, timeField, isRelative);
+        final boolean deleteEmptyGroups = (session.iqlVersion == 1) && !isRelative;
+        final int groupCount = session.performTimeRegroup(shardStart, shardEnd, periodMillis, timeField, isRelative, deleteEmptyGroups);
         final String format = timeFormat.or("yyyy-MM-dd HH:mm:ss");
-        final DateTimeRangeGroupKeySet groupKeySet = new DateTimeRangeGroupKeySet(session.groupKeySet, shardStart, periodMillis, numBuckets, format, session.formatter);
+        final DateTimeRangeGroupKeySet groupKeySet = new DateTimeRangeGroupKeySet(session.groupKeySet, shardStart, periodMillis, numBuckets, groupCount, format, session.formatter);
         session.assumeDense(groupKeySet);
     }
 

@@ -35,11 +35,21 @@ public class MetricRangeGroupKeySet implements GroupKeySet {
     private final long interval;
     private final boolean withDefaultBucket;
     private final boolean fromPredicate;
+    private final int numGroups;
     private final HighGutterGroupKey highGutterGroupKey;
     private final LowGutterGroupKey lowGutterGroupKey;
     private final LoadingCache<Integer, GroupKey> buildGroupKey;
 
-    public MetricRangeGroupKeySet(GroupKeySet previous, int numBuckets, boolean excludeGutters, long min, long interval, boolean withDefaultBucket, boolean fromPredicate, final Formatter formatter) {
+    public MetricRangeGroupKeySet(
+            final GroupKeySet previous,
+            final int numBuckets,
+            final boolean excludeGutters,
+            final long min,
+            final long interval,
+            final boolean withDefaultBucket,
+            final boolean fromPredicate,
+            final int numGroups,
+            final Formatter formatter) {
         this.previous = previous;
         this.numBuckets = numBuckets;
         this.excludeGutters = excludeGutters;
@@ -47,6 +57,7 @@ public class MetricRangeGroupKeySet implements GroupKeySet {
         this.interval = interval;
         this.withDefaultBucket = withDefaultBucket;
         this.fromPredicate = fromPredicate;
+        this.numGroups = numGroups;
         this.highGutterGroupKey = new HighGutterGroupKey(min + (interval * (numBuckets - 2)));
         this.lowGutterGroupKey = new LowGutterGroupKey(min);
         this.buildGroupKey = CacheBuilder.newBuilder()
@@ -90,7 +101,7 @@ public class MetricRangeGroupKeySet implements GroupKeySet {
 
     @Override
     public int numGroups() {
-        return previous.numGroups() * numBuckets;
+        return numGroups;
     }
 
     @Override
@@ -109,11 +120,12 @@ public class MetricRangeGroupKeySet implements GroupKeySet {
                 interval == that.interval &&
                 withDefaultBucket == that.withDefaultBucket &&
                 fromPredicate == that.fromPredicate &&
+                numGroups == that.numGroups &&
                 Objects.equals(previous, that.previous);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(previous, numBuckets, excludeGutters, min, interval, withDefaultBucket, fromPredicate);
+        return Objects.hash(previous, numBuckets, excludeGutters, min, interval, withDefaultBucket, fromPredicate, numGroups);
     }
 }
