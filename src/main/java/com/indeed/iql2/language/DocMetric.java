@@ -1547,7 +1547,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
-    static class FieldInQueryPlaceholderMetric extends DocMetric {
+    public static class FieldInQueryPlaceholderMetric extends DocMetric {
         public final com.indeed.iql2.language.query.Query query;
         public final FieldSet field;
         public final boolean isNegated; // true if <field> NOT IN <query>
