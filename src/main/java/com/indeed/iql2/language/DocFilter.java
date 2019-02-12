@@ -238,7 +238,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocMetric asZeroOneMetric(String dataset) {
-            throw new UnsupportedOperationException("Must transform the FieldInQuery out before doing a .asZeroOneMetric()");
+            return new DocMetric.FieldInQueryPlaceholderMetric(query, field, isNegated, datasetsMetadata);
         }
 
         @Override
