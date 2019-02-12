@@ -62,9 +62,11 @@ public class CacheKey {
             for (final FieldAlias fieldAlias : sortedFieldAliases) {
                 sha1.update(fieldAlias.toString().getBytes(Charsets.UTF_8));
             }
-            for (final Shard shard : dataset.shards) {
-                sha1.update(shard.getFileName().getBytes(Charsets.UTF_8));
-                sha1.update(Ints.toByteArray(shard.getNumDocs()));
+            if (dataset.shards != null) {
+                for (final Shard shard : dataset.shards) {
+                    sha1.update(shard.getFileName().getBytes(Charsets.UTF_8));
+                    sha1.update(Ints.toByteArray(shard.getNumDocs()));
+                }
             }
         }
         for (final String option : sortedOptions) {
