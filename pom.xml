@@ -620,7 +620,7 @@
         <jdk.version>1.8</jdk.version>
 
         <imhotep.version>3.1.156</imhotep.version>
-        <ims.version>4.0.11</ims.version>
+        <ims.version>4.0.12</ims.version>
         <indeed-util.version>1.0.24</indeed-util.version>
         <google-guava.version>16.0.1</google-guava.version>
         <joda-time.version>2.0</joda-time.version>

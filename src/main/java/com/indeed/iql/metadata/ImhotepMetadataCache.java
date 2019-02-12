@@ -119,6 +119,7 @@ public class ImhotepMetadataCache {
                         DatasetMetadata newDataset = newDatasets.get(datasetYaml.getName());
                         newDataset.setDescription(datasetYaml.getDescription());
                         newDataset.setOwner(datasetYaml.getOwner());
+                        newDataset.setCertification(datasetYaml.getCertification());
                         newDataset.setProject(datasetYaml.getBuilderJiraProject());
                         if (datasetYaml.getDeprecated() != null) {
                             newDataset.setDeprecated(datasetYaml.getDeprecated());
@@ -130,6 +131,7 @@ public class ImhotepMetadataCache {
                             if (fieldMetadata != null) {
                                 fieldMetadata.setDescription(fieldYaml.getDescription());
                                 fieldMetadata.setHidden(fieldYaml.getHidden());
+                                fieldMetadata.setCertified(fieldYaml.getCertified());
                                 fieldMetadata.setAliases(fieldYaml.getAliases());
                                 for (String alias : fieldMetadata.getAliases()) {
                                     newDataset.getIql1ExpressionAliases().put(alias, fieldMetadata.getName());
