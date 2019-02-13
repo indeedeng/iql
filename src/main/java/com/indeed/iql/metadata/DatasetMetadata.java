@@ -45,6 +45,7 @@ public class DatasetMetadata {
     public final String name;
     @Nullable public String description;
     @Nullable public String owner;
+    @Nullable public String certification;
     @Nullable public String project;
     public boolean deprecated;
     // Always case sensitive
@@ -96,6 +97,10 @@ public class DatasetMetadata {
 
     public void setOwner(@Nullable String owner) {
         this.owner = owner;
+    }
+
+    public void setCertification(@Nullable String certification) {
+        this.certification = certification;
     }
 
     public void setProject(@Nullable String project) {
@@ -273,6 +278,9 @@ public class DatasetMetadata {
         }
         if (project != null) {
             jsonNode.put("project", project);
+        }
+        if (!Strings.isNullOrEmpty(certification)) {
+            jsonNode.put("certification", certification);
         }
         if(summaryOnly) {
             return;

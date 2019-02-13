@@ -39,6 +39,7 @@ public class FieldMetadata {
     List<String> aliases;   // first entry is the canonical name by convention
     int frequency;
     boolean isHidden;
+    boolean isCertified;
 
     public FieldMetadata(@Nonnull String name, @Nonnull FieldType type) {
         this.name = name;
@@ -117,6 +118,14 @@ public class FieldMetadata {
         return this;
     }
 
+    public boolean isCertified() {
+        return isCertified;
+    }
+
+    public void setCertified(boolean certified) {
+        this.isCertified = certified;
+    }
+
     public int getFrequency() {
         return frequency;
     }
@@ -145,6 +154,9 @@ public class FieldMetadata {
             for (String alias : getNonCanonicalNames()) {
                 aliasesArray.add(alias);
             }
+        }
+        if (isCertified) {
+            jsonNode.put("certified", isCertified);
         }
     }
 
