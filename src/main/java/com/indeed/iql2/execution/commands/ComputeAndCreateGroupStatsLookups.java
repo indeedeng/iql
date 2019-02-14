@@ -36,6 +36,8 @@ import com.indeed.util.core.Pair;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -148,18 +150,20 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
         // safe because of checkState above
         final FieldSet field = fields.stream().findFirst().get();
 
-        final List<RemoteImhotepMultiSession.SessionField> sessionFields = field.datasets().stream()
-                .map(x -> session.sessions.get(x).session.buildSessionField(field.datasetFieldName(x)))
-                .collect(Collectors.toList());
-
         final List<Map.Entry<String, AggregateFilter>> filters = new ArrayList<>(namedFilters.entrySet());
 
         final Set<QualifiedPush> allPushes = filters.stream()
                 .flatMap(x -> x.getValue().requires().stream())
                 .collect(Collectors.toSet());
-        final Map<QualifiedPush, AggregateStatTree> atomicStats = session.pushMetrics(allPushes);
+        final Map<String, List<List<String>>> sessionStats = new HashMap<>();
+        final Map<QualifiedPush, AggregateStatTree> atomicStats = session.pushMetrics(allPushes, sessionStats);
         final List<AggregateStatTree> filterTrees = filters.stream()
                 .map(x -> x.getValue().toImhotep(atomicStats))
+                .collect(Collectors.toList());
+
+
+        final List<RemoteImhotepMultiSession.SessionField> sessionFields = field.datasets().stream()
+                .map(x -> session.sessions.get(x).session.buildSessionField(field.datasetFieldName(x), sessionStats.getOrDefault(x, Collections.emptyList())))
                 .collect(Collectors.toList());
 
         final int numFilters = filters.size();
@@ -185,10 +189,6 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
         for (int i = 0; i < numFilters; i++) {
             new CreateGroupStatsLookup(results[i], filters.get(i).getKey()).execute(session);
         }
-        session.timer.pop();
-
-        session.timer.push("pop stats");
-        session.popStats();
         session.timer.pop();
 
         return true;

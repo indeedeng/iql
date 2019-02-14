@@ -361,9 +361,7 @@ public class Session {
             final String timeField = DatasetMetadata.TIME_FIELD_NAME;
             if (earliestStart.isBefore(startDateTime) || latestEnd.isAfter(endDateTime)) {
                 treeTimer.push("regroup time range");
-                session.pushStat(timeField);
-                session.metricFilter(0, (int) (startDateTime.getMillis() / 1000), (int)((endDateTime.getMillis() - 1) / 1000), false);
-                session.popStat();
+                session.metricFilter(Collections.singletonList(timeField), (int) (startDateTime.getMillis() / 1000), (int)((endDateTime.getMillis() - 1) / 1000), false);
                 treeTimer.pop();
             }
             sessions.put(dataset.name, new ImhotepSessionInfo(session, dataset.displayName, sessionIntFields, sessionStringFields, startDateTime, endDateTime, timeField));
@@ -504,20 +502,14 @@ public class Session {
         }
     }
 
-    public void pushMetrics(Set<QualifiedPush> allPushes, Map<QualifiedPush, Integer> metricIndexes, Map<String, IntList> sessionMetricIndexes) throws ImhotepOutOfMemoryException {
-        pushMetrics(allPushes, metricIndexes, sessionMetricIndexes, false);
-    }
-
-    public void pushMetrics(Set<QualifiedPush> allPushes, Map<QualifiedPush, Integer> metricIndexes, Map<String, IntList> sessionMetricIndexes, boolean dryRun) throws ImhotepOutOfMemoryException {
+    public void pushMetrics(Set<QualifiedPush> allPushes, Map<QualifiedPush, Integer> metricIndexes, Map<String, IntList> sessionMetricIndexes, final Map<String, List<List<String>>> sessionStats) throws ImhotepOutOfMemoryException {
         int numStats = 0;
         for (final QualifiedPush push : allPushes) {
             final int index = numStats++;
             List<String> pushes = new ArrayList<>(push.pushes);
             metricIndexes.put(push, index);
             final String sessionName = push.sessionName;
-            if (!dryRun) {
-                sessions.get(sessionName).session.pushStats(pushes);
-            }
+            sessionStats.computeIfAbsent(sessionName, k -> new ArrayList<>()).add(pushes);
             // TODO: Terrible variable names.
             IntList sessionMetricIndex = sessionMetricIndexes.get(sessionName);
             if (sessionMetricIndex == null) {
@@ -528,24 +520,15 @@ public class Session {
         }
     }
 
-    public Map<QualifiedPush, AggregateStatTree> pushMetrics(final Set<QualifiedPush> allPushes) throws ImhotepOutOfMemoryException {
-        timer.push("pushing metrics");
+    public Map<QualifiedPush, AggregateStatTree> pushMetrics(final Set<QualifiedPush> allPushes, final Map<String, List<List<String>>> sessionStats) {
         final Map<QualifiedPush, AggregateStatTree> statResults = new HashMap<>();
         final Object2IntOpenHashMap<String> sessionToPushCount = new Object2IntOpenHashMap<>();
-        // TODO: Parallelize across sessions
         for (final QualifiedPush push : allPushes) {
             final ImhotepSessionHolder session = sessions.get(push.sessionName).session;
-            pushStatsWithTimer(session, push.pushes, timer);
+            sessionStats.computeIfAbsent(push.sessionName, k -> new ArrayList<>()).add(push.pushes);
             statResults.put(push, session.aggregateStat(sessionToPushCount.add(push.sessionName, 1)));
         }
-        timer.pop();
         return statResults;
-    }
-
-    public static void pushStatsWithTimer(final ImhotepSessionHolder session, final List<String> pushes, final TracingTreeTimer timer) throws ImhotepOutOfMemoryException {
-        timer.push("pushStats", "pushStats ('" + String.join("', '", pushes) + "')");
-        session.pushStats(pushes);
-        timer.pop();
     }
 
     public long getFirstStartTimeMillis() {
@@ -599,17 +582,15 @@ public class Session {
                 fieldName = sessionInfo.timeFieldName;
             }
 
-            timer.push("pushStat");
-            session.pushStat(fieldName);
-            timer.pop();
+            final List<String> stat = Collections.singletonList(fieldName);
 
             timer.push("metricRegroup");
             if (isRelative) {
                 final long realStart = sessionInfo.startTime.getMillis();
                 final long realEnd = sessionInfo.endTime.getMillis();
-                session.metricRegroup(0, realStart / 1000, realEnd / 1000, unitSize / 1000, true);
+                session.metricRegroup(stat, realStart / 1000, realEnd / 1000, unitSize / 1000, true);
             } else {
-                session.metricRegroup(0, start / 1000, end / 1000, unitSize / 1000, true);
+                session.metricRegroup(stat, start / 1000, end / 1000, unitSize / 1000, true);
             }
             timer.pop();
 
@@ -620,10 +601,6 @@ public class Session {
                 newNumGroups = Math.max(newNumGroups, groups);
                 timer.pop();
             }
-
-            timer.push("popStat");
-            session.popStat();
-            timer.pop();
 
             timer.pop();
         }
@@ -639,22 +616,15 @@ public class Session {
             timer.push("session", "session:" + getSessionsMap().get(imhotepSessionEntry.getKey()).displayName);
 
             final ImhotepSessionHolder session = imhotepSessionEntry.getValue();
-            timer.push("push counts");
-            session.pushStat("count()");
-            timer.pop();
 
             timer.push("get counts");
-            final long[] counts = session.getGroupStats(0);
+            final long[] counts = session.getGroupStats(Collections.singletonList("count()"));
             timer.pop();
             for (int i = 0; i < counts.length; i++) {
                 if (counts[i] > 0L) {
                     anyPresent.set(i);
                 }
             }
-
-            timer.push("pop counts");
-            session.popStat();
-            timer.pop();
 
             timer.pop();
         }
@@ -745,21 +715,6 @@ public class Session {
             throw new IqlKnownException.GroupLimitExceededException("Number of groups [" + numGroups + "] exceeds the group limit [" + groupLimit + "]");
         }
         log.debug("checkGroupLimit(" + numGroups + ")");
-    }
-
-    // TODO: Parallelize across sessions?
-    public void popStats() {
-        timer.push("popStats");
-        for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
-            timer.push("session", "session:" + sessionInfo.displayName);
-            final ImhotepSessionHolder session = sessionInfo.session;
-            final int numStats = session.getNumStats();
-            for (int i = 0; i < numStats; i++) {
-                session.popStat();
-            }
-            timer.pop();
-        }
-        timer.pop();
     }
 
     public SingleFieldRegroupTools.SingleFieldRulesBuilder createRuleBuilder(
@@ -859,17 +814,6 @@ public class Session {
         for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
             timer.push("session","session:" + sessionInfo.displayName);
             sessionInfo.session.regroup(fromGroups, toGroups, true);
-            timer.pop();
-        }
-        timer.pop();
-    }
-
-    public void popStat() {
-        // TODO: Parallelize
-        timer.push("popStat");
-        for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
-            timer.push("session", "session:" + sessionInfo.displayName);
-            sessionInfo.session.popStat();
             timer.pop();
         }
         timer.pop();
@@ -1002,10 +946,10 @@ public class Session {
         }
 
         static Optional<SessionIntIterationState> construct(
-                Closer closer, ImhotepSessionHolder session, FieldSet field, IntList sessionMetricIndexes, @Nullable Integer presenceIndex,
-                Optional<RemoteTopKParams> topKParams, Optional<Integer> ftgsRowLimit, Optional<long[]> termSubset) {
-            final FTGSIterator it = closer.register(getFTGSIterator(session, field, true, topKParams, ftgsRowLimit, termSubset, Optional.<String[]>absent()));
-            final int numStats = session.getNumStats();
+                Closer closer, ImhotepSessionHolder session, final List<List<String>> stats, FieldSet field, IntList sessionMetricIndexes, @Nullable Integer presenceIndex,
+                Optional<RemoteTopKParams> topKParams, Optional<Integer> ftgsRowLimit, Optional<long[]> termSubset) throws ImhotepOutOfMemoryException {
+            final FTGSIterator it = closer.register(getFTGSIterator(session, field, stats, true, topKParams, ftgsRowLimit, termSubset, Optional.<String[]>absent()));
+            final int numStats = it.getNumStats();
             final long[] statsBuff = new long[numStats];
             while (it.nextField()) {
                 while (it.nextTerm()) {
@@ -1034,9 +978,9 @@ public class Session {
     /**
      * {@code metricIndexes} must be disjoint across sessions.
      */
-    public static void iterateMultiInt(Map<String, ImhotepSessionHolder> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, FieldSet field, IntIterateCallback callback, TracingTreeTimer timer,
-                                       final Set<String> options) throws IOException {
-        iterateMultiInt(sessions, metricIndexes, presenceIndexes, field, Optional.<RemoteTopKParams>absent(), Optional.<Integer>absent(), Optional.<long[]>absent(), callback, timer, options);
+    public static void iterateMultiInt(Map<String, ImhotepSessionHolder> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, FieldSet field, final Map<String, List<List<String>>> sessionStats, IntIterateCallback callback, TracingTreeTimer timer,
+                                       final Set<String> options) throws IOException, ImhotepOutOfMemoryException {
+        iterateMultiInt(sessions, metricIndexes, presenceIndexes, field, sessionStats, Optional.absent(), Optional.absent(), Optional.absent(), callback, timer, options);
     }
 
     /**
@@ -1044,11 +988,10 @@ public class Session {
      */
     public static void iterateMultiInt(
             Map<String, ImhotepSessionHolder> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes,
-            FieldSet field, Optional<RemoteTopKParams> topKParams, Optional<Integer> ftgsRowLimit,
+            FieldSet field, Map<String, List<List<String>>> sessionStats, Optional<RemoteTopKParams> topKParams, Optional<Integer> ftgsRowLimit,
             Optional<long[]> termSubset, IntIterateCallback callback, TracingTreeTimer timer,
-            final Set<String> options) throws IOException
-    {
-        if (iterateSimpleInt(sessions, metricIndexes, presenceIndexes, field, topKParams, ftgsRowLimit, termSubset, callback, timer, options)) {
+            final Set<String> options) throws IOException, ImhotepOutOfMemoryException {
+        if (iterateSimpleInt(sessions, metricIndexes, presenceIndexes, field, sessionStats, topKParams, ftgsRowLimit, termSubset, callback, timer, options)) {
             return;
         }
 
@@ -1070,11 +1013,12 @@ public class Session {
             timer.push("request remote FTGS iterator");
             for (final String sessionName : sessions.keySet()) {
                 final ImhotepSessionHolder session = sessions.get(sessionName);
+                final List<List<String>> stats = sessionStats.getOrDefault(sessionName, Collections.emptyList());
                 timer.push("session", "session:" + sessionName + ", field:" + field.datasetFieldName(sessionName));
                 final IntList sessionMetricIndexes = Objects.firstNonNull(metricIndexes.get(sessionName), new IntArrayList());
                 final Integer presenceIndex = presenceIndexes.get(sessionName);
                 final Optional<SessionIntIterationState> constructed = SessionIntIterationState.construct(
-                        closer, session, field, sessionMetricIndexes, presenceIndex, topKParams, ftgsRowLimit,
+                        closer, session, stats, field, sessionMetricIndexes, presenceIndex, topKParams, ftgsRowLimit,
                         termSubset
                 );
                 if (constructed.isPresent()) {
@@ -1146,13 +1090,13 @@ public class Session {
             final Map<String, IntList> metricIndexes,
             final Map<String, Integer> presenceIndexes,
             final FieldSet field,
+            final Map<String, List<List<String>>> sessionStats,
             final Optional<RemoteTopKParams> topKParams,
             final Optional<Integer> ftgsRowLimit,
             final Optional<long[]> termSubset,
             final IntIterateCallback callback,
             final TracingTreeTimer timer,
-            final Set<String> options)
-    {
+            final Set<String> options) throws ImhotepOutOfMemoryException {
         if (!isSimple(sessions, metricIndexes, presenceIndexes, options)) {
             return false;
         }
@@ -1163,7 +1107,7 @@ public class Session {
 
         try (final FTGSIterator ftgs =
                      createFTGSIterator(session, field, true,
-                             topKParams, ftgsRowLimit,
+                             sessionStats.getOrDefault(dataset, Collections.emptyList()), topKParams, ftgsRowLimit,
                              termSubset, Optional.absent(), callback.needSorted())) {
             timer.pop();
 
@@ -1229,16 +1173,17 @@ public class Session {
             final ImhotepSessionHolder session,
             final FieldSet field,
             final boolean isIntField,
+            final List<List<String>> stats,
             final Optional<RemoteTopKParams> topKParams,
             final Optional<Integer> ftgsRowLimit,
             final Optional<long[]> intTerms,
             final Optional<String[]> stringTerms,
             final boolean isSorted
-    ) {
+    ) throws ImhotepOutOfMemoryException {
         if (isIntField && intTerms.isPresent()) {
-            return session.getSubsetFTGSIterator(Collections.singletonMap(field, intTerms.get()), Collections.emptyMap());
+            return session.getSubsetFTGSIterator(Collections.singletonMap(field, intTerms.get()), Collections.emptyMap(), stats);
         } else if(!isIntField && stringTerms.isPresent()) {
-            return session.getSubsetFTGSIterator(Collections.emptyMap(), Collections.singletonMap(field, stringTerms.get()));
+            return session.getSubsetFTGSIterator(Collections.emptyMap(), Collections.singletonMap(field, stringTerms.get()), stats);
         }
 
         final String fieldName = field.datasetFieldName(session.getDatasetName());
@@ -1246,13 +1191,13 @@ public class Session {
         final String[] stringFields = isIntField ? new String[0] : new String[]{fieldName};
         final FTGSParams params;
         if (topKParams.isPresent()) {
-            params = new FTGSParams(intFields, stringFields, topKParams.get().limit, topKParams.get().sortStatIndex, isSorted);
+            params = new FTGSParams(intFields, stringFields, topKParams.get().limit, topKParams.get().sortStatIndex, isSorted, stats);
         } else if(ftgsRowLimit.isPresent()) {
             // TODO: can term limited request be unsorted?
             // Check if calling side expects first terms in sorted order.
-            params = new FTGSParams(intFields, stringFields, ftgsRowLimit.get(), -1, true);
+            params = new FTGSParams(intFields, stringFields, ftgsRowLimit.get(), -1, true, stats);
         } else {
-            params = new FTGSParams(intFields, stringFields, 0, -1, isSorted);
+            params = new FTGSParams(intFields, stringFields, 0, -1, isSorted, stats);
         }
 
         return session.getFTGSIterator(params);
@@ -1276,10 +1221,10 @@ public class Session {
             this.nextGroup = nextGroup;
         }
 
-        static Optional<SessionStringIterationState> construct(Closer closer, ImhotepSessionHolder session, FieldSet field, IntList sessionMetricIndexes, @Nullable Integer presenceIndex,
-                                                               Optional<RemoteTopKParams> topKParams, Optional<Integer> ftgsRowLimit, Optional<String[]> termSubset) {
-            final FTGSIterator it = closer.register(getFTGSIterator(session, field, false, topKParams, ftgsRowLimit, Optional.<long[]>absent(), termSubset));
-            final int numStats = session.getNumStats();
+        static Optional<SessionStringIterationState> construct(Closer closer, ImhotepSessionHolder session, FieldSet field, final List<List<String>> stats, IntList sessionMetricIndexes, @Nullable Integer presenceIndex,
+                                                               Optional<RemoteTopKParams> topKParams, Optional<Integer> ftgsRowLimit, Optional<String[]> termSubset) throws ImhotepOutOfMemoryException {
+            final FTGSIterator it = closer.register(getFTGSIterator(session, field, stats, false, topKParams, ftgsRowLimit, Optional.<long[]>absent(), termSubset));
+            final int numStats = it.getNumStats();
             final long[] statsBuff = new long[numStats];
             while (it.nextField()) {
                 while (it.nextTerm()) {
@@ -1308,9 +1253,9 @@ public class Session {
     /**
      * {@code metricIndexes} must be disjoint across sessions.
      */
-    public static void iterateMultiString(Map<String, ImhotepSessionHolder> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, FieldSet field, StringIterateCallback callback, TracingTreeTimer timer,
-                                          final Set<String> options) throws IOException {
-        iterateMultiString(sessions, metricIndexes, presenceIndexes, field, Optional.<RemoteTopKParams>absent(), Optional.<Integer>absent(), Optional.<String[]>absent(), callback, timer, options);
+    public static void iterateMultiString(Map<String, ImhotepSessionHolder> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, FieldSet field, final Map<String, List<List<String>>> sessionStats, StringIterateCallback callback, TracingTreeTimer timer,
+                                          final Set<String> options) throws IOException, ImhotepOutOfMemoryException {
+        iterateMultiString(sessions, metricIndexes, presenceIndexes, field, sessionStats, Optional.<RemoteTopKParams>absent(), Optional.<Integer>absent(), Optional.<String[]>absent(), callback, timer, options);
     }
 
     /**
@@ -1318,10 +1263,11 @@ public class Session {
      */
     public static void iterateMultiString(
             Map<String, ImhotepSessionHolder> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, FieldSet field,
+            Map<String, List<List<String>>> sessionStats,
             Optional<RemoteTopKParams> topKParams, Optional<Integer> limit, Optional<String[]> termSubset, StringIterateCallback callback, TracingTreeTimer timer,
-            final Set<String> options) throws IOException {
+            final Set<String> options) throws IOException, ImhotepOutOfMemoryException {
 
-        if (iterateSimpleString(sessions, metricIndexes, presenceIndexes, field, topKParams, limit, termSubset, callback, timer, options)) {
+        if (iterateSimpleString(sessions, metricIndexes, presenceIndexes, field, sessionStats, topKParams, limit, termSubset, callback, timer, options)) {
             return;
         }
 
@@ -1343,9 +1289,10 @@ public class Session {
             for (final String sessionName : sessions.keySet()) {
                 timer.push("session", "session:" + sessionName + ", field:" + field.datasetFieldName(sessionName));
                 final ImhotepSessionHolder session = sessions.get(sessionName);
+                final List<List<String>> stats = sessionStats.getOrDefault(sessionName, Collections.emptyList());
                 final IntList sessionMetricIndexes = Objects.firstNonNull(metricIndexes.get(sessionName), new IntArrayList());
                 final Integer presenceIndex = presenceIndexes.get(sessionName);
-                final Optional<SessionStringIterationState> constructed = SessionStringIterationState.construct(closer, session, field, sessionMetricIndexes, presenceIndex, topKParams, limit, termSubset);
+                final Optional<SessionStringIterationState> constructed = SessionStringIterationState.construct(closer, session, field, stats, sessionMetricIndexes, presenceIndex, topKParams, limit, termSubset);
                 if (constructed.isPresent()) {
                     pq.add(constructed.get());
                 }
@@ -1383,12 +1330,13 @@ public class Session {
             final Map<String, IntList> metricIndexes,
             final Map<String, Integer> presenceIndexes,
             final FieldSet field,
+            final Map<String, List<List<String>>> sessionStats,
             final Optional<RemoteTopKParams> topKParams,
             final Optional<Integer> ftgsRowLimit,
             final Optional<String[]> termSubset,
             final StringIterateCallback callback,
             final TracingTreeTimer timer,
-            final Set<String> options)
+            final Set<String> options) throws ImhotepOutOfMemoryException
     {
         if (!isSimple(sessions, metricIndexes, presenceIndexes, options)) {
             return false;
@@ -1400,7 +1348,7 @@ public class Session {
 
         try (final FTGSIterator ftgs =
                      createFTGSIterator(session, field, false,
-                             topKParams, ftgsRowLimit,
+                             sessionStats.getOrDefault(dataset, Collections.emptyList()), topKParams, ftgsRowLimit,
                              Optional.absent(), termSubset, callback.needSorted())) {
             timer.pop();
 
@@ -1437,15 +1385,15 @@ public class Session {
     }
 
     private static FTGSIterator getFTGSIterator(
-            final ImhotepSessionHolder session, final FieldSet field, final boolean isIntField,
+            final ImhotepSessionHolder session, final FieldSet field, final List<List<String>> stats, final boolean isIntField,
             final Optional<RemoteTopKParams> topKParams, final Optional<Integer> limit,
             Optional<long[]> intTermSubset, Optional<String[]> stringTermSubset
-    ) {
+    ) throws ImhotepOutOfMemoryException {
 
         if (isIntField && intTermSubset.isPresent()) {
-            return session.getSubsetFTGSIterator(Collections.singletonMap(field, intTermSubset.get()), Collections.emptyMap());
+            return session.getSubsetFTGSIterator(Collections.singletonMap(field, intTermSubset.get()), Collections.emptyMap(), stats);
         } else if (!isIntField && stringTermSubset.isPresent()) {
-            return session.getSubsetFTGSIterator(Collections.emptyMap(), Collections.singletonMap(field, stringTermSubset.get()));
+            return session.getSubsetFTGSIterator(Collections.emptyMap(), Collections.singletonMap(field, stringTermSubset.get()), stats);
         }
 
         final String fieldName = field.datasetFieldName(session.getDatasetName());
@@ -1460,11 +1408,11 @@ public class Session {
         }
         final FTGSIterator it;
         if (topKParams.isPresent()) {
-            it = session.getFTGSIterator(intFields, strFields, topKParams.get().limit, topKParams.get().sortStatIndex);
+            it = session.getFTGSIterator(intFields, strFields, topKParams.get().limit, topKParams.get().sortStatIndex, stats);
         } else if (limit.isPresent()) {
-            it = session.getFTGSIterator(intFields, strFields, limit.get());
+            it = session.getFTGSIterator(intFields, strFields, limit.get(), stats);
         } else {
-            it = session.getFTGSIterator(intFields, strFields);
+            it = session.getFTGSIterator(intFields, strFields, stats);
         }
         return it;
     }

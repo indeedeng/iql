@@ -51,16 +51,8 @@ public class MetricAction implements Action {
             @Override
             public void handle(TracingTreeTimer timer, String name, ImhotepSessionHolder session) throws ImhotepOutOfMemoryException {
                 if (scope.contains(name)) {
-                    final List<String> pushes = Lists.newArrayList(perDatasetPushes.get(name));
-
-                    Session.pushStatsWithTimer(session, pushes, timer);
-
                     timer.push("metricFilter");
-                    session.metricFilter(0, 1, 1, targetGroup, negativeGroup, positiveGroup);
-                    timer.pop();
-
-                    timer.push("popStat");
-                    session.popStat();
+                    session.metricFilter(perDatasetPushes.get(name), 1, 1, targetGroup, negativeGroup, positiveGroup);
                     timer.pop();
                 }
             }

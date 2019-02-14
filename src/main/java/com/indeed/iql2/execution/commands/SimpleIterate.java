@@ -46,6 +46,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -141,7 +142,8 @@ public class SimpleIterate implements Command {
         session.timer.push("push and register metrics");
         final Map<QualifiedPush, Integer> metricIndexes = Maps.newHashMap();
         final Map<String, IntList> sessionMetricIndexes = Maps.newHashMap();
-        session.pushMetrics(allPushes, metricIndexes, sessionMetricIndexes);
+        final Map<String, List<List<String>>> sessionStats = Maps.newHashMap();
+        session.pushMetrics(allPushes, metricIndexes, sessionMetricIndexes, sessionStats);
         session.registerMetrics(metricIndexes, metrics, Arrays.<AggregateFilter>asList());
         if (opts.filter.isPresent()) {
             opts.filter.get().register(metricIndexes, session.groupKeySet);
@@ -189,12 +191,12 @@ public class SimpleIterate implements Command {
         if (session.isIntField(field)) {
             final Session.IntIterateCallback callback = intCallback(session, collector, topKMetricOrNull, filterOrNull);
             session.timer.push("iterateMultiInt");
-            Session.iterateMultiInt(sessionsToUse, sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, topKParams, ftgsRowLimit, opts.sortedIntTermSubset, callback, session.timer, session.options);
+            Session.iterateMultiInt(sessionsToUse, sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, sessionStats, topKParams, ftgsRowLimit, opts.sortedIntTermSubset, callback, session.timer, session.options);
             session.timer.pop();
         } else if (session.isStringField(field)) {
             final Session.StringIterateCallback callback = stringCallback(session, collector, topKMetricOrNull, filterOrNull);
             session.timer.push("iterateMultiString");
-            Session.iterateMultiString(sessionsToUse, sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, topKParams, ftgsRowLimit, opts.sortedStringTermSubset, callback, session.timer, session.options);
+            Session.iterateMultiString(sessionsToUse, sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, sessionStats, topKParams, ftgsRowLimit, opts.sortedStringTermSubset, callback, session.timer, session.options);
             session.timer.pop();
         } else {
             throw new IllegalArgumentException("Field is neither all int nor all string field: " + field);
@@ -203,17 +205,16 @@ public class SimpleIterate implements Command {
         session.timer.push("ResultCollector.finish()");
         collector.finish();
         session.timer.pop();
-
-        session.popStats();
     }
 
     private void evaluateMultiFtgs(
             final Session session,
             final ResultCollector out,
             final Set<QualifiedPush> allPushes,
-            final AggregateMetric topKMetricOrNull) throws ImhotepOutOfMemoryException {
+            final AggregateMetric topKMetricOrNull) {
         session.timer.push("prepare for iteration");
-        final Map<QualifiedPush, AggregateStatTree> atomicStats = session.pushMetrics(allPushes);
+        final Map<String, List<List<String>>> sessionStats = new HashMap<>();
+        final Map<QualifiedPush, AggregateStatTree> atomicStats = session.pushMetrics(allPushes, sessionStats);
         final List<AggregateStatTree> selects = selecting.stream().map(x -> x.toImhotep(atomicStats)).collect(Collectors.toList());
         final List<AggregateStatTree> filters = opts.filter.transform(x -> Collections.singletonList(x.toImhotep(atomicStats))).or(Collections.emptyList());
         final boolean isIntField = session.isIntField(field);
@@ -242,7 +243,7 @@ public class SimpleIterate implements Command {
             final ImhotepSessionHolder sessionHolder = entry.getValue().session;
             final String dataset = sessionHolder.getDatasetName();
             if (field.containsDataset(dataset)) {
-                sessionFields.add(sessionHolder.buildSessionField(field.datasetFieldName(dataset)));
+                sessionFields.add(sessionHolder.buildSessionField(field.datasetFieldName(dataset), sessionStats.getOrDefault(dataset, Collections.emptyList())));
             }
         }
 
@@ -311,8 +312,6 @@ public class SimpleIterate implements Command {
             session.timer.push("ResultCollector.finish()");
             collector.finish();
             session.timer.pop();
-
-            session.popStats();
         }
     }
 

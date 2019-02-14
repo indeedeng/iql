@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -71,7 +72,8 @@ public class IterateHandlers {
         }
         final Map<QualifiedPush, Integer> metricIndexes = Maps.newHashMap();
         final Map<String, IntList> sessionMetricIndexes = Maps.newHashMap();
-        session.pushMetrics(pushes, metricIndexes, sessionMetricIndexes);
+        final Map<String, List<List<String>>> sessionStats = Maps.newHashMap();
+        session.pushMetrics(pushes, metricIndexes, sessionMetricIndexes, sessionStats);
         for (final IterateHandler<T> handler : iterateHandlers) {
             handler.register(metricIndexes, session.groupKeySet);
         }
@@ -84,7 +86,7 @@ public class IterateHandlers {
             }
             final Session.IntIterateCallback callback = new MultiIntIterateCallback(intCallbacks);
             session.timer.push("iterateMultiInt");
-            Session.iterateMultiInt(sessionsSubset, sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, callback, session.timer, session.options);
+            Session.iterateMultiInt(sessionsSubset, sessionMetricIndexes, Collections.emptyMap(), field, sessionStats, callback, session.timer, session.options);
             session.timer.pop();
         } else if (session.isStringField(field)) {
             final List<Session.StringIterateCallback> stringCallbacks = Lists.newArrayList();
@@ -93,7 +95,7 @@ public class IterateHandlers {
             }
             final Session.StringIterateCallback callback = new MultiStringIterateCallback(stringCallbacks);
             session.timer.push("iterateMultiString");
-            Session.iterateMultiString(sessionsSubset, sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, callback, session.timer, session.options);
+            Session.iterateMultiString(sessionsSubset, sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, sessionStats, callback, session.timer, session.options);
             session.timer.pop();
         } else {
             throw new IllegalStateException("Field is neither all int nor all string field: " + field);
@@ -105,8 +107,6 @@ public class IterateHandlers {
             result.add(iterateHandler.finish());
         }
         session.timer.pop();
-
-        session.popStats();
 
         session.timer.pop();
 

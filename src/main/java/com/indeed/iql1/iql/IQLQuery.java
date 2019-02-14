@@ -275,7 +275,7 @@ public final class IQLQuery implements Closeable {
         return count;
     }
 
-    private double[] getStats(List<StatReference> statRefs) {
+    private double[] getStats(List<StatReference> statRefs) throws ImhotepOutOfMemoryException {
         final double[] stats = new double[statRefs.size()];
         for (int i = 0; i < statRefs.size(); i++) {
             final double[] groupStat = session.getGroupStats(statRefs.get(i));

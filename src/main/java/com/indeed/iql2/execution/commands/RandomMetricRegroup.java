@@ -67,16 +67,9 @@ public class RandomMetricRegroup implements Command {
                 if (!perDatasetMetrics.containsKey(name)) {
                     return;
                 }
-                final List<String> pushes = new ArrayList<>(perDatasetMetrics.get(name));
-
-                Session.pushStatsWithTimer(session, pushes, timer);
 
                 timer.push("randomMetricMultiRegroup");
-                session.randomMetricMultiRegroup(0, salt, 1, percentages, resultGroups);
-                timer.pop();
-
-                timer.push("popStat");
-                session.popStat();
+                session.randomMetricMultiRegroup(perDatasetMetrics.get(name), salt, 1, percentages, resultGroups);
                 timer.pop();
             }
         });

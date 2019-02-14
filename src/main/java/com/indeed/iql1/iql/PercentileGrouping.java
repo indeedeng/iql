@@ -104,7 +104,7 @@ public class PercentileGrouping extends Grouping {
         return result.iterator();
     }
 
-    private Int2ObjectMap<Int2LongMap> getPercentileStats(final EZImhotepSession session, final Int2ObjectMap<GroupKey> groupKeys, final StatReference countStatRef, final long[] counts) {
+    private Int2ObjectMap<Int2LongMap> getPercentileStats(final EZImhotepSession session, final Int2ObjectMap<GroupKey> groupKeys, final StatReference countStatRef, final long[] counts) throws ImhotepOutOfMemoryException {
         final Set<Field> uniqueFields = Sets.newHashSet(fields);
 
         final Int2ObjectMap<Int2LongMap> groupToPositionToStats = new Int2ObjectOpenHashMap<Int2LongMap>();
@@ -153,7 +153,7 @@ public class PercentileGrouping extends Grouping {
         return groupToPositionToStats;
     }
 
-    private static Int2ObjectMap<double[]> getGroupStatsValues(EZImhotepSession session, List<StatReference> statRefs, int groupCount) {
+    private static Int2ObjectMap<double[]> getGroupStatsValues(EZImhotepSession session, List<StatReference> statRefs, int groupCount) throws ImhotepOutOfMemoryException {
         final int statCount = statRefs.size();
         final double[][] statGroupValues = new double[statCount][];
         for (int i = 0; i < statCount; i++) {
@@ -172,7 +172,7 @@ public class PercentileGrouping extends Grouping {
         return ret;
     }
 
-    private static long[] getCounts(final StatReference countStatRef) {
+    private static long[] getCounts(final StatReference countStatRef) throws ImhotepOutOfMemoryException {
         final double[] doubleGroupStats = countStatRef.getGroupStats();
         final long[] groupStats = new long[doubleGroupStats.length];
         for (int i = 0; i < doubleGroupStats.length; ++i) {

@@ -49,19 +49,17 @@ public class ImhotepSessionHolder implements Closeable {
 
     // delegate methods with field name substitute
 
-    public int pushStat(final String statName) throws ImhotepOutOfMemoryException {
-        return session.pushStat(statName);
-    }
-
+    @Deprecated
     public int pushStats(final List<String> statNames) throws ImhotepOutOfMemoryException {
         return session.pushStats(statNames);
     }
 
+    @Deprecated
     public int popStat() {
         return session.popStat();
     }
 
-    public long[] getGroupStats(final int stat) {
+    public long[] getGroupStats(final List<String> stat) throws ImhotepOutOfMemoryException {
         return session.getGroupStats(stat);
     }
 
@@ -78,7 +76,7 @@ public class ImhotepSessionHolder implements Closeable {
     }
 
     public void metricRegroup(
-            final int stat,
+            final List<String> stat,
             final long min,
             final long max,
             final long intervalSize,
@@ -87,7 +85,7 @@ public class ImhotepSessionHolder implements Closeable {
     }
 
     public void randomMetricRegroup(
-            final int stat,
+            final List<String> stat,
             final String salt,
             final double p,
             final int targetGroup,
@@ -97,7 +95,7 @@ public class ImhotepSessionHolder implements Closeable {
     }
 
     public void randomMetricMultiRegroup(
-            final int stat,
+            final List<String> stat,
             final String salt,
             final int targetGroup,
             final double[] percentages,
@@ -106,14 +104,14 @@ public class ImhotepSessionHolder implements Closeable {
     }
 
     public void metricFilter(
-            final int stat,
+            final List<String> stat,
             final long min,
             final long max,
             final boolean negate) throws ImhotepOutOfMemoryException {
         session.metricFilter(stat, min, max, negate);
     }
 
-    public void metricFilter(final int stat, final long min, final long max, final int targetGroup, final int negativeGroup, final int positiveGroup) throws ImhotepOutOfMemoryException {
+    public void metricFilter(final List<String> stat, final long min, final long max, final int targetGroup, final int negativeGroup, final int positiveGroup) throws ImhotepOutOfMemoryException {
         session.metricFilter(stat, min, max, targetGroup, negativeGroup, positiveGroup);
     }
 
@@ -178,40 +176,46 @@ public class ImhotepSessionHolder implements Closeable {
 
     public FTGSIterator getSubsetFTGSIterator(
             final Map<FieldSet, long[]> intFields,
-            final Map<FieldSet, String[]> stringFields) {
+            final Map<FieldSet, String[]> stringFields,
+            final List<List<String>> stats) throws ImhotepOutOfMemoryException {
         final Map<String, long[]> convertedIntFields = convertMap(intFields);
         final Map<String, String[]> convertedStringFields = convertMap(stringFields);
-        return session.getSubsetFTGSIterator(convertedIntFields, convertedStringFields);
-    }
-
-    public FTGSIterator getFTGSIterator(
-            final String[] intFields,
-            final String[] stringFields) {
-        return session.getFTGSIterator(intFields, stringFields);
+        return session.getSubsetFTGSIterator(convertedIntFields, convertedStringFields, stats);
     }
 
     public FTGSIterator getFTGSIterator(
             final String[] intFields,
             final String[] stringFields,
-            final long termLimit) {
-        return session.getFTGSIterator(intFields, stringFields, termLimit);
+            final List<List<String>> stats) throws ImhotepOutOfMemoryException {
+        return session.getFTGSIterator(intFields, stringFields, stats);
     }
 
     public FTGSIterator getFTGSIterator(
             final String[] intFields,
             final String[] stringFields,
             final long termLimit,
-            final int sortStat) {
-        return session.getFTGSIterator(intFields, stringFields, termLimit, sortStat);
+            final List<List<String>> stats) throws ImhotepOutOfMemoryException {
+        return session.getFTGSIterator(intFields, stringFields, termLimit, stats);
     }
 
-    public FTGSIterator getFTGSIterator(final FTGSParams params) {
+    public FTGSIterator getFTGSIterator(
+            final String[] intFields,
+            final String[] stringFields,
+            final long termLimit,
+            final int sortStat,
+            final List<List<String>> stats) throws ImhotepOutOfMemoryException {
+        return session.getFTGSIterator(intFields, stringFields, termLimit, sortStat, stats);
+    }
+
+    public FTGSIterator getFTGSIterator(final FTGSParams params) throws ImhotepOutOfMemoryException {
         final FTGSParams convertedParams = new FTGSParams(
                 params.intFields,
                 params.stringFields,
                 params.termLimit,
                 params.sortStat,
-                params.sorted);
+                params.sorted,
+                params.stats
+        );
         return session.getFTGSIterator(convertedParams);
     }
 
@@ -223,8 +227,8 @@ public class ImhotepSessionHolder implements Closeable {
         return session.closeAndGetPerformanceStats();
     }
 
-    public RemoteImhotepMultiSession.SessionField buildSessionField(String field) {
-        return new RemoteImhotepMultiSession.SessionField(session, field);
+    public RemoteImhotepMultiSession.SessionField buildSessionField(String field, final List<List<String>> stats) {
+        return new RemoteImhotepMultiSession.SessionField(session, field, stats);
     }
 
     // some useful methods
