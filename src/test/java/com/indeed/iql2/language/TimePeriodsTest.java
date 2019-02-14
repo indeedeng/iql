@@ -14,12 +14,8 @@
 
 package com.indeed.iql2.language;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Sets;
-import com.indeed.iql2.language.TimePeriods;
-import com.indeed.iql2.language.TimeUnit;
 import com.indeed.iql2.language.query.Queries;
-import com.indeed.iql2.language.JQLParser;
 import com.indeed.util.core.Pair;
 import junit.framework.Assert;
 import org.junit.Test;
@@ -135,13 +131,9 @@ public class TimePeriodsTest {
         }
     }
 
-    private List<Pair<Integer, TimeUnit>> parseTimePeriod(String input, boolean useLegacy) {
-        final JQLParser.TimePeriodContext ctx = Queries.runParser(input, new Function<JQLParser, JQLParser.TimePeriodContext>() {
-            public JQLParser.TimePeriodContext apply(JQLParser input) {
-                return input.timePeriodTerminal().timePeriod();
-            }
-        });
-        return TimePeriods.parseTimePeriod(ctx, useLegacy);
+    private List<Pair<Integer, TimeUnit>> parseTimePeriod(final String input, final boolean useLegacy) {
+        final JQLParser.TimeBucketContext ctx = Queries.runParser(input, JQLParser::timeBucketTerminal).timeBucket();
+        return TimePeriods.parseTimeBuckets(ctx, useLegacy);
     }
 
     private static <T> void checkOrderInvariant(List<T> expected, List<T> actual) {

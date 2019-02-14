@@ -44,9 +44,9 @@ WITH : 'WITH' ;
 DEFAULT : 'DEFAULT' ;
 TIME : 'TIME' ;
 TIMEBUCKETS : 'TIMEBUCKETS' ;
-TO : 'TO' ;
 BUCKETS : 'BUCKETS' ;
 BUCKET : 'BUCKET' ;
+B : 'B' ;
 IN : 'IN' ;
 DESCENDING : 'DESCENDING' ;
 DESC : 'DESC' ;
@@ -93,15 +93,26 @@ M: 'M' ;
 Y : 'Y' ;
 TODAYS : 'T' | 'TO' | 'TOD' | 'TODA' | 'TODAY' ;
 TOMORROWS : 'TOM' | 'TOMO' | 'TOMOR' | 'TOMORR' | 'TOMORRO' | 'TOMORROW' ;
+// Note that M term goes before TIME_UNIT so we have to handle M separatelly
+// We cannot put M after TIME_UNIT because in that case metric M will not parse.
 YESTERDAYS : Y | 'YE' | 'YES' | 'YEST' | 'YESTE' | 'YESTER' | 'YESTERD' | 'YESTERDA' | 'YESTERDAY' ;
-TIME_UNIT : [SMHDWYB]|'SECOND'|'SECONDS'|'MINUTE'|'MINUTES'|'HOUR'|'HOURS'|'DAY'|'DAYS'|'WEEK'|'WEEKS'|'MO'|'MONTH'|'MONTHS'|'YEAR'|'YEARS';
-TIME_PERIOD_ATOM : ([0-9]* (TIME_UNIT|BUCKET|BUCKETS|[sSmMhHdDwWyYbB]))+ ;
+TIME_UNIT : [SHDW]|M|Y|'SECOND'|'SECONDS'|'MINUTE'|'MINUTES'|'HOUR'|'HOURS'|'DAY'|'DAYS'|'WEEK'|'WEEKS'|'MO'|'MONTH'|'MONTHS'|'YEAR'|'YEARS';
+BUCKET_ATOM : [0-9]* (BUCKET|BUCKETS|B);
+
+TIME_INTERVAL_ATOM : ([0-9]* (TIME_UNIT|M|Y))+; // time interval without spaces like '1d1week'
+timeIntervalOneWord : TIME_INTERVAL_ATOM | TIME_UNIT | M | Y ;
+timeIntervalAtom: (coeff=NAT unit=(TIME_UNIT|M | Y)) ; // time interval with spaces like '5 days'
+
+timeInterval : (withoutSpaces+=timeIntervalOneWord | withSpaces+=timeIntervalAtom)+;
+bucket : BUCKET_ATOM | (coeff=NAT? (BUCKET|BUCKETS|B));
 
 NAT : [0-9]+ ;
 DOUBLE: [0-9]+ ('.' [0-9]*)? ;
 
 fragment DIGIT : [0-9] ;
 fragment SINGLE_DOUBLE_DIGITS : ( DIGIT DIGIT | DIGIT ) ;
+// note that 4-digit terms like '2015' will be parsed as NAT since NAT is before DATETIME_TOKEN
+// There must be special processing for this corner case.
 DATETIME_TOKEN
  : DIGIT DIGIT DIGIT DIGIT
     ('-' SINGLE_DOUBLE_DIGITS
@@ -116,8 +127,7 @@ DATETIME_TOKEN
                 )
             )?
         )?
-    ) ;
-DATE_TOKEN : DIGIT DIGIT DIGIT DIGIT ('-' SINGLE_DOUBLE_DIGITS ('-' SINGLE_DOUBLE_DIGITS)?)? ;
+    )? ;
 
 ID : [a-zA-Z_][a-zA-Z0-9_]* ;
 
@@ -127,20 +137,39 @@ BACKQUOTED_ID : '`' ~[`]+ '`';
 identifier
     : ID | LAG | RUNNING | PARENT | DISTINCT | DISTINCT_WINDOW | WINDOW | PERCENTILE | MEDIAN | PDIFF | DIFF | RATIODIFF | SINGLESCORE
     | RATIOSCORE | RMSERROR | LOGLOSS | AVG | VARIANCE | STDEV | LOG | ABS | SUM_OVER | AVG_OVER | WHERE | HASSTR | HASINT | FROM | GROUP | BY | FLOOR | CEIL | ROUND
-    | AGO | COUNT | AS | NOT | LUCENE | QUERY | TOP | BOTTOM | WITH | DEFAULT| TIME | TIMEBUCKETS | TO
-    | BUCKETS | BUCKET | IN | DESCENDING | DESC | ASCENDING | ASC | DAYOFWEEK | QUANTILES | BETWEEN
+    | AGO | COUNT | AS | NOT | LUCENE | QUERY | TOP | BOTTOM | WITH | DEFAULT| TIME | TIMEBUCKETS
+    | BUCKETS | BUCKET | B | IN | DESCENDING | DESC | ASCENDING | ASC | DAYOFWEEK | QUANTILES | BETWEEN
     | SAMPLE | AND | OR | TRUE | FALSE | IF | THEN | ELSE | FLOATSCALE | SIGNUM | LIMIT | HAVING
     | FIELD_MIN | FIELD_MAX | ALIASING | HASINTFIELD | HASSTRFIELD | INTTERMCOUNT | STRTERMCOUNT | SAME | EXP | WINDOW_SUM | MIN | MAX
     | PRINTF | EXTRACT | RANDOM | OPTIONS
-    | M | Y | TODAYS | TOMORROWS | YESTERDAYS | TIME_UNIT | TIME_PERIOD_ATOM
+    | M | Y | TODAYS | TOMORROWS | YESTERDAYS | TIME_UNIT | TIME_INTERVAL_ATOM
     | RELATIVE | DATASET
     | BACKQUOTED_ID | LEN | DOCID
     ;
 identifierTerminal : identifier EOF ;
-timeUnit: (coeff=NAT? unit=(TIME_UNIT | Y | M | BUCKET | BUCKETS)) ;
-timePeriod : (atoms+=TIME_PERIOD_ATOM | timeunits+=timeUnit)+ AGO? #TimePeriodParseable
-           | STRING_LITERAL # TimePeriodStringLiteral ;
-timePeriodTerminal : timePeriod EOF ;
+
+// used in group by time(timeBucket)
+timeBucket
+    : timeInterval
+    | bucket
+    | STRING_LITERAL ; // unquoted string must be parseable by timeBucketTerminal rule.
+
+timeBucketTerminal : timeBucket EOF ;
+
+// This rule is used for unquoted time intervals
+// like 'from dataset 1w1d ago 1d where ...'
+// We don't allow here queries like 'from dataset 1w 1d ago 1d where ...'
+relativeTime
+    : TODAYS
+    | TOMORROWS
+    | YESTERDAYS | Y // Special case for 'Y' since will be parsed with timeIntervalOneWord rule otherwise.
+    | timeIntervalOneWord AGO?
+    ;
+
+// This rule is used for quoted parsed intervals.
+// It's ok to have spaces between time interval part inside string literals
+// like 'from dataset "1 week 5days ago" "1 d" where ...'
+relativeTimeTerminal : (relativeTime | timeInterval AGO?) EOF;
 
 WS : [ \t\r\n]+ -> channel(HIDDEN) ;
 COMMENT : '/*' .*? '*/' -> channel(HIDDEN) ;
@@ -464,7 +493,7 @@ groupByMetric [boolean useLegacy]
     ;
 
 groupByTime [boolean useLegacy]
-    : (TIME | ({$ctx.useLegacy}? TIMEBUCKETS)) ('(' (timePeriod (',' timeFormat=(DEFAULT | STRING_LITERAL) (',' timeField=identifier)?)?)? (isRelative=RELATIVE)? ')')?
+    : (TIME | ({$ctx.useLegacy}? TIMEBUCKETS)) ('(' (timeBucket (',' timeFormat=(DEFAULT | STRING_LITERAL) (',' timeField=identifier)?)?)? (isRelative=RELATIVE)? ')')?
     ;
 
 groupByField [boolean useLegacy]
@@ -484,16 +513,12 @@ groupByField [boolean useLegacy]
 
 dateTime
     : DATETIME_TOKEN
-    | DATE_TOKEN
-    | STRING_LITERAL
+    | STRING_LITERAL // unquoted literal must be parseable by dateTimeTerminal or relativeTimeTerminal
     | NAT // This is for unix timestamps.
-    | timePeriod
-    | TODAYS
-    | TO
-    | TOMORROWS
-    | YESTERDAYS
-    | AGO
+    | relativeTime
     ;
+
+dateTimeTerminal : dateTime EOF;
 
 aliases
     : ALIASING '(' actual+=identifier AS virtual+=identifier (',' actual+=identifier AS virtual+=identifier)* ')'
