@@ -77,13 +77,29 @@ public class EZImhotepSession implements Closeable {
         if(stat instanceof Stats.AggregateBinOpStat) {
             return pushStatComposite((Stats.AggregateBinOpStat) stat);
         } else {
-            return pushStat(stat);
+            return pushStatInternal(stat, true);
         }
     }
 
-    public SingleStatReference pushStat(Stats.Stat stat) throws ImhotepOutOfMemoryException {
+    // Use this method when you don't need index of stat in imhotep session
+    public StatReference pushStat(final Stats.Stat stat) throws ImhotepOutOfMemoryException {
+        return pushStatInternal(stat, true);
+    }
+
+    // Use this method when you do need index of stat in imhotep session
+    // i.e. for metricRegroup
+    public SingleStatReference pushSingleStat(final Stats.Stat stat) throws ImhotepOutOfMemoryException {
+        return pushStatInternal(stat, false);
+    }
+
+    public SingleStatReference pushStatInternal(
+            final Stats.Stat stat,
+            final boolean allowAggregateStats) throws ImhotepOutOfMemoryException {
         if(stat instanceof Stats.AggregateBinOpStat) {
             throw new IllegalArgumentException("Aggregate operations have to be pushed with pushStatGeneric");
+        }
+        if (!allowAggregateStats && (stat instanceof Stats.AggregateBinOpConstStat)) {
+            throw  new IqlKnownException.ParseErrorException("'/' not expected here. Did you mean '\\' instead?");
         }
         final int initialDepth = stackDepth;
         stackDepth = session.pushStats(stat.pushes(this));
