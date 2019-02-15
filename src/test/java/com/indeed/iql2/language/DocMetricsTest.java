@@ -150,4 +150,35 @@ public class DocMetricsTest {
         Assert.assertEquals(expExpCount, PARSE_LEGACY_DOC_METRIC.apply("exp(exp(count()))"));
         Assert.assertEquals(expExpCount, PARSE_IQL2_DOC_METRIC.apply("exp(exp(count()))"));
     }
+
+    @Test
+    public void testIfThenElsePrecedence() {
+        Assert.assertEquals(
+                new DocMetric.IfThenElse(
+                        new DocFilter.FieldIs(FieldSet.of("synthetic", "X"), Term.term(0)),
+                        docField("Y"),
+                        new DocMetric.Divide(docField("Z"), new DocMetric.Constant(100))
+                ),
+                PARSE_IQL2_DOC_METRIC.apply("if X=0 then Y else Z / 100")
+        );
+        Assert.assertEquals(
+                new DocMetric.IfThenElse(
+                        new DocFilter.FieldIs(FieldSet.of("synthetic", "X"), Term.term(0)),
+                        docField("Y"),
+                        new DocMetric.Divide(docField("Z"), new DocMetric.Constant(100))
+                ),
+                PARSE_IQL2_DOC_METRIC.apply("if X=0 then Y else (Z / 100)")
+        );
+        Assert.assertEquals(
+                new DocMetric.Divide(
+                    new DocMetric.IfThenElse(
+                            new DocFilter.FieldIs(FieldSet.of("synthetic", "X"), Term.term(0)),
+                            docField("Y"),
+                            docField("Z")
+                    ),
+                    new DocMetric.Constant(100)
+                ),
+                PARSE_IQL2_DOC_METRIC.apply("(if X=0 then Y else Z) / 100")
+        );
+    }
 }
