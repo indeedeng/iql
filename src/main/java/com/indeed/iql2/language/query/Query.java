@@ -16,7 +16,6 @@ package com.indeed.iql2.language.query;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
-import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
@@ -51,6 +50,8 @@ import com.indeed.util.core.Pair;
 import com.indeed.util.core.time.WallClock;
 import com.indeed.util.logging.TracingTreeTimer;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 
@@ -65,6 +66,8 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+@EqualsAndHashCode
+@ToString
 public class Query extends AbstractPositional {
     public final List<Dataset> datasets;
     public final Optional<DocFilter> filter;
@@ -76,8 +79,21 @@ public class Query extends AbstractPositional {
     public final boolean useLegacy;
 
     // Lazily initialized on use
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private List<Command> commands = null;
     private Optional<List<AggregateMetric>> totals = null;
+
+    public Query(final List<Dataset> datasets, final Optional<DocFilter> filter, final List<GroupByEntry> groupBys, final List<AggregateMetric> selects, final List<Optional<String>> formatStrings, final List<String> options, final Optional<Integer> rowLimit, final boolean useLegacy) {
+        this.datasets = datasets;
+        this.filter = filter;
+        this.groupBys = groupBys;
+        this.selects = selects;
+        this.formatStrings = formatStrings;
+        this.options = options;
+        this.rowLimit = rowLimit;
+        this.useLegacy = useLegacy;
+    }
 
     // Helper class for data that necessary while parsing query.
     public static class Context {
@@ -149,17 +165,6 @@ public class Query extends AbstractPositional {
     }
 
     private static final String FORMAT_STRING_TEMPLATE = "%%.%sf";
-
-    public Query(List<Dataset> datasets, Optional<DocFilter> filter, List<GroupByEntry> groupBys, List<AggregateMetric> selects, List<Optional<String>> formatStrings, List<String> options, Optional<Integer> rowLimit, boolean useLegacy) {
-        this.datasets = datasets;
-        this.filter = filter;
-        this.groupBys = groupBys;
-        this.selects = selects;
-        this.formatStrings = formatStrings;
-        this.options = options;
-        this.rowLimit = rowLimit;
-        this.useLegacy = useLegacy;
-    }
 
     @Override
     public Query copyPosition(final Positional positional) {
@@ -530,39 +535,5 @@ public class Query extends AbstractPositional {
         allKeys.add(cacheKey(resultFormat).rawHash);
         runOnAllSubQueries(subQuery -> allKeys.addAll(subQuery.query.allCacheKeys(ResultFormat.CSV)));
         return allKeys;
-    }
-
-    @Override
-    public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        final Query query = (Query) o;
-        return useLegacy == query.useLegacy &&
-                Objects.equal(datasets, query.datasets) &&
-                Objects.equal(filter, query.filter) &&
-                Objects.equal(groupBys, query.groupBys) &&
-                Objects.equal(selects, query.selects) &&
-                Objects.equal(formatStrings, query.formatStrings) &&
-                Objects.equal(options, query.options) &&
-                Objects.equal(rowLimit, query.rowLimit);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(datasets, filter, groupBys, selects, formatStrings, options, rowLimit, useLegacy);
-    }
-
-    @Override
-    public String toString() {
-        return "Query{" +
-                "datasets=" + datasets +
-                ", filter=" + filter +
-                ", groupBys=" + groupBys +
-                ", selects=" + selects +
-                ", formatStrings=" + formatStrings +
-                ", options=" + options +
-                ", rowLimit=" + rowLimit +
-                ", useLegacy=" + useLegacy +
-                '}';
     }
 }

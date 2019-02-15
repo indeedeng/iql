@@ -20,15 +20,18 @@ import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 import com.indeed.util.core.Pair;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
+@EqualsAndHashCode
+@ToString
 public class ComputeAndCreateGroupStatsLookups implements Command {
     private final List<Pair<Command, String>> namedComputations;
 
-    public ComputeAndCreateGroupStatsLookups(List<Pair<Command, String>> namedComputations) {
+    public ComputeAndCreateGroupStatsLookups(final List<Pair<Command, String>> namedComputations) {
         this.namedComputations = namedComputations;
     }
 
@@ -51,25 +54,5 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
                 ))
                 .collect(Collectors.toList())
         );
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ComputeAndCreateGroupStatsLookups that = (ComputeAndCreateGroupStatsLookups) o;
-        return Objects.equals(namedComputations, that.namedComputations);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(namedComputations);
-    }
-
-    @Override
-    public String toString() {
-        return "ComputeAndCreateGroupStatsLookups{" +
-                "namedComputations=" + namedComputations +
-                '}';
     }
 }

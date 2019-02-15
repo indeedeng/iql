@@ -24,16 +24,19 @@ import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.List;
-import java.util.Objects;
 
+@EqualsAndHashCode
+@ToString
 public class SumAcross implements Command {
     public final FieldSet field;
     public final AggregateMetric metric;
     public final Optional<AggregateFilter> filter;
 
-    public SumAcross(FieldSet field, AggregateMetric metric, Optional<AggregateFilter> filter) {
+    public SumAcross(final FieldSet field, final AggregateMetric metric, final Optional<AggregateFilter> filter) {
         this.field = field;
         this.metric = metric;
         this.filter = filter;
@@ -56,29 +59,5 @@ public class SumAcross implements Command {
                 metric.toExecutionMetric(namedMetricLookup, groupKeySet),
                 filter.transform(x -> x.toExecutionFilter(namedMetricLookup, groupKeySet))
         );
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        SumAcross sumAcross = (SumAcross) o;
-        return Objects.equals(field, sumAcross.field) &&
-                Objects.equals(metric, sumAcross.metric) &&
-                Objects.equals(filter, sumAcross.filter);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(field, metric, filter);
-    }
-
-    @Override
-    public String toString() {
-        return "SumAcross{" +
-                "field='" + field + '\'' +
-                ", metric=" + metric +
-                ", filter=" + filter +
-                '}';
     }
 }

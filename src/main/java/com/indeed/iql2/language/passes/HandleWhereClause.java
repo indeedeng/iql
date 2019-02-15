@@ -15,6 +15,7 @@
 package com.indeed.iql2.language.passes;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
 import com.indeed.iql2.language.actions.Action;
 import com.indeed.iql2.language.actions.Actions;
 import com.indeed.iql2.language.execution.ExecutionStep;
@@ -33,7 +34,7 @@ public class HandleWhereClause {
             final List<Action> naiveActions = ConstantFolding.apply(query.filter.get()).getExecutionActions(query.nameToIndex(), 1, 1, 0, GroupSuppliers.newGroupSupplier(2));
             // TODO: Should the optimization part happen somewhere else?
             final List<Action> optimizedActions = Actions.optimizeConsecutiveQueryActions(naiveActions);
-            return new Result(newQuery, Collections.<ExecutionStep>singletonList(new ExecutionStep.FilterActions(optimizedActions)));
+            return new Result(newQuery, Collections.<ExecutionStep>singletonList(new ExecutionStep.FilterActions(ImmutableList.copyOf(optimizedActions))));
         } else {
             return new Result(query, Collections.<ExecutionStep>emptyList());
         }

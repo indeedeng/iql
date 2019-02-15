@@ -15,7 +15,6 @@
 package com.indeed.iql2.language.commands;
 
 import com.google.common.base.Function;
-import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
@@ -23,12 +22,16 @@ import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.text.MessageFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@EqualsAndHashCode
+@ToString
 public class MetricRegroup implements Command {
     public final ImmutableMap<String, DocMetric> perDatasetMetric;
     public final long min;
@@ -38,8 +41,8 @@ public class MetricRegroup implements Command {
     public final boolean withDefault;
     public final boolean fromPredicate;
 
-    public MetricRegroup(Map<String, DocMetric> perDatasetMetric, long min, long max, long interval, boolean excludeGutters, boolean withDefault, boolean fromPredicate) {
-        this.perDatasetMetric = ImmutableMap.copyOf(perDatasetMetric);
+    public MetricRegroup(final ImmutableMap<String, DocMetric> perDatasetMetric, final long min, final long max, final long interval, final boolean excludeGutters, final boolean withDefault, final boolean fromPredicate) {
+        this.perDatasetMetric = perDatasetMetric;
         this.min = min;
         this.max = max;
         this.interval = interval;
@@ -82,41 +85,5 @@ public class MetricRegroup implements Command {
                 withDefault,
                 fromPredicate
         );
-    }
-
-    @Override
-    public boolean equals(final Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (!(o instanceof MetricRegroup)) {
-            return false;
-        }
-        final MetricRegroup that = (MetricRegroup) o;
-        return min == that.min &&
-                max == that.max &&
-                interval == that.interval &&
-                excludeGutters == that.excludeGutters &&
-                withDefault == that.withDefault &&
-                fromPredicate == that.fromPredicate &&
-                Objects.equal(perDatasetMetric, that.perDatasetMetric);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(perDatasetMetric, min, max, interval, excludeGutters, withDefault, fromPredicate);
-    }
-
-    @Override
-    public String toString() {
-        return "MetricRegroup{" +
-                "perDatasetMetric=" + perDatasetMetric +
-                ", min=" + min +
-                ", max=" + max +
-                ", interval=" + interval +
-                ", excludeGutters=" + excludeGutters +
-                ", withDefault=" + withDefault +
-                ", fromPredicate=" + fromPredicate +
-                '}';
     }
 }

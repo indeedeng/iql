@@ -14,12 +14,15 @@
 
 package com.indeed.iql2.execution.groupkeys;
 
-import java.util.Objects;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
+@EqualsAndHashCode(callSuper = false)
+@ToString
 public class LowGutterGroupKey extends GroupKey {
     private final long min;
 
-    public LowGutterGroupKey(long min) {
+    public LowGutterGroupKey(final long min) {
         this.min = min;
     }
 
@@ -32,24 +35,5 @@ public class LowGutterGroupKey extends GroupKey {
     public boolean isDefault() {
         return false;
     }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        LowGutterGroupKey that = (LowGutterGroupKey) o;
-        return min == that.min;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(min);
-    }
-
-    @Override
-    public String toString() {
-        return "LowGutterGroupKey{" +
-                "min=" + min +
-                '}';
-    }
 }
+

@@ -20,19 +20,24 @@ import com.google.common.cache.LoadingCache;
 import com.indeed.iql2.Formatter;
 import com.indeed.iql2.execution.groupkeys.GroupKey;
 import com.indeed.iql2.execution.groupkeys.StringGroupKey;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
 import java.util.Locale;
-import java.util.Objects;
 
+@EqualsAndHashCode
+@ToString
 public class YearMonthGroupKeySet implements GroupKeySet {
     private final GroupKeySet previous;
     private final int numMonths;
     private final DateTime startMonth;
     private final String formatString;
-    private final DateTimeFormatter formatter;
+
+    @EqualsAndHashCode.Exclude
+    @ToString.Exclude
     private final LoadingCache<DateTime, StringGroupKey> buildGroupKey;
 
     public YearMonthGroupKeySet(
@@ -45,12 +50,12 @@ public class YearMonthGroupKeySet implements GroupKeySet {
         this.numMonths = numMonths;
         this.startMonth = startMonth;
         this.formatString = formatString;
-        this.formatter = DateTimeFormat.forPattern(formatString).withLocale(Locale.US);
+        final DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern(formatString).withLocale(Locale.US);
         buildGroupKey = CacheBuilder.newBuilder()
                 .build(new CacheLoader<DateTime, StringGroupKey>() {
                     @Override
                     public StringGroupKey load(final DateTime month) {
-                        return StringGroupKey.fromTimeRange(YearMonthGroupKeySet.this.formatter, month.getMillis(), month.plusMonths(1).getMillis(), formatter);
+                        return StringGroupKey.fromTimeRange(dateTimeFormatter, month.getMillis(), month.plusMonths(1).getMillis(), formatter);
                     }
                 });
     }
@@ -80,21 +85,5 @@ public class YearMonthGroupKeySet implements GroupKeySet {
     @Override
     public boolean isPresent(int group) {
         return group > 0 && group <= numGroups() && previous.isPresent(parentGroup(group));
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        YearMonthGroupKeySet that = (YearMonthGroupKeySet) o;
-        return numMonths == that.numMonths &&
-                Objects.equals(previous, that.previous) &&
-                Objects.equals(startMonth, that.startMonth) &&
-                Objects.equals(formatString, that.formatString);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(previous, numMonths, startMonth, formatString);
     }
 }

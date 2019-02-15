@@ -17,16 +17,18 @@ package com.indeed.iql2.language;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.indeed.iql2.language.query.GroupBy;
-
-import java.util.Objects;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 // TODO: Make Positional
+@EqualsAndHashCode
+@ToString
 public class GroupByEntry {
     public final GroupBy groupBy;
     public final Optional<AggregateFilter> filter;
     public final Optional<String> alias;
 
-    public GroupByEntry(GroupBy groupBy, Optional<AggregateFilter> filter, Optional<String> alias) {
+    public GroupByEntry(final GroupBy groupBy, final Optional<AggregateFilter> filter, final Optional<String> alias) {
         this.groupBy = groupBy;
         this.filter = filter;
         this.alias = alias;
@@ -51,29 +53,5 @@ public class GroupByEntry {
                 return input.traverse1(f);
             }
         }), alias);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        GroupByEntry that = (GroupByEntry) o;
-        return Objects.equals(groupBy, that.groupBy) &&
-                Objects.equals(filter, that.filter) &&
-                Objects.equals(alias, that.alias);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(groupBy, filter, alias);
-    }
-
-    @Override
-    public String toString() {
-        return "GroupByEntry{" +
-                "groupBy=" + groupBy +
-                ", filter=" + filter +
-                ", alias=" + alias +
-                '}';
     }
 }

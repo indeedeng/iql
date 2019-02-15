@@ -15,16 +15,19 @@
 package com.indeed.iql2.language.commands;
 
 import com.google.common.base.Function;
-import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.List;
 
+@EqualsAndHashCode
+@ToString
 public class ExplodeMonthOfYear implements Command {
     private final Optional<FieldSet> timeField;
     private final Optional<String> timeFormat;
@@ -42,27 +45,5 @@ public class ExplodeMonthOfYear implements Command {
     @Override
     public com.indeed.iql2.execution.commands.Command toExecutionCommand(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet, List<String> options) {
         return new com.indeed.iql2.execution.commands.ExplodeMonthOfYear(timeField, timeFormat);
-    }
-
-    @Override
-    public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        final ExplodeMonthOfYear that = (ExplodeMonthOfYear) o;
-        return Objects.equal(timeField, that.timeField) &&
-                Objects.equal(timeFormat, that.timeFormat);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(timeField, timeFormat);
-    }
-
-    @Override
-    public String toString() {
-        return "ExplodeMonthOfYear{" +
-                "timeField=" + timeField +
-                ", timeFormat=" + timeFormat +
-                '}';
     }
 }

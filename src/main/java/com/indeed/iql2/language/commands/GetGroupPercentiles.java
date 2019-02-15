@@ -21,16 +21,18 @@ import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
-import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 
+@EqualsAndHashCode
+@ToString
 public class GetGroupPercentiles implements Command {
     public final FieldSet field;
     public final double[] percentiles;
 
-    public GetGroupPercentiles(FieldSet field, double[] percentiles) {
+    public GetGroupPercentiles(final FieldSet field, final double[] percentiles) {
         this.field = field;
         this.percentiles = percentiles;
     }
@@ -48,29 +50,5 @@ public class GetGroupPercentiles implements Command {
     @Override
     public com.indeed.iql2.execution.commands.Command toExecutionCommand(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet, List<String> options) {
         return new com.indeed.iql2.execution.commands.GetGroupPercentiles(field, percentiles);
-    }
-
-    @Override
-    public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        final GetGroupPercentiles that = (GetGroupPercentiles) o;
-        return Objects.equals(field, that.field) &&
-                Arrays.equals(percentiles, that.percentiles);
-    }
-
-    @Override
-    public int hashCode() {
-        int result = Objects.hash(field);
-        result = 31 * result + Arrays.hashCode(percentiles);
-        return result;
-    }
-
-    @Override
-    public String toString() {
-        return "GetGroupPercentiles{" +
-                "field='" + field + '\'' +
-                ", percentiles=" + Arrays.toString(percentiles) +
-                '}';
     }
 }

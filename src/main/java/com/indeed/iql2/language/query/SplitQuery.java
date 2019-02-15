@@ -14,10 +14,13 @@
 
 package com.indeed.iql2.language.query;
 
-import com.google.common.base.Objects;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.List;
 
+@EqualsAndHashCode
+@ToString
 public class SplitQuery {
     public final String from;
     public final String where;
@@ -37,18 +40,15 @@ public class SplitQuery {
 
     public final List<Dataset> datasets;
 
-    public SplitQuery(String from, String where, String groupBy, String select, String limit, final List<String> headers, List<String> groupBys, List<String> selects,
-                      String dataset, String start, String startRawString, String end, String endRawString, List<Dataset> datasets) {
+    public SplitQuery(final String from, final String where, final String groupBy, final String select, final String limit, final List<String> headers, final List<String> groupBys, final List<String> selects, final String dataset, final String start, final String startRawString, final String end, final String endRawString, final List<Dataset> datasets) {
         this.from = from;
         this.where = where;
         this.groupBy = groupBy;
         this.select = select;
         this.limit = limit;
-
         this.headers = headers;
         this.groupBys = groupBys;
         this.selects = selects;
-
         this.dataset = dataset;
         this.start = start;
         this.startRawString = startRawString;
@@ -57,56 +57,8 @@ public class SplitQuery {
         this.datasets = datasets;
     }
 
-    @Override
-    public String toString() {
-        return "SplitQuery{" +
-                "from='" + from + '\'' +
-                ", where='" + where + '\'' +
-                ", groupBy='" + groupBy + '\'' +
-                ", select='" + select + '\'' +
-                ", limit='" + limit + '\'' +
-                ", headers=" + headers +
-                ", groupBys=" + groupBys +
-                ", selects=" + selects +
-                ", dataset='" + dataset + '\'' +
-                ", start='" + start + '\'' +
-                ", startRawString='" + startRawString + '\'' +
-                ", end='" + end + '\'' +
-                ", endRawString='" + endRawString + '\'' +
-                ", datasets=" + datasets +
-                '}';
-    }
-
-    @Override
-    public boolean equals(final Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        final SplitQuery that = (SplitQuery) o;
-        return Objects.equal(from, that.from) &&
-                Objects.equal(where, that.where) &&
-                Objects.equal(groupBy, that.groupBy) &&
-                Objects.equal(select, that.select) &&
-                Objects.equal(limit, that.limit) &&
-                Objects.equal(headers, that.headers) &&
-                Objects.equal(groupBys, that.groupBys) &&
-                Objects.equal(selects, that.selects) &&
-                Objects.equal(dataset, that.dataset) &&
-                Objects.equal(start, that.start) &&
-                Objects.equal(startRawString, that.startRawString) &&
-                Objects.equal(end, that.end) &&
-                Objects.equal(endRawString, that.endRawString) &&
-                Objects.equal(datasets, that.datasets);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(from, where, groupBy, select, limit, headers, groupBys, selects, dataset, start, startRawString, end, endRawString, datasets);
-    }
-
+    @EqualsAndHashCode
+    @ToString
     static class Dataset {
         public final String name;
         public final String where;
@@ -122,40 +74,6 @@ public class SplitQuery {
             this.end = end;
             this.alias = alias;
             this.fieldAlias = fieldAlias;
-        }
-
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-            final Dataset dataset = (Dataset) o;
-            return Objects.equal(name, dataset.name) &&
-                    Objects.equal(where, dataset.where) &&
-                    Objects.equal(start, dataset.start) &&
-                    Objects.equal(end, dataset.end) &&
-                    Objects.equal(alias, dataset.alias) &&
-                    Objects.equal(fieldAlias, dataset.fieldAlias);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hashCode(name, where, start, end, alias, fieldAlias);
-        }
-
-        @Override
-        public String toString() {
-            return "Dataset{" +
-                    "dataset='" + name + '\'' +
-                    ", where='" + where + '\'' +
-                    ", start='" + start + '\'' +
-                    ", end='" + end + '\'' +
-                    ", alias='" + alias + '\'' +
-                    ", fieldAlias='" + fieldAlias + '\'' +
-                    '}';
         }
     }
 }

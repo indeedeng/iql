@@ -14,12 +14,15 @@
 
 package com.indeed.iql2.execution.groupkeys;
 
-import java.util.Objects;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
+@EqualsAndHashCode(callSuper = false)
+@ToString
 public class HighGutterGroupKey extends GroupKey {
     private final long start;
 
-    public HighGutterGroupKey(long start) {
+    public HighGutterGroupKey(final long start) {
         this.start = start;
     }
 
@@ -31,25 +34,5 @@ public class HighGutterGroupKey extends GroupKey {
     @Override
     public boolean isDefault() {
         return false;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        HighGutterGroupKey that = (HighGutterGroupKey) o;
-        return start == that.start;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(start);
-    }
-
-    @Override
-    public String toString() {
-        return "HighGutterGroupKey{" +
-                "start=" + start +
-                '}';
     }
 }

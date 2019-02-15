@@ -15,7 +15,11 @@
 package com.indeed.iql2.execution.groupkeys;
 
 import com.indeed.iql2.Formatter;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
+@EqualsAndHashCode(callSuper = false)
+@ToString
 public class DefaultGroupKey extends GroupKey {
     public static final DefaultGroupKey DEFAULT_INSTANCE = new DefaultGroupKey("DEFAULT");
 
@@ -41,12 +45,5 @@ public class DefaultGroupKey extends GroupKey {
     @Override
     public boolean isDefault() {
         return true;
-    }
-
-    @Override
-    public String toString() {
-        return "DefaultGroupKey{" +
-                "name='" + name + '\'' +
-                '}';
     }
 }

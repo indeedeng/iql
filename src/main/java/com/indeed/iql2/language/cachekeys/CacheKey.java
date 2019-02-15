@@ -12,6 +12,8 @@ import com.indeed.iql2.execution.ResultFormat;
 import com.indeed.iql2.language.commands.Command;
 import com.indeed.iql2.language.query.Dataset;
 import com.indeed.iql2.language.query.Query;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.log4j.Logger;
 
@@ -19,7 +21,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
@@ -77,39 +78,15 @@ public class CacheKey {
         return new CacheKey(queryHash, cacheFileName);
     }
 
+    @EqualsAndHashCode
+    @ToString
     private static class FieldAlias {
         public final String originalName;
         public final String newName;
 
-        private FieldAlias(String originalName, String newName) {
+        public FieldAlias(final String originalName, final String newName) {
             this.originalName = originalName;
             this.newName = newName;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) {
-                return true;
-            }
-            if ((o == null) || (getClass() != o.getClass())) {
-                return false;
-            }
-            FieldAlias that = (FieldAlias) o;
-            return Objects.equals(originalName, that.originalName) &&
-                    Objects.equals(newName, that.newName);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(originalName, newName);
-        }
-
-        @Override
-        public String toString() {
-            return "FieldAlias{" +
-                    "originalName='" + originalName + '\'' +
-                    ", newName='" + newName + '\'' +
-                    '}';
         }
     }
 }

@@ -24,9 +24,11 @@ import com.indeed.iql2.execution.groupkeys.HighGutterGroupKey;
 import com.indeed.iql2.execution.groupkeys.IntTermGroupKey;
 import com.indeed.iql2.execution.groupkeys.LowGutterGroupKey;
 import com.indeed.iql2.execution.groupkeys.RangeGroupKey;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
-import java.util.Objects;
-
+@EqualsAndHashCode
+@ToString
 public class MetricRangeGroupKeySet implements GroupKeySet {
     private final GroupKeySet previous;
     private final int numBuckets;
@@ -36,8 +38,17 @@ public class MetricRangeGroupKeySet implements GroupKeySet {
     private final boolean withDefaultBucket;
     private final boolean fromPredicate;
     private final int numGroups;
+
+    @EqualsAndHashCode.Exclude
+    @ToString.Exclude
     private final HighGutterGroupKey highGutterGroupKey;
+
+    @EqualsAndHashCode.Exclude
+    @ToString.Exclude
     private final LowGutterGroupKey lowGutterGroupKey;
+
+    @EqualsAndHashCode.Exclude
+    @ToString.Exclude
     private final LoadingCache<Integer, GroupKey> buildGroupKey;
 
     public MetricRangeGroupKeySet(
@@ -107,25 +118,5 @@ public class MetricRangeGroupKeySet implements GroupKeySet {
     @Override
     public boolean isPresent(int group) {
         return group > 0 && group <= numGroups() && previous.isPresent(parentGroup(group));
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        MetricRangeGroupKeySet that = (MetricRangeGroupKeySet) o;
-        return numBuckets == that.numBuckets &&
-                excludeGutters == that.excludeGutters &&
-                min == that.min &&
-                interval == that.interval &&
-                withDefaultBucket == that.withDefaultBucket &&
-                fromPredicate == that.fromPredicate &&
-                numGroups == that.numGroups &&
-                Objects.equals(previous, that.previous);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(previous, numBuckets, excludeGutters, min, interval, withDefaultBucket, fromPredicate, numGroups);
     }
 }

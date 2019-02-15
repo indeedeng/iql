@@ -24,10 +24,13 @@ import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 import it.unimi.dsi.fastutil.longs.LongList;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.List;
-import java.util.Objects;
 
+@EqualsAndHashCode
+@ToString
 public class RegroupFieldIn implements Command {
     private final FieldSet field;
     private final List<String> stringTerms;
@@ -35,7 +38,7 @@ public class RegroupFieldIn implements Command {
     private final boolean isIntField;
     private final boolean withDefault;
 
-    public RegroupFieldIn(FieldSet field, List<String> stringTerms, LongList intTerms, boolean isIntField, boolean withDefault) {
+    public RegroupFieldIn(final FieldSet field, final List<String> stringTerms, final LongList intTerms, final boolean isIntField, final boolean withDefault) {
         this.field = field;
         this.stringTerms = stringTerms;
         this.intTerms = intTerms;
@@ -59,33 +62,5 @@ public class RegroupFieldIn implements Command {
         } else {
             return new StringRegroupFieldIn(field, stringTerms, withDefault);
         }
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        RegroupFieldIn that = (RegroupFieldIn) o;
-        return isIntField == that.isIntField &&
-                withDefault == that.withDefault &&
-                Objects.equals(field, that.field) &&
-                Objects.equals(stringTerms, that.stringTerms) &&
-                Objects.equals(intTerms, that.intTerms);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(field, stringTerms, intTerms, isIntField, withDefault);
-    }
-
-    @Override
-    public String toString() {
-        return "RegroupFieldIn{" +
-                "field='" + field + '\'' +
-                ", stringTerms=" + stringTerms +
-                ", intTerms=" + intTerms +
-                ", isIntField=" + isIntField +
-                ", withDefault=" + withDefault +
-                '}';
     }
 }

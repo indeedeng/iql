@@ -18,6 +18,13 @@ public abstract class GroupKey {
     public abstract String render();
     public abstract boolean isDefault();
 
+    @Override
+    public abstract boolean equals(final Object other);
+    @Override
+    public abstract int hashCode();
+    @Override
+    public abstract String toString();
+
     public void appendWithSeparator(StringBuilder sb, final char separator) {
         sb.append(render());
         sb.append(separator);

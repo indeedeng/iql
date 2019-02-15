@@ -21,10 +21,13 @@ import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.DocFilter;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
-import java.util.Set;
 import java.util.stream.Collectors;
 
+@EqualsAndHashCode
+@ToString
 public class MetricAction implements Action {
     public final ImmutableSet<String> scope;
     public final DocFilter filter;
@@ -33,8 +36,8 @@ public class MetricAction implements Action {
     public final int positiveGroup;
     public final int negativeGroup;
 
-    public MetricAction(Set<String> scope, DocFilter filter, int targetGroup, int positiveGroup, int negativeGroup) {
-        this.scope = ImmutableSet.copyOf(scope);
+    public MetricAction(final ImmutableSet<String> scope, final DocFilter filter, final int targetGroup, final int positiveGroup, final int negativeGroup) {
+        this.scope = scope;
         this.filter = filter;
         this.targetGroup = targetGroup;
         this.positiveGroup = positiveGroup;
@@ -57,16 +60,5 @@ public class MetricAction implements Action {
                 positiveGroup,
                 negativeGroup
         );
-    }
-
-    @Override
-    public String toString() {
-        return "MetricAction{" +
-                "scope=" + scope +
-                ", filter=" + filter +
-                ", targetGroup=" + targetGroup +
-                ", positiveGroup=" + positiveGroup +
-                ", negativeGroup=" + negativeGroup +
-                '}';
     }
 }

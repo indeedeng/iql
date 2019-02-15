@@ -17,6 +17,7 @@ package com.indeed.iql2.language.execution;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.AggregateFilter;
@@ -44,6 +45,8 @@ import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.util.core.Pair;
 import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.fastutil.longs.LongLists;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -56,12 +59,14 @@ public interface ExecutionStep {
     List<Command> commands();
     ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f);
 
+    @EqualsAndHashCode
+    @ToString
     class ComputePrecomputed implements ExecutionStep {
         public final List<Dataset> datasets;
         public final Precomputed computation;
         public final String name;
 
-        public ComputePrecomputed(List<Dataset> datasets, Precomputed computation, String name) {
+        public ComputePrecomputed(final List<Dataset> datasets, final Precomputed computation, final String name) {
             this.datasets = datasets;
             this.computation = computation;
             this.name = name;
@@ -81,22 +86,15 @@ public interface ExecutionStep {
         public ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new ComputePrecomputed(datasets, computation.traverse1(f), name);
         }
-
-        @Override
-        public String toString() {
-            return "ComputePrecomputed{" +
-                    "datasets=" + datasets +
-                    ", computation=" + computation +
-                    ", name='" + name + '\'' +
-                    '}';
-        }
     }
 
+    @EqualsAndHashCode
+    @ToString
     class ComputeManyPrecomputed implements ExecutionStep {
         public final List<Dataset> datasets;
         public final List<Pair<Precomputed, String>> computations;
 
-        public ComputeManyPrecomputed(List<Dataset> datasets, List<Pair<Precomputed, String>> computations) {
+        public ComputeManyPrecomputed(final List<Dataset> datasets, final List<Pair<Precomputed, String>> computations) {
             this.datasets = datasets;
             this.computations = computations;
         }
@@ -132,16 +130,10 @@ public interface ExecutionStep {
             }
             return new ComputeManyPrecomputed(datasets, computations);
         }
-
-        @Override
-        public String toString() {
-            return "ComputeManyPrecomputed{" +
-                    "datasets=" + datasets +
-                    ", computations=" + computations +
-                    '}';
-        }
     }
 
+    @EqualsAndHashCode
+    @ToString
     class ExplodeAndRegroup implements ExecutionStep {
         public final FieldSet field;
         public final Optional<AggregateFilter> filter;
@@ -149,7 +141,7 @@ public interface ExecutionStep {
         public final Optional<AggregateMetric> metric;
         public final boolean withDefault;
 
-        public ExplodeAndRegroup(FieldSet field, Optional<AggregateFilter> filter, Optional<Long> limit, Optional<AggregateMetric> metric, boolean withDefault) {
+        public ExplodeAndRegroup(final FieldSet field, final Optional<AggregateFilter> filter, final Optional<Long> limit, final Optional<AggregateMetric> metric, final boolean withDefault) {
             this.field = field;
             this.filter = filter;
             this.limit = limit;
@@ -192,19 +184,10 @@ public interface ExecutionStep {
             }
             return new ExplodeAndRegroup(field, filter, limit, metric, withDefault);
         }
-
-        @Override
-        public String toString() {
-            return "ExplodeAndRegroup{" +
-                    "field='" + field + '\'' +
-                    ", filter=" + filter +
-                    ", limit=" + limit +
-                    ", metric=" + metric +
-                    ", withDefault=" + withDefault +
-                    '}';
-        }
     }
 
+    @EqualsAndHashCode
+    @ToString
     class ExplodeFieldIn implements ExecutionStep {
         public final FieldSet field;
         public final List<String> stringTerms;
@@ -212,7 +195,7 @@ public interface ExecutionStep {
         public final boolean isIntField;
         public final boolean withDefault;
 
-        private ExplodeFieldIn(FieldSet field, List<String> stringTerms, LongList intTerms, boolean isIntField, boolean withDefault) {
+        public ExplodeFieldIn(final FieldSet field, final List<String> stringTerms, final LongList intTerms, final boolean isIntField, final boolean withDefault) {
             this.field = field;
             this.stringTerms = stringTerms;
             this.intTerms = intTerms;
@@ -237,19 +220,10 @@ public interface ExecutionStep {
         public ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
         }
-
-        @Override
-        public String toString() {
-            return "ExplodeFieldIn{" +
-                    "field='" + field + '\'' +
-                    ", stringTerms=" + stringTerms +
-                    ", intTerms=" + intTerms +
-                    ", isIntField=" + isIntField +
-                    ", withDefault=" + withDefault +
-                    '}';
-        }
     }
 
+    @EqualsAndHashCode
+    @ToString
     class ExplodeMetric implements ExecutionStep {
         private final Map<String, DocMetric> perDatasetMetric;
         private final long lowerBound;
@@ -260,7 +234,7 @@ public interface ExecutionStep {
         private final boolean withDefault;
         private final boolean fromPredicate;
 
-        public ExplodeMetric(Map<String, DocMetric> perDatasetMetric, long lowerBound, long upperBound, long interval, Set<String> scope, boolean excludeGutters, boolean withDefault, boolean fromPredicate) {
+        public ExplodeMetric(final Map<String, DocMetric> perDatasetMetric, final long lowerBound, final long upperBound, final long interval, final Set<String> scope, final boolean excludeGutters, final boolean withDefault, final boolean fromPredicate) {
             this.perDatasetMetric = perDatasetMetric;
             this.lowerBound = lowerBound;
             this.upperBound = upperBound;
@@ -273,36 +247,24 @@ public interface ExecutionStep {
 
         @Override
         public List<Command> commands() {
-            return Collections.singletonList(new MetricRegroup(Maps.filterKeys(perDatasetMetric, scope::contains), lowerBound, upperBound, interval, excludeGutters, withDefault, fromPredicate));
+            return Collections.singletonList(new MetricRegroup(ImmutableMap.copyOf(Maps.filterKeys(perDatasetMetric, scope::contains)), lowerBound, upperBound, interval, excludeGutters, withDefault, fromPredicate));
         }
 
         @Override
         public ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
         }
-
-        @Override
-        public String toString() {
-            return "ExplodeMetric{" +
-                    "perDatasetMetric=" + perDatasetMetric +
-                    ", lowerBound=" + lowerBound +
-                    ", upperBound=" + upperBound +
-                    ", interval=" + interval +
-                    ", scope=" + scope +
-                    ", excludeGutters=" + excludeGutters +
-                    ", withDefault=" + withDefault +
-                    ", fromPredicate=" + fromPredicate +
-                    '}';
-        }
     }
 
+    @EqualsAndHashCode
+    @ToString
     class ExplodeTimePeriod implements ExecutionStep {
         private final long periodMillis;
         private final Optional<FieldSet> timeField;
         private final Optional<String> timeFormat;
         private final boolean isRelative;
 
-        public ExplodeTimePeriod(long periodMillis, Optional<FieldSet> timeField, Optional<String> timeFormat, boolean isRelative) {
+        public ExplodeTimePeriod(final long periodMillis, final Optional<FieldSet> timeField, final Optional<String> timeFormat, final boolean isRelative) {
             this.periodMillis = periodMillis;
             this.timeField = timeField;
             this.timeFormat = timeFormat;
@@ -317,16 +279,6 @@ public interface ExecutionStep {
         @Override
         public ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
-        }
-
-        @Override
-        public String toString() {
-            return "ExplodeTimePeriod{" +
-                    "periodMillis=" + periodMillis +
-                    ", timeField=" + timeField +
-                    ", timeFormat=" + timeFormat +
-                    ", isRelative=" + isRelative +
-                    '}';
         }
     }
 
@@ -347,6 +299,8 @@ public interface ExecutionStep {
         }
     }
 
+    @EqualsAndHashCode
+    @ToString
     class ExplodeMonthOfYear implements ExecutionStep {
         private final Optional<FieldSet> timeField;
         private final Optional<String> timeFormat;
@@ -364,14 +318,6 @@ public interface ExecutionStep {
         @Override
         public ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
-        }
-
-        @Override
-        public String toString() {
-            return "ExplodeMonthOfYear{" +
-                    "timeField=" + timeField +
-                    ", timeFormat=" + timeFormat +
-                    '}';
         }
     }
 
@@ -392,11 +338,13 @@ public interface ExecutionStep {
         }
     }
 
+    @EqualsAndHashCode
+    @ToString
     class IterateStats implements ExecutionStep {
         private final FieldSet field;
         private final Optional<AggregateFilter> filter;
-        private final Optional<Integer> queryLimit;
         private final Optional<Long> limit;
+        private final Optional<Integer> queryLimit;
         private final Optional<AggregateMetric> metric;
 
         private final Optional<Set<String>> stringTermSubset;
@@ -405,9 +353,7 @@ public interface ExecutionStep {
         private final List<AggregateMetric> stats;
         private final List<Optional<String>> formatStrings;
 
-        public IterateStats(
-                FieldSet field, Optional<AggregateFilter> filter, Optional<Long> limit, Optional<Integer> queryLimit,
-                Optional<AggregateMetric> metric, Optional<Set<String>> stringTermSubset, Optional<Set<Long>> intTermSubset, List<AggregateMetric> stats, List<Optional<String>> formatStrings) {
+        public IterateStats(final FieldSet field, final Optional<AggregateFilter> filter, final Optional<Long> limit, final Optional<Integer> queryLimit, final Optional<AggregateMetric> metric, final Optional<Set<String>> stringTermSubset, final Optional<Set<Long>> intTermSubset, final List<AggregateMetric> stats, final List<Optional<String>> formatStrings) {
             this.field = field;
             this.filter = filter;
             this.limit = limit;
@@ -453,28 +399,15 @@ public interface ExecutionStep {
             }
             return new IterateStats(field, filter, limit, queryLimit, metric, stringTermSubset, intTermSubset, stats, formatStrings);
         }
-
-        @Override
-        public String toString() {
-            return "IterateStats{" +
-                    "field='" + field + '\'' +
-                    ", filter=" + filter +
-                    ", queryLimit=" + queryLimit +
-                    ", limit=" + limit +
-                    ", metric=" + metric +
-                    ", stringTermSubset=" + stringTermSubset +
-                    ", intTermSubset=" + intTermSubset +
-                    ", stats=" + stats +
-                    ", formatStrings=" + formatStrings +
-                    '}';
-        }
     }
 
+    @EqualsAndHashCode
+    @ToString
     class GetGroupStats implements ExecutionStep {
         public final List<AggregateMetric> stats;
         public final List<Optional<String>> formatStrings;
 
-        public GetGroupStats(List<AggregateMetric> stats, List<Optional<String>> formatStrings) {
+        public GetGroupStats(final List<AggregateMetric> stats, final List<Optional<String>> formatStrings) {
             this.stats = stats;
             this.formatStrings = formatStrings;
         }
@@ -492,21 +425,15 @@ public interface ExecutionStep {
             }
             return new GetGroupStats(stats, formatStrings);
         }
-
-        @Override
-        public String toString() {
-            return "GetGroupStats{" +
-                    "stats=" + stats +
-                    ", formatStrings=" + formatStrings +
-                    '}';
-        }
     }
 
+    @EqualsAndHashCode
+    @ToString
     class ExplodePerDocPercentile implements ExecutionStep {
         private final FieldSet field;
         private final int numBuckets;
 
-        public ExplodePerDocPercentile(FieldSet field, int numBuckets) {
+        public ExplodePerDocPercentile(final FieldSet field, final int numBuckets) {
             this.field = field;
             this.numBuckets = numBuckets;
         }
@@ -520,21 +447,15 @@ public interface ExecutionStep {
         public ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
         }
-
-        @Override
-        public String toString() {
-            return "ExplodePerDocPercentile{" +
-                    "field='" + field + '\'' +
-                    ", numBuckets=" + numBuckets +
-                    '}';
-        }
     }
 
+    @EqualsAndHashCode
+    @ToString
     class FilterActions implements ExecutionStep {
         private final ImmutableList<Action> actions;
 
-        public FilterActions(List<Action> actions) {
-            this.actions = ImmutableList.copyOf(actions);
+        public FilterActions(final ImmutableList<Action> actions) {
+            this.actions = actions;
         }
 
         @Override
@@ -546,19 +467,14 @@ public interface ExecutionStep {
         public ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
         }
-
-        @Override
-        public String toString() {
-            return "FilterActions{" +
-                    "actions=" + actions +
-                    '}';
-        }
     }
 
+    @EqualsAndHashCode
+    @ToString
     class FilterGroups implements ExecutionStep {
         private final AggregateFilter filter;
 
-        public FilterGroups(AggregateFilter filter) {
+        public FilterGroups(final AggregateFilter filter) {
             this.filter = filter;
         }
 
@@ -571,21 +487,16 @@ public interface ExecutionStep {
         public ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new FilterGroups(filter.traverse1(f));
         }
-
-        @Override
-        public String toString() {
-            return "FilterGroups{" +
-                    "filter=" + filter +
-                    '}';
-        }
     }
 
+    @EqualsAndHashCode
+    @ToString
     class ExplodeRandom implements ExecutionStep {
         private final FieldSet field;
         private final int k;
         private final String salt;
 
-        public ExplodeRandom(FieldSet field, int k, String salt) {
+        public ExplodeRandom(final FieldSet field, final int k, final String salt) {
             this.field = field;
             this.k = k;
             this.salt = salt;
@@ -600,27 +511,17 @@ public interface ExecutionStep {
         public ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
         }
-
-        @Override
-        public String toString() {
-            return "ExplodeRandom{" +
-                    "field='" + field + '\'' +
-                    ", k=" + k +
-                    ", salt='" + salt + '\'' +
-                    '}';
-        }
     }
 
+    @EqualsAndHashCode
+    @ToString
     class ExplodeRandomMetric implements ExecutionStep {
         private final Map<String, DocMetric> perDatasetMetric;
         private final Set<String> scope;
         private final int k;
         private final String salt;
 
-        public ExplodeRandomMetric(final Map<String, DocMetric> perDatasetMetric,
-                                   final Set<String> scope,
-                                   final int k,
-                                   final String salt) {
+        public ExplodeRandomMetric(final Map<String, DocMetric> perDatasetMetric, final Set<String> scope, final int k, final String salt) {
             this.perDatasetMetric = perDatasetMetric;
             this.scope = scope;
             this.k = k;
@@ -629,22 +530,12 @@ public interface ExecutionStep {
 
         @Override
         public List<Command> commands() {
-            return Collections.singletonList(new RandomMetricRegroup(Maps.filterKeys(perDatasetMetric, scope::contains), k, salt));
+            return Collections.singletonList(new RandomMetricRegroup(ImmutableMap.copyOf(Maps.filterKeys(perDatasetMetric, scope::contains)), k, salt));
         }
 
         @Override
         public ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return this;
-        }
-
-        @Override
-        public String toString() {
-            return "ExplodeRandomMetric{" +
-                    "perDatasetMetric=" + perDatasetMetric +
-                    ", scope=" + scope +
-                    ", k=" + k +
-                    ", salt='" + salt + '\'' +
-                    '}';
         }
     }
 
@@ -652,11 +543,15 @@ public interface ExecutionStep {
      * Exists so that we can transform a Query with subqueries into a
      * List&lt;Command&gt; in order to validate it.
      */
+    @EqualsAndHashCode
+    @ToString
     class GroupByFieldInQueryPlaceholderExecutionStep implements ExecutionStep {
         private final FieldSet field;
         private final Query query;
         private final boolean isNegated;
         private final boolean withDefault;
+        @ToString.Exclude
+        @EqualsAndHashCode.Exclude
         private final DatasetsMetadata datasetsMetadata;
 
         public GroupByFieldInQueryPlaceholderExecutionStep(final FieldSet field, final Query query, final boolean isNegated, final boolean withDefault, final DatasetsMetadata datasetsMetadata) {
@@ -675,16 +570,6 @@ public interface ExecutionStep {
         @Override
         public ExecutionStep traverse1(final Function<AggregateMetric, AggregateMetric> f) {
             return this;
-        }
-
-        @Override
-        public String toString() {
-            return "GroupByFieldInQueryPlaceholderExecutionStep{" +
-                    "field=" + field +
-                    ", query=" + query +
-                    ", isNegated=" + isNegated +
-                    ", withDefault=" + withDefault +
-                    '}';
         }
     }
 }

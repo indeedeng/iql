@@ -26,16 +26,19 @@ import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.List;
-import java.util.Objects;
 
+@EqualsAndHashCode
+@ToString
 public class GetGroupDistincts implements Command {
     public final FieldSet field;
     public final Optional<AggregateFilter> filter;
     public final int windowSize;
 
-    public GetGroupDistincts(FieldSet field, Optional<AggregateFilter> filter, int windowSize) {
+    public GetGroupDistincts(final FieldSet field, final Optional<AggregateFilter> filter, final int windowSize) {
         this.field = field;
         this.filter = filter;
         this.windowSize = windowSize;
@@ -67,29 +70,5 @@ public class GetGroupDistincts implements Command {
                 return new com.indeed.iql2.execution.commands.GetGroupDistincts(field, executionFilter);
             }
         }
-    }
-
-    @Override
-    public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        final GetGroupDistincts that = (GetGroupDistincts) o;
-        return windowSize == that.windowSize &&
-                Objects.equals(field, that.field) &&
-                Objects.equals(filter, that.filter);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(field, filter, windowSize);
-    }
-
-    @Override
-    public String toString() {
-        return "GetGroupDistincts{" +
-                "field=" + field +
-                ", filter=" + filter +
-                ", windowSize=" + windowSize +
-                '}';
     }
 }

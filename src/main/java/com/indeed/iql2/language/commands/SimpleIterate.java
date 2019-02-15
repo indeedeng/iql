@@ -24,18 +24,21 @@ import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
+@EqualsAndHashCode
+@ToString
 public class SimpleIterate implements Command {
     public final FieldSet field;
     public final FieldIterateOpts opts;
     public final List<AggregateMetric> selecting;
     private final List<Optional<String>> formatStrings;
 
-    public SimpleIterate(FieldSet field, FieldIterateOpts opts, List<AggregateMetric> selecting, List<Optional<String>> formatStrings) {
+    public SimpleIterate(final FieldSet field, final FieldIterateOpts opts, final List<AggregateMetric> selecting, final List<Optional<String>> formatStrings) {
         this.field = field;
         this.opts = opts;
         this.selecting = selecting;
@@ -76,31 +79,5 @@ public class SimpleIterate implements Command {
                 selecting.stream().map(x -> x.toExecutionMetric(namedMetricLookup, groupKeySet)).collect(Collectors.toList()),
                 formatStrings
         );
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        SimpleIterate that = (SimpleIterate) o;
-        return Objects.equals(field, that.field) &&
-                Objects.equals(opts, that.opts) &&
-                Objects.equals(selecting, that.selecting) &&
-                Objects.equals(formatStrings, that.formatStrings);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(field, opts, selecting, formatStrings);
-    }
-
-    @Override
-    public String toString() {
-        return "SimpleIterate{" +
-                "field='" + field + '\'' +
-                ", opts=" + opts +
-                ", selecting=" + selecting +
-                ", formatStrings=" + formatStrings +
-                '}';
     }
 }

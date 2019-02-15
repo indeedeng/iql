@@ -31,14 +31,14 @@ import com.indeed.iql2.language.util.ParserUtil;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import org.apache.commons.codec.binary.Base64;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -99,21 +99,30 @@ public abstract class DocMetric extends AbstractPositional {
     public abstract void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector);
 
     @Override
+    public abstract boolean equals(final Object other);
+    @Override
+    public abstract int hashCode();
+    @Override
+    public abstract String toString();
+
+    @Override
     public DocMetric copyPosition(Positional positional) {
         super.copyPosition(positional);
         return this;
     }
 
+    @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class PerDatasetDocMetric extends DocMetric {
         public final ImmutableMap<String, DocMetric> datasetToMetric;
 
-        public PerDatasetDocMetric(final Map<String, DocMetric> datasetToMetric) {
-            this.datasetToMetric = ImmutableMap.copyOf(datasetToMetric);
+        public PerDatasetDocMetric(final ImmutableMap<String, DocMetric> datasetToMetric) {
+            this.datasetToMetric = datasetToMetric;
         }
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return g.apply(new PerDatasetDocMetric(Maps.transformValues(datasetToMetric, d -> d.transform(g, i))))
+            return g.apply(new PerDatasetDocMetric(ImmutableMap.copyOf(Maps.transformValues(datasetToMetric, d -> d.transform(g, i)))))
                     .copyPosition(this);
         }
 
@@ -138,30 +147,6 @@ public abstract class DocMetric extends AbstractPositional {
             } else {
                 datasetToMetric.get(dataset).validate(dataset, validationHelper, errorCollector);
             }
-        }
-
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-            final PerDatasetDocMetric that = (PerDatasetDocMetric) o;
-            return com.google.common.base.Objects.equal(datasetToMetric, that.datasetToMetric);
-        }
-
-        @Override
-        public int hashCode() {
-            return com.google.common.base.Objects.hashCode(datasetToMetric);
-        }
-
-        @Override
-        public String toString() {
-            return "PerDatasetDocMetric{" +
-                    "datasetToMetric=" + datasetToMetric +
-                    '}';
         }
     }
 
@@ -246,6 +231,8 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
+    @ToString
+    @EqualsAndHashCode(callSuper = false)
     public static class Field extends DocMetric {
         public final FieldSet field;
 
@@ -276,28 +263,9 @@ public abstract class DocMetric extends AbstractPositional {
                 errorCollector.error(ErrorMessages.missingField(dataset, fieldName, this));
             }
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Field field1 = (Field) o;
-            return Objects.equals(field, field1.field);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(field);
-        }
-
-        @Override
-        public String toString() {
-            return "Field{" +
-                    "field='" + field + '\'' +
-                    '}';
-        }
     }
 
+    @EqualsAndHashCode(callSuper = false)
     public abstract static class Unop extends DocMetric {
         public final DocMetric m1;
 
@@ -313,19 +281,6 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Unop unop = (Unop) o;
-            return Objects.equals(m1, unop.m1);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(m1);
-        }
-
-        @Override
         public String toString() {
             return this.getClass().getSimpleName() + "{" +
                     "m1=" + m1 +
@@ -338,11 +293,13 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
+    @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Log extends DocMetric {
         public final DocMetric metric;
         public final int scaleFactor;
 
-        public Log(DocMetric metric, int scaleFactor) {
+        public Log(final DocMetric metric, final int scaleFactor) {
             this.metric = metric;
             this.scaleFactor = scaleFactor;
         }
@@ -369,40 +326,15 @@ public abstract class DocMetric extends AbstractPositional {
         public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
             metric.validate(dataset, validationHelper, errorCollector);
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-
-            Log log = (Log) o;
-
-            if (scaleFactor != log.scaleFactor) return false;
-            return !(metric != null ? !metric.equals(log.metric) : log.metric != null);
-
-        }
-
-        @Override
-        public int hashCode() {
-            int result = metric != null ? metric.hashCode() : 0;
-            result = 31 * result + scaleFactor;
-            return result;
-        }
-
-        @Override
-        public String toString() {
-            return "Log{" +
-                    "metric=" + metric +
-                    ", scaleFactor=" + scaleFactor +
-                    '}';
-        }
     }
 
+    @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Exponentiate extends DocMetric {
         public final DocMetric metric;
         public final int scaleFactor;
 
-        public Exponentiate(DocMetric metric, int scaleFactor) {
+        public Exponentiate(final DocMetric metric, final int scaleFactor) {
             this.metric = metric;
             this.scaleFactor = scaleFactor;
         }
@@ -428,35 +360,9 @@ public abstract class DocMetric extends AbstractPositional {
         public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
             metric.validate(dataset, validationHelper, errorCollector);
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-
-            Exponentiate that = (Exponentiate) o;
-
-            if (scaleFactor != that.scaleFactor) return false;
-            return !(metric != null ? !metric.equals(that.metric) : that.metric != null);
-
-        }
-
-        @Override
-        public int hashCode() {
-            int result = metric != null ? metric.hashCode() : 0;
-            result = 31 * result + scaleFactor;
-            return result;
-        }
-
-        @Override
-        public String toString() {
-            return "Exponentiate{" +
-                    "metric=" + metric +
-                    ", scaleFactor=" + scaleFactor +
-                    '}';
-        }
     }
 
+    @EqualsAndHashCode(callSuper = true)
     public static class Negate extends Unop {
         public Negate(DocMetric m1) {
             super(m1);
@@ -478,6 +384,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
+    @EqualsAndHashCode(callSuper = true)
     public static class Abs extends Unop {
         public Abs(DocMetric m1) {
             super(m1);
@@ -499,6 +406,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
+    @EqualsAndHashCode(callSuper = true)
     public static class Signum extends Unop {
         public Signum(DocMetric m1) {
             super(m1);
@@ -526,6 +434,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
+    @EqualsAndHashCode(callSuper = false)
     public abstract static class Binop extends DocMetric {
         public final DocMetric m1;
         public final DocMetric m2;
@@ -544,20 +453,6 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Binop binop = (Binop) o;
-            return Objects.equals(m1, binop.m1) &&
-                    Objects.equals(m2, binop.m2);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(m1, m2);
-        }
-
-        @Override
         public String toString() {
             return getClass().getSimpleName() + "{" +
                     "m1=" + m1 +
@@ -572,6 +467,8 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
+    @ToString
+    @EqualsAndHashCode(callSuper = false)
     public static class Add extends DocMetric {
         public final List<DocMetric> metrics;
 
@@ -647,49 +544,6 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        public boolean equals(Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-            final Add add = (Add) o;
-            if (metrics.size() != add.metrics.size()) {
-                return false;
-            }
-            for (int i = 0; i < metrics.size(); i++) {
-                if (!Objects.equals(metrics.get(i), add.metrics.get(i))) {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        @Override
-        public int hashCode() {
-            int hash = 0;
-            for (final DocMetric metric : metrics) {
-                hash = hash * 31 + metric.hashCode();
-            }
-            return hash;
-        }
-
-        @Override
-        public String toString() {
-            final StringBuilder sb = new StringBuilder();
-            sb.append("Add{");
-            for (int i = 0; i < metrics.size(); i++) {
-                if (i > 0) {
-                    sb.append(", ");
-                }
-                sb.append('m').append(i+1).append('=').append(metrics.get(i));
-            }
-            sb.append('}');
-            return sb.toString();
-        }
-
-        @Override
         public void validate(
                 final String dataset,
                 final ValidationHelper validationHelper,
@@ -698,6 +552,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
+    @EqualsAndHashCode(callSuper = true)
     public static class Subtract extends Binop {
         public Subtract(DocMetric m1, DocMetric m2) {
             super(m1, m2);
@@ -720,6 +575,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
+    @EqualsAndHashCode(callSuper = true)
     public static class Multiply extends Binop {
         public Multiply(DocMetric m1, DocMetric m2) {
             super(m1, m2);
@@ -741,6 +597,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
+    @EqualsAndHashCode(callSuper = true)
     public static class Divide extends Binop {
         public Divide(DocMetric m1, DocMetric m2) {
             super(m1, m2);
@@ -762,6 +619,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
+    @EqualsAndHashCode(callSuper = true)
     public static class Modulus extends Binop {
         public Modulus(DocMetric m1, DocMetric m2) {
             super(m1, m2);
@@ -783,6 +641,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
+    @EqualsAndHashCode(callSuper = true)
     public static class Min extends Binop {
         public Min(DocMetric m1, DocMetric m2) {
             super(m1, m2);
@@ -804,6 +663,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
+    @EqualsAndHashCode(callSuper = true)
     public static class Max extends Binop {
         public Max(DocMetric m1, DocMetric m2) {
             super(m1, m2);
@@ -825,6 +685,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
+    @EqualsAndHashCode(callSuper = true)
     public static class MetricEqual extends Binop {
         public MetricEqual(DocMetric m1, DocMetric m2) {
             super(m1, m2);
@@ -846,6 +707,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
+    @EqualsAndHashCode(callSuper = true)
     public static class MetricNotEqual extends Binop {
         public MetricNotEqual(DocMetric m1, DocMetric m2) {
             super(m1, m2);
@@ -867,6 +729,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
+    @EqualsAndHashCode(callSuper = true)
     public static class MetricLt extends Binop {
         public MetricLt(DocMetric m1, DocMetric m2) {
             super(m1, m2);
@@ -888,6 +751,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
+    @EqualsAndHashCode(callSuper = true)
     public static class MetricLte extends Binop {
         public MetricLte(DocMetric m1, DocMetric m2) {
             super(m1, m2);
@@ -909,6 +773,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
+    @EqualsAndHashCode(callSuper = true)
     public static class MetricGt extends Binop {
         public MetricGt(DocMetric m1, DocMetric m2) {
             super(m1, m2);
@@ -930,6 +795,7 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
+    @EqualsAndHashCode(callSuper = true)
     public static class MetricGte extends Binop {
         public MetricGte(DocMetric m1, DocMetric m2) {
             super(m1, m2);
@@ -951,13 +817,14 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
+    @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class RegexMetric extends DocMetric {
         public final FieldSet field;
         public final String regex;
 
-        public RegexMetric(FieldSet field, String regex) {
+        public RegexMetric(final FieldSet field, final String regex) {
             this.field = field;
-            ValidationUtil.compileRegex(regex);
             this.regex = regex;
         }
 
@@ -978,40 +845,21 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
+            ValidationUtil.compileRegex(regex);
             final String fieldName = field.datasetFieldName(dataset);
             if (!validationHelper.containsStringField(dataset, fieldName)) {
                 errorCollector.error(ErrorMessages.missingStringField(dataset, fieldName, this));
             }
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            RegexMetric that = (RegexMetric) o;
-            return Objects.equals(field, that.field) &&
-                    Objects.equals(regex, that.regex);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(field, regex);
-        }
-
-        @Override
-        public String toString() {
-            return "RegexMetric{" +
-                    "field='" + field + '\'' +
-                    ", regex='" + regex + '\'' +
-                    '}';
-        }
     }
 
+    @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class FieldEqualMetric extends DocMetric {
         public final FieldSet field1;
         public final FieldSet field2;
 
-        public FieldEqualMetric(FieldSet field1, FieldSet field2) {
+        public FieldEqualMetric(final FieldSet field1, final FieldSet field2) {
             this.field1 = field1;
             this.field2 = field2;
         }
@@ -1035,41 +883,16 @@ public abstract class DocMetric extends AbstractPositional {
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
         }
-        @Override
-        public int hashCode() {
-            return com.google.common.base.Objects.hashCode(field1, field2);
-        }
-
-
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-            final FieldEqualMetric that = (FieldEqualMetric) o;
-            return com.google.common.base.Objects.equal(field1, that.field1) &&
-                    com.google.common.base.Objects.equal(field2, that.field2);
-        }
-
-        @Override
-        public String toString() {
-            return "FieldEqualMetric{" +
-                    "field1=" + field1 +
-                    ", field2=" + field2 +
-                    '}';
-        }
-
     }
 
+    @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class FloatScale extends DocMetric {
         public final FieldSet field;
         public final double mult;
         public final double add;
 
-        public FloatScale(FieldSet field, double mult, double add) {
+        public FloatScale(final FieldSet field, final double mult, final double add) {
             this.field = field;
             this.mult = mult;
             this.add = add;
@@ -1097,36 +920,14 @@ public abstract class DocMetric extends AbstractPositional {
                 errorCollector.error(ErrorMessages.missingStringField(dataset, fieldName, this));
             }
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            FloatScale that = (FloatScale) o;
-            return Objects.equals(mult, that.mult) &&
-                    Objects.equals(add, that.add) &&
-                    Objects.equals(field, that.field);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(field, mult, add);
-        }
-
-        @Override
-        public String toString() {
-            return "FloatScale{" +
-                    "field='" + field + '\'' +
-                    ", mult=" + mult +
-                    ", add=" + add +
-                    '}';
-        }
     }
 
+    @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Constant extends DocMetric {
         public final long value;
 
-        public Constant(long value) {
+        public Constant(final long value) {
             this.value = value;
         }
 
@@ -1149,32 +950,14 @@ public abstract class DocMetric extends AbstractPositional {
         public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
 
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Constant constant = (Constant) o;
-            return Objects.equals(value, constant.value);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(value);
-        }
-
-        @Override
-        public String toString() {
-            return "Constant{" +
-                    "value=" + value +
-                    '}';
-        }
     }
 
+    @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class HasIntField extends DocMetric {
         public final FieldSet field;
 
-        public HasIntField(FieldSet field) {
+        public HasIntField(final FieldSet field) {
             this.field = field;
         }
 
@@ -1197,32 +980,14 @@ public abstract class DocMetric extends AbstractPositional {
         public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
             // Don't validate, since this is used for investigating field presence
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            HasIntField that = (HasIntField) o;
-            return Objects.equals(field, that.field);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(field);
-        }
-
-        @Override
-        public String toString() {
-            return "HasIntField{" +
-                    "field='" + field + '\'' +
-                    '}';
-        }
     }
 
+    @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class HasStringField extends DocMetric {
         public final FieldSet field;
 
-        public HasStringField(FieldSet field) {
+        public HasStringField(final FieldSet field) {
             this.field = field;
         }
 
@@ -1245,33 +1010,15 @@ public abstract class DocMetric extends AbstractPositional {
         public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
             // Don't validate, since this is used for investigating field presence
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            HasStringField that = (HasStringField) o;
-            return Objects.equals(field, that.field);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(field);
-        }
-
-        @Override
-        public String toString() {
-            return "HasStringField{" +
-                    "field='" + field + '\'' +
-                    '}';
-        }
     }
 
+    @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class HasInt extends DocMetric {
         public final FieldSet field;
         public final long term;
 
-        public HasInt(FieldSet field, long term) {
+        public HasInt(final FieldSet field, final long term) {
             this.field = field;
             this.term = term;
         }
@@ -1296,30 +1043,10 @@ public abstract class DocMetric extends AbstractPositional {
             final String fieldName = field.datasetFieldName(dataset);
             validationHelper.validateIntField(dataset, fieldName, errorCollector, this);
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            HasInt hasInt = (HasInt) o;
-            return Objects.equals(term, hasInt.term) &&
-                    Objects.equals(field, hasInt.field);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(field, term);
-        }
-
-        @Override
-        public String toString() {
-            return "HasInt{" +
-                    "field=" + field +
-                    ", term=" + term +
-                    '}';
-        }
     }
 
+    @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class HasString extends DocMetric {
         public final FieldSet field;
         public final String term;
@@ -1357,38 +1084,16 @@ public abstract class DocMetric extends AbstractPositional {
                 errorCollector.error(ErrorMessages.missingStringField(dataset, fieldName, this));
             }
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            HasString hasString = (HasString) o;
-            return Objects.equals(field, hasString.field) &&
-                    Objects.equals(term, hasString.term) &&
-                    strictValidate == hasString.strictValidate;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(field, term, strictValidate);
-        }
-
-        @Override
-        public String toString() {
-            return "HasString{" +
-                    "field='" + field + '\'' +
-                    ", term='" + term + '\'' +
-                    ", strictValidate='" + strictValidate + '\'' +
-                    '}';
-        }
     }
 
+    @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class IfThenElse extends DocMetric {
         public final DocFilter condition;
         public final DocMetric trueCase;
         public final DocMetric falseCase;
 
-        public IfThenElse(DocFilter condition, DocMetric trueCase, DocMetric falseCase) {
+        public IfThenElse(final DocFilter condition, final DocMetric trueCase, final DocMetric falseCase) {
             this.condition = condition;
             this.trueCase = trueCase;
             this.falseCase = falseCase;
@@ -1419,37 +1124,15 @@ public abstract class DocMetric extends AbstractPositional {
             trueCase.validate(dataset, validationHelper, errorCollector);
             falseCase.validate(dataset, validationHelper, errorCollector);
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            IfThenElse that = (IfThenElse) o;
-            return Objects.equals(condition, that.condition) &&
-                    Objects.equals(trueCase, that.trueCase) &&
-                    Objects.equals(falseCase, that.falseCase);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(condition, trueCase, falseCase);
-        }
-
-        @Override
-        public String toString() {
-            return "IfThenElse{" +
-                    "condition=" + condition +
-                    ", trueCase=" + trueCase +
-                    ", falseCase=" + falseCase +
-                    '}';
-        }
     }
 
+    @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Qualified extends DocMetric {
         public final String dataset;
         public final DocMetric metric;
 
-        public Qualified(String dataset, DocMetric metric) {
+        public Qualified(final String dataset, final DocMetric metric) {
             this.dataset = dataset;
             this.metric = metric;
         }
@@ -1480,36 +1163,16 @@ public abstract class DocMetric extends AbstractPositional {
             }
             metric.validate(this.dataset, validationHelper, errorCollector);
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Qualified qualified = (Qualified) o;
-            return Objects.equals(dataset, qualified.dataset) &&
-                    Objects.equals(metric, qualified.metric);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(dataset, metric);
-        }
-
-        @Override
-        public String toString() {
-            return "Qualified{" +
-                    "dataset='" + dataset + '\'' +
-                    ", metric=" + metric +
-                    '}';
-        }
     }
 
+    @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Extract extends DocMetric {
         public final FieldSet field;
         public final String regex;
         public final int groupNumber;
 
-        public Extract(FieldSet field, String regex, int groupNumber) {
+        public Extract(final FieldSet field, final String regex, final int groupNumber) {
             this.field = field;
             this.regex = regex;
             this.groupNumber = groupNumber;
@@ -1538,38 +1201,22 @@ public abstract class DocMetric extends AbstractPositional {
                 errorCollector.error("Invalid pattern: " + regex);
             }
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Extract extract = (Extract) o;
-            return groupNumber == extract.groupNumber &&
-                    Objects.equals(field, extract.field) &&
-                    Objects.equals(regex, extract.regex);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(field, regex, groupNumber);
-        }
-
-        @Override
-        public String toString() {
-            return "Extract{" +
-                    "field='" + field + '\'' +
-                    ", regex='" + regex + '\'' +
-                    ", groupNumber=" + groupNumber +
-                    '}';
-        }
     }
 
+    @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Lucene extends DocMetric {
         public final String query;
+
+        @EqualsAndHashCode.Exclude
+        @ToString.Exclude
         public final DatasetsMetadata datasetsMetadata;
+
+        @EqualsAndHashCode.Exclude
+        @ToString.Exclude
         public final ScopedFieldResolver fieldResolver;
 
-        public Lucene(String query, DatasetsMetadata datasetsMetadata, final ScopedFieldResolver fieldResolver) {
+        public Lucene(final String query, final DatasetsMetadata datasetsMetadata, final ScopedFieldResolver fieldResolver) {
             this.query = query;
             this.datasetsMetadata = datasetsMetadata;
             this.fieldResolver = fieldResolver;
@@ -1600,28 +1247,10 @@ public abstract class DocMetric extends AbstractPositional {
                     query, dataset, datasetsMetadata, fieldResolver);
             ValidationUtil.validateQuery(validationHelper, ImmutableMap.of(dataset, flamdexQuery), errorCollector, this);
         }
-
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            final Lucene lucene = (Lucene) o;
-            return Objects.equals(query, lucene.query);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(query);
-        }
-
-        @Override
-        public String toString() {
-            return "Lucene{" +
-                    "query='" + query + '\'' +
-                    '}';
-        }
     }
 
+    @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class StringLen extends DocMetric {
         public final FieldSet field;
 
@@ -1651,32 +1280,10 @@ public abstract class DocMetric extends AbstractPositional {
                 errorCollector.error(ErrorMessages.missingStringField(dataset, fieldName, this));
             }
         }
-
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-            final StringLen that = (StringLen) o;
-            return Objects.equals(field, that.field);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(field);
-        }
-
-        @Override
-        public String toString() {
-            return "StringLen{" +
-                    "field='" + field + '\'' +
-                    '}';
-        }
     }
 
+    @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class IntTermCount extends DocMetric {
         public final FieldSet field;
 
@@ -1717,32 +1324,10 @@ public abstract class DocMetric extends AbstractPositional {
                 }
             }
         }
-
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-            IntTermCount that = (IntTermCount) o;
-            return Objects.equals(field, that.field);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(field);
-        }
-
-        @Override
-        public String toString() {
-            return "IntTermCount{" +
-                    "field='" + field + '\'' +
-                    '}';
-        }
     }
 
+    @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class StrTermCount extends DocMetric {
         public final FieldSet field;
 
@@ -1781,35 +1366,13 @@ public abstract class DocMetric extends AbstractPositional {
                 }
             }
         }
-
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-            StrTermCount that = (StrTermCount) o;
-            return Objects.equals(field, that.field);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(field);
-        }
-
-        @Override
-        public String toString() {
-            return "StrTermCount{" +
-                    "field='" + field + '\'' +
-                    '}';
-        }
     }
 
     // 0 for documents missing the field
     // 1 for documents with hash(term, salt) < probability
     // 2 for documents with hash(term, salt) >= probability
+    @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Sample extends DocMetric {
         public final FieldSet field;
         public final boolean isIntField;
@@ -1854,36 +1417,10 @@ public abstract class DocMetric extends AbstractPositional {
                 }
             }
         }
-
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            final Sample sample = (Sample) o;
-            return isIntField == sample.isIntField &&
-                    numerator == sample.numerator &&
-                    denominator == sample.denominator &&
-                    Objects.equals(field, sample.field) &&
-                    Objects.equals(salt, sample.salt);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(field, isIntField, numerator, denominator, salt);
-        }
-
-        @Override
-        public String toString() {
-            return "Sample{" +
-                    "field=" + field +
-                    ", isIntField=" + isIntField +
-                    ", numerator=" + numerator +
-                    ", denominator=" + denominator +
-                    ", salt='" + salt + '\'' +
-                    '}';
-        }
     }
 
+    @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Random extends DocMetric {
         public final FieldSet field;
         public final boolean isIntField;
@@ -1927,37 +1464,13 @@ public abstract class DocMetric extends AbstractPositional {
                 }
             }
         }
-
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            final Random random = (Random) o;
-            return isIntField == random.isIntField &&
-                    max == random.max &&
-                    Objects.equals(field, random.field) &&
-                    Objects.equals(salt, random.salt);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(field, isIntField, max, salt);
-        }
-
-        @Override
-        public String toString() {
-            return "Random{" +
-                    "field=" + field +
-                    ", isIntField=" + isIntField +
-                    ", max=" + max +
-                    ", salt='" + salt + '\'' +
-                    '}';
-        }
     }
 
     // 0 for documents missing the field
     // 1 for documents with hash(term, salt) < probability
     // 2 for documents with hash(term, salt) >= probability
+    @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class SampleMetric extends DocMetric {
         public final DocMetric metric;
         public final long numerator;
@@ -1993,34 +1506,10 @@ public abstract class DocMetric extends AbstractPositional {
         public void validate(final String dataset, final ValidationHelper validationHelper, final ErrorCollector errorCollector) {
             metric.validate(dataset, validationHelper, errorCollector);
         }
-
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            final SampleMetric that = (SampleMetric) o;
-            return numerator == that.numerator &&
-                    denominator == that.denominator &&
-                    Objects.equals(metric, that.metric) &&
-                    Objects.equals(salt, that.salt);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(metric, numerator, denominator, salt);
-        }
-
-        @Override
-        public String toString() {
-            return "SampleMetric{" +
-                    "metric=" + metric +
-                    ", numerator=" + numerator +
-                    ", denominator=" + denominator +
-                    ", salt='" + salt + '\'' +
-                    '}';
-        }
     }
 
+    @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class RandomMetric extends DocMetric {
         public final DocMetric metric;
         public final int max;
@@ -2053,30 +1542,6 @@ public abstract class DocMetric extends AbstractPositional {
         @Override
         public void validate(final String dataset, final ValidationHelper validationHelper, final ErrorCollector errorCollector) {
             metric.validate(dataset, validationHelper, errorCollector);
-        }
-
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            final RandomMetric that = (RandomMetric) o;
-            return max == that.max &&
-                    Objects.equals(metric, that.metric) &&
-                    Objects.equals(salt, that.salt);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(metric, max, salt);
-        }
-
-        @Override
-        public String toString() {
-            return "RandomMetric{" +
-                    "metric=" + metric +
-                    ", max=" + max +
-                    ", salt='" + salt + '\'' +
-                    '}';
         }
     }
 

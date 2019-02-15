@@ -23,16 +23,17 @@ import com.indeed.iql2.execution.groupkeys.IntTermGroupKey;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import it.unimi.dsi.fastutil.longs.LongList;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
-import java.util.Arrays;
-import java.util.Objects;
-
+@EqualsAndHashCode
+@ToString
 public class IntRegroupFieldIn implements Command {
     private final FieldSet field;
     private final LongList intTerms;
     private final boolean withDefault;
 
-    public IntRegroupFieldIn(FieldSet field, LongList intTerms, boolean withDefault) {
+    public IntRegroupFieldIn(final FieldSet field, final LongList intTerms, final boolean withDefault) {
         this.field = field;
         this.intTerms = intTerms;
         this.withDefault = withDefault;
@@ -67,6 +68,8 @@ public class IntRegroupFieldIn implements Command {
         session.densify(new IntFieldInGroupKeySet(session.groupKeySet, intTerms, withDefault));
     }
 
+    @EqualsAndHashCode
+    @ToString
     public static class IntFieldInGroupKeySet implements GroupKeySet {
         private final GroupKeySet previous;
         private final LongList terms;
@@ -114,22 +117,6 @@ public class IntRegroupFieldIn implements Command {
         @Override
         public boolean isPresent(int group) {
             return group > 0 && group <= numGroups() && previous.isPresent(parentGroup(group));
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            IntFieldInGroupKeySet that = (IntFieldInGroupKeySet) o;
-            return withDefault == that.withDefault &&
-                    Objects.equals(previous, that.previous) &&
-                    Objects.equals(terms, that.terms) &&
-                    Arrays.equals(groupKeys, that.groupKeys);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(previous, terms, withDefault, groupKeys);
         }
     }
 }

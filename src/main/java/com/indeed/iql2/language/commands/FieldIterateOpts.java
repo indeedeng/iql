@@ -20,11 +20,14 @@ import com.google.common.primitives.Longs;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.AggregateFilter;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.Arrays;
-import java.util.Objects;
 import java.util.Set;
 
+@EqualsAndHashCode
+@ToString
 public class FieldIterateOpts {
     public Optional<Integer> limit = Optional.absent();
     public Optional<TopK> topK = Optional.absent();
@@ -38,34 +41,6 @@ public class FieldIterateOpts {
         result.topK = this.topK;
         result.filter = this.filter;
         return result;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        FieldIterateOpts that = (FieldIterateOpts) o;
-        return Objects.equals(limit, that.limit) &&
-                Objects.equals(topK, that.topK) &&
-                Objects.equals(filter, that.filter) &&
-                Objects.equals(intTermSubset, that.intTermSubset) &&
-                Objects.equals(stringTermSubset, that.stringTermSubset);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(limit, topK, filter, intTermSubset, stringTermSubset);
-    }
-
-    @Override
-    public String toString() {
-        return "FieldIterateOpts{" +
-                "limit=" + limit +
-                ", topK=" + topK +
-                ", filter=" + filter +
-                ", intTermSubset=" + intTermSubset +
-                ", stringTermSubset=" + stringTermSubset +
-                '}';
     }
 
     public com.indeed.iql2.execution.commands.misc.FieldIterateOpts toExecution(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {

@@ -27,6 +27,8 @@ import com.indeed.iql2.language.util.ErrorMessages;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -72,15 +74,24 @@ public abstract class AggregateFilter extends AbstractPositional {
     public abstract com.indeed.iql2.execution.AggregateFilter toExecutionFilter(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet);
 
     @Override
+    public abstract boolean equals(final Object other);
+    @Override
+    public abstract int hashCode();
+    @Override
+    public abstract String toString();
+
+    @Override
     public AggregateFilter copyPosition(final Positional positional) {
         super.copyPosition(positional);
         return this;
     }
 
+    @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class TermIs extends AggregateFilter {
         public final Term term;
 
-        public TermIs(Term term) {
+        public TermIs(final Term term) {
             this.term = term;
         }
 
@@ -112,32 +123,14 @@ public abstract class AggregateFilter extends AbstractPositional {
         public com.indeed.iql2.execution.AggregateFilter toExecutionFilter(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
             return new com.indeed.iql2.execution.AggregateFilter.TermEquals(term.toExecutionTerm());
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            TermIs termIs = (TermIs) o;
-            return Objects.equals(term, termIs.term);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(term);
-        }
-
-        @Override
-        public String toString() {
-            return "TermIs{" +
-                    "term=" + term +
-                    '}';
-        }
     }
 
+    @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class TermRegex extends AggregateFilter {
         public final Term term;
 
-        public TermRegex(Term term) {
+        public TermRegex(final Term term) {
             this.term = term;
         }
 
@@ -168,26 +161,6 @@ public abstract class AggregateFilter extends AbstractPositional {
         @Override
         public com.indeed.iql2.execution.AggregateFilter toExecutionFilter(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
             return new com.indeed.iql2.execution.AggregateFilter.TermEqualsRegex(term.toExecutionTerm());
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            TermRegex termRegex = (TermRegex) o;
-            return Objects.equals(term, termRegex.term);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(term);
-        }
-
-        @Override
-        public String toString() {
-            return "TermRegex{" +
-                    "term=" + term +
-                    '}';
         }
     }
 
@@ -242,11 +215,13 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
     }
 
+    @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class MetricIs extends AggregateFilter {
         public final AggregateMetric m1;
         public final AggregateMetric m2;
 
-        public MetricIs(AggregateMetric m1, AggregateMetric m2) {
+        public MetricIs(final AggregateMetric m1, final AggregateMetric m2) {
             this.m1 = m1;
             this.m2 = m2;
         }
@@ -285,35 +260,15 @@ public abstract class AggregateFilter extends AbstractPositional {
                     m2.toExecutionMetric(namedMetricLookup, groupKeySet)
             );
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            MetricIs metricIs = (MetricIs) o;
-            return Objects.equals(m1, metricIs.m1) &&
-                    Objects.equals(m2, metricIs.m2);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(m1, m2);
-        }
-
-        @Override
-        public String toString() {
-            return "MetricIs{" +
-                    "m1=" + m1 +
-                    ", m2=" + m2 +
-                    '}';
-        }
     }
 
+    @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class MetricIsnt extends AggregateFilter {
         public final AggregateMetric m1;
         public final AggregateMetric m2;
 
-        public MetricIsnt(AggregateMetric m1, AggregateMetric m2) {
+        public MetricIsnt(final AggregateMetric m1, final AggregateMetric m2) {
             this.m1 = m1;
             this.m2 = m2;
         }
@@ -352,35 +307,15 @@ public abstract class AggregateFilter extends AbstractPositional {
                     m2.toExecutionMetric(namedMetricLookup, groupKeySet)
             );
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            MetricIsnt that = (MetricIsnt) o;
-            return Objects.equals(m1, that.m1) &&
-                    Objects.equals(m2, that.m2);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(m1, m2);
-        }
-
-        @Override
-        public String toString() {
-            return "MetricIsnt{" +
-                    "m1=" + m1 +
-                    ", m2=" + m2 +
-                    '}';
-        }
     }
 
+    @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Gt extends AggregateFilter {
         public final AggregateMetric m1;
         public final AggregateMetric m2;
 
-        public Gt(AggregateMetric m1, AggregateMetric m2) {
+        public Gt(final AggregateMetric m1, final AggregateMetric m2) {
             this.m1 = m1;
             this.m2 = m2;
         }
@@ -418,35 +353,15 @@ public abstract class AggregateFilter extends AbstractPositional {
                     m2.toExecutionMetric(namedMetricLookup, groupKeySet)
             );
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Gt gt = (Gt) o;
-            return Objects.equals(m1, gt.m1) &&
-                    Objects.equals(m2, gt.m2);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(m1, m2);
-        }
-
-        @Override
-        public String toString() {
-            return "Gt{" +
-                    "m1=" + m1 +
-                    ", m2=" + m2 +
-                    '}';
-        }
     }
 
+    @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Gte extends AggregateFilter {
         public final AggregateMetric m1;
         public final AggregateMetric m2;
 
-        public Gte(AggregateMetric m1, AggregateMetric m2) {
+        public Gte(final AggregateMetric m1, final AggregateMetric m2) {
             this.m1 = m1;
             this.m2 = m2;
         }
@@ -484,35 +399,15 @@ public abstract class AggregateFilter extends AbstractPositional {
                     m2.toExecutionMetric(namedMetricLookup, groupKeySet)
             );
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Gte gte = (Gte) o;
-            return Objects.equals(m1, gte.m1) &&
-                    Objects.equals(m2, gte.m2);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(m1, m2);
-        }
-
-        @Override
-        public String toString() {
-            return "Gte{" +
-                    "m1=" + m1 +
-                    ", m2=" + m2 +
-                    '}';
-        }
     }
 
+    @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Lt extends AggregateFilter {
         public final AggregateMetric m1;
         public final AggregateMetric m2;
 
-        public Lt(AggregateMetric m1, AggregateMetric m2) {
+        public Lt(final AggregateMetric m1, final AggregateMetric m2) {
             this.m1 = m1;
             this.m2 = m2;
         }
@@ -550,35 +445,15 @@ public abstract class AggregateFilter extends AbstractPositional {
                     m2.toExecutionMetric(namedMetricLookup, groupKeySet)
             );
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Lt lt = (Lt) o;
-            return Objects.equals(m1, lt.m1) &&
-                    Objects.equals(m2, lt.m2);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(m1, m2);
-        }
-
-        @Override
-        public String toString() {
-            return "Lt{" +
-                    "m1=" + m1 +
-                    ", m2=" + m2 +
-                    '}';
-        }
     }
 
+    @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Lte extends AggregateFilter {
         public final AggregateMetric m1;
         public final AggregateMetric m2;
 
-        public Lte(AggregateMetric m1, AggregateMetric m2) {
+        public Lte(final AggregateMetric m1, final AggregateMetric m2) {
             this.m1 = m1;
             this.m2 = m2;
         }
@@ -615,28 +490,6 @@ public abstract class AggregateFilter extends AbstractPositional {
                     m1.toExecutionMetric(namedMetricLookup, groupKeySet),
                     m2.toExecutionMetric(namedMetricLookup, groupKeySet)
             );
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Lte lte = (Lte) o;
-            return Objects.equals(m1, lte.m1) &&
-                    Objects.equals(m2, lte.m2);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(m1, m2);
-        }
-
-        @Override
-        public String toString() {
-            return "Lte{" +
-                    "m1=" + m1 +
-                    ", m2=" + m2 +
-                    '}';
         }
     }
 
@@ -848,10 +701,12 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
     }
 
+    @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Not extends AggregateFilter {
         public final AggregateFilter filter;
 
-        public Not(AggregateFilter filter) {
+        public Not(final AggregateFilter filter) {
             this.filter = filter;
         }
 
@@ -886,35 +741,16 @@ public abstract class AggregateFilter extends AbstractPositional {
                     filter.toExecutionFilter(namedMetricLookup, groupKeySet)
             );
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Not not = (Not) o;
-            return Objects.equals(filter, not.filter);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(filter);
-        }
-
-        @Override
-        public String toString() {
-            return "Not{" +
-                    "filter=" + filter +
-                    '}';
-        }
     }
 
+    @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class Regex extends AggregateFilter {
         public final FieldSet field;
         public final String regex;
 
-        public Regex(FieldSet field, String regex) {
+        public Regex(final FieldSet field, final String regex) {
             this.field = field;
-            ValidationUtil.compileRegex(regex);
             this.regex = regex;
         }
 
@@ -935,6 +771,7 @@ public abstract class AggregateFilter extends AbstractPositional {
 
         @Override
         public void validate(Set<String> scope, ValidationHelper validationHelper, ErrorCollector errorCollector) {
+            ValidationUtil.compileRegex(regex);
             Preconditions.checkState(field.datasets().equals(scope));
             for (final String dataset : scope) {
                 final String fieldName = field.datasetFieldName(dataset);
@@ -952,28 +789,6 @@ public abstract class AggregateFilter extends AbstractPositional {
         @Override
         public com.indeed.iql2.execution.AggregateFilter toExecutionFilter(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
             return new com.indeed.iql2.execution.AggregateFilter.RegexFilter(regex);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Regex regex1 = (Regex) o;
-            return Objects.equals(field, regex1.field) &&
-                    Objects.equals(regex, regex1.regex);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(field, regex);
-        }
-
-        @Override
-        public String toString() {
-            return "Regex{" +
-                    "field='" + field + '\'' +
-                    ", regex='" + regex + '\'' +
-                    '}';
         }
     }
 

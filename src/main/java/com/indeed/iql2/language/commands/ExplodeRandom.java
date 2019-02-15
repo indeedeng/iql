@@ -15,22 +15,25 @@
 package com.indeed.iql2.language.commands;
 
 import com.google.common.base.Function;
-import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.List;
 
+@EqualsAndHashCode
+@ToString
 public class ExplodeRandom implements Command {
     private final FieldSet field;
     private final int k;
     private final String salt;
 
-    public ExplodeRandom(FieldSet field, int k, String salt) {
+    public ExplodeRandom(final FieldSet field, final int k, final String salt) {
         this.field = field;
         this.k = k;
         this.salt = salt;
@@ -54,29 +57,5 @@ public class ExplodeRandom implements Command {
                 k,
                 salt
         );
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ExplodeRandom that = (ExplodeRandom) o;
-        return k == that.k &&
-                Objects.equal(field, that.field) &&
-                Objects.equal(salt, that.salt);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(field, k, salt);
-    }
-
-    @Override
-    public String toString() {
-        return "ExplodeRandom{" +
-                "field='" + field + '\'' +
-                ", k=" + k +
-                ", salt='" + salt + '\'' +
-                '}';
     }
 }

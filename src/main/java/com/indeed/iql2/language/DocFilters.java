@@ -15,6 +15,7 @@
 package com.indeed.iql2.language;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSet;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql.metadata.DatasetsMetadata;
@@ -482,7 +483,7 @@ public class DocFilters {
                     termSet.add(term.stringTerm);
                 }
             }
-            filter = new DocFilter.StringFieldIn(datasetsMetadata, field, termSet);
+            filter = new DocFilter.StringFieldIn(field, ImmutableSet.copyOf(termSet));
         } else {
             final Set<Long> termSet = new LongOpenHashSet();
             for (final Term term : termsList) {
@@ -499,7 +500,7 @@ public class DocFilters {
                     }
                 }
             }
-            filter = new DocFilter.IntFieldIn(datasetsMetadata, field, termSet);
+            filter = new DocFilter.IntFieldIn(field, termSet);
         }
         if (negate) {
             return new DocFilter.Not(filter);

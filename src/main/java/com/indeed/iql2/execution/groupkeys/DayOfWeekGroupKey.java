@@ -15,13 +15,15 @@
 package com.indeed.iql2.execution.groupkeys;
 
 import com.indeed.iql2.execution.commands.ExplodeDayOfWeek;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
-import java.util.Objects;
-
+@EqualsAndHashCode(callSuper = false)
+@ToString
 public class DayOfWeekGroupKey extends GroupKey {
     private final int dayOfWeek;
 
-    public DayOfWeekGroupKey(int dayOfWeek) {
+    public DayOfWeekGroupKey(final int dayOfWeek) {
         this.dayOfWeek = dayOfWeek;
     }
 
@@ -33,25 +35,5 @@ public class DayOfWeekGroupKey extends GroupKey {
     @Override
     public boolean isDefault() {
         return false;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        DayOfWeekGroupKey that = (DayOfWeekGroupKey) o;
-        return dayOfWeek == that.dayOfWeek;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(dayOfWeek);
-    }
-
-    @Override
-    public String toString() {
-        return "DayOfWeekGroupKey{" +
-                "dayOfWeek=" + dayOfWeek +
-                '}';
     }
 }

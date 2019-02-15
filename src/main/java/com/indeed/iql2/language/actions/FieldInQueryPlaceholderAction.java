@@ -1,7 +1,6 @@
 package com.indeed.iql2.language.actions;
 
 import com.google.common.base.Function;
-import com.google.common.base.Objects;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.execution.ResultFormat;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
@@ -13,15 +12,18 @@ import com.indeed.iql2.language.util.ErrorMessages;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.server.web.servlets.query.CommandValidator;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
+import lombok.EqualsAndHashCode;
 
 /**
  * Exists so that we can transform a Query with subqueries into a
  * List&lt;Command&gt; in order to validate it.
  */
+@EqualsAndHashCode
 public class FieldInQueryPlaceholderAction implements Action {
     private final FieldSet field;
     private final Query query;
     private final boolean isNegated;
+    @EqualsAndHashCode.Exclude
     private final DatasetsMetadata datasetsMetadata;
     private final int target;
     private final int positive;
@@ -51,24 +53,6 @@ public class FieldInQueryPlaceholderAction implements Action {
     @Override
     public com.indeed.iql2.execution.actions.Action toExecutionAction(final Function<String, PerGroupConstant> namedMetricLookup, final GroupKeySet groupKeySet) {
         throw new UnsupportedOperationException("Must transform the FieldInQueryPlaceholderAction out before doing a .getExecutionActions()");
-    }
-
-    @Override
-    public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        final FieldInQueryPlaceholderAction that = (FieldInQueryPlaceholderAction) o;
-        return isNegated == that.isNegated &&
-                target == that.target &&
-                positive == that.positive &&
-                negative == that.negative &&
-                Objects.equal(field, that.field) &&
-                Objects.equal(query, that.query);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(field, query, isNegated, target, positive, negative);
     }
 
     @Override

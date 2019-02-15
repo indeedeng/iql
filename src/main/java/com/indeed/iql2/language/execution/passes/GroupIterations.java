@@ -30,13 +30,14 @@ import com.indeed.iql2.language.query.Dataset;
 import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.util.core.Pair;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -169,11 +170,13 @@ public class GroupIterations {
         return dependencies;
     }
 
+    @EqualsAndHashCode
+    @ToString
     private static class PrecomputedContext {
         private final List<Dataset> datasets;
         private final Optional<FieldSet> field;
 
-        private PrecomputedContext(List<Dataset> datasets, Optional<FieldSet> field) {
+        public PrecomputedContext(final List<Dataset> datasets, final Optional<FieldSet> field) {
             this.datasets = datasets;
             this.field = field;
         }
@@ -202,20 +205,6 @@ public class GroupIterations {
             } else {
                 throw new IllegalStateException("Failed to handle: [" + computePrecomputed + "]'s computation: [" + computation + "]");
             }
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            PrecomputedContext that = (PrecomputedContext) o;
-            return Objects.equals(datasets, that.datasets) &&
-                    Objects.equals(field, that.field);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(datasets, field);
         }
     }
 

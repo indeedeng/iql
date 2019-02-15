@@ -20,12 +20,15 @@ import com.google.common.cache.LoadingCache;
 import com.indeed.iql2.Formatter;
 import com.indeed.iql2.execution.groupkeys.GroupKey;
 import com.indeed.iql2.execution.groupkeys.StringGroupKey;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
 import java.util.Locale;
-import java.util.Objects;
 
+@EqualsAndHashCode
+@ToString
 public class DateTimeRangeGroupKeySet implements GroupKeySet {
     private final GroupKeySet previous;
     private final long earliestStart;
@@ -34,6 +37,8 @@ public class DateTimeRangeGroupKeySet implements GroupKeySet {
     private final int numGroups;
     private final String format;
 
+    @EqualsAndHashCode.Exclude
+    @ToString.Exclude
     private final LoadingCache<Integer, StringGroupKey> buildGroupKey;
 
     public DateTimeRangeGroupKeySet(
@@ -87,23 +92,5 @@ public class DateTimeRangeGroupKeySet implements GroupKeySet {
     @Override
     public boolean isPresent(int group) {
         return group > 0 && group <= numGroups() && previous.isPresent(parentGroup(group));
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        DateTimeRangeGroupKeySet that = (DateTimeRangeGroupKeySet) o;
-        return earliestStart == that.earliestStart &&
-                periodMillis == that.periodMillis &&
-                numBuckets == that.numBuckets &&
-                numGroups == that.numGroups &&
-                Objects.equals(previous, that.previous) &&
-                Objects.equals(format, that.format);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(previous, earliestStart, periodMillis, numBuckets, numGroups, format);
     }
 }

@@ -14,9 +14,12 @@
 
 package com.indeed.iql2.language;
 
-import com.google.common.base.Objects;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import org.antlr.v4.runtime.ParserRuleContext;
 
+@EqualsAndHashCode(callSuper = false)
+@ToString
 public class Positioned<T> extends AbstractPositional implements Positional {
     private final T t;
 
@@ -42,25 +45,5 @@ public class Positioned<T> extends AbstractPositional implements Positional {
         final Positioned<T> positioned = new Positioned<>(t);
         positioned.copyPosition(parserRuleContext);
         return positioned;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Positioned<?> that = (Positioned<?>) o;
-        return Objects.equal(t, that.t);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(t);
-    }
-
-    @Override
-    public String toString() {
-        return "Positioned{" +
-                "t=" + t +
-                '}';
     }
 }

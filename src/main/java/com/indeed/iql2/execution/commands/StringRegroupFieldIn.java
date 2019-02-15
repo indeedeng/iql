@@ -23,17 +23,19 @@ import com.indeed.iql2.execution.groupkeys.GroupKey;
 import com.indeed.iql2.execution.groupkeys.StringGroupKey;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
-import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 
+@EqualsAndHashCode
+@ToString
 public class StringRegroupFieldIn implements Command {
     private final FieldSet field;
     private final List<String> terms;
     private final boolean withDefault;
 
-    public StringRegroupFieldIn(FieldSet field, List<String> terms, boolean withDefault) {
+    public StringRegroupFieldIn(final FieldSet field, final List<String> terms, final boolean withDefault) {
         this.field = field;
         this.terms = terms;
         this.withDefault = withDefault;
@@ -65,6 +67,8 @@ public class StringRegroupFieldIn implements Command {
         session.densify(new StringFieldInGroupKeySet(session.groupKeySet, terms, withDefault, session.formatter));
     }
 
+    @EqualsAndHashCode
+    @ToString
     public static class StringFieldInGroupKeySet implements GroupKeySet {
         private final GroupKeySet previous;
         private final List<String> terms;
@@ -112,22 +116,6 @@ public class StringRegroupFieldIn implements Command {
         @Override
         public boolean isPresent(int group) {
             return group > 0 && group <= numGroups() && previous.isPresent(parentGroup(group));
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            StringFieldInGroupKeySet that = (StringFieldInGroupKeySet) o;
-            return withDefault == that.withDefault &&
-                    Objects.equals(previous, that.previous) &&
-                    Objects.equals(terms, that.terms) &&
-                    Arrays.equals(groupKeys, that.groupKeys);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(previous, terms, withDefault, groupKeys);
         }
     }
 }

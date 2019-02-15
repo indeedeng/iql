@@ -247,7 +247,7 @@ public class ScopedFieldResolver {
             if (datasetToMetric.size() == 1) {
                 result = callback.metric(Iterables.getOnlyElement(datasetToMetric.values()));
             } else {
-                result = callback.metric(new DocMetric.PerDatasetDocMetric(datasetToMetric));
+                result = callback.metric(new DocMetric.PerDatasetDocMetric(ImmutableMap.copyOf(datasetToMetric)));
             }
         } else {
             result = callback.plainFields(resolve(ctx));

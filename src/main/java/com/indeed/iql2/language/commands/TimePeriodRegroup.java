@@ -23,18 +23,21 @@ import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
+@EqualsAndHashCode
+@ToString
 public class TimePeriodRegroup implements Command {
     private final long periodMillis;
     private final Optional<FieldSet> timeField;
     private final Optional<String> timeFormat;
     private final boolean isRelative;
 
-    public TimePeriodRegroup(long periodMillis, Optional<FieldSet> timeField, Optional<String> timeFormat, boolean isRelative) {
+    public TimePeriodRegroup(final long periodMillis, final Optional<FieldSet> timeField, final Optional<String> timeFormat, final boolean isRelative) {
         this.periodMillis = periodMillis;
         this.timeField = timeField;
         this.timeFormat = timeFormat;
@@ -62,31 +65,4 @@ public class TimePeriodRegroup implements Command {
                 isRelative
         );
     }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        TimePeriodRegroup that = (TimePeriodRegroup) o;
-        return Objects.equals(periodMillis, that.periodMillis) &&
-                Objects.equals(timeField, that.timeField) &&
-                Objects.equals(timeFormat, that.timeFormat) &&
-                Objects.equals(isRelative, that.isRelative);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(periodMillis, timeField, timeFormat, isRelative);
-    }
-
-    @Override
-    public String toString() {
-        return "TimePeriodRegroup{" +
-                "periodMillis=" + periodMillis +
-                ", timeField=" + timeField +
-                ", timeFormat=" + timeFormat +
-                ", isRelative=" + isRelative +
-                '}';
-    }
-
 }

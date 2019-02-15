@@ -31,9 +31,11 @@ import com.indeed.iql2.language.precomputed.Precomputed;
 import com.indeed.iql2.language.query.Dataset;
 import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.Query;
-import com.indeed.iql2.language.util.Optionals;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
+import com.indeed.iql2.language.util.Optionals;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -41,10 +43,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 public class ExtractPrecomputed {
     public static Extracted extractPrecomputed(final Query query, final boolean extractTotals) {
@@ -442,39 +443,17 @@ public class ExtractPrecomputed {
         }
     }
 
+    @EqualsAndHashCode
+    @ToString
     private static class ComputationInfo {
         private final Precomputed precomputed;
         private final int depth;
         private final Set<String> scope;
 
-        private ComputationInfo(Precomputed precomputed, int depth, Set<String> scope) {
+        public ComputationInfo(final Precomputed precomputed, final int depth, final Set<String> scope) {
             this.precomputed = precomputed;
             this.depth = depth;
             this.scope = scope;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            ComputationInfo that = (ComputationInfo) o;
-            return Objects.equals(depth, that.depth) &&
-                    Objects.equals(precomputed, that.precomputed) &&
-                    Objects.equals(scope, that.scope);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(precomputed, depth, scope);
-        }
-
-        @Override
-        public String toString() {
-            return "ComputationInfo{" +
-                    "precomputed=" + precomputed +
-                    ", depth=" + depth +
-                    ", scope=" + scope +
-                    '}';
         }
     }
 

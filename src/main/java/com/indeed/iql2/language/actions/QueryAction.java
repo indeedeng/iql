@@ -15,18 +15,21 @@
 package com.indeed.iql2.language.actions;
 
 import com.google.common.base.Function;
-import com.google.common.collect.ImmutableMap;
 import com.indeed.flamdex.query.Query;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
+@EqualsAndHashCode
+@ToString
 public class QueryAction implements Action {
     public final Map<String, Query> perDatasetQuery;
 
@@ -34,8 +37,8 @@ public class QueryAction implements Action {
     public final int positiveGroup;
     public final int negativeGroup;
 
-    public QueryAction(Map<String, Query> perDatasetQuery, int targetGroup, int positiveGroup, int negativeGroup) {
-        this.perDatasetQuery = ImmutableMap.copyOf(perDatasetQuery);
+    public QueryAction(final Map<String, Query> perDatasetQuery, final int targetGroup, final int positiveGroup, final int negativeGroup) {
+        this.perDatasetQuery = perDatasetQuery;
         this.targetGroup = targetGroup;
         this.positiveGroup = positiveGroup;
         this.negativeGroup = negativeGroup;
@@ -58,15 +61,5 @@ public class QueryAction implements Action {
                 positiveGroup,
                 negativeGroup
         );
-    }
-
-    @Override
-    public String toString() {
-        return "QueryAction{" +
-                "perDatasetQuery=" + perDatasetQuery +
-                ", targetGroup=" + targetGroup +
-                ", positiveGroup=" + positiveGroup +
-                ", negativeGroup=" + negativeGroup +
-                '}';
     }
 }

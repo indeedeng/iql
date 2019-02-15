@@ -27,9 +27,9 @@ import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testWarn
 public class StringAsIntFieldTest {
     @Test
     public void testSelectStringAsIntField() throws Exception {
-        testWarning(ImmutableList.of("Field \"page\" in Dataset \"stringAsInt1\" is a string field but it is used as an int field in [HasInt{field={stringAsInt1=page}, term=0}]"),
+        testWarning(ImmutableList.of("Field \"page\" in Dataset \"stringAsInt1\" is a string field but it is used as an int field in [DocMetric.HasInt(field={stringAsInt1=page}, term=0)]"),
                 "from stringAsInt1 yesterday today SELECT page = 0", QueryServletTestUtils.LanguageVersion.IQL2);
-        testWarning(ImmutableList.of("Field \"vp\" in Dataset \"stringAsInt1\" is a string field but it is used as an int field in [HasInt{field={stringAsInt1=vp}, term=0}]"),
+        testWarning(ImmutableList.of("Field \"vp\" in Dataset \"stringAsInt1\" is a string field but it is used as an int field in [DocMetric.HasInt(field={stringAsInt1=vp}, term=0)]"),
                 "from stringAsInt1 yesterday today SELECT vp != 0", QueryServletTestUtils.LanguageVersion.IQL2);
 
         testWarning(ImmutableList.of(), "from stringAsInt1 yesterday today SELECT vp != 0", QueryServletTestUtils.LanguageVersion.ORIGINAL_IQL1);
@@ -40,13 +40,13 @@ public class StringAsIntFieldTest {
     @Test
     public void testFilterStringAsIntField() throws Exception {
         testWarning(ImmutableList.of("Field \"page\" in Dataset \"stringAsInt1\" is a string field but it is used as an int field in " +
-                        "[QueryAction{perDatasetQuery={stringAsInt1=int:page:0}, targetGroup=1, positiveGroup=1, negativeGroup=0}]"),
+                        "[QueryAction(perDatasetQuery={stringAsInt1=int:page:0}, targetGroup=1, positiveGroup=1, negativeGroup=0)]"),
                 "from stringAsInt1 yesterday today where page = 0", QueryServletTestUtils.LanguageVersion.IQL2);
         testWarning(ImmutableList.of("Field \"vp\" in Dataset \"stringAsInt1\" is a string field but it is used as an int field in " +
-                        "[QueryAction{perDatasetQuery={stringAsInt1=int:vp:0}, targetGroup=1, positiveGroup=0, negativeGroup=1}]"),
+                        "[QueryAction(perDatasetQuery={stringAsInt1=int:vp:0}, targetGroup=1, positiveGroup=0, negativeGroup=1)]"),
                 "from stringAsInt1 yesterday today where vp != 0", QueryServletTestUtils.LanguageVersion.IQL2);
         testWarning(ImmutableList.of("Field \"vp\" in Dataset \"stringAsInt1\" is a string field but it is used as an int field in " +
-                        "[IntOrAction{field={stringAsInt1=vp}, terms=[2, 3, 1], targetGroup=1, positiveGroup=1, negativeGroup=0}]"),
+                        "[IntOrAction(field={stringAsInt1=vp}, terms=[3, 1, 2], targetGroup=1, positiveGroup=1, negativeGroup=0)]"),
                 "from stringAsInt1 yesterday today where vp in (1, 2, 3)", QueryServletTestUtils.LanguageVersion.IQL2);
 
         testWarning(ImmutableList.of(), "from stringAsInt1 yesterday today where vp != 0", QueryServletTestUtils.LanguageVersion.ORIGINAL_IQL1);

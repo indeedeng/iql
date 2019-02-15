@@ -22,7 +22,11 @@ import com.indeed.iql2.language.util.ErrorMessages;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
+@EqualsAndHashCode
+@ToString
 public class RegexAction implements Action {
     public final FieldSet field;
     public final String regex;
@@ -31,9 +35,8 @@ public class RegexAction implements Action {
     public final int positiveGroup;
     public final int negativeGroup;
 
-    public RegexAction(FieldSet field, String regex, int targetGroup, int positiveGroup, int negativeGroup) {
+    public RegexAction(final FieldSet field, final String regex, final int targetGroup, final int positiveGroup, final int negativeGroup) {
         this.field = field;
-        ValidationUtil.compileRegex(regex);
         this.regex = regex;
         this.targetGroup = targetGroup;
         this.positiveGroup = positiveGroup;
@@ -42,6 +45,7 @@ public class RegexAction implements Action {
 
     @Override
     public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {
+        ValidationUtil.compileRegex(regex);
         for (final String dataset : field.datasets()) {
             final String fieldName = field.datasetFieldName(dataset);
             if (!validationHelper.containsStringField(dataset, fieldName)) {
@@ -59,16 +63,5 @@ public class RegexAction implements Action {
                 positiveGroup,
                 negativeGroup
         );
-    }
-
-    @Override
-    public String toString() {
-        return "RegexAction{" +
-                "field=" + field +
-                ", regex='" + regex + '\'' +
-                ", targetGroup=" + targetGroup +
-                ", positiveGroup=" + positiveGroup +
-                ", negativeGroup=" + negativeGroup +
-                '}';
     }
 }

@@ -14,14 +14,17 @@
 
 package com.indeed.iql2.language;
 
-import java.util.Objects;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
+@EqualsAndHashCode
+@ToString
 public class Term {
     public final String stringTerm;
     public final long intTerm;
     public final boolean isIntTerm;
 
-    private Term(String stringTerm, long intTerm, boolean isIntTerm) {
+    public Term(final String stringTerm, final long intTerm, final boolean isIntTerm) {
         this.stringTerm = stringTerm;
         this.intTerm = intTerm;
         this.isIntTerm = isIntTerm;
@@ -107,30 +110,6 @@ public class Term {
 
     public com.indeed.flamdex.query.Term toFlamdex(String field) {
         return new com.indeed.flamdex.query.Term(field, isIntTerm, intTerm, stringTerm == null ? "" : stringTerm);
-    }
-
-    @Override
-    public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        final Term term = (Term) o;
-        return intTerm == term.intTerm &&
-                isIntTerm == term.isIntTerm &&
-                Objects.equals(stringTerm, term.stringTerm);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(stringTerm, intTerm, isIntTerm);
-    }
-
-    @Override
-    public String toString() {
-        return "Term{" +
-                "stringTerm='" + stringTerm + '\'' +
-                ", intTerm=" + intTerm +
-                ", isIntTerm=" + isIntTerm +
-                '}';
     }
 
     public com.indeed.iql2.execution.Term toExecutionTerm() {

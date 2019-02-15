@@ -21,9 +21,11 @@ import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
-import java.util.Map;
-
+@EqualsAndHashCode
+@ToString
 public class SampleMetricAction implements Action {
     final ImmutableMap<String, DocMetric> perDatasetMetric;
     public final double probability;
@@ -33,13 +35,8 @@ public class SampleMetricAction implements Action {
     public final int positiveGroup;
     public final int negativeGroup;
 
-    public SampleMetricAction(final Map<String, DocMetric> perDatasetMetrics,
-                              final double probability,
-                              final String seed,
-                              final int targetGroup,
-                              final int positiveGroup,
-                              final int negativeGroup) {
-        this.perDatasetMetric = ImmutableMap.copyOf(perDatasetMetrics);
+    public SampleMetricAction(final ImmutableMap<String, DocMetric> perDatasetMetric, final double probability, final String seed, final int targetGroup, final int positiveGroup, final int negativeGroup) {
+        this.perDatasetMetric = perDatasetMetric;
         this.probability = probability;
         this.seed = seed;
         this.targetGroup = targetGroup;
@@ -61,17 +58,5 @@ public class SampleMetricAction implements Action {
                 positiveGroup,
                 negativeGroup
         );
-    }
-
-    @Override
-    public String toString() {
-        return "SampleMetricAction{" +
-                "perDatasetMetric=" + perDatasetMetric +
-                ", probability=" + probability +
-                ", seed='" + seed + '\'' +
-                ", targetGroup=" + targetGroup +
-                ", positiveGroup=" + positiveGroup +
-                ", negativeGroup=" + negativeGroup +
-                '}';
     }
 }
