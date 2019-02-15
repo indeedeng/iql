@@ -1547,10 +1547,14 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
+    @EqualsAndHashCode(callSuper = false)
+    @ToString
     public static class FieldInQueryPlaceholderMetric extends DocMetric {
         public final com.indeed.iql2.language.query.Query query;
         public final FieldSet field;
         public final boolean isNegated; // true if <field> NOT IN <query>
+        @ToString.Exclude
+        @EqualsAndHashCode.Exclude
         private final DatasetsMetadata datasetsMetadata;
 
         FieldInQueryPlaceholderMetric(final com.indeed.iql2.language.query.Query query, final FieldSet field, final boolean isNegated, final DatasetsMetadata datasetsMetadata) {
@@ -1582,36 +1586,6 @@ public abstract class DocMetric extends AbstractPositional {
                 errorCollector.error(ErrorMessages.missingField(dataset, fieldName, this));
             }
             CommandValidator.validate(query, datasetsMetadata, errorCollector);
-        }
-
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (!(o instanceof FieldInQueryPlaceholderMetric)) {
-                return false;
-            }
-            final FieldInQueryPlaceholderMetric that = (FieldInQueryPlaceholderMetric) o;
-            return (isNegated == that.isNegated) &&
-                    Objects.equals(query, that.query) &&
-                    Objects.equals(field, that.field) &&
-                    Objects.equals(datasetsMetadata, that.datasetsMetadata);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(query, field, isNegated, datasetsMetadata);
-        }
-
-        @Override
-        public String toString() {
-            return "FieldInQueryPlaceholderMetric{" +
-                    "query=" + query +
-                    ", field=" + field +
-                    ", isNegated=" + isNegated +
-                    ", datasetsMetadata=" + datasetsMetadata +
-                    '}';
         }
     }
 
