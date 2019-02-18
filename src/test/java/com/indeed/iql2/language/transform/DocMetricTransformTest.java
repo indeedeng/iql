@@ -22,7 +22,8 @@ public class DocMetricTransformTest {
             DocMetric.PerDatasetDocMetric.class, // Not writeable
             DocMetric.Qualified.class, // Why?
             DocMetric.Sample.class, // Cannot be written without m(), so hard to use in this simple test
-            DocMetric.SampleMetric.class // Cannot be written without m(), so hard to use in this simple test
+            DocMetric.SampleMetric.class, // Cannot be written without m(), so hard to use in this simple test
+            DocMetric.FieldInQueryPlaceholderMetric.class // This is just a place holder and not writable
     );
 
     @BeforeClass

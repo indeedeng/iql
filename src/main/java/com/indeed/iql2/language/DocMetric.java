@@ -15,6 +15,7 @@
 package com.indeed.iql2.language;
 
 import com.google.common.base.Function;
+import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -30,6 +31,7 @@ import com.indeed.iql2.language.util.ErrorMessages;
 import com.indeed.iql2.language.util.ParserUtil;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
+import com.indeed.iql2.server.web.servlets.query.CommandValidator;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -1542,6 +1544,48 @@ public abstract class DocMetric extends AbstractPositional {
         @Override
         public void validate(final String dataset, final ValidationHelper validationHelper, final ErrorCollector errorCollector) {
             metric.validate(dataset, validationHelper, errorCollector);
+        }
+    }
+
+    @EqualsAndHashCode(callSuper = false)
+    @ToString
+    public static class FieldInQueryPlaceholderMetric extends DocMetric {
+        public final com.indeed.iql2.language.query.Query query;
+        public final FieldSet field;
+        public final boolean isNegated; // true if <field> NOT IN <query>
+        @ToString.Exclude
+        @EqualsAndHashCode.Exclude
+        private final DatasetsMetadata datasetsMetadata;
+
+        FieldInQueryPlaceholderMetric(final com.indeed.iql2.language.query.Query query, final FieldSet field, final boolean isNegated, final DatasetsMetadata datasetsMetadata) {
+            this.query = query;
+            this.field = field;
+            this.isNegated = isNegated;
+            this.datasetsMetadata = datasetsMetadata;
+        }
+
+        @Override
+        public DocMetric transform(final Function<DocMetric, DocMetric> g, final Function<DocFilter, DocFilter> i) {
+            return g.apply(new FieldInQueryPlaceholderMetric(query.transform(Functions.identity(), Functions.identity(), g, Functions.identity(), i), field, isNegated, datasetsMetadata).copyPosition(this));
+        }
+
+        @Override
+        public List<String> getPushes(final String dataset) {
+            throw new UnsupportedOperationException("You shouldn't get pushes out of this place holder metric just exists for validating FieldInQuery before executing subquery");
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {
+            throw new UnsupportedOperationException("You shouldn't visit this place holder metric just exists for validating FieldInQuery before executing subquery");
+        }
+
+        @Override
+        public void validate(final String dataset, final ValidationHelper validationHelper, final ErrorCollector errorCollector) {
+            final String fieldName = field.datasetFieldName(dataset);
+            if (!validationHelper.containsField(dataset, fieldName)) {
+                errorCollector.error(ErrorMessages.missingField(dataset, fieldName, this));
+            }
+            CommandValidator.validate(query, datasetsMetadata, errorCollector);
         }
     }
 
