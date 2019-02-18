@@ -159,7 +159,7 @@ public class MetricRegroupTest extends BasicTest {
     @Test
     public void testAggDiv() throws  Exception {
         // this must fail in IQL1. Ticket jira/IQL-376
-        final Predicate<String> errorDuringValidation = e -> e.contains("'/' not expected here. Did you mean '\\' instead?");
+        final Predicate<String> errorDuringValidation = e -> e.contains("'/' (aggregate division) not supported here in IQL1.");
         QueryServletTestUtils.expectException("from jobsearch yesterday today group by bucket(oji / 1, 0, 25, 1)", QueryServletTestUtils.LanguageVersion.ORIGINAL_IQL1, errorDuringValidation);
     }
 }

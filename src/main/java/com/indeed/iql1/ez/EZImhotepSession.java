@@ -99,7 +99,8 @@ public class EZImhotepSession implements Closeable {
             throw new IllegalArgumentException("Aggregate operations have to be pushed with pushStatGeneric");
         }
         if (!allowAggregateStats && (stat instanceof Stats.AggregateBinOpConstStat)) {
-            throw  new IqlKnownException.ParseErrorException("'/' not expected here. Did you mean '\\' instead?");
+            throw new IqlKnownException.ParseErrorException(
+                    "'/' (aggregate division) not supported here in IQL1. Did you mean '\\' for per-document instead? If not, for deeper nested arithmetic, use IQL2.");
         }
         final int initialDepth = stackDepth;
         stackDepth = session.pushStats(stat.pushes(this));
