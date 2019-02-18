@@ -16,6 +16,7 @@ package com.indeed.iql2.language.query;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.indeed.imhotep.Shard;
@@ -251,10 +252,9 @@ public class Dataset extends AbstractPositional {
             final JQLParser.RelativeTimeTerminalContext relativeTimeTerminal = Queries.tryRunParser(unquoted, JQLParser::relativeTimeTerminal);
 
             if (relativeTimeTerminal != null) {
-                if (relativeTimeTerminal.relativeTime() != null) {
-                    // It must be parsed by dateTimeTerminal
-                    throw new IllegalStateException("Should not be here!");
-                }
+                Preconditions.checkState(relativeTimeTerminal.relativeTime() == null,
+                        "Relative time parsed by relativeTimeTerminal should have been successfully parsed by dateTimeTerminal");
+
                 if (relativeTimeTerminal.timeInterval() != null) {
                     final List<Pair<Integer, TimeUnit>> interval = TimePeriods.parseTimeInterval(relativeTimeTerminal.timeInterval().getText(), useLegacy);
                     return TimePeriods.substract(clock, interval);
