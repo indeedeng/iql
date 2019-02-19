@@ -88,6 +88,7 @@ import org.joda.time.format.ISODateTimeFormat;
 
 import javax.annotation.Nullable;
 import java.io.BufferedReader;
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -387,8 +388,11 @@ public class SelectQueryExecution {
             throw new UserSessionCountLimitExceededException("User is creating more concurrent imhotep sessions than the limit: " + limits.concurrentImhotepSessionsLimit);
         }
         final StrictCloser strictCloser = new StrictCloser();
+
+        // SelectQuery can be closed after all cache has been uploaded
         final SelectQuery selectQuery = new SelectQuery(queryInfo, runningQueriesManager, this.query, clientInfo, limits, new DateTime(queryInfo.queryStartTimestamp),
                 null, (byte) sessions, queryMetadata, strictCloser, progressCallback);
+        final Closeable selectQueryRefCount = selectQuery.refCountedCloseable();
 
         try {
             timer.push("Acquire concurrent query lock");
@@ -401,9 +405,7 @@ public class SelectQueryExecution {
             selectQuery.checkCancelled();
             throw e;
         } finally {
-            if (!selectQuery.isAsynchronousRelease()) {
-                Closeables2.closeQuietly(selectQuery, log);
-            }
+            Closeables2.closeQuietly(selectQueryRefCount, log);
         }
     }
 
@@ -648,6 +650,7 @@ public class SelectQueryExecution {
                         // Cache upload
                         cacheUploadingCounter.incrementAndGet();
 
+                        final Closeable selectQueryRefCount = selectQuery.refCountedCloseable();// going to be closed asynchronously after cache is uploaded
                         cacheUploadExecutorService.submit(new Callable<Void>() {
                             @Override
                             public Void call() {
@@ -674,7 +677,7 @@ public class SelectQueryExecution {
                                     }
                                 } finally {
                                     if (cacheUploadingCounter.decrementAndGet() == 0) {
-                                        Closeables2.closeQuietly(selectQuery, log);
+                                        Closeables2.closeQuietly(selectQueryRefCount, log);
                                     }
                                     if (!cacheFile.delete()) {
                                         log.warn("Failed to delete " + cacheFile);
@@ -683,7 +686,6 @@ public class SelectQueryExecution {
                                 return null;
                             }
                         });
-                        selectQuery.markAsynchronousRelease(); // going to be closed asynchronously after cache is uploaded
                     }
 
                     return selectExecutionInformation;

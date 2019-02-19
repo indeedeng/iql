@@ -34,12 +34,14 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author vladimir
  */
 
-public class SelectQuery implements Closeable {
+public class SelectQuery {
     private static final Logger log = Logger.getLogger ( SelectQuery.class );
 
     public static int VERSION_FOR_HASHING = 5;
@@ -63,7 +65,7 @@ public class SelectQuery implements Closeable {
     RuntimeException cancellationException = null; // non-null iff query is cancelled
     DateTime queryStartTimestamp;
     private final CountDownLatch waitLock = new CountDownLatch(1);
-    private boolean asynchronousRelease = false;
+    private final AtomicInteger refCount = new AtomicInteger(0);
     long id;
     private boolean closed = false;
 
@@ -147,7 +149,7 @@ public class SelectQuery implements Closeable {
         }
     }
 
-    public void close() {
+    private void closeInternal() {
         Closeables2.closeQuietly(queryResourceCloser, log);
         if (!runningQueriesManager.isEnabled()) {
             return;
@@ -190,13 +192,31 @@ public class SelectQuery implements Closeable {
         waitLock.countDown();
     }
 
-    public void markAsynchronousRelease() {
-        this.asynchronousRelease = true;
-    }
-
+    /**
+     * At least one call of this method is required per an instance.
+     * The instance releases resources when all references are closed.
+     *
+     * @return
+     */
     @JsonIgnore
-    public boolean isAsynchronousRelease() {
-        return asynchronousRelease;
+    public Closeable refCountedCloseable() {
+        if (closed) {
+            throw new IllegalStateException("Can't reference already-closed SelectQuery");
+        }
+        this.refCount.incrementAndGet();
+        return new Closeable() {
+            final AtomicBoolean refCountClosed = new AtomicBoolean(false);
+
+            @Override
+            public void close() {
+                if (refCountClosed.getAndSet(true)) {
+                    return;
+                }
+                if (refCount.decrementAndGet() == 0) {
+                    SelectQuery.this.closeInternal();
+                }
+            }
+        };
     }
 
     public String getUsername() {
@@ -229,7 +249,7 @@ public class SelectQuery implements Closeable {
                 ", queryResourceCloser=" + queryResourceCloser +
                 ", queryStartTimestamp=" + queryStartTimestamp +
                 ", waitLock=" + waitLock +
-                ", asynchronousRelease=" + asynchronousRelease +
+                ", refCount=" + refCount +
                 ", id=" + id +
                 '}';
     }

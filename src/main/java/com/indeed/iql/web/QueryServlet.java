@@ -86,6 +86,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -389,8 +390,11 @@ public class QueryServlet {
                 final PrintWriter writer = resp.getWriter();
                 final EventStreamProgressCallback eventStreamProgressCallback = new EventStreamProgressCallback(queryRequestParams.isEventStream, writer);
                 final StrictCloser strictCloser = new StrictCloser();
-                SelectQuery selectQuery = new SelectQuery(queryInfo, runningQueriesManager, query, clientInfo, limits,
+
+                // SelectQuery can be closed after all cache has been uploaded
+                final SelectQuery selectQuery = new SelectQuery(queryInfo, runningQueriesManager, query, clientInfo, limits,
                         new DateTime(queryInfo.queryStartTimestamp), iql1SelectStatement, (byte) 1, queryMetadata, strictCloser, eventStreamProgressCallback);
+                final Closeable selectQueryRefCount = selectQuery.refCountedCloseable();
                 try {
                     selectQuery.lock(); // blocks and waits if necessary
 
@@ -400,10 +404,7 @@ public class QueryServlet {
 
                     runSelectStatementIQL1(selectQuery, queryRequestParams, writer, strictCloser);
                 } finally {
-                    // this must be closed. but we may have to defer it to the async thread finishing query processing
-                    if (!selectQuery.isAsynchronousRelease()) {
-                        Closeables2.closeQuietly(selectQuery, log);
-                    }
+                    Closeables2.closeQuietly(selectQueryRefCount, log);
                 }
             }
 
@@ -548,6 +549,7 @@ public class QueryServlet {
         queryMetadata.addItem("IQL-Query-Info", queryInfo.toJSON(), false);
 
         if (!args.cacheWriteDisabled && !isCached) {
+            final Closeable selectQueryRefCount = selectQuery.refCountedCloseable(); // going to be closed asynchronously after cache is uploaded
             cacheUploadExecutorService.submit(new Callable<Void>() {
                 @Override
                 public Void call() throws Exception {
@@ -564,12 +566,11 @@ public class QueryServlet {
                             log.warn("Failed to upload cache: " + cacheFileName, e);
                         }
                     } finally {
-                        Closeables2.closeQuietly(selectQuery, log);
+                        Closeables2.closeQuietly(selectQueryRefCount, log);
                     }
                     return null;
                 }
             });
-            selectQuery.markAsynchronousRelease(); // going to be closed asynchronously after cache is uploaded
         }
         finalizeQueryExecution(args, queryMetadata, outputStream, queryInfo);
     }
