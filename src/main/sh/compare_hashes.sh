@@ -62,7 +62,7 @@ mvn clean compile >> "${OUTPUT_FILE}"
 echo "Sampling queries"
 echo ""
 curl -G --compressed \
-    "${IQL_URL}"\
+    "${IQL_URL}/query"\
      --data-urlencode "q=FROM iqlquery $START_TIME $END_TIME WHERE iqlversion=2 error=0 GROUP BY q" \
      --data-urlencode "client=iqlhashcomparator" \
      --data-urlencode "username=$USER" \
