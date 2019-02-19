@@ -33,15 +33,18 @@ public class ComputeFieldExtremeValue implements Command {
     public final FieldSet field;
     public final AggregateMetric metric;
     public final Optional<AggregateFilter> filter;
+    public final boolean isFieldMax;
 
     public ComputeFieldExtremeValue(
         final FieldSet field,
         final AggregateMetric metric,
-        final Optional<AggregateFilter> filter
+        final Optional<AggregateFilter> filter,
+        final boolean isFieldMax
     ) {
         this.field = field;
         this.metric = metric;
         this.filter = filter;
+        this.isFieldMax = isFieldMax;
     }
 
     @Override
@@ -79,7 +82,7 @@ public class ComputeFieldExtremeValue implements Command {
             public void finish() {}
         };
         final FieldIterateOpts opts = new FieldIterateOpts();
-        opts.topK = Optional.of(new TopK(Optional.of(1), Optional.of(metric)));
+        opts.topK = Optional.of(new TopK(Optional.of(1), Optional.of(metric), isFieldMax));
         opts.filter = filter;
         new SimpleIterate(field, opts, Collections.emptyList(), Collections.emptyList()).evaluate(session, out);
         return result;

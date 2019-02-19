@@ -211,7 +211,8 @@ public class ImhotepSessionHolder implements Closeable {
                 params.stringFields,
                 params.termLimit,
                 params.sortStat,
-                params.sorted);
+                params.sorted,
+                params.sortOrder);
         return session.getFTGSIterator(convertedParams);
     }
 

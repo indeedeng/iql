@@ -35,11 +35,18 @@ public class ComputeFieldExtremeValue implements Command {
     private final FieldSet field;
     private final AggregateMetric metric;
     private final Optional<AggregateFilter> filter;
+    private final boolean isFieldMax;
 
-    public ComputeFieldExtremeValue(final FieldSet field, final AggregateMetric metric, final Optional<AggregateFilter> filter) {
+    public ComputeFieldExtremeValue(
+        final FieldSet field,
+        final AggregateMetric metric,
+        final Optional<AggregateFilter> filter,
+        final boolean isFieldMax
+    ) {
         this.field = field;
         this.metric = metric;
         this.filter = filter;
+        this.isFieldMax = isFieldMax;
     }
 
     @Override
@@ -60,7 +67,7 @@ public class ComputeFieldExtremeValue implements Command {
         return new com.indeed.iql2.execution.commands.ComputeFieldExtremeValue(
             field,
             metric.toExecutionMetric(namedMetricLookup, groupKeySet),
-            filter.transform(f -> f.toExecutionFilter(namedMetricLookup, groupKeySet))
+            filter.transform(f -> f.toExecutionFilter(namedMetricLookup, groupKeySet)), isFieldMax
         );
     }
 }

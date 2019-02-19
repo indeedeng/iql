@@ -44,6 +44,8 @@ import com.indeed.imhotep.io.RequestTools;
 import com.indeed.imhotep.io.SingleFieldRegroupTools;
 import com.indeed.imhotep.metrics.aggregate.AggregateStatTree;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
+import com.indeed.imhotep.StrictCloser;
+import com.indeed.imhotep.protobuf.SortOrder;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql.metadata.FieldType;
@@ -1246,13 +1248,14 @@ public class Session {
         final String[] stringFields = isIntField ? new String[0] : new String[]{fieldName};
         final FTGSParams params;
         if (topKParams.isPresent()) {
-            params = new FTGSParams(intFields, stringFields, topKParams.get().limit, topKParams.get().sortStatIndex, isSorted);
+            final SortOrder sortOrder = topKParams.get().isBottomK? SortOrder.DESCENDING : SortOrder.ASCENDING;
+            params = new FTGSParams(intFields, stringFields, topKParams.get().limit, topKParams.get().sortStatIndex, isSorted, sortOrder);
         } else if(ftgsRowLimit.isPresent()) {
             // TODO: can term limited request be unsorted?
             // Check if calling side expects first terms in sorted order.
-            params = new FTGSParams(intFields, stringFields, ftgsRowLimit.get(), -1, true);
+            params = new FTGSParams(intFields, stringFields, ftgsRowLimit.get(), -1, true, SortOrder.UNSORTED);
         } else {
-            params = new FTGSParams(intFields, stringFields, 0, -1, isSorted);
+            params = new FTGSParams(intFields, stringFields, 0, -1, isSorted, SortOrder.UNSORTED);
         }
 
         return session.getFTGSIterator(params);
@@ -1513,10 +1516,12 @@ public class Session {
     public static class RemoteTopKParams {
         public final int limit;
         public final int sortStatIndex;
+        public final boolean isBottomK;
 
-        public RemoteTopKParams(final int limit, final int sortStatIndex) {
+        public RemoteTopKParams(final int limit, final int sortStatIndex, final boolean isBottomK) {
             this.limit = limit;
             this.sortStatIndex = sortStatIndex;
+            this.isBottomK = isBottomK;
         }
     }
 

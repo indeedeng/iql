@@ -21,9 +21,14 @@ import com.indeed.iql2.execution.metrics.aggregate.AggregateMetric;
 public class TopK {
     public final Optional<Integer> limit;
     public final Optional<AggregateMetric> metric;
+    public final boolean isBottomK;
 
-    public TopK(Optional<Integer> limit, Optional<AggregateMetric> metric) {
+    public TopK(Optional<Integer> limit, Optional<AggregateMetric> metric, boolean isBottomK) {
+        if (!limit.isPresent() && !metric.isPresent()) {
+            throw new IllegalArgumentException("TopK should have limit or metic present");
+        }
         this.limit = limit;
         this.metric = metric;
+        this.isBottomK = isBottomK;
     }
 }

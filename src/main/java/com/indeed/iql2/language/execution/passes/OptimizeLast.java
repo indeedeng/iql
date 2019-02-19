@@ -24,6 +24,7 @@ import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocFilter;
 import com.indeed.iql2.language.DocMetric;
+import com.indeed.iql2.language.commands.TopK;
 import com.indeed.iql2.language.execution.ExecutionStep;
 import com.indeed.iql2.language.query.GroupBy;
 import it.unimi.dsi.fastutil.longs.LongAVLTreeSet;
@@ -61,9 +62,8 @@ public class OptimizeLast {
                     newSteps.add(new ExecutionStep.IterateStats(
                             explodeAndRegroup.field,
                             explodeAndRegroup.filter,
-                            explodeAndRegroup.limit,
                             queryLimit,
-                            explodeAndRegroup.metric,
+                            explodeAndRegroup.topK,
                             Optional.<Set<String>>absent(),
                             Optional.<Set<Long>>absent(),
                             fixForIteration(getGroupStats.stats),
@@ -94,9 +94,8 @@ public class OptimizeLast {
                     newSteps.add(new ExecutionStep.IterateStats(
                             explodeFieldIn.field,
                             Optional.<AggregateFilter>absent(),
-                            Optional.<Long>absent(),
                             queryLimit,
-                            Optional.<AggregateMetric>absent(),
+                            Optional.<TopK>absent(),
                             stringTermSubset,
                             intTermSubset,
                             fixForIteration(getGroupStats.stats),

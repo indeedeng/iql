@@ -381,14 +381,14 @@ public class PrettyPrint {
             @Override
             public Void visit(GroupBy.GroupByField groupByField) {
                 sb.append(getText(groupByField.field));
-                if (groupByField.metric.isPresent() || groupByField.limit.isPresent()) {
+                if (groupByField.isMetricPresent() || groupByField.isLimitPresent()) {
                     sb.append('[');
-                    if (groupByField.limit.isPresent()) {
-                        sb.append(groupByField.limit.get());
+                    if (groupByField.isLimitPresent()) {
+                        sb.append(groupByField.topK.get().limit.get());
                     }
-                    if (groupByField.metric.isPresent()) {
+                    if (groupByField.isMetricPresent()) {
                         sb.append(" BY ");
-                        pp(groupByField.metric.get(), consumer, clock);
+                        pp(groupByField.topK.get().metric.get(), consumer, clock);
                     }
                     if (groupByField.filter.isPresent()) {
                         sb.append(" HAVING ");

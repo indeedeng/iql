@@ -207,17 +207,24 @@ public interface Precomputed {
         public final FieldSet field;
         public final AggregateMetric metric;
         public final Optional<AggregateFilter> filter;
+        public final boolean isFieldMax;
 
-        public PrecomputedFieldExtremeValue(final FieldSet field, final AggregateMetric metric, final Optional<AggregateFilter> filter) {
+        public PrecomputedFieldExtremeValue(
+                final FieldSet field,
+                final AggregateMetric metric,
+                final Optional<AggregateFilter> filter,
+                final boolean isFieldMax
+                ) {
             this.field = field;
             this.metric = metric;
             this.filter = filter;
+            this.isFieldMax = isFieldMax;
         }
 
         @Override
         public Precomputation commands(final List<Dataset> datasets) {
             Preconditions.checkState(Dataset.datasetToScope(datasets).equals(field.datasets()));
-            return Precomputation.noContext(new ComputeFieldExtremeValue(field, metric, filter));
+            return Precomputation.noContext(new ComputeFieldExtremeValue(field, metric, filter, isFieldMax));
         }
 
         @Override
@@ -231,7 +238,7 @@ public interface Precomputed {
             return precomputed.apply(
                 new PrecomputedFieldExtremeValue(field,
                     metric.transform(f, g, h, i, groupByFunction),
-                    filter.transform(fil -> fil.transform(f, g, h, i, groupByFunction))
+                    filter.transform(fil -> fil.transform(f, g, h, i, groupByFunction)), isFieldMax
                 )
             );
         }

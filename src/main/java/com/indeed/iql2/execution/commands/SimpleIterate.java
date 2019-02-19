@@ -24,6 +24,7 @@ import com.indeed.imhotep.RemoteImhotepMultiSession;
 import com.indeed.imhotep.api.FTGAIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.metrics.aggregate.AggregateStatTree;
+import com.indeed.imhotep.protobuf.SortOrder;
 import com.indeed.iql2.Formatter;
 import com.indeed.iql2.execution.AggregateFilter;
 import com.indeed.iql2.execution.ImhotepSessionHolder;
@@ -113,10 +114,12 @@ public class SimpleIterate implements Command {
         final Set<QualifiedPush> allPushes = Sets.newHashSet();
         final List<AggregateMetric> metrics = Lists.newArrayList();
         final AggregateMetric topKMetricOrNull;
+        boolean isBottomK = false;
         if (opts.topK.isPresent()) {
             final TopK topK = opts.topK.get();
             if (topK.metric.isPresent()) {
                 topKMetricOrNull = topK.metric.get();
+                isBottomK = topK.isBottomK;
                 metrics.add(topKMetricOrNull);
             } else {
                 topKMetricOrNull = null;
@@ -124,6 +127,7 @@ public class SimpleIterate implements Command {
         } else {
             topKMetricOrNull = null;
         }
+        final SortOrder sortOrder = isBottomK? SortOrder.DESCENDING: SortOrder.ASCENDING;
         metrics.addAll(this.selecting);
         for (final AggregateMetric metric : metrics) {
             allPushes.addAll(metric.requires());
@@ -134,7 +138,7 @@ public class SimpleIterate implements Command {
         session.timer.pop();
 
         if (!requiresSortedRawFtgs() && !opts.sortedIntTermSubset.isPresent() && !opts.sortedStringTermSubset.isPresent()) {
-            evaluateMultiFtgs(session, out, allPushes, topKMetricOrNull);
+            evaluateMultiFtgs(session, out, allPushes, topKMetricOrNull, sortOrder);
             return;
         }
 
@@ -153,9 +157,16 @@ public class SimpleIterate implements Command {
         if (opts.topK.isPresent()) {
             if (opts.topK.get().limit.isPresent()) {
                 final int limit = opts.topK.get().limit.get();
-                collector = ResultCollector.topKCollector(out, session.numGroups, limit, TermSelects.COMPARATOR);
+                Comparator<TermSelects> comparator = TermSelects.COMPARATOR.reversed();
+                if (sortOrder == SortOrder.DESCENDING) {
+                    comparator = comparator.reversed();
+                }
+                collector = ResultCollector.topKCollector(out, session.numGroups, limit,comparator);
             } else {
-                final Comparator<TermSelects> comparator = TermSelects.COMPARATOR.reversed();
+                Comparator<TermSelects> comparator = TermSelects.COMPARATOR.reversed();
+                if (sortOrder == SortOrder.DESCENDING) {
+                    comparator = comparator.reversed();
+                }
                 collector = ResultCollector.allTermsCollector(out, session.numGroups, comparator);
             }
         } else {
@@ -211,7 +222,8 @@ public class SimpleIterate implements Command {
             final Session session,
             final ResultCollector out,
             final Set<QualifiedPush> allPushes,
-            final AggregateMetric topKMetricOrNull) throws ImhotepOutOfMemoryException {
+            final AggregateMetric topKMetricOrNull,
+            final SortOrder sortOrder) throws ImhotepOutOfMemoryException {
         session.timer.push("prepare for iteration");
         final Map<QualifiedPush, AggregateStatTree> atomicStats = session.pushMetrics(allPushes);
         final List<AggregateStatTree> selects = selecting.stream().map(x -> x.toImhotep(atomicStats)).collect(Collectors.toList());
@@ -259,7 +271,8 @@ public class SimpleIterate implements Command {
                 isIntField,
                 termLimit,
                 sortStat,
-                sorted
+                sorted,
+                sortOrder
         )) {
             session.timer.pop();
 
@@ -271,7 +284,10 @@ public class SimpleIterate implements Command {
             final ResultCollector collector;
 
             if (opts.topK.isPresent()) {
-                final Comparator<TermSelects> comparator = TermSelects.COMPARATOR.reversed();
+                Comparator<TermSelects> comparator = TermSelects.COMPARATOR.reversed();
+                if (sortOrder == SortOrder.DESCENDING) {
+                    comparator = comparator.reversed();
+                }
                 collector = ResultCollector.allTermsCollector(out, session.numGroups, comparator);
             } else {
                 collector = out;
@@ -329,7 +345,7 @@ public class SimpleIterate implements Command {
                 } else {
                     limitNum = topK.limit.get();
                 }
-                topKParams = Optional.of(new Session.RemoteTopKParams(limitNum, ((DocumentLevelMetric) topKMetric).getIndex()));
+                topKParams = Optional.of(new Session.RemoteTopKParams(limitNum, ((DocumentLevelMetric) topKMetric).getIndex(), opts.topK.get().isBottomK));
             }
         }
         return topKParams;

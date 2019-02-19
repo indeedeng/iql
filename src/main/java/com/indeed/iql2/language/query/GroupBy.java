@@ -27,6 +27,7 @@ import com.indeed.iql2.language.DocFilter;
 import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.Positional;
 import com.indeed.iql2.language.TimePeriods;
+import com.indeed.iql2.language.commands.TopK;
 import com.indeed.iql2.language.execution.ExecutionStep;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import it.unimi.dsi.fastutil.longs.LongList;
@@ -452,20 +453,26 @@ public abstract class GroupBy extends AbstractPositional {
     public static class GroupByField extends GroupBy {
         public final FieldSet field;
         public final Optional<AggregateFilter> filter;
-        public final Optional<Long> limit;
-        public final Optional<AggregateMetric> metric;
+        public final Optional<TopK> topK;
         public final boolean withDefault;
 
-        public GroupByField(FieldSet field, Optional<AggregateFilter> filter, Optional<Long> limit, Optional<AggregateMetric> metric, boolean withDefault) {
+        public GroupByField(FieldSet field, Optional<AggregateFilter> filter, Optional<TopK> topK, boolean withDefault) {
             this.field = field;
             this.filter = filter;
-            this.limit = limit;
-            this.metric = limit.isPresent() ? metric.or(Optional.of(new AggregateMetric.DocStats(new DocMetric.Count()))) : metric;
+            this.topK = topK;
             this.withDefault = withDefault;
         }
 
         public boolean isTopK() {
-            return metric.isPresent() && limit.isPresent();
+            return (isLimitPresent() && isMetricPresent());
+        }
+
+        public boolean isLimitPresent() {
+            return (topK.isPresent() && topK.get().limit.isPresent());
+        }
+
+        public boolean isMetricPresent() {
+            return (topK.isPresent() && topK.get().metric.isPresent());
         }
 
         @Override
@@ -481,13 +488,13 @@ public abstract class GroupBy extends AbstractPositional {
             } else {
                 filter = Optional.absent();
             }
-            final Optional<AggregateMetric> metric;
-            if (this.metric.isPresent()) {
-                metric = Optional.of(this.metric.get().transform(f, g, h, i, groupBy));
+            final Optional<TopK> topK;
+            if (this.topK.isPresent()) {
+                topK = this.topK.get().transformMetric(f, g, h, i, groupBy);
             } else {
-                metric = Optional.absent();
+                topK = Optional.absent();
             }
-            return groupBy.apply(new GroupByField(field, filter, limit, metric, withDefault))
+            return groupBy.apply(new GroupByField(field, filter, topK, withDefault))
                     .copyPosition(this);
         }
 
@@ -499,29 +506,29 @@ public abstract class GroupBy extends AbstractPositional {
             } else {
                 filter = Optional.absent();
             }
-            final Optional<AggregateMetric> metric;
-            if (this.metric.isPresent()) {
-                metric = Optional.of(f.apply(this.metric.get()));
+            Optional<TopK> topK;
+            if (this.topK.isPresent()) {
+                topK = this.topK.get().transformMetric(f);
             } else {
-                metric = Optional.absent();
+                topK = Optional.absent();
             }
-            return new GroupByField(field, filter, limit, metric, withDefault)
+            return new GroupByField(field, filter, topK, withDefault)
                     .copyPosition(this);
         }
 
         @Override
         public ExecutionStep executionStep(List<Dataset> datasets) {
-            return new ExecutionStep.ExplodeAndRegroup(field, filter, limit, metric, withDefault);
+            return new ExecutionStep.ExplodeAndRegroup(field, filter, topK, withDefault);
         }
 
         @Override
         public boolean isTotal() {
-            return withDefault || (!filter.isPresent() && !limit.isPresent());
+            return withDefault || (!filter.isPresent() && !isLimitPresent() ) ;
         }
 
         @Override
         public GroupBy makeTotal() throws CannotMakeTotalException {
-            return new GroupByField(field, filter, limit, metric, true);
+            return new GroupByField(field, filter, topK, true);
         }
     }
 
