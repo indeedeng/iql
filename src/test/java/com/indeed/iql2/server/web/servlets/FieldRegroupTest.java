@@ -82,7 +82,7 @@ public class FieldRegroupTest extends BasicTest {
 
     // IF THIS BREAKS, READ THE TODO BEFORE TRYING TO FIGURE OUT WHAT YOU DID
     @Test
-    public void testImplicitOrderingBackwards() throws Exception {
+    public void testImplicitOrderingBackwardsIntField() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         // TODO: Determinism amongst ties? This will almost certainly break
         expected.add(ImmutableList.of("15", "1", "15"));
@@ -91,6 +91,15 @@ public class FieldRegroupTest extends BasicTest {
         // IQL1 has another tie-breaker
         testIQL2AndLegacy(expected, "from organic yesterday today group by ojc[BOTTOM 3] select count(), ojc", true);
         testAll(addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc[bottom 3], allbit select count(), ojc", true);
+    }
+
+    @Test
+    public void testImplicitOrderingBackwardsStringField() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("b", "1", "2"));
+        expected.add(ImmutableList.of("c", "1", "4"));
+        expected.add(ImmutableList.of("a", "1", "4"));
+        testAll(expected, "from organic yesterday today group by tk[bottom 3], allbit select count()", true);
     }
 
     @Test

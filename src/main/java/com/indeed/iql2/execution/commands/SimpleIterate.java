@@ -284,8 +284,8 @@ public class SimpleIterate implements Command {
             final ResultCollector collector;
 
             if (opts.topK.isPresent()) {
-                Comparator<TermSelects> comparator = TermSelects.COMPARATOR.reversed();
-                if (sortOrder == SortOrder.DESCENDING) {
+                Comparator<TermSelects> comparator = TermSelects.COMPARATOR;
+                if (sortOrder == SortOrder.ASCENDING) {
                     comparator = comparator.reversed();
                 }
                 collector = ResultCollector.allTermsCollector(out, session.numGroups, comparator);

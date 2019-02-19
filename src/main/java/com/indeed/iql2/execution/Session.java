@@ -1253,9 +1253,9 @@ public class Session {
         } else if(ftgsRowLimit.isPresent()) {
             // TODO: can term limited request be unsorted?
             // Check if calling side expects first terms in sorted order.
-            params = new FTGSParams(intFields, stringFields, ftgsRowLimit.get(), -1, true, SortOrder.UNSORTED);
+            params = new FTGSParams(intFields, stringFields, ftgsRowLimit.get(), -1, true, SortOrder.UNDEFINED);
         } else {
-            params = new FTGSParams(intFields, stringFields, 0, -1, isSorted, SortOrder.UNSORTED);
+            params = new FTGSParams(intFields, stringFields, 0, -1, isSorted, SortOrder.UNDEFINED);
         }
 
         return session.getFTGSIterator(params);

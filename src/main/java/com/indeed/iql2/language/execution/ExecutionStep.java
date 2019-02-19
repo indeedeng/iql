@@ -173,16 +173,9 @@ public interface ExecutionStep {
             } else {
                 filter = Optional.absent();
             }
-            final Optional<AggregateMetric> metric;
-            if (this.topK.isPresent() && this.topK.get().metric.isPresent()) {
-                metric = Optional.of(f.apply(this.topK.get().metric.get()));
-            } else {
-                metric = Optional.absent();
-            }
-
             final Optional<TopK> topK;
             if (this.topK.isPresent()) {
-                topK = Optional.of(new TopK(this.topK.get().limit, metric, this.topK.get().isBottomK));
+                topK = this.topK.get().transformMetric(f);
             } else {
                 topK = Optional.absent();
             }
@@ -350,7 +343,6 @@ public interface ExecutionStep {
         private final Optional<AggregateFilter> filter;
         private final Optional<Integer> queryLimit;
         private final Optional<TopK> topK;
-        private final Optional<AggregateMetric> metric;
 
         private final Optional<Set<String>> stringTermSubset;
         private final Optional<Set<Long>> intTermSubset;
@@ -390,13 +382,11 @@ public interface ExecutionStep {
             } else {
                 filter = Optional.absent();
             }
-            final Optional<AggregateMetric> metric;
-            Optional<TopK> topK = this.topK;
-            if (this.topK.isPresent() && this.topK.get().metric.isPresent()) {
-                metric = Optional.of(f.apply(this.topK.get().metric.get()));
-                topK = Optional.of(new TopK(topK.get().limit, metric, topK.get().isBottomK));
+            final Optional<TopK> topK;
+            if (this.topK.isPresent()) {
+                topK = this.topK.get().transformMetric(f);
             } else {
-                metric = Optional.absent();
+                topK = Optional.absent();
             }
             final List<AggregateMetric> stats = new ArrayList<>();
             for (final AggregateMetric stat : this.stats) {

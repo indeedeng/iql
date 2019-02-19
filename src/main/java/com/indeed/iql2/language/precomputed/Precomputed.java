@@ -245,7 +245,7 @@ public interface Precomputed {
 
         @Override
         public Precomputed traverse1(Function<AggregateMetric, AggregateMetric> f) {
-            return new PrecomputedFieldExtremeValue(field, f.apply(metric), Optionals.traverse1(filter, f));
+            return new PrecomputedFieldExtremeValue(field, f.apply(metric), Optionals.traverse1(filter, f), isFieldMax);
         }
     }
 
