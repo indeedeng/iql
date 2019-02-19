@@ -42,7 +42,7 @@ public class TimePeriods {
         }
 
         if (timeBucketContext.timeInterval() != null) {
-            return parseTimeInterval(timeBucketContext.timeInterval().getText(), useLegacy);
+            return parseTimeIntervals(timeBucketContext.timeInterval().getText(), useLegacy);
         }
 
         if (timeBucketContext.bucket() != null) {
@@ -67,7 +67,7 @@ public class TimePeriods {
     }
 
     // parse time interval string.
-    public static List<Pair<Integer, TimeUnit>> parseTimeInterval(
+    public static List<Pair<Integer, TimeUnit>> parseTimeIntervals(
             final String interval,
             final boolean useLegacy) {
         final List<Pair<Integer, TimeUnit>> result = new ArrayList<>();
@@ -106,10 +106,10 @@ public class TimePeriods {
         return result;
     }
 
-    public static DateTime substract(final WallClock clock, final List<Pair<Integer, TimeUnit>> interval) {
+    public static DateTime subtract(final WallClock clock, final List<Pair<Integer, TimeUnit>> intervals) {
         DateTime dt = new DateTime(clock.currentTimeMillis()).withTimeAtStartOfDay();
-        for (final Pair<Integer, TimeUnit> unit : interval) {
-            dt = TimeUnit.subtract(dt, unit.getFirst(), unit.getSecond());
+        for (final Pair<Integer, TimeUnit> interval : intervals) {
+            dt = TimeUnit.subtract(dt, interval.getFirst(), interval.getSecond());
         }
         return dt;
     }

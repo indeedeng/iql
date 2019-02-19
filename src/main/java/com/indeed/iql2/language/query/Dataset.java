@@ -256,8 +256,8 @@ public class Dataset extends AbstractPositional {
                         "Relative time parsed by relativeTimeTerminal should have been successfully parsed by dateTimeTerminal");
 
                 if (relativeTimeTerminal.timeInterval() != null) {
-                    final List<Pair<Integer, TimeUnit>> interval = TimePeriods.parseTimeInterval(relativeTimeTerminal.timeInterval().getText(), useLegacy);
-                    return TimePeriods.substract(clock, interval);
+                    final List<Pair<Integer, TimeUnit>> intervals = TimePeriods.parseTimeIntervals(relativeTimeTerminal.timeInterval().getText(), useLegacy);
+                    return TimePeriods.subtract(clock, intervals);
                 }
             }
 
@@ -294,8 +294,8 @@ public class Dataset extends AbstractPositional {
         }
 
         if (context.timeIntervalOneWord() != null) {
-            final List<Pair<Integer, TimeUnit>> interval = TimePeriods.parseTimeInterval(context.timeIntervalOneWord().getText(), useLegacy);
-            return TimePeriods.substract(clock, interval);
+            final List<Pair<Integer, TimeUnit>> intervals = TimePeriods.parseTimeIntervals(context.timeIntervalOneWord().getText(), useLegacy);
+            return TimePeriods.subtract(clock, intervals);
         }
 
         throw new IqlKnownException.ParseErrorException("Failed to parse string as either DateTime or time period: " + context.getText());
