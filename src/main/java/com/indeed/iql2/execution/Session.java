@@ -1248,7 +1248,7 @@ public class Session {
         final String[] stringFields = isIntField ? new String[0] : new String[]{fieldName};
         final FTGSParams params;
         if (topKParams.isPresent()) {
-            final SortOrder sortOrder = topKParams.get().isBottomK? SortOrder.DESCENDING : SortOrder.ASCENDING;
+            final SortOrder sortOrder = topKParams.get().isBottomK ? SortOrder.DESCENDING : SortOrder.ASCENDING;
             params = new FTGSParams(intFields, stringFields, topKParams.get().limit, topKParams.get().sortStatIndex, isSorted, sortOrder);
         } else if(ftgsRowLimit.isPresent()) {
             // TODO: can term limited request be unsorted?

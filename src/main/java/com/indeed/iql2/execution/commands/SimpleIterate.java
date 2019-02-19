@@ -123,7 +123,7 @@ public class SimpleIterate implements Command {
         } else {
             topKMetricOrNull = null;
         }
-        final SortOrder sortOrder = isBottomK? SortOrder.DESCENDING: SortOrder.ASCENDING;
+        final SortOrder sortOrder = isBottomK ? SortOrder.DESCENDING : SortOrder.ASCENDING;
         metrics.addAll(this.selecting);
         for (final AggregateMetric metric : metrics) {
             allPushes.addAll(metric.requires());

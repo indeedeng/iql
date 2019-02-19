@@ -57,7 +57,7 @@ public class TopK {
         );
     }
 
-    public Optional<TopK> transformMetric(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupBy) {
+    public Optional<TopK> transformMetric(final Function<AggregateMetric, AggregateMetric> f, final Function<DocMetric, DocMetric> g, final Function<AggregateFilter, AggregateFilter> h, final Function<DocFilter, DocFilter> i, final Function<GroupBy, GroupBy> groupBy) {
             return Optional.of(new TopK(limit, Optional.of(metric.transform(f, g, h, i, groupBy)),isBottomK));
     }
 
