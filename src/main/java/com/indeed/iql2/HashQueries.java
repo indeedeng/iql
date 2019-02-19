@@ -28,8 +28,8 @@ import java.util.regex.Pattern;
 
 public class HashQueries {
     public static void main(final String[] args) throws IOException, URISyntaxException {
-        final String zkNodes = Objects.requireNonNull(System.getenv("IMHOTEP_ZK_NODES"), "Environment variable IMHOTEP_ZK_NODES must be configured to imhotep zookeeper nodes");
-        final String zkPath = Objects.requireNonNull(System.getenv("IMHOTEP_ZK_PATH"), "Environment variable IMHOTEP_ZK_PATH must be configured to imhotep zookeeper path");
+        final String zkNodes = Objects.requireNonNull(System.getenv("SHARDMASTER_ZK_NODES"), "Environment variable SHARDMASTER_ZK_NODES must be configured to imhotep zookeeper nodes");
+        final String zkPath = Objects.requireNonNull(System.getenv("SHARDMASTER_ZK_PATH"), "Environment variable SHARDMASTER_ZK_PATH must be configured to imhotep zookeeper path");
         final String iqlUrl = Objects.requireNonNull(System.getenv("IQL_URL"), "Environment variable IQL_URL must be configured to the URL at which IQL is available");
 
         final String inFile = args[0];
