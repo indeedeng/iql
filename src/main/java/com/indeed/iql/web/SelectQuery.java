@@ -21,6 +21,7 @@ import com.google.common.primitives.Longs;
 import com.indeed.imhotep.Shard;
 import com.indeed.iql1.sql.ast2.IQL1SelectStatement;
 import com.indeed.iql2.execution.progress.ProgressCallback;
+import com.indeed.util.core.io.Closeables2;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
@@ -146,6 +147,7 @@ public class SelectQuery implements Closeable {
     }
 
     public void close() {
+        Closeables2.closeQuietly(queryResourceCloser, log);
         if (!runningQueriesManager.isEnabled()) {
             return;
         }
