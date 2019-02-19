@@ -27,6 +27,7 @@ import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 
 import javax.annotation.Nullable;
+import javax.annotation.WillCloseWhenClosed;
 import java.io.Closeable;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
@@ -56,7 +57,7 @@ public class SelectQuery implements Closeable {
     @Nullable
     final IQL1SelectStatement parsedStatement;
     final QueryMetadata queryMetadata;
-    private Closeable queryResourceCloser;
+    private final Closeable queryResourceCloser;
     private final ProgressCallback progressCallback;
     @Nullable
     RuntimeException cancellationException = null; // non-null iff query is cancelled
@@ -68,17 +69,17 @@ public class SelectQuery implements Closeable {
 
 
     public SelectQuery(
-            QueryInfo queryInfo,
-            RunningQueriesManager runningQueriesManager,
-            String queryString,
-            ClientInfo clientInfo,
-            Limits limits,
-            DateTime querySubmitTimestamp,
-            IQL1SelectStatement parsedStatement,
-            byte sessions,
-            QueryMetadata queryMetadata,
-            Closeable queryResourceCloser,
-            ProgressCallback progressCallback
+            final QueryInfo queryInfo,
+            final RunningQueriesManager runningQueriesManager,
+            final String queryString,
+            final ClientInfo clientInfo,
+            final Limits limits,
+            final DateTime querySubmitTimestamp,
+            final IQL1SelectStatement parsedStatement,
+            final byte sessions,
+            final QueryMetadata queryMetadata,
+            @WillCloseWhenClosed final Closeable queryResourceCloser,
+            final ProgressCallback progressCallback
     ) {
         this.queryInfo = queryInfo;
         this.runningQueriesManager = runningQueriesManager;
@@ -98,7 +99,7 @@ public class SelectQuery implements Closeable {
     /**
      * Produces a Base64 encoded SHA-1 hash of the query and the list of shard names/versions which has to be sorted.
      */
-    public static String getQueryHash(String query, @Nullable Collection<Shard> shards, boolean csv) {
+    public static String getQueryHash(final String query, @Nullable final Collection<Shard> shards, final boolean csv) {
         final MessageDigest sha1;
         try {
             sha1 = MessageDigest.getInstance("SHA-1");
@@ -177,13 +178,13 @@ public class SelectQuery implements Closeable {
         }
     }
 
-    public void onInserted(long id) {
+    public void onInserted(final long id) {
         this.progressCallback.queryIdAssigned(id);
         this.queryInfo.queryId = id;
         this.id = id;
     }
 
-    public void onStarted(DateTime startedTimestamp) {
+    public void onStarted(final DateTime startedTimestamp) {
         log.debug("Started query " + shortHash + " as id " + id);
         this.queryStartTimestamp = startedTimestamp;
         waitLock.countDown();
@@ -232,6 +233,4 @@ public class SelectQuery implements Closeable {
                 ", id=" + id +
                 '}';
     }
-
-
 }
