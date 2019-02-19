@@ -2,6 +2,21 @@
 
 set -e
 
+if [[ -z "${SHARDMASTER_ZK_NODES}" ]]; then
+    echo "Fatal error: Must provide SHARDMASTER_ZK_NODES in environment" 1>&2
+    exit 1
+fi
+
+if [[ -z "${SHARDMASTER_ZK_PATH}" ]]; then
+    echo "Fatal error: Must provide SHARDMASTER_ZK_PATH in environment" 1>&2
+    exit 1
+fi
+
+if [[ -z "${IQL_URL}" ]]; then
+    echo "Fatal error: Must provide IQL_URL in environment" 1>&2
+    exit 1
+fi
+
 VERSION1=$1
 VERSION2=$2
 
