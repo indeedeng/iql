@@ -15,7 +15,6 @@
 package com.indeed.iql2.server.web.servlets.query;
 
 import au.com.bytecode.opencsv.CSVParser;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
@@ -107,14 +106,12 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class SelectQueryExecution {
     private static final Logger log = Logger.getLogger(SelectQueryExecution.class);
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     @VisibleForTesting
     public static final String METADATA_FILE_SUFFIX = ".meta";
 
@@ -424,8 +421,6 @@ public class SelectQueryExecution {
 
         private final ProgressCallback progressCallback;
 
-        private final AtomicInteger cacheUploadingCounter = new AtomicInteger(0);
-
         private ParsedQueryExecution(
                 final boolean isTopLevelQuery,
                 final CharStream inputStream,
@@ -648,8 +643,6 @@ public class SelectQueryExecution {
 
                     if (cacheEnabled) {
                         // Cache upload
-                        cacheUploadingCounter.incrementAndGet();
-
                         final Closeable selectQueryRefCount = selectQuery.refCountedCloseable();// going to be closed asynchronously after cache is uploaded
                         cacheUploadExecutorService.submit(new Callable<Void>() {
                             @Override
@@ -676,9 +669,7 @@ public class SelectQueryExecution {
                                         }
                                     }
                                 } finally {
-                                    if (cacheUploadingCounter.decrementAndGet() == 0) {
-                                        Closeables2.closeQuietly(selectQueryRefCount, log);
-                                    }
+                                    Closeables2.closeQuietly(selectQueryRefCount, log);
                                     if (!cacheFile.delete()) {
                                         log.warn("Failed to delete " + cacheFile);
                                     }
