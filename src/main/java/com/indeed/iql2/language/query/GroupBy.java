@@ -472,7 +472,7 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         public boolean isMetricPresent() {
-            return (topK.isPresent() && topK.get().metric.isPresent());
+            return (topK.isPresent());
         }
 
         @Override

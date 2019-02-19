@@ -140,7 +140,7 @@ public interface ExecutionStep {
         public final Optional<TopK> topK;
         public final boolean withDefault;
 
-        public ExplodeAndRegroup(final FieldSet field,final Optional<AggregateFilter> filter,final Optional<TopK> topK,final boolean withDefault) {
+        public ExplodeAndRegroup(final FieldSet field, final Optional<AggregateFilter> filter, final Optional<TopK> topK, final boolean withDefault) {
             this.field = field;
             this.filter = filter;
             this.topK = topK;
@@ -153,8 +153,9 @@ public interface ExecutionStep {
             if (filter.isPresent()) {
                 opts.filter = Optional.of(filter.get());
             }
-            if (topK.isPresent() && (topK.get().limit.isPresent() || topK.get().metric.isPresent()))
+            if (topK.isPresent()) {
                 opts.topK = topK;
+            }
             final Optional<String> withDefaultName;
             if (withDefault) {
                 withDefaultName = Optional.of("DEFAULT");
@@ -364,8 +365,9 @@ public interface ExecutionStep {
         @Override
         public List<Command> commands() {
             final FieldIterateOpts opts = new FieldIterateOpts();
-            if (topK.isPresent() && (topK.get().metric.isPresent() || topK.get().limit.isPresent()))
+            if (topK.isPresent()) {
                 opts.topK = topK;
+            }
             opts.limit = queryLimit;
             opts.filter = filter;
             opts.intTermSubset = intTermSubset;

@@ -48,10 +48,7 @@ public class IterateAndExplode implements Command {
         ValidationUtil.validateField(field, validationHelper, errorCollector, this);
 
         if (fieldOpts.topK.isPresent()) {
-            final TopK topK = fieldOpts.topK.get();
-            if (topK.metric.isPresent()) {
-                topK.metric.get().validate(validationHelper.datasets(), validationHelper, errorCollector);
-            }
+            fieldOpts.topK.get().metric.validate(validationHelper.datasets(), validationHelper, errorCollector);
         }
 
         if (fieldOpts.filter.isPresent()) {

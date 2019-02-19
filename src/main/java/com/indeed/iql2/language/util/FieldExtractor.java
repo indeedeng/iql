@@ -577,7 +577,7 @@ public class FieldExtractor {
 					set.addAll(getDatasetFields(groupByField.filter.get()));
 				}
 				if (groupByField.isMetricPresent()) {
-					set.addAll(getDatasetFields(groupByField.topK.get().metric.get()));
+					set.addAll(getDatasetFields(groupByField.topK.get().metric));
 				}
 				return set;
 			}

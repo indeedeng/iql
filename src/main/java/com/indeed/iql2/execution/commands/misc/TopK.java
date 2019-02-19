@@ -20,13 +20,10 @@ import com.indeed.iql2.execution.metrics.aggregate.AggregateMetric;
 // TODO: Why does this support Optionals? There's a limit one level up for the pure limit case.
 public class TopK {
     public final Optional<Integer> limit;
-    public final Optional<AggregateMetric> metric;
+    public final AggregateMetric metric;
     public final boolean isBottomK;
 
-    public TopK(Optional<Integer> limit, Optional<AggregateMetric> metric, boolean isBottomK) {
-        if (!limit.isPresent() && !metric.isPresent()) {
-            throw new IllegalArgumentException("TopK should have limit or metic present");
-        }
+    public TopK(Optional<Integer> limit, AggregateMetric metric, boolean isBottomK) {
         this.limit = limit;
         this.metric = metric;
         this.isBottomK = isBottomK;

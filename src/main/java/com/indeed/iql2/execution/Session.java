@@ -1463,7 +1463,8 @@ public class Session {
         }
         final FTGSIterator it;
         if (topKParams.isPresent()) {
-            it = session.getFTGSIterator(intFields, strFields, topKParams.get().limit, topKParams.get().sortStatIndex);
+            SortOrder sortOrder = topKParams.get().isBottomK ? SortOrder.DESCENDING : SortOrder.ASCENDING;
+            it = session.getFTGSIterator(intFields, strFields, topKParams.get().limit, topKParams.get().sortStatIndex, sortOrder);
         } else if (limit.isPresent()) {
             it = session.getFTGSIterator(intFields, strFields, limit.get());
         } else {

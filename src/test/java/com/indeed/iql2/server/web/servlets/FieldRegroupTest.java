@@ -74,21 +74,17 @@ public class FieldRegroupTest extends BasicTest {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("1", "84", "84"));
         expected.add(ImmutableList.of("3", "60", "180"));
-        // TODO: Introduce fully deterministic ordering for ties and increase to top 3?
-//        expected.add(ImmutableList.of("0", "2", "0"));
-        testAll(expected, "from organic yesterday today group by ojc[2] select count(), ojc", true);
-        testAll(addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc[2], allbit select count(), ojc", true);
+        expected.add(ImmutableList.of("0", "2", "0"));
+        testAll(expected, "from organic yesterday today group by ojc[3] select count(), ojc", true);
+        testAll(addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc[3], allbit select count(), ojc", true);
     }
 
-    // IF THIS BREAKS, READ THE TODO BEFORE TRYING TO FIGURE OUT WHAT YOU DID
     @Test
     public void testImplicitOrderingBackwardsIntField() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
-        // TODO: Determinism amongst ties? This will almost certainly break
         expected.add(ImmutableList.of("15", "1", "15"));
         expected.add(ImmutableList.of("5", "1", "5"));
         expected.add(ImmutableList.of("2", "1", "2"));
-        // IQL1 has another tie-breaker
         testIQL2AndLegacy(expected, "from organic yesterday today group by ojc[BOTTOM 3] select count(), ojc", true);
         testAll(addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc[bottom 3], allbit select count(), ojc", true);
     }

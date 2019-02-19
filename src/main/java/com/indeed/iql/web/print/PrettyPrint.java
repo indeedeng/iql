@@ -388,7 +388,7 @@ public class PrettyPrint {
                     }
                     if (groupByField.isMetricPresent()) {
                         sb.append(" BY ");
-                        pp(groupByField.topK.get().metric.get(), consumer, clock);
+                        pp(groupByField.topK.get().metric, consumer, clock);
                     }
                     if (groupByField.filter.isPresent()) {
                         sb.append(" HAVING ");
