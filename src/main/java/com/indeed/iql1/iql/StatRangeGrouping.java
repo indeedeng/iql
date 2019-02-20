@@ -14,11 +14,11 @@
  package com.indeed.iql1.iql;
 
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
+import com.indeed.iql.exceptions.IqlKnownException;
+import com.indeed.iql.web.Limits;
 import com.indeed.iql1.ez.EZImhotepSession;
 import com.indeed.iql1.ez.GroupKey;
 import com.indeed.iql1.ez.SingleStatReference;
-import com.indeed.iql.web.Limits;
-import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.util.serialization.Stringifier;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import org.apache.log4j.Logger;
@@ -78,7 +78,7 @@ public final class StatRangeGrouping extends Grouping {
                     " rows in memory. Please optimize the query.");
         }
 
-        final SingleStatReference statRef = session.pushStat(stat);
+        final SingleStatReference statRef = session.pushSingleStat(stat);
         boolean noGutters = this.noGutters;
         // Special case for Time regroups:
         // We want gutters enabled when it's the first regroup (we have only one group key) since the empty gutters get

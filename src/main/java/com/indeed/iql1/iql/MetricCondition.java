@@ -37,7 +37,7 @@ public final class MetricCondition implements Condition {
     }
 
     public void filter(final EZImhotepSession session) throws ImhotepOutOfMemoryException {
-        final SingleStatReference statReference = session.pushStat(stat);
+        final SingleStatReference statReference = session.pushSingleStat(stat);
         try {
             if(negation) {
                 session.filterNegation(statReference, min, max);
