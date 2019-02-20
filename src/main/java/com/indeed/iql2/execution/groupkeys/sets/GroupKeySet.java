@@ -16,10 +16,18 @@ package com.indeed.iql2.execution.groupkeys.sets;
 
 import com.indeed.iql2.execution.groupkeys.GroupKey;
 
+import java.util.Arrays;
+
 public interface GroupKeySet {
     GroupKeySet previous();
     int parentGroup(int group);
     GroupKey groupKey(int group);
     int numGroups();
     boolean isPresent(int group);
+
+    default int[] getParents() {
+        final int[] parents = new int[numGroups() + 1];
+        Arrays.setAll(parents, this::parentGroup);
+        return parents;
+    }
 }
