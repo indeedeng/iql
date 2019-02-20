@@ -111,20 +111,22 @@ DOUBLE: [0-9]+ ('.' [0-9]*)? ;
 
 fragment DIGIT : [0-9] ;
 fragment SINGLE_DOUBLE_DIGITS : ( DIGIT DIGIT | DIGIT ) ;
+fragment DATETIME_SECONDS
+    : ':' SINGLE_DOUBLE_DIGITS
+        ('.' DIGIT DIGIT DIGIT
+                (('+'|'-') DIGIT DIGIT ':' DIGIT DIGIT)?
+        )? ;
 // note that 4-digit terms like '2015' will be parsed as NAT since NAT is before DATETIME_TOKEN
 // There must be special processing for this corner case.
+// Also we allow strings like 'YYYY-MM-DDTHH' or 'YYYY-MM-DD HH:MM'
+// but not 'YYYY-MM-DD HH' because 'HH' could be start of next date and it's hard to detect on lexer level.
 DATETIME_TOKEN
  : DIGIT DIGIT DIGIT DIGIT
     ('-' SINGLE_DOUBLE_DIGITS
         ('-' SINGLE_DOUBLE_DIGITS
-            (('T'|' ') SINGLE_DOUBLE_DIGITS
-                (':' SINGLE_DOUBLE_DIGITS
-                    (':' SINGLE_DOUBLE_DIGITS
-                        ('.' DIGIT DIGIT DIGIT
-                            (('+'|'-') DIGIT DIGIT ':' DIGIT DIGIT)?
-                        )?
-                    )?
-                )
+            (
+                (' ' SINGLE_DOUBLE_DIGITS ':' SINGLE_DOUBLE_DIGITS DATETIME_SECONDS? )
+             |  ('T' SINGLE_DOUBLE_DIGITS (':' SINGLE_DOUBLE_DIGITS DATETIME_SECONDS? )? )
             )?
         )?
     )? ;
