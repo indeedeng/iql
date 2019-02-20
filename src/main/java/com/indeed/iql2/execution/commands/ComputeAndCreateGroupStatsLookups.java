@@ -32,6 +32,8 @@ import com.indeed.iql2.execution.commands.misc.IterateHandlers;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.util.core.Pair;
+import lombok.Data;
+import lombok.Value;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -114,13 +116,18 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
         }
     }
 
+    @Value
+    private static class FilterInfo {
+        private final AggregateFilter filter;
+        private final int windowSize;
+    }
+
     static boolean tryMultiDistinct(Session session, List<Pair<Command, String>> namedComputations) throws IOException, ImhotepOutOfMemoryException {
         session.timer.push("checking aggregate distinct eligibility");
-        final Map<String, AggregateFilter> namedFilters = new TreeMap<>();
+        final Map<String, FilterInfo> namedFilters = new TreeMap<>();
         boolean allDistinct = true;
         boolean allNonOrdered = true;
         boolean anyWindowed = false;
-        final List<Integer> windowSizes = new ArrayList<>();
         final Set<FieldSet> fields = new HashSet<>();
         for (final Pair<Command, String> computation : namedComputations) {
             final Command command = computation.getFirst();
@@ -129,21 +136,18 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
                 fields.add(distinct.field);
                 final AggregateFilter filter = distinct.filter.or(new AggregateFilter.Constant(true));
                 allNonOrdered &= !filter.needSorted();
-                windowSizes.add(1);
-                namedFilters.put(computation.getSecond(), filter);
+                namedFilters.put(computation.getSecond(), new FilterInfo(filter, 1));
             } else if (command instanceof GetSimpleGroupDistincts) {
                 final GetSimpleGroupDistincts distinct = (GetSimpleGroupDistincts) command;
                 fields.add(FieldSet.of(distinct.scope, distinct.field));
-                windowSizes.add(1);
-                namedFilters.put(computation.getSecond(), new AggregateFilter.Constant(true));
+                namedFilters.put(computation.getSecond(), new FilterInfo(new AggregateFilter.Constant(true), 1));
             } else if (command instanceof GetGroupDistinctsWindowed) {
                 final GetGroupDistinctsWindowed distinct = (GetGroupDistinctsWindowed) command;
                 fields.add(distinct.field);
                 final AggregateFilter filter = distinct.filter.or(new AggregateFilter.Constant(true));
                 allNonOrdered &= !filter.needSorted();
                 anyWindowed = true;
-                windowSizes.add(distinct.windowSize);
-                namedFilters.put(computation.getSecond(), filter);
+                namedFilters.put(computation.getSecond(), new FilterInfo(filter, distinct.windowSize));
             } else {
                 allDistinct = false;
             }
@@ -165,14 +169,17 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
                 .map(x -> session.sessions.get(x).session.buildSessionField(field.datasetFieldName(x)))
                 .collect(Collectors.toList());
 
-        final List<Map.Entry<String, AggregateFilter>> filters = new ArrayList<>(namedFilters.entrySet());
+        final List<Map.Entry<String, FilterInfo>> filters = new ArrayList<>(namedFilters.entrySet());
 
         final Set<QualifiedPush> allPushes = filters.stream()
-                .flatMap(x -> x.getValue().requires().stream())
+                .flatMap(x -> x.getValue().getFilter().requires().stream())
                 .collect(Collectors.toSet());
         final Map<QualifiedPush, AggregateStatTree> atomicStats = session.pushMetrics(allPushes);
         final List<AggregateStatTree> filterTrees = filters.stream()
-                .map(x -> x.getValue().toImhotep(atomicStats))
+                .map(x -> x.getValue().getFilter().toImhotep(atomicStats))
+                .collect(Collectors.toList());
+        final List<Integer> windowSizes = filters.stream()
+                .map(x -> x.getValue().getWindowSize())
                 .collect(Collectors.toList());
 
         final int numFilters = filters.size();
