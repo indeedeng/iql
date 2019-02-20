@@ -34,14 +34,12 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author vladimir
  */
 
-public class SelectQuery {
+public class SelectQuery implements Closeable {
     private static final Logger log = Logger.getLogger ( SelectQuery.class );
 
     public static int VERSION_FOR_HASHING = 5;
@@ -65,7 +63,6 @@ public class SelectQuery {
     RuntimeException cancellationException = null; // non-null iff query is cancelled
     DateTime queryStartTimestamp;
     private final CountDownLatch waitLock = new CountDownLatch(1);
-    private final AtomicInteger refCount = new AtomicInteger(0);
     long id;
     private boolean closed = false;
 
@@ -149,7 +146,8 @@ public class SelectQuery {
         }
     }
 
-    private void closeInternal() {
+    @Override
+    public void close() {
         Closeables2.closeQuietly(queryResourceCloser, log);
         if (!runningQueriesManager.isEnabled()) {
             return;
@@ -192,33 +190,6 @@ public class SelectQuery {
         waitLock.countDown();
     }
 
-    /**
-     * At least one call of this method is required per an instance.
-     * The instance releases resources when all references are closed.
-     *
-     * @return
-     */
-    @JsonIgnore
-    public Closeable refCountedCloseable() {
-        if (closed) {
-            throw new IllegalStateException("Can't reference already-closed SelectQuery");
-        }
-        this.refCount.incrementAndGet();
-        return new Closeable() {
-            final AtomicBoolean refCountClosed = new AtomicBoolean(false);
-
-            @Override
-            public void close() {
-                if (refCountClosed.getAndSet(true)) {
-                    return;
-                }
-                if (refCount.decrementAndGet() == 0) {
-                    SelectQuery.this.closeInternal();
-                }
-            }
-        };
-    }
-
     public String getUsername() {
         return clientInfo.username;
     }
@@ -249,7 +220,6 @@ public class SelectQuery {
                 ", queryResourceCloser=" + queryResourceCloser +
                 ", queryStartTimestamp=" + queryStartTimestamp +
                 ", waitLock=" + waitLock +
-                ", refCount=" + refCount +
                 ", id=" + id +
                 '}';
     }

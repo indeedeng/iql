@@ -72,6 +72,7 @@ import com.indeed.iql2.language.query.shardresolution.ShardResolver;
 import com.indeed.iql2.language.util.FieldExtractor;
 import com.indeed.util.core.Pair;
 import com.indeed.util.core.io.Closeables2;
+import com.indeed.util.core.reference.SharedReference;
 import com.indeed.util.core.time.WallClock;
 import com.indeed.util.logging.TracingTreeTimer;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
@@ -87,7 +88,6 @@ import org.joda.time.format.ISODateTimeFormat;
 
 import javax.annotation.Nullable;
 import java.io.BufferedReader;
-import java.io.Closeable;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -387,22 +387,23 @@ public class SelectQueryExecution {
         final StrictCloser strictCloser = new StrictCloser();
 
         // SelectQuery can be closed after all cache has been uploaded
-        final SelectQuery selectQuery = new SelectQuery(queryInfo, runningQueriesManager, this.query, clientInfo, limits, new DateTime(queryInfo.queryStartTimestamp),
-                null, (byte) sessions, queryMetadata, strictCloser, progressCallback);
-        final Closeable selectQueryRefCount = selectQuery.refCountedCloseable();
+        final SharedReference<SelectQuery> selectQuery = SharedReference.create(
+                new SelectQuery(queryInfo, runningQueriesManager, this.query, clientInfo, limits, new DateTime(queryInfo.queryStartTimestamp),
+                        null, (byte) sessions, queryMetadata, strictCloser, progressCallback)
+        );
 
         try {
             timer.push("Acquire concurrent query lock");
-            selectQuery.lock();
+            selectQuery.get().lock();
             timer.pop();
-            queryInfo.queryStartTimestamp = selectQuery.getQueryStartTimestamp().getMillis();
+            queryInfo.queryStartTimestamp = selectQuery.get().getQueryStartTimestamp().getMillis();
             return new ParsedQueryExecution(true, parseResult.inputStream, out, warnings, resultFormat, progressCallback,
                     query, limits.queryInMemoryRowsLimit, selectQuery, strictCloser).executeParsedQuery();
         } catch (final Exception e) {
-            selectQuery.checkCancelled();
+            selectQuery.get().checkCancelled();
             throw e;
         } finally {
-            Closeables2.closeQuietly(selectQueryRefCount, log);
+            Closeables2.closeQuietly(selectQuery, log);
         }
     }
 
@@ -414,7 +415,7 @@ public class SelectQueryExecution {
         private final ResultFormat resultFormat;
 
         private final int groupLimit;
-        private final SelectQuery selectQuery;
+        private final SharedReference<SelectQuery> selectQuery;
         private final StrictCloser strictCloser;
 
         private final Query query;
@@ -430,7 +431,7 @@ public class SelectQueryExecution {
                 final ProgressCallback progressCallback,
                 final Query query,
                 final @Nullable Integer groupLimit,
-                final SelectQuery selectQuery,
+                final SharedReference<SelectQuery> selectQuery,
                 final StrictCloser strictCloser) {
             this.isTopLevelQuery = isTopLevelQuery;
             this.inputStream = inputStream;
@@ -643,7 +644,7 @@ public class SelectQueryExecution {
 
                     if (cacheEnabled) {
                         // Cache upload
-                        final Closeable selectQueryRefCount = selectQuery.refCountedCloseable();// going to be closed asynchronously after cache is uploaded
+                        final SharedReference<SelectQuery> selectQueryRef = selectQuery.copy(); // going to be closed asynchronously after cache is uploaded
                         cacheUploadExecutorService.submit(new Callable<Void>() {
                             @Override
                             public Void call() {
@@ -669,7 +670,7 @@ public class SelectQueryExecution {
                                         }
                                     }
                                 } finally {
-                                    Closeables2.closeQuietly(selectQueryRefCount, log);
+                                    Closeables2.closeQuietly(selectQueryRef, log);
                                     if (!cacheFile.delete()) {
                                         log.warn("Failed to delete " + cacheFile);
                                     }

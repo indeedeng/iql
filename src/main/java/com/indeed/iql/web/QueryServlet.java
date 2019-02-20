@@ -61,6 +61,7 @@ import com.indeed.iql2.server.web.servlets.query.SelectQueryExecution;
 import com.indeed.iql2.sqltoiql.AntlrParserGenerator;
 import com.indeed.iql2.sqltoiql.SQLToIQLParser;
 import com.indeed.util.core.io.Closeables2;
+import com.indeed.util.core.reference.SharedReference;
 import com.indeed.util.core.time.StoppedClock;
 import com.indeed.util.core.time.WallClock;
 import com.indeed.util.logging.TracingTreeTimer;
@@ -86,7 +87,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -392,19 +392,19 @@ public class QueryServlet {
                 final StrictCloser strictCloser = new StrictCloser();
 
                 // SelectQuery can be closed after all cache has been uploaded
-                final SelectQuery selectQuery = new SelectQuery(queryInfo, runningQueriesManager, query, clientInfo, limits,
-                        new DateTime(queryInfo.queryStartTimestamp), iql1SelectStatement, (byte) 1, queryMetadata, strictCloser, eventStreamProgressCallback);
-                final Closeable selectQueryRefCount = selectQuery.refCountedCloseable();
+                final SharedReference<SelectQuery> selectQuery = SharedReference.create(
+                        new SelectQuery(queryInfo, runningQueriesManager, query, clientInfo, limits,
+                                new DateTime(queryInfo.queryStartTimestamp), iql1SelectStatement, (byte) 1, queryMetadata, strictCloser, eventStreamProgressCallback)
+                );
                 try {
-                    selectQuery.lock(); // blocks and waits if necessary
+                    selectQuery.get().lock(); // blocks and waits if necessary
 
-                    queryInfo.queryStartTimestamp = selectQuery.queryStartTimestamp.getMillis();   // ignore time spent waiting
+                    queryInfo.queryStartTimestamp = selectQuery.get().queryStartTimestamp.getMillis();   // ignore time spent waiting
 
                     // actually process
-
                     runSelectStatementIQL1(selectQuery, queryRequestParams, writer, strictCloser);
                 } finally {
-                    Closeables2.closeQuietly(selectQueryRefCount, log);
+                    Closeables2.closeQuietly(selectQuery, log);
                 }
             }
 
@@ -414,18 +414,18 @@ public class QueryServlet {
     }
 
     private void runSelectStatementIQL1(
-            final SelectQuery selectQuery,
+            final SharedReference<SelectQuery> selectQuery,
             final QueryRequestParams args,
             final PrintWriter outputStream,
             final StrictCloser strictCloser
     ) throws IOException {
-        final QueryInfo queryInfo = selectQuery.queryInfo;
-        final IQL1SelectStatement parsedQuery = selectQuery.parsedStatement;
+        final QueryInfo queryInfo = selectQuery.get().queryInfo;
+        final IQL1SelectStatement parsedQuery = selectQuery.get().parsedStatement;
         // hashing is done before calling translate so only original JParsec parsing is considered
         final String queryForHashing = parsedQuery.toHashKeyString();
 
         final IQLQuery iqlQuery = IQLTranslator.translate(parsedQuery, imhotepClient,
-                args.imhotepUserName, metadataCacheIQL1, selectQuery.limits, queryInfo, strictCloser);
+                args.imhotepUserName, metadataCacheIQL1, selectQuery.get().limits, queryInfo, strictCloser);
 
         queryInfo.numShards = iqlQuery.getShards().size();
         queryInfo.datasetFields = iqlQuery.getDatasetFields();
@@ -450,7 +450,7 @@ public class QueryServlet {
         long endTimeMillis = System.currentTimeMillis();
         queryInfo.cached = isCached;
         queryInfo.cacheCheckMillis = endTimeMillis - beginTimeMillis;
-        final QueryMetadata queryMetadata = selectQuery.queryMetadata;
+        final QueryMetadata queryMetadata = selectQuery.get().queryMetadata;
 
         queryMetadata.addItem("IQL-Cached", isCached, true);
 
@@ -532,7 +532,7 @@ public class QueryServlet {
         } catch (ImhotepOutOfMemoryException e) {
             throw Throwables.propagate(e);
         } catch (final Exception e) {
-            selectQuery.checkCancelled();
+            selectQuery.get().checkCancelled();
             throw Throwables.propagate(e);
         } finally {
             try {
@@ -549,7 +549,7 @@ public class QueryServlet {
         queryMetadata.addItem("IQL-Query-Info", queryInfo.toJSON(), false);
 
         if (!args.cacheWriteDisabled && !isCached) {
-            final Closeable selectQueryRefCount = selectQuery.refCountedCloseable(); // going to be closed asynchronously after cache is uploaded
+            final SharedReference<SelectQuery> selectQueryRef = selectQuery.copy();
             cacheUploadExecutorService.submit(new Callable<Void>() {
                 @Override
                 public Void call() throws Exception {
@@ -566,7 +566,7 @@ public class QueryServlet {
                             log.warn("Failed to upload cache: " + cacheFileName, e);
                         }
                     } finally {
-                        Closeables2.closeQuietly(selectQueryRefCount, log);
+                        Closeables2.closeQuietly(selectQueryRef, log);
                     }
                     return null;
                 }
