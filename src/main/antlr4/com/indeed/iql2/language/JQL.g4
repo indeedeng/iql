@@ -179,7 +179,6 @@ aggregateMetricEof [boolean useLegacy]
 
 jqlAggregateMetric
     : field=identifier '.' syntacticallyAtomicJqlAggregateMetric # AggregateQualified
-    | IF filter=jqlAggregateFilter THEN trueCase=jqlAggregateMetric ELSE falseCase=jqlAggregateMetric # AggregateIfThenElse
     | LAG '(' NAT ',' jqlAggregateMetric ')' # AggregateLag
     | RUNNING '(' jqlAggregateMetric ')' # AggregateRunning
     | PARENT '(' jqlAggregateMetric ')' # AggregateParent
@@ -216,6 +215,7 @@ jqlAggregateMetric
     | <assoc=right> jqlAggregateMetric '^' jqlAggregateMetric # AggregatePower
     | jqlAggregateMetric (multiply='*'|divide='/'|modulus='%') jqlAggregateMetric # AggregateMultiplyOrDivideOrModulus
     | jqlAggregateMetric (plus='+'|minus='-') jqlAggregateMetric # AggregatePlusOrMinus
+    | IF filter=jqlAggregateFilter THEN trueCase=jqlAggregateMetric ELSE falseCase=jqlAggregateMetric # AggregateIfThenElse
     | jqlAggregateMetric AS name=identifier # AggregateNamed
     | '[' jqlDocMetric ']' # AggregateSum
     | '(' jqlAggregateMetric ')' # AggregateParens
@@ -342,12 +342,12 @@ jqlDocMetric
     | MIN '(' metrics+=jqlDocMetric (',' metrics += jqlDocMetric)* ')' # DocMin
     | MAX '(' metrics+=jqlDocMetric (',' metrics += jqlDocMetric)* ')' # DocMax
     | M '(' jqlDocFilter ')' # DocMetricFilter
-    | IF filter=jqlDocFilter THEN trueCase=jqlDocMetric ELSE falseCase=jqlDocMetric # DocIfThenElse
     | '-' jqlDocMetric # DocNegate
     | jqlDocMetric (multiply='*'|divide='/'|modulus='%') jqlDocMetric # DocMultOrDivideOrModulus
     | jqlDocMetric (plus='+'|minus='-') jqlDocMetric # DocPlusOrMinus
     | jqlDocMetric (gte='>='|gt='>'|lte='<='|lt='<'|eq='='|neq='!=') jqlDocMetric # DocInequality
     | '(' jqlDocMetric ')' # DocMetricParens
+    | IF filter=jqlDocFilter THEN trueCase=jqlDocMetric ELSE falseCase=jqlDocMetric # DocIfThenElse
     | jqlDocMetricAtom # DocAtom
     | integer # DocInt
     | DOCID '(' ')' # DocId

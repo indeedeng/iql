@@ -27,6 +27,7 @@ import com.indeed.util.core.time.WallClock;
 import com.indeed.util.logging.TracingTreeTimer;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
+import org.junit.Assert;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
@@ -136,6 +137,37 @@ public class AggregateMetricsTest {
                                 )
                         )
                 )
+        );
+    }
+
+    @Test
+    public void testIfThenElsePrecedence() {
+        Assert.assertEquals(
+                new AggregateMetric.IfThenElse(
+                        new AggregateFilter.MetricIs(aggField("X"), new AggregateMetric.Constant(0)),
+                        aggField("Y"),
+                        new Divide(aggField("Z"), new AggregateMetric.Constant(100))
+                ),
+                PARSE_IQL2_AGGREGATE_METRIC.apply("if X=0 then Y else Z / 100")
+        );
+        Assert.assertEquals(
+                new AggregateMetric.IfThenElse(
+                        new AggregateFilter.MetricIs(aggField("X"), new AggregateMetric.Constant(0)),
+                        aggField("Y"),
+                        new Divide(aggField("Z"), new AggregateMetric.Constant(100))
+                ),
+                PARSE_IQL2_AGGREGATE_METRIC.apply("if X=0 then Y else (Z / 100)")
+        );
+        Assert.assertEquals(
+                new Divide(
+                        new AggregateMetric.IfThenElse(
+                                new AggregateFilter.MetricIs(aggField("X"), new AggregateMetric.Constant(0)),
+                                aggField("Y"),
+                                aggField("Z")
+                        ),
+                        new AggregateMetric.Constant(100)
+                ),
+                PARSE_IQL2_AGGREGATE_METRIC.apply("(if X=0 then Y else Z) / 100")
         );
     }
 }
