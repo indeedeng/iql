@@ -14,10 +14,8 @@
 
 package com.indeed.iql2.execution;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
 public enum GroupLookupMergeType {
     SumAll,
     TakeTheOneUniqueValue,
-    FailIfPresent;
+    FailIfPresent
 }

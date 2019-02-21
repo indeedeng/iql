@@ -89,7 +89,7 @@ public class FieldExtractor {
 
 	private static Set<DatasetField> union(final Set<DatasetField> set1, final Set<DatasetField> set2) {
 		return Sets.union(set1, set2).immutableCopy();
-	};
+	}
 
 	public static Set<DatasetField> getDatasetFields(final Query query) {
 
@@ -516,7 +516,7 @@ public class FieldExtractor {
 				return getDatasetFields(random.metric);
 			}
 		});
-	};
+	}
 
 
 	@Nonnull

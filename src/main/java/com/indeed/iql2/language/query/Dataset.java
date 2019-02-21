@@ -156,7 +156,7 @@ public class Dataset extends AbstractPositional {
             final DateTime defaultEnd,
             final JQLParser.DatasetOptTimeContext datasetOptTimeContext,
             final Query.Context context) {
-        final Object[] ref = new Object[1];
+        final Pair<Dataset, Optional<DocFilter>>[] ref = new Pair[1];
         final ScopedFieldResolver fieldResolver = context.fieldResolver;
 
         datasetOptTimeContext.enterRule(new JQLBaseListener() {
@@ -210,7 +210,7 @@ public class Dataset extends AbstractPositional {
             throw new UnsupportedOperationException("Unhandled partialDataset: " + datasetOptTimeContext.getText());
         }
 
-        return (Pair<Dataset, Optional<DocFilter>>) ref[0];
+        return ref[0];
     }
 
     private static Map<Positioned<String>, Positioned<String>> parseFieldAliases(JQLParser.AliasesContext aliases, final ScopedFieldResolver fieldResolver) {

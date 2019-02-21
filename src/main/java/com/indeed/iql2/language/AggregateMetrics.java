@@ -383,7 +383,7 @@ public class AggregateMetrics {
                 final AggregateMetric totalCount = parseJQLAggregateMetric(ctx.total, context);
                 final DocMetric groupingMetric = DocMetrics.parseJQLDocMetric(ctx.grouping, context);
 
-                final GroupBy.GroupByMetric modelGrouping = new GroupBy.GroupByMetric(groupingMetric, lowerLimit, upperLimit, stepSize, true, true);;
+                final GroupBy.GroupByMetric modelGrouping = new GroupBy.GroupByMetric(groupingMetric, lowerLimit, upperLimit, stepSize, true, true);
 
                 final AggregateMetric modelRatio;
                 if (useRatio != null && useRatio.toLowerCase().equals("true")){

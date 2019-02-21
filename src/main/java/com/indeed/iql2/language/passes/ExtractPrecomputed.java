@@ -462,6 +462,6 @@ public class ExtractPrecomputed {
 
     private enum ComputationType {
         PreComputation,
-        PostComputation;
+        PostComputation
     }
 }
