@@ -26,7 +26,7 @@ import java.util.List;
 public interface Expression {
     public <Z> Z match(Matcher<Z> matcher);
 
-    public static abstract class Matcher<Z> {
+    public abstract static class Matcher<Z> {
 
         protected Z binaryExpression(Expression left, Op op, Expression right) {
             return otherwise();

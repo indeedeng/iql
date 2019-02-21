@@ -432,7 +432,7 @@ public class SelectQueryExecution {
                 final ResultFormat resultFormat,
                 final ProgressCallback progressCallback,
                 final Query query,
-                final @Nullable Integer groupLimit,
+                @Nullable final Integer groupLimit,
                 final SelectQuery selectQuery,
                 final StrictCloser strictCloser) {
             this.isTopLevelQuery = isTopLevelQuery;

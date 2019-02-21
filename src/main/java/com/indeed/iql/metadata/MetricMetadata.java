@@ -24,18 +24,23 @@ import javax.annotation.Nullable;
  * @author vladimir
  */
 public class MetricMetadata {
-    public @Nonnull final String name;
-    public @Nullable String fieldAlias;
-    public @Nullable String description;
-    public @Nullable String expression;
-    public @Nullable String unit;
+    @Nonnull
+    public final String name;
+    @Nullable
+    public String fieldAlias;
+    @Nullable
+    public String description;
+    @Nullable
+    public String expression;
+    @Nullable
+    public String unit;
     public boolean isHidden = false;
 
     // IQL2 only
     public boolean isAlias;
 
     // TODO delete
-    public MetricMetadata(final String name, final String expression, final String description, final @Nullable String fieldAlias) {
+    public MetricMetadata(final String name, final String expression, final String description, @Nullable final String fieldAlias) {
         this.name = name;
         this.expression = expression;
         this.description = description;

@@ -401,8 +401,9 @@ public class EZImhotepSession implements Closeable {
     }
 
     // @deprecated due to inefficiency. use splitAll()
+    @Nullable
     @Deprecated
-    public @Nullable Int2ObjectMap<GroupKey> explodeEachGroup(IntField field, long[] terms, @Nullable Int2ObjectMap<GroupKey> groupKeys) throws ImhotepOutOfMemoryException {
+    public Int2ObjectMap<GroupKey> explodeEachGroup(IntField field, long[] terms, @Nullable Int2ObjectMap<GroupKey> groupKeys) throws ImhotepOutOfMemoryException {
         if(terms.length == 0) {
             return new Int2ObjectOpenHashMap<GroupKey>();
         }
@@ -438,8 +439,9 @@ public class EZImhotepSession implements Closeable {
     }
 
     // @deprecated due to inefficiency. use splitAll()
+    @Nullable
     @Deprecated
-    public @Nullable Int2ObjectMap<GroupKey> explodeEachGroup(StringField field, String[] terms, @Nullable Int2ObjectMap<GroupKey> groupKeys) throws ImhotepOutOfMemoryException {
+    public Int2ObjectMap<GroupKey> explodeEachGroup(StringField field, String[] terms, @Nullable Int2ObjectMap<GroupKey> groupKeys) throws ImhotepOutOfMemoryException {
         if(terms.length == 0) {
             return new Int2ObjectOpenHashMap<GroupKey>();
         }
@@ -478,7 +480,8 @@ public class EZImhotepSession implements Closeable {
         limits.assertQueryInMemoryRowsLimit(newNumGroups);
     }
 
-    public @Nullable Int2ObjectMap<GroupKey> splitAll(Field field, @Nullable Int2ObjectMap<GroupKey> groupKeys, int termLimit) throws ImhotepOutOfMemoryException {
+    @Nullable
+    public Int2ObjectMap<GroupKey> splitAll(Field field, @Nullable Int2ObjectMap<GroupKey> groupKeys, int termLimit) throws ImhotepOutOfMemoryException {
         final Int2ObjectMap<GroupKey> ret = groupKeys == null ? null : new Int2ObjectOpenHashMap<GroupKey>();
         if (field.isIntField()) {
             final IntField intField = (IntField) field;
@@ -533,7 +536,8 @@ public class EZImhotepSession implements Closeable {
         return newNumGroups;
     }
 
-    public @Nullable Int2ObjectMap<GroupKey> splitAllTopK(Field field, @Nullable Int2ObjectMap<GroupKey> groupKeys, int topK, Stats.Stat stat, boolean bottom) throws ImhotepOutOfMemoryException {
+    @Nullable
+    public Int2ObjectMap<GroupKey> splitAllTopK(Field field, @Nullable Int2ObjectMap<GroupKey> groupKeys, int topK, Stats.Stat stat, boolean bottom) throws ImhotepOutOfMemoryException {
         final Int2ObjectMap<GroupKey> ret = groupKeys == null ? null : new Int2ObjectOpenHashMap<GroupKey>();
         if (field.isIntField()) {
             final IntField intField = (IntField) field;
@@ -579,7 +583,7 @@ public class EZImhotepSession implements Closeable {
         return ret;
     }
 
-    private int getStringRemapRules(final Field field, final @Nullable Int2ObjectMap<GroupKey> groupKeys, Int2ObjectMap<GroupKey> newGroupKeys, final GroupMultiRemapMessage[] rules, final int ruleIndex, int positiveGroup, final int group, final List<String> termList) {
+    private int getStringRemapRules(final Field field, @Nullable final Int2ObjectMap<GroupKey> groupKeys, Int2ObjectMap<GroupKey> newGroupKeys, final GroupMultiRemapMessage[] rules, final int ruleIndex, int positiveGroup, final int group, final List<String> termList) {
         final GroupMultiRemapMessage.Builder remapMessageBuilder = GroupMultiRemapMessage.newBuilder();
         remapMessageBuilder.setTargetGroup(group);
         remapMessageBuilder.setNegativeGroup(0);
@@ -588,7 +592,7 @@ public class EZImhotepSession implements Closeable {
         return positiveGroup;
     }
 
-    private int getIntRemapRules(final Field field, final @Nullable Int2ObjectMap<GroupKey> groupKeys, final Int2ObjectMap<GroupKey> newGroupKeys, final GroupMultiRemapMessage[] rules, final int ruleIndex, int positiveGroup, final int group, final long[] nativeArray) {
+    private int getIntRemapRules(final Field field, @Nullable final Int2ObjectMap<GroupKey> groupKeys, final Int2ObjectMap<GroupKey> newGroupKeys, final GroupMultiRemapMessage[] rules, final int ruleIndex, int positiveGroup, final int group, final long[] nativeArray) {
         final GroupMultiRemapMessage.Builder remapMessageBuilder = GroupMultiRemapMessage.newBuilder();
         remapMessageBuilder.setTargetGroup(group);
         remapMessageBuilder.setNegativeGroup(0);
@@ -599,7 +603,7 @@ public class EZImhotepSession implements Closeable {
 
     private int getStringRegroupConditions(
             final Field field,
-            final @Nullable Int2ObjectMap<GroupKey> groupKeys,
+            @Nullable final Int2ObjectMap<GroupKey> groupKeys,
             final Int2ObjectMap<GroupKey> newGroupKeys,
             int positiveGroup,
             final int group,
@@ -624,7 +628,7 @@ public class EZImhotepSession implements Closeable {
 
     private int getIntRegroupConditions(
             final Field field,
-            final @Nullable Int2ObjectMap<GroupKey> groupKeys,
+            @Nullable final Int2ObjectMap<GroupKey> groupKeys,
             final Int2ObjectMap<GroupKey> newGroupKeys,
             int positiveGroup,
             final int group,
@@ -797,7 +801,7 @@ public class EZImhotepSession implements Closeable {
         return callback.intTermListsMap;
     }
 
-    public static abstract class FTGSCallback {
+    public abstract static class FTGSCallback {
 
         private final long[] stats;
 
@@ -814,7 +818,7 @@ public class EZImhotepSession implements Closeable {
         protected abstract void stringTermGroup(String term, int group);
     }
 
-    public static abstract class FTGSIteratingCallback <E> {
+    public abstract static class FTGSIteratingCallback <E> {
 
         final long[] stats;
 

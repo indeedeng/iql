@@ -24,7 +24,7 @@ import java.util.Optional;
 
 public class IQLFromQueryStatement {
 
-    private final static DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("\"yyyy-MM-dd HH:mm:ss\"");
+    private static final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("\"yyyy-MM-dd HH:mm:ss\"");
 
     private final String identifier;
     private final LocalDateTime startTime;

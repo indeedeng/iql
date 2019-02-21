@@ -52,7 +52,7 @@ public class AccessControl {
     }
 
     @Scheduled(fixedDelay = 5 * 60 * 1000)
-    synchronized public void updateLimits() {
+    public synchronized void updateLimits() {
         try {
             if(iqldb != null) {
                 identityToLimits = iqldb.getAccessLimits();

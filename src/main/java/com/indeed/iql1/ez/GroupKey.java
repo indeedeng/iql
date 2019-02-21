@@ -24,8 +24,10 @@ import javax.annotation.Nullable;
 public final class GroupKey<E extends Comparable> {
     private static final Logger log = Logger.getLogger(GroupKey.class);
 
-    private final @Nullable List<E> front;
-    private final @Nullable List<E> back;
+    @Nullable
+    private final List<E> front;
+    @Nullable
+    private final List<E> back;
 
     private static final GroupKey EMPTY = new GroupKey(null, null);
 
@@ -37,7 +39,7 @@ public final class GroupKey<E extends Comparable> {
         return EMPTY.add(e);
     }
 
-    private GroupKey(final @Nullable List<E> front, final @Nullable List<E> back) {
+    private GroupKey(@Nullable final List<E> front, @Nullable final List<E> back) {
         this.front = front;
         this.back = back;
     }
@@ -45,11 +47,13 @@ public final class GroupKey<E extends Comparable> {
     private static final class List<E> {
         private final E head;
 
-        private final @Nullable List<E> tail;
+        @Nullable
+        private final List<E> tail;
 
-        @Nullable private final E last;
+        @Nullable
+        private final E last;
 
-        private List(final E head, final @Nullable List<E> tail) {
+        private List(final E head, @Nullable final List<E> tail) {
             this.head = head;
             this.tail = tail;
             this.last = (tail==null)? head : tail.last;

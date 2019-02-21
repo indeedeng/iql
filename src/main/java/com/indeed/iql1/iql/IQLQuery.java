@@ -15,7 +15,6 @@
 
 import au.com.bytecode.opencsv.CSVWriter;
 import com.google.common.base.Charsets;
-import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.io.CharStreams;
@@ -104,8 +103,8 @@ public final class IQLQuery implements Closeable {
             final String dataset,
             final DateTime start,
             final DateTime end,
-            final @Nonnull List<Condition> conditions,
-            final @Nonnull List<Grouping> groupings,
+            @Nonnull final List<Condition> conditions,
+            @Nonnull final List<Grouping> groupings,
             final int rowLimit,
             final String username,
             final Limits limits,

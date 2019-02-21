@@ -23,7 +23,7 @@ import java.time.format.DateTimeFormatter;
 
 public class IQLFromQueryStatementTest {
 
-    private final static DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("\"yyyy-MM-dd HH:mm:ss\"");
+    private static final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("\"yyyy-MM-dd HH:mm:ss\"");
 
     @Test(expected = IQLFromQueryStatement.IQLFromQueryStatementBuildException.class)
     public void testBothEmptyTimesThrowsOnBuild() {

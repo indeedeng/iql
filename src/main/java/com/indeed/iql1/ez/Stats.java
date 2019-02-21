@@ -30,7 +30,7 @@ public class Stats {
     private Stats() {
     }
 
-    public static abstract class Stat {
+    public abstract static class Stat {
         protected abstract List<String> pushes(EZImhotepSession session);
     }
 

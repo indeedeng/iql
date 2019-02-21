@@ -224,11 +224,11 @@ public class IQLDB {
         }
     }
 
-    private final static String SQL_STATEMENT_DELETE_OUTDATED_RECORDS = "DELETE FROM tblfieldfreq WHERE used_date < CURDATE() - INTERVAL 60 DAY";
+    private static final String SQL_STATEMENT_DELETE_OUTDATED_RECORDS = "DELETE FROM tblfieldfreq WHERE used_date < CURDATE() - INTERVAL 60 DAY";
 
-    private final static String SQL_STATEMENT_SELECT_DATASET_FIELD_FREQUENCY = "SELECT dataset, field, SUM(count) AS frequency FROM tblfieldfreq GROUP BY dataset, field";
+    private static final String SQL_STATEMENT_SELECT_DATASET_FIELD_FREQUENCY = "SELECT dataset, field, SUM(count) AS frequency FROM tblfieldfreq GROUP BY dataset, field";
 
-    private final static String SQL_STATEMENT_INCREMENT_FIELD_FREQUENCY = "INSERT INTO tblfieldfreq (`dataset`, `field`, `used_date`, `count`) VALUES (?, ?, CURDATE(), 1) ON DUPLICATE KEY UPDATE count = count + 1";
+    private static final String SQL_STATEMENT_INCREMENT_FIELD_FREQUENCY = "INSERT INTO tblfieldfreq (`dataset`, `field`, `used_date`, `count`) VALUES (?, ?, CURDATE(), 1) ON DUPLICATE KEY UPDATE count = count + 1";
 
     private void deleteOutdatedFields() {
         jdbcTemplate.execute(SQL_STATEMENT_DELETE_OUTDATED_RECORDS);

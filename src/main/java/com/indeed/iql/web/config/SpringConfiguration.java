@@ -354,7 +354,8 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
         return new ImhotepClientPinger(imhotepClient());
     }
 
-    public static @Bean
+    @Bean
+    public static
     PropertySourcesPlaceholderConfigurer placeholderConfigurer() {
         return new PropertySourcesPlaceholderConfigurer();
     }

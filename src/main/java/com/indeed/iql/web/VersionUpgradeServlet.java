@@ -43,7 +43,7 @@ public class VersionUpgradeServlet {
     public Object upgrade(
             final HttpServletRequest request,
             final HttpServletResponse response,
-            final @Nonnull @RequestParam("q") String q
+            @RequestParam("q") @Nonnull final String q
     ) {
         response.setHeader("Content-Type", "application/json");
 

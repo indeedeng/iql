@@ -493,7 +493,7 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
     }
 
-    public static abstract class Multiple extends AggregateFilter {
+    public abstract static class Multiple extends AggregateFilter {
         public final List<AggregateFilter> filters;
 
         protected Multiple(final List<AggregateFilter> filters) {
