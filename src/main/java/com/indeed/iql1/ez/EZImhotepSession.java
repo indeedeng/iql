@@ -191,7 +191,7 @@ public class EZImhotepSession implements Closeable {
                         while (ftgsIterator.nextGroup()) {
                             final int group = ftgsIterator.group();
                             ftgsIterator.groupStats(callback.stats);
-                            callback.intTermGroup(field, term, group);
+                            callback.intTermGroup(term, group);
                         }
                     }
                 } else {
@@ -200,7 +200,7 @@ public class EZImhotepSession implements Closeable {
                         while (ftgsIterator.nextGroup()) {
                             final int group = ftgsIterator.group();
                             ftgsIterator.groupStats(callback.stats);
-                            callback.stringTermGroup(field, term, group);
+                            callback.stringTermGroup(term, group);
                         }
                     }
                 }
@@ -533,7 +533,6 @@ public class EZImhotepSession implements Closeable {
         return newNumGroups;
     }
 
-    @SuppressWarnings("unchecked")
     public @Nullable Int2ObjectMap<GroupKey> splitAllTopK(Field field, @Nullable Int2ObjectMap<GroupKey> groupKeys, int topK, Stats.Stat stat, boolean bottom) throws ImhotepOutOfMemoryException {
         final Int2ObjectMap<GroupKey> ret = groupKeys == null ? null : new Int2ObjectOpenHashMap<GroupKey>();
         if (field.isIntField()) {
@@ -695,7 +694,7 @@ public class EZImhotepSession implements Closeable {
             this.limits = limits;
         }
 
-        public void intTermGroup(final String field, final long term, int group) {
+        public void intTermGroup(final long term, int group) {
             limits.assertQueryInMemoryRowsLimit(rowCount++);
             if (!intTermListsMap.containsKey(group)) {
                 intTermListsMap.put(group, new LongArrayList());
@@ -703,7 +702,7 @@ public class EZImhotepSession implements Closeable {
             intTermListsMap.get(group).add(term);
         }
 
-        public void stringTermGroup(final String field, final String term, int group) {
+        public void stringTermGroup(final String term, int group) {
             limits.assertQueryInMemoryRowsLimit(rowCount++);
             if (!stringTermListsMap.containsKey(group)) {
                 stringTermListsMap.put(group, Lists.<String>newArrayList());
@@ -743,7 +742,7 @@ public class EZImhotepSession implements Closeable {
             scoredLongComparator = isBottom ? ScoredLong.BOTTOM_SCORE_COMPARATOR : ScoredLong.TOP_SCORE_COMPARATOR;
         }
 
-        public void intTermGroup(final String field, final long term, int group) {
+        public void intTermGroup(final long term, int group) {
             PriorityQueue<ScoredLong> terms = intTermListsMap.get(group);
             if (terms == null) {
                 terms = new PriorityQueue<ScoredLong>(10, scoredLongComparator);
@@ -762,7 +761,7 @@ public class EZImhotepSession implements Closeable {
             }
         }
 
-        public void stringTermGroup(final String field, final String term, int group) {
+        public void stringTermGroup(final String term, int group) {
             PriorityQueue<ScoredObject<String>> terms = stringTermListsMap.get(group);
             if (terms == null) {
                 terms = new PriorityQueue<ScoredObject<String>>(10, scoredObjectComparator);
@@ -811,8 +810,8 @@ public class EZImhotepSession implements Closeable {
             return ref.getValue(stats);
         }
 
-        protected abstract void intTermGroup(String field, long term, int group);
-        protected abstract void stringTermGroup(String field, String term, int group);
+        protected abstract void intTermGroup(long term, int group);
+        protected abstract void stringTermGroup(String term, int group);
     }
 
     public static abstract class FTGSIteratingCallback <E> {
@@ -828,8 +827,8 @@ public class EZImhotepSession implements Closeable {
             return ref.getValue(stats);
         }
 
-        public abstract E intTermGroup(String field, long term, int group);
-        public abstract E stringTermGroup(String field, String term, int group);
+        public abstract E intTermGroup(long term, int group);
+        public abstract E stringTermGroup(String term, int group);
     }
 
     @Nullable

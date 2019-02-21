@@ -69,9 +69,9 @@ public class FTGSCallbackIterator<E> extends AbstractIterator<E> implements Peek
                     final int group = ftgsIterator.group();
                     ftgsIterator.groupStats(callback.stats);
                     if (isIntField) {
-                        return callback.intTermGroup(field, termInt, group);
+                        return callback.intTermGroup(termInt, group);
                     } else {
-                        return callback.stringTermGroup(field, termStr, group);
+                        return callback.stringTermGroup(termStr, group);
                     }
                 }
                 termOver = true;

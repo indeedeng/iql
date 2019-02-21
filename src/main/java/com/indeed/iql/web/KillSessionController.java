@@ -100,7 +100,6 @@ public class KillSessionController {
                 Throwable exception;
                 try {
                     final Future<Throwable> outcome = outcomes.get(i);
-                    //noinspection ThrowableResultOfMethodCallIgnored
                     exception = outcome.get();
                 } catch (Exception e) {
                     exception = e;

@@ -207,7 +207,7 @@ public class PercentileGrouping extends Grouping {
         }
 
         @Override
-        protected void intTermGroup(final String field, final long term, final int group) {
+        protected void intTermGroup(final long term, final int group) {
             final long prevCount = groupToPrevCount.get(group);
             final long countForTerm = Math.round(getStat(statRef));
             final long newCount = prevCount + countForTerm;
@@ -225,7 +225,7 @@ public class PercentileGrouping extends Grouping {
         }
 
         @Override
-        protected void stringTermGroup(final String field, final String term, final int group) {
+        protected void stringTermGroup(final String term, final int group) {
             throw new UnsupportedOperationException("Percentiles do not work with string fields");
         }
 

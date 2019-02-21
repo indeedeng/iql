@@ -82,6 +82,8 @@ public class Query extends AbstractPositional {
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private List<Command> commands = null;
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private Optional<List<AggregateMetric>> totals = null;
 
     public Query(final List<Dataset> datasets, final Optional<DocFilter> filter, final List<GroupByEntry> groupBys, final List<AggregateMetric> selects, final List<Optional<String>> formatStrings, final List<String> options, final Optional<Integer> rowLimit, final boolean useLegacy) {

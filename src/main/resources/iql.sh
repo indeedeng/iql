@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 
 if [ "$1" == "json" ]; then
     json="json=1"

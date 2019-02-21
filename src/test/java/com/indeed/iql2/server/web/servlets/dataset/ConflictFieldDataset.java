@@ -7,7 +7,6 @@ import java.util.Arrays;
 import java.util.List;
 
 public class ConflictFieldDataset {
-    @SuppressWarnings("UnnecessaryCodeBlock")
     static Dataset create() {
         final List<Dataset.DatasetShard> result = new ArrayList<>();
 

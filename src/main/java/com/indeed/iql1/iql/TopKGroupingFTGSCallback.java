@@ -58,11 +58,11 @@ public final class TopKGroupingFTGSCallback extends EZImhotepSession.FTGSCallbac
         this.limits = limits;
     }
 
-    protected void intTermGroup(final String field, final long term, final int group) {
+    protected void intTermGroup(final long term, final int group) {
         termGroup(term, group);
     }
 
-    protected void stringTermGroup(final String field, final String term, final int group) {
+    protected void stringTermGroup(final String term, final int group) {
         termGroup(term, group);
     }
 
