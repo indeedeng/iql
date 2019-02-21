@@ -1103,7 +1103,7 @@ public class QueryServlet {
         public final String requestURL;
         public final String remoteAddr;
 
-        public QueryRequestParams(HttpServletRequest req, String userName, String clientName, String contentType) {
+        QueryRequestParams(HttpServletRequest req, String userName, String clientName, String contentType) {
             avoidFileSave = req.getParameter("view") != null;
             csv = req.getParameter("csv") != null;
             interactive = req.getParameter("interactive") != null;

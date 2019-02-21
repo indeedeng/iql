@@ -77,7 +77,7 @@ public class SumAcross implements IterateHandlerable<double[]>, Command {
     private class IterateHandlerImpl implements IterateHandler<double[]> {
         private final double[] groupSums;
 
-        public IterateHandlerImpl(int numGroups) {
+        IterateHandlerImpl(int numGroups) {
             this.groupSums = new double[numGroups+1];
         }
 

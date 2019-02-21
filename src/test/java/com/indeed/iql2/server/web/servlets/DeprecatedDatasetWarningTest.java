@@ -32,7 +32,7 @@ public class DeprecatedDatasetWarningTest {
     private static class DeprecatedImsClient implements ImsClientInterface {
         private final DatasetYaml[] datasets;
 
-        public DeprecatedImsClient() {
+        DeprecatedImsClient() {
             datasets = new DatasetYaml[]{deprecatedOrganic(), deprecatedJobsearchDescription()};
         }
 

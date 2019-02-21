@@ -689,7 +689,7 @@ public class EZImhotepSession implements Closeable {
         private int rowCount = 0;
 
 
-        public GetGroupTermsCallback(final int numStats, final Limits limits) {
+        GetGroupTermsCallback(final int numStats, final Limits limits) {
             super(numStats);
             this.limits = limits;
         }
@@ -733,7 +733,7 @@ public class EZImhotepSession implements Closeable {
         private final int k;
         private final boolean isBottom;
 
-        public GetGroupTermsCallbackTopK(final int numStats, StatReference count, int k, boolean isBottom) {
+        GetGroupTermsCallbackTopK(final int numStats, StatReference count, int k, boolean isBottom) {
             super(numStats);
             this.count = count;
             this.k = k;

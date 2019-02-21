@@ -217,7 +217,7 @@ public class IQLDB {
         final String name;
         final Limits limits;
 
-        public LimitsWithParent(Integer parentId, String name, Limits limits) {
+        LimitsWithParent(Integer parentId, String name, Limits limits) {
             this.parentId = parentId;
             this.name = name;
             this.limits = limits;

@@ -107,7 +107,7 @@ public class RunningQueriesManager {
         List<SelectQuery> queriesStarting;
         LongSet cancelledQueries;
 
-        public RunningQueriesUpdateResult(List<SelectQuery> queriesStarting, LongSet cancelledQueries) {
+        RunningQueriesUpdateResult(List<SelectQuery> queriesStarting, LongSet cancelledQueries) {
             this.queriesStarting = queriesStarting;
             this.cancelledQueries = cancelledQueries;
         }

@@ -67,7 +67,7 @@ public class SplitQuery {
         public final String alias;
         public final String fieldAlias;
 
-        public Dataset(final String name, final String where, final String start, final String end, final String alias, final String fieldAlias) {
+        Dataset(final String name, final String where, final String start, final String end, final String alias, final String fieldAlias) {
             this.name = name;
             this.where = where;
             this.start = start;

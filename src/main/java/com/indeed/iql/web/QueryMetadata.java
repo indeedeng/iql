@@ -31,7 +31,6 @@ import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.util.Iterator;
 import java.util.List;
@@ -189,7 +188,7 @@ public class QueryMetadata {
         QueryMetadataItem() {
         }
 
-        public QueryMetadataItem(String name, Object value, boolean sendAsHeader) {
+        QueryMetadataItem(String name, Object value, boolean sendAsHeader) {
             this.name = name;
             this.value = value == null ? "" : String.valueOf(value);
             this.sendAsHeader = sendAsHeader;

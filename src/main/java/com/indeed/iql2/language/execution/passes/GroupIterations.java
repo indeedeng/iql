@@ -176,7 +176,7 @@ public class GroupIterations {
         private final List<Dataset> datasets;
         private final Optional<FieldSet> field;
 
-        public PrecomputedContext(final List<Dataset> datasets, final Optional<FieldSet> field) {
+        PrecomputedContext(final List<Dataset> datasets, final Optional<FieldSet> field) {
             this.datasets = datasets;
             this.field = field;
         }

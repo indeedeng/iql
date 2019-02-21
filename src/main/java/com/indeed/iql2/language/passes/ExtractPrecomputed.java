@@ -199,7 +199,7 @@ public class ExtractPrecomputed {
 
         private final Map<ComputationType, Map<ComputationInfo, String>> computedNames = new HashMap<>();
 
-        public Processor(int depth, int startDepth, Set<String> scope) {
+        Processor(int depth, int startDepth, Set<String> scope) {
             this.depth = depth;
             this.startDepth = startDepth;
             this.scope = scope;
@@ -450,7 +450,7 @@ public class ExtractPrecomputed {
         private final int depth;
         private final Set<String> scope;
 
-        public ComputationInfo(final Precomputed precomputed, final int depth, final Set<String> scope) {
+        ComputationInfo(final Precomputed precomputed, final int depth, final Set<String> scope) {
             this.precomputed = precomputed;
             this.depth = depth;
             this.scope = scope;

@@ -86,7 +86,7 @@ public class CacheKey {
         public final String originalName;
         public final String newName;
 
-        public FieldAlias(final String originalName, final String newName) {
+        FieldAlias(final String originalName, final String newName) {
             this.originalName = originalName;
             this.newName = newName;
         }
