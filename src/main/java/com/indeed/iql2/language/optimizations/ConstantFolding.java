@@ -23,6 +23,9 @@ import com.indeed.iql2.language.query.Query;
 import com.indeed.util.core.Pair;
 
 public class ConstantFolding {
+    private ConstantFolding() {
+    }
+
     public static final Function<AggregateMetric, AggregateMetric> AGG_METRIC_OPTIMIZER = new Function<AggregateMetric, AggregateMetric>() {
         @Override
         public AggregateMetric apply(final AggregateMetric input) {

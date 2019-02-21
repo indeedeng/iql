@@ -29,6 +29,9 @@ import java.util.Collections;
 import java.util.List;
 
 public class AggregateMetrics {
+    private AggregateMetrics() {
+    }
+
     // The max digits after decimal point for floor/ceil/round
     private static final int ROUNDING_MAX_DIGITS = 10;
 

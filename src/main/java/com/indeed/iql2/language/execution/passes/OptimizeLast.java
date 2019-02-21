@@ -35,6 +35,9 @@ import java.util.Set;
 
 
 public class OptimizeLast {
+    private OptimizeLast() {
+    }
+
     public static List<ExecutionStep> optimize(List<ExecutionStep> steps, Optional<Integer> queryLimit) {
         steps = Collections.unmodifiableList(steps);
         if (steps.size() > 1) {

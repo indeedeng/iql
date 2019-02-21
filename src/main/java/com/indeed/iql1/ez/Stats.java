@@ -27,6 +27,9 @@ import java.util.List;
  * @author jwolfe
  */
 public class Stats {
+    private Stats() {
+    }
+
     public static abstract class Stat {
         protected abstract List<String> pushes(EZImhotepSession session);
     }

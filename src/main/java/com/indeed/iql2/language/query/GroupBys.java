@@ -45,6 +45,8 @@ import java.util.Collections;
 import java.util.List;
 
 public class GroupBys {
+    private GroupBys() {
+    }
 
     public static final ImmutableSet<String> VALID_ORDERINGS = ImmutableSet.of("bottom", "descending", "desc");
 

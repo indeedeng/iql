@@ -17,6 +17,8 @@ import java.util.Random;
 import java.util.Set;
 
 public class SampleQueries {
+    private SampleQueries() {
+    }
 
     public static final int NUM_QUERIES = 200;
     public static final String FILE = "/home/xweng/indeed/data-infra/performance-benchmark/iqlquery_2019-01-01_2019-01-08.tsv";

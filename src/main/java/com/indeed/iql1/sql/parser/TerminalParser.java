@@ -30,6 +30,8 @@ import java.util.List;
  * @author Ben Yu
  */
 public final class TerminalParser {
+    private TerminalParser() {
+    }
 
     private static final String[] WHERE_OPERATORS = {
             "=", ":", "!=", "-",

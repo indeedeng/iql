@@ -36,6 +36,8 @@ import java.util.Set;
  *
  */
 public class ParserUtil {
+    private ParserUtil() {
+    }
 
     public static Query getFlamdexQuery(final String query, final String dataset,
                                         final DatasetsMetadata datasetsMeta, final ScopedFieldResolver resolver) {

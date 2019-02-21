@@ -17,8 +17,6 @@ package com.indeed.iql2.language;
 import com.google.common.collect.ImmutableList;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql2.language.query.Queries;
-import com.indeed.iql2.language.JQLParser;
-import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.util.core.Pair;
 import com.indeed.util.core.time.WallClock;
 import org.antlr.v4.runtime.Token;
@@ -29,6 +27,8 @@ import java.util.Collections;
 import java.util.List;
 
 public class TimePeriods {
+    private TimePeriods() {
+    }
 
     private static final int MAX_RECOMMENDED_BUCKETS = 1000;
     private static final List<TimeUnit> inferenceBucketSizeOptions = ImmutableList.of(TimeUnit.SECOND, TimeUnit.MINUTE, TimeUnit.HOUR, TimeUnit.DAY, TimeUnit.WEEK);

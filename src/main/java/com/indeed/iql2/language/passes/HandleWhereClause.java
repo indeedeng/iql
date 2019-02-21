@@ -16,18 +16,21 @@ package com.indeed.iql2.language.passes;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.indeed.iql2.language.DocFilter;
+import com.indeed.iql2.language.GroupSuppliers;
 import com.indeed.iql2.language.actions.Action;
 import com.indeed.iql2.language.actions.Actions;
 import com.indeed.iql2.language.execution.ExecutionStep;
 import com.indeed.iql2.language.optimizations.ConstantFolding;
-import com.indeed.iql2.language.DocFilter;
-import com.indeed.iql2.language.GroupSuppliers;
 import com.indeed.iql2.language.query.Query;
 
 import java.util.Collections;
 import java.util.List;
 
 public class HandleWhereClause {
+    private HandleWhereClause() {
+    }
+
     public static Result handleWhereClause(Query query) {
         if (query.filter.isPresent()) {
             final Query newQuery = new Query(query.datasets, Optional.<DocFilter>absent(), query.groupBys, query.selects, query.formatStrings, query.options, query.rowLimit, query.useLegacy);

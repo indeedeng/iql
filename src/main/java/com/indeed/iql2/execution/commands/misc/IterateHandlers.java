@@ -34,6 +34,9 @@ import java.util.Map;
 import java.util.Set;
 
 public class IterateHandlers {
+    private IterateHandlers() {
+    }
+
     private static final Logger log = Logger.getLogger(IterateHandlers.class);
 
     public static <T> List<T> executeMulti(Session session, FieldSet field, Collection<IterateHandler<T>> iterateHandlers) throws ImhotepOutOfMemoryException, IOException {

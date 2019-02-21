@@ -13,14 +13,17 @@
  */
  package com.indeed.iql.cache;
 
-import javax.xml.bind.PropertyException;
-
 import org.apache.log4j.Logger;
 import org.springframework.core.env.PropertyResolver;
 
+import javax.xml.bind.PropertyException;
+
 public class QueryCacheFactory {
+    private QueryCacheFactory() {
+    }
+
     private static final Logger log = Logger.getLogger(QueryCacheFactory.class);
-    
+
     public static final QueryCache newQueryCache(PropertyResolver props) throws PropertyException {
         final String cacheType;
         boolean enabled;

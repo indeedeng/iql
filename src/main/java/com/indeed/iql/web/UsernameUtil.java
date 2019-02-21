@@ -19,6 +19,9 @@ import org.apache.commons.codec.binary.Base64;
 import javax.servlet.http.HttpServletRequest;
 
 public class UsernameUtil {
+    private UsernameUtil() {
+    }
+
     /**
      * Gets the user name from the HTTP request if it was provided through Basic authentication.
      *

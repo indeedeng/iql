@@ -29,6 +29,9 @@ import java.util.Map;
  * @author vladimir
  */
 public class Preprocessor {
+    private Preprocessor() {
+    }
+
     public static final Parser<String> wordParser = Scanners.IDENTIFIER;
     public static final Parser<String> nonWordParser = Scanners.pattern(Patterns.regex("[^a-zA-Z]"), "nonword").source();
     public static final Parser<String> termsTokenizer = Parsers.or(Terminals.StringLiteral.SINGLE_QUOTE_TOKENIZER,

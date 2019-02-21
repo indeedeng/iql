@@ -30,6 +30,9 @@ import java.util.Map;
 import java.util.Stack;
 
 public class SubstituteNamed {
+    private SubstituteNamed() {
+    }
+
     public static Query substituteNamedMetrics(Query query, Map<String, AggregateMetric> namedMetrics) {
         return query.transform(
                 Functions.<GroupBy>identity(),

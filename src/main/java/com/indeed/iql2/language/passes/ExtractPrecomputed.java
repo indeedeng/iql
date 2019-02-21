@@ -48,6 +48,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 public class ExtractPrecomputed {
+    private ExtractPrecomputed() {
+    }
+
     public static Extracted extractPrecomputed(final Query query, final boolean extractTotals) {
         final Processor processor = new Processor(1, 1, query.extractDatasetNames());
         final List<GroupByEntry> groupBys = new ArrayList<>();

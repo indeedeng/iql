@@ -43,6 +43,9 @@ import java.util.List;
  */
 
 public class SelectStatementParser {
+    private SelectStatementParser() {
+    }
+
     public static int LOWEST_YEAR_ALLOWED = 0;
 
     public static IQL1SelectStatement parseSelectStatement(

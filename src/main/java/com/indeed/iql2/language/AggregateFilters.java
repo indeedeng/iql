@@ -22,6 +22,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class AggregateFilters {
+    private AggregateFilters() {
+    }
+
     public static AggregateFilter aggregateInHelper(final Iterable<Term> terms, final boolean negate) {
         final List<AggregateFilter> termFilters = new ArrayList<>();
         for (final Term term : terms) {

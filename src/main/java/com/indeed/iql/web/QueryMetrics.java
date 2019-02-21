@@ -25,6 +25,9 @@ import java.util.List;
  * Provides a common path for logging query metrics.
  */
 public final class QueryMetrics {
+    private QueryMetrics() {
+    }
+
     public static void logQueryMetrics(
             final int iqlVersion,
             final String queryType,

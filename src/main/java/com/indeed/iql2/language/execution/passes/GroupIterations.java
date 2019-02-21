@@ -42,6 +42,9 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class GroupIterations {
+    private GroupIterations() {
+    }
+
     public static List<ExecutionStep> apply(List<ExecutionStep> steps) {
         final List<ExecutionStep> result = new ArrayList<>();
         final List<ExecutionStep.ComputePrecomputed> runOfPrecomputeds = new ArrayList<>();

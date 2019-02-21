@@ -28,6 +28,9 @@ import javax.annotation.Nullable;
 import java.util.List;
 
 public class DocMetrics {
+    private DocMetrics() {
+    }
+
     public static DocMetric parseDocMetric(
             final JQLParser.DocMetricContext metricContext,
             final Query.Context context) {

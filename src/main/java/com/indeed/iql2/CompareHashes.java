@@ -7,6 +7,9 @@ import java.io.FileReader;
 import java.io.IOException;
 
 public class CompareHashes {
+    private CompareHashes() {
+    }
+
     public static void main(String[] args) throws IOException {
         final String input1 = args[0];
         final String input2 = args[1];

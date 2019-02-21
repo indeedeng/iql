@@ -70,9 +70,7 @@ import org.apache.lucene.queryParser.ParseException;
 import org.apache.lucene.queryParser.QueryParser;
 import org.apache.lucene.search.Query;
 import org.joda.time.DateTime;
-import org.joda.time.DurationFieldType;
 import org.joda.time.Period;
-import org.joda.time.PeriodType;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
@@ -123,6 +121,9 @@ import static com.indeed.iql2.language.TimePeriods.appendTimePeriod;
  * @author jplaisance
  */
 public final class IQLTranslator {
+    private IQLTranslator() {
+    }
+
     private static final Logger log = Logger.getLogger(IQLTranslator.class);
 
     public static IQLQuery translate(

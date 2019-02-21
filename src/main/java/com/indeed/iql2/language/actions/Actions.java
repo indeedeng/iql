@@ -24,6 +24,9 @@ import java.util.List;
 import java.util.Map;
 
 public class Actions {
+    private Actions() {
+    }
+
     public static boolean groupsAndScopeMatch(QueryAction q1, QueryAction q2) {
         return scopeMatches(q1, q2) && targetMatches(q1, q2) && q1.negativeGroup == q2.negativeGroup && q1.positiveGroup == q2.positiveGroup;
     }

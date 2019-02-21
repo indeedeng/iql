@@ -28,6 +28,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class ExtractNames {
+    private ExtractNames() {
+    }
+
     public static Map<String, AggregateMetric> extractNames(Query query) {
         final Map<String, AggregateMetric> result = new HashMap<>();
         query.transform(

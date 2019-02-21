@@ -78,6 +78,9 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class Queries {
+    private Queries() {
+    }
+
     private static final Logger log = Logger.getLogger(Queries.class);
 
     public static class QueryDataset {

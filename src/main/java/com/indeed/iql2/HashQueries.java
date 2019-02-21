@@ -2,7 +2,6 @@ package com.indeed.iql2;
 
 import au.com.bytecode.opencsv.CSVReader;
 import au.com.bytecode.opencsv.CSVWriter;
-import com.google.common.base.Preconditions;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.ims.client.ImsClient;
 import com.indeed.ims.client.ImsClientInterface;
@@ -16,7 +15,6 @@ import com.indeed.util.core.time.DefaultWallClock;
 import com.indeed.util.core.time.WallClock;
 import com.indeed.util.logging.TracingTreeTimer;
 
-import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -24,9 +22,11 @@ import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Objects;
-import java.util.regex.Pattern;
 
 public class HashQueries {
+    private HashQueries() {
+    }
+
     public static void main(final String[] args) throws IOException, URISyntaxException {
         final String zkNodes = Objects.requireNonNull(System.getenv("SHARDMASTER_ZK_NODES"), "Environment variable SHARDMASTER_ZK_NODES must be configured to imhotep zookeeper nodes");
         final String zkPath = Objects.requireNonNull(System.getenv("SHARDMASTER_ZK_PATH"), "Environment variable SHARDMASTER_ZK_PATH must be configured to imhotep zookeeper path");

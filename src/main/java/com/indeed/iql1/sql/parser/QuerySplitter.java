@@ -15,7 +15,11 @@
 
 import com.google.common.collect.Lists;
 import com.indeed.iql1.sql.ast2.QueryParts;
-import org.codehaus.jparsec.*;
+import org.codehaus.jparsec.Parser;
+import org.codehaus.jparsec.Parsers;
+import org.codehaus.jparsec.Scanners;
+import org.codehaus.jparsec.Terminals;
+import org.codehaus.jparsec.Token;
 import org.codehaus.jparsec.functors.Map5;
 import org.codehaus.jparsec.misc.Mapper;
 import org.codehaus.jparsec.pattern.Patterns;
@@ -27,6 +31,9 @@ import java.util.List;
  */
 
 public class QuerySplitter {
+    private QuerySplitter() {
+    }
+
     private static final String[] KEYWORDS = new String[] {
             "select", "from", "where", "group", "by", "limit", "=", ":", //query
 

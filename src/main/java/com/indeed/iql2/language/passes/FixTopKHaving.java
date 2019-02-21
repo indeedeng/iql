@@ -24,6 +24,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class FixTopKHaving {
+    private FixTopKHaving() {
+    }
+
     public static Query apply(Query query) {
         final List<GroupByEntry> newGroupBys = new ArrayList<>();
         for (final GroupByEntry groupBy : query.groupBys) {

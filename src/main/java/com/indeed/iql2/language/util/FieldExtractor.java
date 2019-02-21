@@ -40,6 +40,8 @@ import java.util.stream.Collectors;
  */
 
 public class FieldExtractor {
+	private FieldExtractor() {
+	}
 
 	public static class DatasetField {
 		@Nonnull public String dataset;

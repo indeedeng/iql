@@ -23,6 +23,9 @@ import java.util.HashSet;
 import java.util.Set;
 
 public class ExtractQualifieds {
+    private ExtractQualifieds() {
+    }
+
     public static Set<String> extractDocMetricDatasets(DocMetric docMetric) {
         final Set<String> aggregator = new HashSet<>();
         docMetric.transform(handleDocMetric(aggregator), handledocFilter(aggregator));

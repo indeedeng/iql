@@ -39,7 +39,9 @@ import org.codehaus.jparsec.misc.Mapper;
  * @author Ben Yu
  */
 public final class ExpressionParser {
-  
+  private ExpressionParser() {
+  }
+
   static final Parser<Expression> NUMBER =
       curry(NumberExpression.class).sequence(TerminalParser.NUMBER);
 

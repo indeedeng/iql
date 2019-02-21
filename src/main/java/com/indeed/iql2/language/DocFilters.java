@@ -36,6 +36,9 @@ import java.util.Set;
 import static com.indeed.iql2.language.DocMetrics.extractPlainDimensionDocMetric;
 
 public class DocFilters {
+    private DocFilters() {
+    }
+
     public static DocFilter parseDocFilter(
             final JQLParser.DocFilterContext docFilterContext,
             final Query.Context context) {

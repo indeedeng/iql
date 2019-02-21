@@ -33,6 +33,9 @@ import java.nio.file.Paths;
  */
 
 public class LocalImhotepDaemonAndShardmaster {
+    private LocalImhotepDaemonAndShardmaster() {
+    }
+
     private static final Logger log = Logger.getLogger(LocalImhotepDaemonAndShardmaster.class);
 
     /**

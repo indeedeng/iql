@@ -26,6 +26,9 @@ import com.indeed.iql2.language.query.Query;
 import javax.annotation.Nullable;
 
 public class RemoveNames {
+    private RemoveNames() {
+    }
+
     public static Query removeNames(Query query) {
         return query.transform(
                 Functions.<GroupBy>identity(),

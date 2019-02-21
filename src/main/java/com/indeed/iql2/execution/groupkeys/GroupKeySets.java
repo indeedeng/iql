@@ -17,6 +17,9 @@ package com.indeed.iql2.execution.groupkeys;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 
 public class GroupKeySets {
+    private GroupKeySets() {
+    }
+
     public static void appendTo(final StringBuilder sb, final GroupKeySet groupKeySet, final int group, final char separator) {
         final GroupKeySet previous = groupKeySet.previous();
         if (previous != null) {

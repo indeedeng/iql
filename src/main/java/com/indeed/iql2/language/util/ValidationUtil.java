@@ -44,6 +44,9 @@ import java.util.Set;
 import java.util.function.BiPredicate;
 
 public class ValidationUtil {
+    private ValidationUtil() {
+    }
+
     private static void findFieldsUsed(Query query, Set<String> intFields, Set<String> stringFields) {
         switch (query.getQueryType()) {
             case TERM:

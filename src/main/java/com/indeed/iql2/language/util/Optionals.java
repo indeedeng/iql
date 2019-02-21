@@ -16,13 +16,16 @@ package com.indeed.iql2.language.util;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
-import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocFilter;
 import com.indeed.iql2.language.DocMetric;
+import com.indeed.iql2.language.query.GroupBy;
 
 public class Optionals {
+    private Optionals() {
+    }
+
     public static Optional<AggregateFilter> transform(Optional<AggregateFilter> filter, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
         if (filter.isPresent()) {
             return Optional.of(filter.get().transform(f, g, h, i, groupByFunction));
