@@ -1009,7 +1009,7 @@ public class Session {
             final long[] statsBuff = new long[numStats];
             while (it.nextField()) {
                 while (it.nextTerm()) {
-                    while (it.nextGroup()) {
+                    if (it.nextGroup()) {
                         it.groupStats(statsBuff);
                         return Optional.of(new SessionIntIterationState(it, sessionMetricIndexes, presenceIndex, statsBuff, it.termIntVal(), it.group()));
                     }
@@ -1119,7 +1119,7 @@ public class Session {
             pq.add(state);
         } else {
             while (iterator.nextTerm()) {
-                while (iterator.nextGroup()) {
+                if (iterator.nextGroup()) {
                     state.nextTerm = iterator.termIntVal();
                     state.nextGroup = iterator.group();
                     iterator.groupStats(state.statsBuff);
@@ -1285,7 +1285,7 @@ public class Session {
             final long[] statsBuff = new long[numStats];
             while (it.nextField()) {
                 while (it.nextTerm()) {
-                    while (it.nextGroup()) {
+                    if (it.nextGroup()) {
                         it.groupStats(statsBuff);
                         return Optional.of(new SessionStringIterationState(it, sessionMetricIndexes, presenceIndex, statsBuff, it.termStringVal(), it.group()));
                     }
@@ -1481,7 +1481,7 @@ public class Session {
             pq.add(state);
         } else {
             while (iterator.nextTerm()) {
-                while (iterator.nextGroup()) {
+                if (iterator.nextGroup()) {
                     state.nextTerm = iterator.termStringVal();
                     state.nextGroup = iterator.group();
                     iterator.groupStats(state.statsBuff);

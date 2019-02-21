@@ -47,11 +47,7 @@ public abstract class Field {
 
         final Field field = (Field) o;
 
-        if (!fieldName.equals(field.fieldName)) {
-            return false;
-        }
-
-        return true;
+        return fieldName.equals(field.fieldName);
     }
 
     public int hashCode() {

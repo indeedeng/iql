@@ -102,11 +102,7 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
             if (fields.size() != 1) {
                 throw new IllegalStateException("Invalid number of fields seen: " + fields.size());
             }
-            FieldSet theField = null;
-            for (final FieldSet field : fields) {
-                theField = field;
-                break;
-            }
+            final FieldSet theField = fields.stream().findFirst().orElse(null);
             session.timer.push("IterateHandlers.executeMulti");
             IterateHandlers.executeMulti(session, theField, handlerables);
             session.timer.pop();

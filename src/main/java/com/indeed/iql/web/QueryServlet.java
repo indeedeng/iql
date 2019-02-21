@@ -1116,7 +1116,7 @@ public class QueryServlet {
             getTotals = req.getParameter("totals") != null;
             skipValidation = "1".equals(req.getParameter("skipValidation"));
             username = userName;
-            imhotepUserName = (!Strings.isNullOrEmpty(userName) ? userName : clientName);
+            imhotepUserName = (Strings.isNullOrEmpty(userName) ? clientName : userName);
             requestURL = req.getRequestURL().toString();
             remoteAddr = req.getRemoteAddr();
             sql = req.getParameter("sql") != null;

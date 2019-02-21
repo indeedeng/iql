@@ -822,6 +822,7 @@ public final class IQLTranslator {
                     } else {
                         throw new IqlKnownException.ParseErrorException("Can't compare the provided operands: " + left + "; " + right);
                     }
+                    //noinspection fallthrough
                 case REGEX_NOT_EQ:
                     usingNegation = !usingNegation;
                     // fall through to REGEX_EQ
@@ -1071,7 +1072,7 @@ public final class IQLTranslator {
                     if (input.size() > 3) {
                         throw new IqlKnownException.ParseErrorException("time function takes up to 3 args");
                     }
-                    final String bucket = !input.isEmpty() ? getStr(input.get(0)) : null;
+                    final String bucket = input.isEmpty() ? null : getStr(input.get(0));
                     final String format = input.size() > 1 ? getStr(input.get(1)) : null;
                     final Expression timeField = input.size() > 2 ? input.get(2) : null;
 
