@@ -369,7 +369,7 @@ public final class IQLTranslator {
         private Stat[] getStats(final List<Expression> input) {
             List<Stat> stats = Lists.newArrayList();
             for(Expression statString : input) {
-                stats.add(statString.match(StatMatcher.this));
+                stats.add(statString.match(this));
             }
             return stats.toArray(new Stat[stats.size()]);
         }
@@ -742,7 +742,7 @@ public final class IQLTranslator {
                     }
                     final Expression arg0 = input.get(0);
                     if(!(arg0 instanceof NameExpression)) {
-                        throw new IqlKnownException.ParseErrorException("sample() first argument has to be a field name. Instead given: " + String.valueOf(arg0));
+                        throw new IqlKnownException.ParseErrorException("sample() first argument has to be a field name. Instead given: " + arg0);
                     }
                     final NameExpression nameExpression = (NameExpression) arg0;
                     final String fieldName = nameExpression.name;
@@ -827,7 +827,7 @@ public final class IQLTranslator {
                     // fall through to REGEX_EQ
                 case REGEX_EQ:
                     if(!(left instanceof NameExpression)) {
-                        throw new IqlKnownException.ParseErrorException("Regexp compare only works on field names. Instead given: " + String.valueOf(left));
+                        throw new IqlKnownException.ParseErrorException("Regexp compare only works on field names. Instead given: " + left);
                     }
                     final NameExpression nameExpression = (NameExpression) left;
                     final String fieldName = nameExpression.name;

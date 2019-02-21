@@ -17,10 +17,10 @@
 * @author jwolfe
 */
 public interface StatReference {
-    public double[] getGroupStats();
+    double[] getGroupStats();
 
-    public boolean isValid();
-    public void invalidate();
+    boolean isValid();
+    void invalidate();
 
-    public double getValue(long[] stats);
+    double getValue(long[] stats);
 }
