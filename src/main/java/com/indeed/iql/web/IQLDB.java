@@ -251,7 +251,7 @@ public class IQLDB {
     }
 
     public void incrementFieldFrequencies(final List<String> datasetFields) {
-        if(datasetFields.size() == 0) {
+        if(datasetFields.isEmpty()) {
             return;
         }
         jdbcTemplate.batchUpdate(SQL_STATEMENT_INCREMENT_FIELD_FREQUENCY,

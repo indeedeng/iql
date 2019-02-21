@@ -406,7 +406,7 @@ public class Queries {
             }
 
             final String extra;
-            if (exceptions.size() > 0) {
+            if (!exceptions.isEmpty()) {
                 final RecognitionException anException = exceptions.get(0);
                 final String message = anException.getExpectedTokens().toString(JQLParser.VOCABULARY);
                 extra = ", expected " + message + ", found [" + anException.getOffendingToken().getText() + "]";

@@ -348,10 +348,10 @@ public abstract class GroupBy extends AbstractPositional {
             if (new LongOpenHashSet(intTerms).size() != intTerms.size()) {
                 throw new IqlKnownException.ParseErrorException("Int terms must be unique: " + intTerms);
             }
-            if (intTerms.size() > 0 && stringTerms.size() > 0) {
+            if (!intTerms.isEmpty() && !stringTerms.isEmpty()) {
                 throw new IqlKnownException.ParseErrorException("Cannot have both int terms and string terms.");
             }
-            if (intTerms.size() == 0 && stringTerms.size() == 0) {
+            if (intTerms.isEmpty() && stringTerms.isEmpty()) {
                 throw new IqlKnownException.ParseErrorException("Cannot have empty field in Set");
             }
         }
@@ -373,7 +373,7 @@ public abstract class GroupBy extends AbstractPositional {
 
         @Override
         public ExecutionStep executionStep(List<Dataset> datasets) {
-            if (intTerms.size() > 0) {
+            if (!intTerms.isEmpty()) {
                 return ExecutionStep.ExplodeFieldIn.intExplode(field, intTerms, withDefault);
             } else {
                 return ExecutionStep.ExplodeFieldIn.stringExplode(field, stringTerms, withDefault);

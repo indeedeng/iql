@@ -179,7 +179,7 @@ public final class IQLQuery implements Closeable {
             final long timeoutTS = System.currentTimeMillis() + executionTimeout.toStandardSeconds().getSeconds() * 1000;
 
             try {
-                final int steps = conditions.size() + (groupings.size() == 0 ? 1 : groupings.size()) - 1;
+                final int steps = conditions.size() + (groupings.isEmpty() ? 1 : groupings.size()) - 1;
                 int count = 0;
                 if (progress) {
                     out.println(": Beginning IQL Query");
@@ -220,7 +220,7 @@ public final class IQLQuery implements Closeable {
                 final double[] totals = getStats(statRefs);
                 queryInfo.getStatsMillis = (long) timer.pop();
 
-                if (groupings.size() > 0) {
+                if (!groupings.isEmpty()) {
                     long regroupMillis = 0;
                     Int2ObjectMap<GroupKey> groupKeys = EZImhotepSession.newGroupKeys();
                     // do Imhotep regroup on all except the last grouping

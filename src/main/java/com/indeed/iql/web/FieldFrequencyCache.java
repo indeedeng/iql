@@ -67,7 +67,7 @@ public class FieldFrequencyCache {
 
 	public void acceptDatasetFields(final Set<String> newDatasetFields, ClientInfo clientInfo) {
 		if (iqldb != null) {
-			if(allowedClients == null || allowedClients.size() == 0 ||
+			if(allowedClients == null || allowedClients.isEmpty() ||
 					allowedClients.contains(clientInfo.client)) {
 				datasetFieldToBatchUpdate.addAll(newDatasetFields);
 			}

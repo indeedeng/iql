@@ -311,7 +311,7 @@ public class SelectQueryExecution {
             timer.push("validate query");
             final Set<String> errors = new HashSet<>();
             CommandValidator.validate(query, datasetsMetadata, new ErrorCollector(errors, warnings));
-            if (errors.size() != 0) {
+            if (!errors.isEmpty()) {
                 throw new IqlKnownException.ParseErrorException("Errors found when validating query: " + errors);
             }
             timer.pop();
@@ -452,7 +452,7 @@ public class SelectQueryExecution {
             final Map<Query, Pair<Set<Long>, Set<String>>> queryToResults = new HashMap<>();
 
             final Set<String> conflictFieldsUsed = Sets.intersection(queryInfo.datasetFields, datasetsMetadata.getTypeConflictDatasetFieldNames());
-            if (conflictFieldsUsed.size() > 0) {
+            if (!conflictFieldsUsed.isEmpty()) {
                 final String conflictWarning = "Fields with type conflicts used in query: " + String.join(", ", conflictFieldsUsed);
                 warnings.add(conflictWarning);
             }

@@ -380,7 +380,7 @@ public final class IQLTranslator {
             final ImmutableMap.Builder<String, Function<List<Expression>, Stat>> builder = ImmutableMap.builder();
             builder.put("count", new Function<List<Expression>, Stat>() {
                 public Stat apply(final List<Expression> input) {
-                    if(input.size() > 0) {
+                    if(!input.isEmpty()) {
                         throw new IqlKnownException.ParseErrorException("Only count() with no arguments is supported which returns the total number of documents in the group");
                     }
                     return counts();
@@ -1071,7 +1071,7 @@ public final class IQLTranslator {
                     if (input.size() > 3) {
                         throw new IqlKnownException.ParseErrorException("time function takes up to 3 args");
                     }
-                    final String bucket = input.size() > 0 ? getStr(input.get(0)) : null;
+                    final String bucket = !input.isEmpty() ? getStr(input.get(0)) : null;
                     final String format = input.size() > 1 ? getStr(input.get(1)) : null;
                     final Expression timeField = input.size() > 2 ? input.get(2) : null;
 

@@ -265,7 +265,7 @@ public class SelectStatementParser {
         Parser<Expression> expr = ExpressionParser.expression();
         Parser<List<Expression>> selectParser = expr.sepBy1(TerminalParser.term(","));
         List<Expression> result = TerminalParser.parse(selectParser, text);
-        if(result == null || result.size() == 0) {
+        if(result == null || result.isEmpty()) {
             return defaultSelect();
         }
         return new SelectClause(result);

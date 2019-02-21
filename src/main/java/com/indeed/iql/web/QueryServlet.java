@@ -467,12 +467,12 @@ public class QueryServlet {
         warningList.addAll(missingShardsToWarnings(dataset, startTime, endTime, timeIntervalsMissingShards));
 
         final Set<String> conflictFieldsUsed = Sets.intersection(iqlQuery.getDatasetFields(), metadataCacheIQL1.get().getTypeConflictDatasetFieldNames());
-        if (conflictFieldsUsed.size() > 0) {
+        if (!conflictFieldsUsed.isEmpty()) {
             final String conflictWarning = "Fields with type conflicts used in query: " + String.join(", ", conflictFieldsUsed);
             warningList.add(conflictWarning);
         }
 
-        if(timeIntervalsMissingShards.size() > 0) {
+        if(!timeIntervalsMissingShards.isEmpty()) {
             final String missingIntervals = intervalListToString(timeIntervalsMissingShards);
             queryMetadata.addItem("IQL-Missing-Shards", missingIntervals, true);
         }
@@ -540,7 +540,7 @@ public class QueryServlet {
                 log.error("Exception while closing IQLQuery object", e);
             }
         }
-        if (warningList.size()>0){
+        if (!warningList.isEmpty()){
             String warning = "[\"" + StringUtils.join(warningList, "\",\"") + "\"]";
             queryMetadata.addItem("IQL-Warning", warning, false);
         }
@@ -600,7 +600,7 @@ public class QueryServlet {
             }
         }
 
-        if(properTimeIntervalsMissingShards.size() > 0) {
+        if(!properTimeIntervalsMissingShards.isEmpty()) {
             long millisMissing = 0;
             final int countMissingIntervals = properTimeIntervalsMissingShards.size();
 
@@ -641,7 +641,7 @@ public class QueryServlet {
     @Nullable
     private static DateTime getLatestShardVersion(List<Shard> shardVersionList) {
         long maxVersion = 0;
-        if(shardVersionList == null || shardVersionList.size() == 0) {
+        if(shardVersionList == null || shardVersionList.isEmpty()) {
             return null;
         }
         for(Shard shard : shardVersionList) {
@@ -917,10 +917,10 @@ public class QueryServlet {
         logLong(logEntry, "resultBytes", queryInfo.resultBytes);
         logSet(logEntry, "dataset", queryInfo.datasets);
         logBoolean(logEntry, "fieldHadDescription", queryInfo.fieldHadDescription);
-        if (queryInfo.datasetFields != null && queryInfo.datasetFields.size() > 0) {
+        if (queryInfo.datasetFields != null && !queryInfo.datasetFields.isEmpty()) {
             logSet(logEntry, "datasetfield", queryInfo.datasetFields);
         }
-        if (queryInfo.datasetFieldsNoDescription != null && queryInfo.datasetFieldsNoDescription.size() > 0) {
+        if (queryInfo.datasetFieldsNoDescription != null && !queryInfo.datasetFieldsNoDescription.isEmpty()) {
             logSet(logEntry, "datasetFieldsNoDescription", queryInfo.datasetFieldsNoDescription);
         }
         if (queryInfo.totalDatasetRangeDays != null) {

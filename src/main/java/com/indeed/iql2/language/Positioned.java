@@ -20,7 +20,7 @@ import org.antlr.v4.runtime.ParserRuleContext;
 
 @EqualsAndHashCode(callSuper = false)
 @ToString
-public class Positioned<T> extends AbstractPositional implements Positional {
+public class Positioned<T> extends AbstractPositional {
     private final T t;
 
     private Positioned(T t) {

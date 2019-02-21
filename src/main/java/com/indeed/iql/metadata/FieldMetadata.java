@@ -149,7 +149,7 @@ public class FieldMetadata {
         jsonNode.put("description", description);
         jsonNode.put("type", getType().toString());
         jsonNode.put("frequency", getFrequency());
-        if (getAliases().size() > 0) {
+        if (!getAliases().isEmpty()) {
             final ArrayNode aliasesArray = jsonNode.putArray("aliases");
             for (String alias : getNonCanonicalNames()) {
                 aliasesArray.add(alias);

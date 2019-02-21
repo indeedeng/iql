@@ -61,7 +61,7 @@ public class DatasetsMetadata {
     public List<DatasetTypeConflictFields> getTypeConflictFields() {
         final List<DatasetTypeConflictFields> result = Lists.newArrayList();
         for (DatasetMetadata datasetMetadata : metadata.values()) {
-            if (datasetMetadata.conflictFieldNames.size() > 0) {
+            if (!datasetMetadata.conflictFieldNames.isEmpty()) {
                 result.add(new DatasetTypeConflictFields(datasetMetadata.name, datasetMetadata.conflictFieldNames));
             }
         }

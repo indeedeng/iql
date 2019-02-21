@@ -57,7 +57,7 @@ public class RunningQueriesManager {
             return;
         }
         lastDaemonRunningQueries = iqldb.getRunningQueriesForThisHost();
-        if(lastDaemonRunningQueries.size() > 0) {
+        if(!lastDaemonRunningQueries.isEmpty()) {
             log.warn("Daemon was in the process of running the following queries when it was shutdown: ");
             for (RunningQuery query : lastDaemonRunningQueries) {
                 log.warn(query.toString());
@@ -71,7 +71,7 @@ public class RunningQueriesManager {
     private void tryStartingWaitingQueries() {
         try {
             synchronized (queriesWaiting) {
-                if (queriesWaiting.size() == 0 && queriesRunning.size() == 0) {
+                if (queriesWaiting.isEmpty() && queriesRunning.isEmpty()) {
                     return;
                 }
                 // if there is a large volume of queries, batch them instead of letting each one trigger a DB check immediately
@@ -89,7 +89,7 @@ public class RunningQueriesManager {
 
                 synchronized (queriesRunning) {
                     queriesRunning.addAll(result.queriesStarting);
-                    if(result.cancelledQueries.size() > 0) {
+                    if(!result.cancelledQueries.isEmpty()) {
                         applyCancellations(result.cancelledQueries);
                     }
                 }
