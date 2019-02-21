@@ -14,8 +14,6 @@
 
 package com.indeed.common.datastruct;
 
-import com.google.common.collect.Ordering;
-
 import javax.annotation.Nonnull;
 import java.util.AbstractQueue;
 import java.util.Comparator;
@@ -37,10 +35,6 @@ public class BoundedPriorityQueue<E> extends AbstractQueue<E> {
         this.pq = new PriorityQueue<E>(10, comparator);
         this.comparator = comparator;
         this.maxCapacity = maxCapacity;
-    }
-
-    public static <E extends Comparable<E>> BoundedPriorityQueue<E> newInstance(int maxCapacity) {
-        return new BoundedPriorityQueue<E>(Ordering.<E>natural(), maxCapacity);
     }
 
     public static <E> BoundedPriorityQueue<E> newInstance(int maxCapacity, Comparator<? super E> comparator) {

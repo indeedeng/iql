@@ -42,9 +42,6 @@ public final class ExpressionParser {
   private ExpressionParser() {
   }
 
-  static final Parser<Expression> NUMBER =
-      curry(NumberExpression.class).sequence(TerminalParser.NUMBER);
-
   private static final Parser<Expression> SIGNED_NUMBER =
       Parsers.sequence(TerminalParser.term("-").retn("-").optional(), TerminalParser.NUMBER, new Map2<String, String, Expression>() {
           @Override

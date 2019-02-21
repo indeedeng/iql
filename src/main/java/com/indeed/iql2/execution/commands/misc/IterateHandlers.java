@@ -23,7 +23,6 @@ import com.indeed.iql2.execution.QualifiedPush;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import it.unimi.dsi.fastutil.ints.IntList;
-import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -37,9 +36,7 @@ public class IterateHandlers {
     private IterateHandlers() {
     }
 
-    private static final Logger log = Logger.getLogger(IterateHandlers.class);
-
-    public static <T> List<T> executeMulti(Session session, FieldSet field, Collection<IterateHandler<T>> iterateHandlers) throws ImhotepOutOfMemoryException {
+    public static <T> List<T> executeMulti(Session session, FieldSet field, Collection<IterateHandler<T>> iterateHandlers) throws ImhotepOutOfMemoryException, IOException {
         session.timer.push("IterateHandlers.executeMulti");
 
         if (iterateHandlers.isEmpty()) {

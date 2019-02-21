@@ -16,14 +16,11 @@
 import com.indeed.flamdex.query.Query;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql1.ez.EZImhotepSession;
-import org.apache.log4j.Logger;
 
 /**
  * @author jplaisance
  */
 public final class QueryCondition implements Condition {
-    private static final Logger log = Logger.getLogger(QueryCondition.class);
-
     private final Query query;
     private final boolean negation;
 

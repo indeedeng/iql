@@ -18,7 +18,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class StatementParser {
-    private static final Pattern selectPattern = Pattern.compile("\\s*(?:select|from)\\s+.*", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
     private static final Pattern explainPattern = Pattern.compile("\\s*explain\\s+(.*)", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
     private static final Pattern showPattern = Pattern.compile("\\s*show\\s+(?:tables|datasets).*", Pattern.CASE_INSENSITIVE);
     private static final Pattern describePattern = Pattern.compile("\\s*(?:describe|desc)\\s+(\\w+)(?:(?:\\s+|\\.)(\\w+))?.*", Pattern.CASE_INSENSITIVE);
@@ -27,11 +26,6 @@ public class StatementParser {
     }
 
     public static IQLStatement parseIQLToStatement(String iql) {
-        // This pattern doesn't work when the query starts with a comment
-//        if(selectPattern.matcher(iql).matches()) {
-//            return new SelectStatement(iql);
-//        }
-
         final Matcher describeMatcher = describePattern.matcher(iql);
         if(describeMatcher.matches()) {
             return new DescribeStatement(describeMatcher.group(1), describeMatcher.group(2));
@@ -46,7 +40,6 @@ public class StatementParser {
             return new ExplainStatement(explainMatcher.group(1));
         }
 
-//        return InvalidStatement.INSTANCE;
         // assume that a query that doesn't match anything else is a select
         return new SelectStatement(iql);
     }

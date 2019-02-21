@@ -15,7 +15,6 @@
 package com.indeed.iql2.server.web.servlets.query;
 
 import au.com.bytecode.opencsv.CSVParser;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
@@ -113,7 +112,6 @@ import java.util.stream.Collectors;
 public class SelectQueryExecution {
     private static final Logger log = Logger.getLogger(SelectQueryExecution.class);
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     @VisibleForTesting
     public static final String METADATA_FILE_SUFFIX = ".meta";
 

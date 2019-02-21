@@ -14,7 +14,6 @@
  package com.indeed.iql1.ez;
 
 import com.google.common.collect.Lists;
-import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
 
@@ -22,8 +21,6 @@ import javax.annotation.Nullable;
  * @author jplaisance
  */
 public final class GroupKey<E extends Comparable> {
-    private static final Logger log = Logger.getLogger(GroupKey.class);
-
     @Nullable
     private final List<E> front;
     @Nullable

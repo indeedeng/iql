@@ -35,14 +35,6 @@ public class FieldIterateOpts {
     public Optional<Set<Long>> intTermSubset = Optional.absent();
     public Optional<Set<String>> stringTermSubset = Optional.absent();
 
-    public FieldIterateOpts copy() {
-        final FieldIterateOpts result = new FieldIterateOpts();
-        result.limit = limit;
-        result.topK = topK;
-        result.filter = filter;
-        return result;
-    }
-
     public com.indeed.iql2.execution.commands.misc.FieldIterateOpts toExecution(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
         final com.indeed.iql2.execution.commands.misc.FieldIterateOpts result = new com.indeed.iql2.execution.commands.misc.FieldIterateOpts();
         result.filter = filter.transform(x -> x.toExecutionFilter(namedMetricLookup, groupKeySet));

@@ -388,15 +388,10 @@ public final class IQLQuery implements Closeable {
             this.resultCacheIterator = resultCacheIterator;
             this.exceedsLimit = exceedsLimit;
         }
-
-        public boolean didOverflowToDisk() {
-            return unsortedFile != null;
-        }
     }
 
     @Nonnull
     public WriteResults outputResults(final Iterator<GroupStats> rows, PrintWriter httpOutStream, final boolean csv, final boolean progress, final int rowLimit, int groupingColumns, int selectColumns, boolean cacheDisabled) {
-        final long timeStarted = System.currentTimeMillis();
         final boolean requiresSorting = requiresSorting();
         if(cacheDisabled && !requiresSorting) { // just stream the rows out. don't have to worry about keeping a copy at all
             final int rowsWritten = writeRowsToStream(rows, httpOutStream, csv, rowLimit, progress);

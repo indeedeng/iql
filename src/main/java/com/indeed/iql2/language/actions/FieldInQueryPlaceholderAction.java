@@ -1,10 +1,7 @@
 package com.indeed.iql2.language.actions;
 
-import com.google.common.base.Function;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.execution.ResultFormat;
-import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
-import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.cachekeys.CacheKey;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
@@ -51,7 +48,7 @@ public class FieldInQueryPlaceholderAction implements Action {
     }
 
     @Override
-    public com.indeed.iql2.execution.actions.Action toExecutionAction(final Function<String, PerGroupConstant> namedMetricLookup, final GroupKeySet groupKeySet) {
+    public com.indeed.iql2.execution.actions.Action toExecutionAction() {
         throw new UnsupportedOperationException("Must transform the FieldInQueryPlaceholderAction out before doing a .getExecutionActions()");
     }
 

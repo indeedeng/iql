@@ -183,7 +183,6 @@ public class EZImhotepSession implements Closeable {
     private static void performIteration(final FTGSCallback callback, final FTGSIterator ftgsIterator) {
         try {
             while (ftgsIterator.nextField()) {
-                final String field = ftgsIterator.fieldName();
                 if (ftgsIterator.fieldIsIntType()) {
                     while (ftgsIterator.nextTerm()) {
                         final long term = ftgsIterator.termIntVal();

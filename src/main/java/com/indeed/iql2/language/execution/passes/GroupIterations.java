@@ -200,7 +200,6 @@ public class GroupIterations {
                 final Precomputed.PrecomputedSumAcross precomputedSumAcross = (Precomputed.PrecomputedSumAcross) computation;
                 return new PrecomputedContext(datasets, Optional.of(precomputedSumAcross.field));
             } else if (computation instanceof Precomputed.PrecomputedSumAcrossGroupBy) {
-                final Precomputed.PrecomputedSumAcrossGroupBy precomputedSumAcrossGroupBy = (Precomputed.PrecomputedSumAcrossGroupBy) computation;
                 return new PrecomputedContext(datasets, Optional.absent());
             } else if (computation instanceof Precomputed.PrecomputedFieldExtremeValue) {
                 final Precomputed.PrecomputedFieldExtremeValue precomputedFieldExtremeValue = (Precomputed.PrecomputedFieldExtremeValue) computation;

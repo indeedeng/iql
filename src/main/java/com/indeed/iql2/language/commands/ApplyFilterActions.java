@@ -48,7 +48,7 @@ public class ApplyFilterActions implements Command {
         return new com.indeed.iql2.execution.commands.ApplyFilterActions(
                 actions
                 .stream()
-                .map(x -> x.toExecutionAction(namedMetricLookup, groupKeySet))
+                .map(Action::toExecutionAction)
                 .collect(Collectors.toList())
         );
     }

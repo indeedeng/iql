@@ -29,7 +29,6 @@ public class FTGSCallbackIterator<E> extends AbstractIterator<E> implements Peek
     private static final Logger log = Logger.getLogger(FTGSCallbackIterator.class);
 
     // current FTGS iteration state cache
-    private String field;
     private boolean isIntField;
     private long termInt;
     private String termStr;
@@ -51,7 +50,6 @@ public class FTGSCallbackIterator<E> extends AbstractIterator<E> implements Peek
     protected E computeNext() {
         while (!fieldOver || ftgsIterator.nextField()) {
             if(fieldOver) {
-                field = ftgsIterator.fieldName();
                 isIntField = ftgsIterator.fieldIsIntType();
                 fieldOver = false;
             }

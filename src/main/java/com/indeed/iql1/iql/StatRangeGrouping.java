@@ -21,7 +21,6 @@ import com.indeed.iql1.ez.GroupKey;
 import com.indeed.iql1.ez.SingleStatReference;
 import com.indeed.util.serialization.Stringifier;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import org.apache.log4j.Logger;
 
 import java.text.DecimalFormat;
 
@@ -31,8 +30,6 @@ import static com.indeed.iql1.ez.Stats.Stat;
  * @author jplaisance
  */
 public final class StatRangeGrouping extends Grouping {
-    private static final Logger log = Logger.getLogger(StatRangeGrouping.class);
-
     private final Stat stat;
     private final long minValue;
     private final long maxValue;

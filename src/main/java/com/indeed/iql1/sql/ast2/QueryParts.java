@@ -26,10 +26,7 @@ public class QueryParts {
     public String select = "";
     public String limit = "";
 
-    public String error;
-
-    public int fromStart, fromEnd, whereStart, whereEnd, groupByStart, groupByEnd, selectStart, selectEnd;
-
+    // SplitterServlet needs this constructor
     public QueryParts() {
     }
 
@@ -47,23 +44,6 @@ public class QueryParts {
 
     public QueryParts(Token from, Token where, Token groupBy, Token select, Token limit) {
         this(tokenAsString(from), tokenAsString(where), tokenAsString(groupBy), tokenAsString(select), tokenAsString(limit));
-
-        if(from != null) {
-            fromStart = from.index();
-            fromEnd = from.index() + from.length();
-        }
-        if(select != null) {
-            selectStart = select.index();
-            selectEnd = select.index() + select.length();
-        }
-        if(where != null) {
-            whereStart = where.index();
-            whereEnd = where.index() + where.length();
-        }
-        if(groupBy != null) {
-            groupByStart = groupBy.index();
-            groupByEnd = groupBy.index() + groupBy.length();
-        }
     }
 
     private static String tokenAsString(Token token) {

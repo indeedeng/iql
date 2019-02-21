@@ -644,14 +644,6 @@ public class DocMetrics {
     }
 
     @Nullable
-    public static JQLParser.SinglyScopedFieldContext asPlainField(final JQLParser.JqlDocMetricContext ctx) {
-        if (ctx instanceof JQLParser.DocAtomContext) {
-            return asPlainField(((JQLParser.DocAtomContext) ctx).jqlDocMetricAtom());
-        }
-        return null;
-    }
-
-    @Nullable
     public static JQLParser.IdentifierContext asPlainField(final JQLParser.LegacyDocMetricContext ctx) {
         if (ctx instanceof JQLParser.LegacyDocAtomContext) {
             final JQLParser.LegacyDocMetricAtomContext ctx2 = ((JQLParser.LegacyDocAtomContext) ctx).legacyDocMetricAtom();

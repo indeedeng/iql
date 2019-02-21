@@ -14,14 +14,10 @@
 
 package com.indeed.iql2.execution;
 
-import org.apache.log4j.Logger;
-
 /**
  * @author jwolfe
  */
 public class Term {
-    private static final Logger log = Logger.getLogger(Term.class);
-
     public final boolean isIntTerm;
     public final String stringTerm;
     public final long intTerm;

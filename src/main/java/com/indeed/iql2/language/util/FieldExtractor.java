@@ -33,7 +33,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * @author jessec
@@ -466,14 +465,7 @@ public class FieldExtractor {
 
 			@Override
 			public Set<DatasetField> visit(final DocMetric.Qualified qualified) throws RuntimeException {
-				return getDatasetFields(qualified.metric).stream().map(
-						datasetField -> {
-							if(datasetField.dataset == null) {
-								datasetField.dataset = qualified.dataset;
-							}
-							return datasetField;
-						})
-						.collect(Collectors.toSet());
+				return getDatasetFields(qualified.metric);
 			}
 
 			@Override

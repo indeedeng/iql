@@ -71,8 +71,8 @@ public class RemappingShardResolver implements ShardResolver {
         // greedy partition algorithm, keep pair<Sum of numDoc, list of shard indices> in the heap
         final PriorityQueue<Pair<Long, List<Integer>>> docSumQueue = new PriorityQueue<>(
                 hosts.size(), (p1, p2) -> p1.getFirst().compareTo(p2.getFirst()));
-        hosts.stream().forEach(host -> { docSumQueue.add(Pair.of(0L, new ArrayList<>())); });
-        shardNumDocs.stream().forEach(
+        hosts.forEach(host -> { docSumQueue.add(Pair.of(0L, new ArrayList<>())); });
+        shardNumDocs.forEach(
                 numDocPair -> {
                     final Pair<Long, List<Integer>> poll = docSumQueue.poll();
                     poll.getSecond().add(numDocPair.getSecond());

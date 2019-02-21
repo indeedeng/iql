@@ -23,12 +23,4 @@ public class FieldIterateOpts {
     public Optional<AggregateFilter> filter = Optional.absent();
     public Optional<long[]> sortedIntTermSubset = Optional.absent();
     public Optional<String[]> sortedStringTermSubset = Optional.absent();
-
-    public FieldIterateOpts copy() {
-        final FieldIterateOpts result = new FieldIterateOpts();
-        result.limit = limit;
-        result.topK = topK;
-        result.filter = filter;
-        return result;
-    }
 }

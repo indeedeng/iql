@@ -32,7 +32,6 @@ import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.shardresolution.NullShardResolver;
 import com.indeed.util.core.time.WallClock;
 import com.indeed.util.logging.TracingTreeTimer;
-import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -45,8 +44,6 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 public class ExplainQueryExecution {
-    private static final Logger log = Logger.getLogger(ExplainQueryExecution.class);
-
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     // IQL2 Imhotep-based state
@@ -62,8 +59,6 @@ public class ExplainQueryExecution {
     private final String query;
     private final int version;
     private final LevelPrinter printer;
-
-    private boolean ran = false;
 
     public ExplainQueryExecution(
             final DatasetsMetadata datasetsMetadata,

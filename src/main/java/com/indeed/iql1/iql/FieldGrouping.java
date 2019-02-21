@@ -25,7 +25,6 @@ import com.indeed.iql1.ez.Field;
 import com.indeed.iql1.ez.GroupKey;
 import com.indeed.iql1.ez.StatReference;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import org.apache.log4j.Logger;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -39,8 +38,6 @@ import static com.indeed.iql1.ez.Stats.Stat;
  * @author jplaisance
  */
 public final class FieldGrouping extends Grouping {
-    private static final Logger log = Logger.getLogger(FieldGrouping.class);
-
     private static final Stat DEFAULT_SORT_STAT = EZImhotepSession.counts();
 
     private final Field field;

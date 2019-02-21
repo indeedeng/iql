@@ -57,6 +57,7 @@ import java.util.Set;
 public interface ExecutionStep {
 
     List<Command> commands();
+    // TODO: this is never used
     ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f);
 
     @EqualsAndHashCode

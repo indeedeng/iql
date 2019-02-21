@@ -115,7 +115,6 @@ public class Session {
     private final long firstStartTimeMillis;
     public final Set<String> options;
     private final FieldType defaultFieldType;
-    public final ResultFormat resultFormat;
     public final Formatter formatter;
     public final int iqlVersion;
 
@@ -123,7 +122,6 @@ public class Session {
     // Exactly equivalent to maxGroup.
     public int numGroups = 1;
 
-    public static final String INFINITY_SYMBOL = "∞";
     private static final String DEFAULT_FORMAT_STRING = "#.#######";
     private static final ThreadLocal<DecimalFormat> DEFAULT_DECIMAL_FORMAT = new ThreadLocal<DecimalFormat>() {
         @Override
@@ -150,7 +148,6 @@ public class Session {
         this.firstStartTimeMillis = firstStartTimeMillis;
         this.options = options;
         this.defaultFieldType = defaultFieldType;
-        this.resultFormat = resultFormat;
         this.iqlVersion = iqlVersion;
         this.formatter = Formatter.forFormat(resultFormat);
     }

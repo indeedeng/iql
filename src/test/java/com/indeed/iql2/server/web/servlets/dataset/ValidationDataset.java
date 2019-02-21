@@ -3,7 +3,6 @@ package com.indeed.iql2.server.web.servlets.dataset;
 import com.indeed.flamdex.writer.FlamdexDocument;
 import com.indeed.iql2.server.web.servlets.BasicTest;
 import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -13,8 +12,6 @@ import java.util.List;
  * @author jwolfe
  */
 public class ValidationDataset {
-    private static final DateTimeZone TIME_ZONE = DateTimeZone.forOffsetHours(-6);
-
     private static List<Dataset.DatasetShard> trivialOrganic() {
         final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
         final FlamdexDocument doc = new FlamdexDocument();

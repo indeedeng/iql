@@ -25,7 +25,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.StrictCloser;
-import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.ImhotepErrorResolver;
 import com.indeed.imhotep.exceptions.ImhotepKnownException;
@@ -503,7 +502,7 @@ public class QueryServlet {
             queryInfo.rows = IQLQuery.copyStream(cacheInputStream, outputStream, Integer.MAX_VALUE, args.isEventStream);
             queryInfo.totalTime = System.currentTimeMillis() - queryInfo.queryStartTimestamp;
             queryMetadata.addItem("IQL-Query-Info", queryInfo.toJSON(), false);
-            finalizeQueryExecution(args, queryMetadata, outputStream, queryInfo);
+            finalizeQueryExecution(args, queryMetadata, outputStream);
             return;
         }
 
@@ -527,8 +526,6 @@ public class QueryServlet {
             if (writeResults.exceedsLimit) {
                 warningList.add("Only first " + iqlQuery.getRowLimit() + " rows returned sorted on the last group by column");
             }
-        } catch (ImhotepOutOfMemoryException e) {
-            throw Throwables.propagate(e);
         } catch (final Exception e) {
             selectQuery.checkCancelled();
             throw Throwables.propagate(e);
@@ -570,10 +567,10 @@ public class QueryServlet {
             });
             selectQuery.markAsynchronousRelease(); // going to be closed asynchronously after cache is uploaded
         }
-        finalizeQueryExecution(args, queryMetadata, outputStream, queryInfo);
+        finalizeQueryExecution(args, queryMetadata, outputStream);
     }
 
-    private void finalizeQueryExecution(QueryRequestParams args, QueryMetadata queryMetadata, PrintWriter outputStream, QueryInfo queryInfo) throws IOException {
+    private void finalizeQueryExecution(QueryRequestParams args, QueryMetadata queryMetadata, PrintWriter outputStream) {
         if (args.isEventStream) {
             completeEventStream(outputStream, queryMetadata);
         }

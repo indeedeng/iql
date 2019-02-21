@@ -71,7 +71,7 @@ public abstract class GroupBy extends AbstractPositional {
     public abstract ExecutionStep executionStep(List<Dataset> datasets);
 
     public abstract boolean isTotal();
-    public abstract GroupBy makeTotal() throws CannotMakeTotalException;
+    public abstract GroupBy makeTotal();
 
     @Override
     public abstract int hashCode();
@@ -137,7 +137,7 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public GroupBy makeTotal() throws CannotMakeTotalException {
+        public GroupBy makeTotal() {
             if (isTotal()) {
                 return this;
             }
@@ -187,7 +187,7 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public GroupBy makeTotal() throws CannotMakeTotalException {
+        public GroupBy makeTotal() {
             return this;
         }
     }
@@ -229,7 +229,7 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public GroupBy makeTotal() throws CannotMakeTotalException {
+        public GroupBy makeTotal() {
             return this;
         }
     }
@@ -277,7 +277,7 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public GroupBy makeTotal() throws CannotMakeTotalException {
+        public GroupBy makeTotal() {
             return this;
         }
     }
@@ -323,7 +323,7 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public GroupBy makeTotal() throws CannotMakeTotalException {
+        public GroupBy makeTotal() {
             return this;
         }
     }
@@ -386,7 +386,7 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public GroupBy makeTotal() throws CannotMakeTotalException {
+        public GroupBy makeTotal() {
             return new GroupByFieldIn(field, intTerms, stringTerms, true);
         }
     }
@@ -442,7 +442,7 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public GroupBy makeTotal() throws CannotMakeTotalException {
+        public GroupBy makeTotal() {
             throw new IllegalStateException("GroupByFieldInQuery must be already transformed into another GroupBy");
         }
     }
@@ -520,7 +520,7 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public GroupBy makeTotal() throws CannotMakeTotalException {
+        public GroupBy makeTotal() {
             return new GroupByField(field, filter, limit, metric, true);
         }
     }
@@ -552,7 +552,7 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public GroupBy makeTotal() throws CannotMakeTotalException {
+        public GroupBy makeTotal() {
             return this;
         }
 
@@ -599,7 +599,7 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public GroupBy makeTotal() throws CannotMakeTotalException {
+        public GroupBy makeTotal() {
             return this;
         }
 
@@ -658,7 +658,7 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public GroupBy makeTotal() throws CannotMakeTotalException {
+        public GroupBy makeTotal() {
             return this;
         }
     }
@@ -704,7 +704,7 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public GroupBy makeTotal() throws CannotMakeTotalException {
+        public GroupBy makeTotal() {
             return this;
         }
     }
@@ -749,7 +749,7 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public GroupBy makeTotal() throws CannotMakeTotalException {
+        public GroupBy makeTotal() {
             return this;
         }
     }
@@ -803,7 +803,7 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public GroupBy makeTotal() throws CannotMakeTotalException {
+        public GroupBy makeTotal() {
             return this;
         }
     }

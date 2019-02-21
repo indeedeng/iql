@@ -59,7 +59,6 @@ public class SimpleIterate implements Command {
     public final List<Optional<String>> formatStrings;
 
     private int createdGroupCount = 0;
-    private StringBuilder sb;
 
     public SimpleIterate(
             final FieldSet field,

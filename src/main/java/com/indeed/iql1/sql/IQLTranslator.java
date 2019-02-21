@@ -974,8 +974,6 @@ public final class IQLTranslator {
     }
 
     private static final class GroupByMatcher extends Expression.Matcher<Grouping> {
-        private static final int MAX_RECOMMENDED_BUCKETS = 1000;
-
         private final Map<String, Function<List<Expression>, Grouping>> functionLookup;
 
         private final DatasetMetadata datasetMetadata;
@@ -1184,8 +1182,6 @@ public final class IQLTranslator {
         private static final int SECONDS_IN_MINUTE = 60;
         private static final int SECONDS_IN_HOUR = SECONDS_IN_MINUTE * 60;
         private static final int SECONDS_IN_DAY = SECONDS_IN_HOUR * 24;
-        private static final int SECONDS_IN_WEEK = SECONDS_IN_DAY * 7;
-
 
         protected Grouping functionExpression(final String name, final List<Expression> args) {
             final Function<List<Expression>, Grouping> function = functionLookup.get(name);
