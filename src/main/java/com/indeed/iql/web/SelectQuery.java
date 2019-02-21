@@ -55,7 +55,7 @@ public class SelectQuery implements Closeable {
     @Nullable
     final IQL1SelectStatement parsedStatement;
     final QueryMetadata queryMetadata;
-    private Closeable queryResourceCloser;
+    private final Closeable queryResourceCloser;
     private final ProgressCallback progressCallback;
     @Nullable
     RuntimeException cancellationException = null; // non-null iff query is cancelled

@@ -32,7 +32,7 @@ import java.util.regex.Pattern;
 public class QueryInfo {
     private static final Logger log = Logger.getLogger(QueryInfo.class);
 
-    private static Pattern queryTruncatePattern = Pattern.compile("\\(([^\\)]{0,200}+)[^\\)]+\\)");
+    private static final Pattern queryTruncatePattern = Pattern.compile("\\(([^\\)]{0,200}+)[^\\)]+\\)");
     private final static ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     static {
         OBJECT_MAPPER.configure(SerializationFeature.INDENT_OUTPUT, true);

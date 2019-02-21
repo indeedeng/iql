@@ -15,8 +15,8 @@
 package com.indeed.iql.web.print;
 
 public class LevelPrinter {
-    private static int INDENT_LENGTH = 4;
-    private StringBuilder sb;
+    private static final int INDENT_LENGTH = 4;
+    private final StringBuilder sb;
     private int depth;
 
     public LevelPrinter() {

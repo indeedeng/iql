@@ -18,7 +18,6 @@ import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.Region;
-
 import org.apache.log4j.Logger;
 import org.springframework.core.env.PropertyResolver;
 
@@ -36,8 +35,8 @@ import java.io.InputStream;
 public class S3QueryCache implements QueryCache {
     private static final Logger log = Logger.getLogger(S3QueryCache.class);
 
-    private AmazonS3Client client;
-    private String bucket;
+    private final AmazonS3Client client;
+    private final String bucket;
 
     public S3QueryCache(PropertyResolver props) {
         String awsRegion;

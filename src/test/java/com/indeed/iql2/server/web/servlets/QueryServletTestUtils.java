@@ -68,7 +68,7 @@ import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.ResultFo
 public class QueryServletTestUtils extends BasicTest {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    private static ExecutorService executorService = new ThreadPoolExecutor(
+    private static final ExecutorService executorService = new ThreadPoolExecutor(
                 3, 20, 30,TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(1000),
                 new NamedThreadFactory("IQL-Worker")
         );

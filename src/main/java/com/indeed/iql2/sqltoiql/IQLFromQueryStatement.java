@@ -29,7 +29,7 @@ public class IQLFromQueryStatement {
     private final String identifier;
     private final LocalDateTime startTime;
     private final LocalDateTime endTime;
-    private Optional<String> alias;
+    private final Optional<String> alias;
 
     private IQLFromQueryStatement(
             final String identifier,

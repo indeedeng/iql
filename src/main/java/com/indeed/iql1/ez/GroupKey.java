@@ -47,7 +47,7 @@ public final class GroupKey<E extends Comparable> {
 
         private final @Nullable List<E> tail;
 
-        private @Nullable E last;
+        @Nullable private final E last;
 
         private List(final E head, final @Nullable List<E> tail) {
             this.head = head;

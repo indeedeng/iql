@@ -34,7 +34,7 @@ public class CORSInterceptor extends HandlerInterceptorAdapter {
     private static final Logger log = Logger.getLogger(CORSInterceptor.class);
 
 
-    private List<Pattern> allowedHostRegexes = Lists.newArrayList();
+    private final List<Pattern> allowedHostRegexes = Lists.newArrayList();
 
     public CORSInterceptor(Environment env) {
         //noinspection unchecked

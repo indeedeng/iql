@@ -41,7 +41,7 @@ public enum IQLOperator {
         return this.value;
     }
 
-    private static ImmutableMap<String, IQLOperator> reverseLookup =
+    private static final ImmutableMap<String, IQLOperator> reverseLookup =
             Maps.uniqueIndex(Arrays.asList(IQLOperator.values()), IQLOperator::getValue);
 
     public static IQLOperator fromString(final String id) {

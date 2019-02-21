@@ -187,8 +187,8 @@ public class PercentileGrouping extends Grouping {
         private final StatReference statRef;
         private final Int2ObjectMap<DoubleList> percentileValues;
 
-        private Int2LongMap groupToPrevCount = new Int2LongOpenHashMap();
-        private Int2LongMap groupToPrevTerm = new Int2LongOpenHashMap();
+        private final Int2LongMap groupToPrevCount = new Int2LongOpenHashMap();
+        private final Int2LongMap groupToPrevTerm = new Int2LongOpenHashMap();
 
         private PercentileFTGSCallback(final int numStats, final StatReference statRef, final Int2ObjectMap<DoubleList> percentileValues) {
             super(numStats);

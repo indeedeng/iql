@@ -42,7 +42,7 @@ import java.io.IOException;
 public class ParseController {
     private static final Logger log = Logger.getLogger(ParseController.class);
 
-    private ImhotepMetadataCache metadata;
+    private final ImhotepMetadataCache metadata;
     private final ParseServlet parseServletV2;
 
     @Autowired

@@ -25,7 +25,7 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 public class CacheKey {
-    private static Logger log = Logger.getLogger(CacheKey.class);
+    private static final Logger log = Logger.getLogger(CacheKey.class);
 
     public final String rawHash;
     public final String cacheFileName;

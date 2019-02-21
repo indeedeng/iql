@@ -13,9 +13,7 @@
  */
  package com.indeed.iql.cache;
 
-import com.google.common.io.ByteStreams;
 import com.indeed.iql.web.KerberosUtils;
-
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -24,13 +22,9 @@ import org.apache.log4j.Logger;
 import org.springframework.core.env.PropertyResolver;
 
 import javax.annotation.Nullable;
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 
 /**
  * @author vladimir
@@ -39,9 +33,9 @@ import java.io.OutputStream;
 public class HDFSQueryCache implements QueryCache {
     private static final Logger log = Logger.getLogger(HDFSQueryCache.class);
 
-    private FileSystem hdfs;
-    private Path cachePath;
-    private boolean cacheDirWorldWritable;
+    private final FileSystem hdfs;
+    private final Path cachePath;
+    private final boolean cacheDirWorldWritable;
 
     public HDFSQueryCache(PropertyResolver props) throws IOException {
         kerberosLogin(props);

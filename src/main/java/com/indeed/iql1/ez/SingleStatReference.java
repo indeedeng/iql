@@ -18,7 +18,7 @@
 */
 public class SingleStatReference implements StatReference {
     final int depth;
-    private String stringRep;
+    private final String stringRep;
     private final EZImhotepSession session;
     boolean valid = true;
 
