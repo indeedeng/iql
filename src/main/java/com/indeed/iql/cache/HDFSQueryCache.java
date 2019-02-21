@@ -84,7 +84,7 @@ public class HDFSQueryCache implements QueryCache {
 
     @Override
     @Nullable
-    public InputStream getInputStream(String cachedFileName) throws IOException {
+    public InputStream getInputStream(String cachedFileName) {
         final Path f = new Path(cachePath, cachedFileName);
         try {
             return hdfs.open(f);

@@ -59,7 +59,7 @@ public class PercentileGrouping extends Grouping {
     }
 
     @Override
-    public Int2ObjectMap<GroupKey> regroup(final EZImhotepSession session, final Int2ObjectMap<GroupKey> groupKeys) throws ImhotepOutOfMemoryException {
+    public Int2ObjectMap<GroupKey> regroup(final EZImhotepSession session, final Int2ObjectMap<GroupKey> groupKeys) {
         throw new UnsupportedOperationException("Percentiles must be used as the last group");
     }
 

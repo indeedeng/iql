@@ -151,7 +151,7 @@ public final class IQLQuery implements Closeable {
     /**
      * Not thread safe due to session reference caching for close().
      */
-    public ExecutionResult execute(boolean progress, PrintWriter outputStream) throws ImhotepOutOfMemoryException {
+    public ExecutionResult execute(boolean progress, PrintWriter outputStream) {
         queryInfo.shardsSelectionMillis = shardsSelectionMillis;
         //if outputStream passed, update on progress
         final PrintWriter out = progress ? outputStream : null;

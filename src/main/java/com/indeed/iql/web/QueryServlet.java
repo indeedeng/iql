@@ -104,7 +104,6 @@ import java.util.TimeZone;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 /**
@@ -352,7 +351,7 @@ public class QueryServlet {
     }
 
     private void handleSelectStatement(SelectStatement selectStatement, QueryInfo queryInfo, ClientInfo clientInfo,
-                                       QueryRequestParams queryRequestParams, HttpServletResponse resp) throws IOException, ImhotepOutOfMemoryException {
+                                       QueryRequestParams queryRequestParams, HttpServletResponse resp) throws IOException {
         try (final TracingTreeTimer timer = new TracingTreeTimer()) {
 
             final String query = selectStatement.selectQuery;
@@ -627,7 +626,7 @@ public class QueryServlet {
         return warningList;
     }
 
-    public static void completeEventStream(PrintWriter outputStream, QueryMetadata queryMetadata) throws IOException {
+    public static void completeEventStream(PrintWriter outputStream, QueryMetadata queryMetadata) {
         outputStream.println();
         outputStream.println("event: header");
         outputStream.print("data: ");
@@ -708,7 +707,7 @@ public class QueryServlet {
         }
     }
 
-    private void handleExplainStatement(ExplainStatement explainStatement, QueryRequestParams queryRequestParams, HttpServletResponse resp, WallClock clock) throws IOException, TimeoutException, ImhotepOutOfMemoryException {
+    private void handleExplainStatement(ExplainStatement explainStatement, QueryRequestParams queryRequestParams, HttpServletResponse resp, WallClock clock) throws IOException {
         if(queryRequestParams.version == 1 && !queryRequestParams.legacyMode) {
             throw new IqlKnownException.ParseErrorException("IQL 1 doesn't support EXPLAIN statements");
         }

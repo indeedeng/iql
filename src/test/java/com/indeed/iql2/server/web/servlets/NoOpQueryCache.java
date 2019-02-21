@@ -14,12 +14,10 @@
 
 package com.indeed.iql2.server.web.servlets;
 
-
 import com.indeed.iql.cache.CompletableOutputStream;
 import com.indeed.iql.cache.QueryCache;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
 
 public class NoOpQueryCache implements QueryCache {
@@ -39,22 +37,22 @@ public class NoOpQueryCache implements QueryCache {
     }
 
     @Override
-    public InputStream getInputStream(String cachedFileName) throws IOException {
+    public InputStream getInputStream(String cachedFileName) {
         return null;
     }
 
     @Override
-    public CompletableOutputStream getOutputStream(String cachedFileName) throws IOException {
+    public CompletableOutputStream getOutputStream(String cachedFileName) {
         return null;
     }
 
     @Override
-    public void writeFromFile(String cachedFileName, File localFile) throws IOException {
+    public void writeFromFile(String cachedFileName, File localFile) {
 
     }
 
     @Override
-    public void healthcheck() throws IOException {
+    public void healthcheck() {
 
     }
 }

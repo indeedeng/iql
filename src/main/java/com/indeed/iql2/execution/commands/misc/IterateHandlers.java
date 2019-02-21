@@ -39,7 +39,7 @@ public class IterateHandlers {
 
     private static final Logger log = Logger.getLogger(IterateHandlers.class);
 
-    public static <T> List<T> executeMulti(Session session, FieldSet field, Collection<IterateHandler<T>> iterateHandlers) throws ImhotepOutOfMemoryException, IOException {
+    public static <T> List<T> executeMulti(Session session, FieldSet field, Collection<IterateHandler<T>> iterateHandlers) throws ImhotepOutOfMemoryException {
         session.timer.push("IterateHandlers.executeMulti");
 
         if (iterateHandlers.isEmpty()) {

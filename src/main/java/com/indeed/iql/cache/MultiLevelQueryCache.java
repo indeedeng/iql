@@ -83,7 +83,7 @@ public class MultiLevelQueryCache implements QueryCache {
     }
 
     @Override
-    public CompletableOutputStream getOutputStream(String cachedFileName) throws IOException {
+    public CompletableOutputStream getOutputStream(String cachedFileName) {
         final ByteArrayOutputStream inMemoryCacheStream = new ByteArrayOutputStream(1000);
         //noinspection IOResourceOpenedButNotSafelyClosed
         final DelegatingCompletableOutputStream wrappedInMemoryStream = new DelegatingCompletableOutputStream(inMemoryCacheStream);

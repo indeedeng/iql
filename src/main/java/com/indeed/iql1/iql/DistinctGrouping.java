@@ -14,7 +14,6 @@
  package com.indeed.iql1.iql;
 
 import com.google.common.collect.Lists;
-import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql1.ez.EZImhotepSession;
 import com.indeed.iql1.ez.Field;
 import com.indeed.iql1.ez.GroupKey;
@@ -51,12 +50,12 @@ public class DistinctGrouping extends Grouping {
     }
 
     @Override
-    public Int2ObjectMap<GroupKey> regroup(EZImhotepSession session, Int2ObjectMap<GroupKey> groupKeys) throws ImhotepOutOfMemoryException {
+    public Int2ObjectMap<GroupKey> regroup(EZImhotepSession session, Int2ObjectMap<GroupKey> groupKeys) {
         throw new UnsupportedOperationException("DistinctGrouping requires FTGS so always should go last in the list of groupings");
     }
 
     @Override
-    public Iterator<GroupStats> getGroupStats(final EZImhotepSession session, final Int2ObjectMap<GroupKey> groupKeys, final List<StatReference> statRefs) throws ImhotepOutOfMemoryException {
+    public Iterator<GroupStats> getGroupStats(final EZImhotepSession session, final Int2ObjectMap<GroupKey> groupKeys, final List<StatReference> statRefs) {
         if(groupKeys.isEmpty()) {   // we don't have any parent groups probably because all docs were filtered out
             return Collections.<GroupStats>emptyList().iterator();
         }

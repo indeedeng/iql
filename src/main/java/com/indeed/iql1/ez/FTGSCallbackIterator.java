@@ -20,7 +20,6 @@ import com.indeed.util.core.io.Closeables2;
 import org.apache.log4j.Logger;
 
 import java.io.Closeable;
-import java.io.IOException;
 
 /**
  * Allows iterating over return values of the provided callback which is being run on each field/term/group tuple.
@@ -82,7 +81,7 @@ public class FTGSCallbackIterator<E> extends AbstractIterator<E> implements Peek
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         Closeables2.closeQuietly(ftgsIterator, log);
     }
 }
