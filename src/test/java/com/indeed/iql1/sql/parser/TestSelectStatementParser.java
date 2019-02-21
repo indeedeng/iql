@@ -32,7 +32,7 @@ import static org.junit.Assert.assertEquals;
 
 public class TestSelectStatementParser {
 
-    public static IQL1SelectStatement parseSelectStatement(final String selectQuery) {
+    private static IQL1SelectStatement parseSelectStatement(final String selectQuery) {
         return SelectStatementParser.parseSelectStatement(selectQuery, DateTime.now(), null);
     }
 

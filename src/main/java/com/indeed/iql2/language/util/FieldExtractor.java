@@ -45,7 +45,7 @@ public class FieldExtractor {
 
 	public static class DatasetField {
 		@Nonnull public String dataset;
-		@Nonnull public String field;
+		@Nonnull public final String field;
 		boolean aliasResolved;
 
 		DatasetField(final String field, final String dataset) {

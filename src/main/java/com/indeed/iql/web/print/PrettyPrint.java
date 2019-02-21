@@ -253,7 +253,7 @@ public class PrettyPrint {
         }
     }
 
-    boolean isIQL2Consistent(AbstractPositional positional, Consumer<String> consumer, WallClock clock) {
+    private boolean isIQL2Consistent(AbstractPositional positional, Consumer<String> consumer, WallClock clock) {
         try {
             final String rawString = getText(positional);
             final AbstractPositional positionalIQL2;

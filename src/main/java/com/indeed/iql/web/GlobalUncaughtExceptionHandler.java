@@ -18,8 +18,8 @@
  */
 
 public class GlobalUncaughtExceptionHandler implements Thread.UncaughtExceptionHandler {
-    static final int RETURN_CODE = 2;
-    static final int SHUTDOWN_ALLOW_TIME = 60000;   // allow 1 minute to cleanly exit
+    private static final int RETURN_CODE = 2;
+    private static final int SHUTDOWN_ALLOW_TIME = 60000;   // allow 1 minute to cleanly exit
 
     public void uncaughtException(Thread t, Throwable e) {
         if(e instanceof OutOfMemoryError) {

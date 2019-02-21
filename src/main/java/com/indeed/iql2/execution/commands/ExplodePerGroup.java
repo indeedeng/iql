@@ -28,9 +28,9 @@ import it.unimi.dsi.fastutil.longs.LongArrayList;
 import java.util.List;
 
 public class ExplodePerGroup implements Command {
-    final LongArrayList[] intTerms;
-    final List<String>[] strTerms;
-    public final Optional<String> defaultName;
+    private final LongArrayList[] intTerms;
+    private final List<String>[] strTerms;
+    private final Optional<String> defaultName;
 
     private final FieldSet field;
     private final boolean isIntType;

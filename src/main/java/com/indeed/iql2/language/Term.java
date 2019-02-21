@@ -24,7 +24,7 @@ public class Term {
     public final long intTerm;
     public final boolean isIntTerm;
 
-    public Term(final String stringTerm, final long intTerm, final boolean isIntTerm) {
+    private Term(final String stringTerm, final long intTerm, final boolean isIntTerm) {
         this.stringTerm = stringTerm;
         this.intTerm = intTerm;
         this.isIntTerm = isIntTerm;

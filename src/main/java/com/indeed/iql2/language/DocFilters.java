@@ -467,7 +467,7 @@ public class DocFilters {
         return null;
     }
 
-    public static DocFilter docInHelper(
+    private static DocFilter docInHelper(
             final DatasetsMetadata datasetsMetadata,
             final FieldSet field,
             final boolean negate,

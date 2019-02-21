@@ -209,7 +209,7 @@ public final class IQLTranslator {
      * This properly handles the case where filtered and grouped by field has multiple terms per doc (e.g. grp, rcv).
      * Modifies the passed in lists.
      */
-    static void handleMultitermIn(List<Condition> conditions, List<Grouping> groupings, Limits limits) {
+    private static void handleMultitermIn(List<Condition> conditions, List<Grouping> groupings, Limits limits) {
         for(int i = 0; i < conditions.size(); i++) {
             Condition condition = conditions.get(i);
             if(! (condition instanceof StringInCondition)) {
@@ -281,7 +281,7 @@ public final class IQLTranslator {
         }
     }
 
-    static DistinctGrouping getDistinctGrouping(List<Expression> projections, DatasetMetadata datasetMetadata, Set<String> fieldNames) {
+    private static DistinctGrouping getDistinctGrouping(List<Expression> projections, DatasetMetadata datasetMetadata, Set<String> fieldNames) {
         DistinctGrouping distinctGrouping = null;
         int projectionNumber = 0;
         for(Iterator<Expression> projectionsIter = projections.iterator(); projectionsIter.hasNext(); projectionNumber++) {
@@ -310,7 +310,7 @@ public final class IQLTranslator {
         return distinctGrouping;
     }
 
-    static PercentileGrouping getPercentileGrouping(List<Expression> projections, DatasetMetadata datasetMetadata, Stat countStat, Set<String> fieldNames) {
+    private static PercentileGrouping getPercentileGrouping(List<Expression> projections, DatasetMetadata datasetMetadata, Stat countStat, Set<String> fieldNames) {
         PercentileGrouping percentileGrouping = null;
         int projectionNumber = 0;
         for(Iterator<Expression> projectionsIter = projections.iterator(); projectionsIter.hasNext(); projectionNumber++) {

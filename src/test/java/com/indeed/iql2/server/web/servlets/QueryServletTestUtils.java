@@ -601,12 +601,11 @@ public class QueryServletTestUtils extends BasicTest {
         return output;
     }
 
-    @SuppressWarnings("WeakerAccess")
-    public static class QueryResult {
-        public JsonNode header;
-        public List<List<String>> data;
+    private static class QueryResult {
+        final JsonNode header;
+        final List<List<String>> data;
 
-        public QueryResult(final JsonNode header, final List<List<String>> data) {
+        QueryResult(final JsonNode header, final List<List<String>> data) {
             this.header = header;
             this.data = data;
         }

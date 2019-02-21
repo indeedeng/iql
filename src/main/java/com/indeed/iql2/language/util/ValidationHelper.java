@@ -17,10 +17,8 @@ package com.indeed.iql2.language.util;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql.metadata.MetricMetadata;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
-
 import com.indeed.util.core.Pair;
 
-import java.util.List;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
@@ -29,7 +27,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 public class ValidationHelper {
-    public final boolean useLegacy;
+    private final boolean useLegacy;
     private final DatasetsMetadata datasetsMetadata;
     private final Map<String, Set<String>> datasetAliasIntFields;
     private final Map<String, Set<String>> datasetAliasStringFields;

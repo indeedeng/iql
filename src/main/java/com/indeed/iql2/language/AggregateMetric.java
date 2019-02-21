@@ -41,7 +41,7 @@ import java.util.stream.Collectors;
 // TODO: PerGroupConstants, IfThenElse ????
 public abstract class AggregateMetric extends AbstractPositional {
 
-    public static final String PRECOMPUTED_EXCEPTION = "Should be extracted by ExtractPrecomputed";
+    private static final String PRECOMPUTED_EXCEPTION = "Should be extracted by ExtractPrecomputed";
 
     public interface Visitor<T, E extends Throwable> {
         T visit(Add add) throws E;

@@ -15,7 +15,7 @@ import java.util.List;
 public class ValidationDataset {
     private static final DateTimeZone TIME_ZONE = DateTimeZone.forOffsetHours(-6);
 
-    public static List<Dataset.DatasetShard> trivialOrganic() {
+    private static List<Dataset.DatasetShard> trivialOrganic() {
         final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
         final FlamdexDocument doc = new FlamdexDocument();
         doc.addIntTerm("unixtime", new DateTime(2015, 1, 1, 0, 0, BasicTest.TIME_ZONE).getMillis() / 1000);
@@ -27,7 +27,7 @@ public class ValidationDataset {
         );
     }
 
-    public static List<Dataset.DatasetShard> trivialSponsored() {
+    private static List<Dataset.DatasetShard> trivialSponsored() {
         final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
         final FlamdexDocument doc = new FlamdexDocument();
         doc.addIntTerm("unixtime", new DateTime(2015, 1, 1, 0, 0, BasicTest.TIME_ZONE).getMillis() / 1000);

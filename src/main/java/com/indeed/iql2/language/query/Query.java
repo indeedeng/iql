@@ -200,7 +200,7 @@ public class Query extends AbstractPositional {
             }
             datasets.add(dataset.getFirst());
         }
-        Query.validateDatasetNames(datasets);
+        validateDatasetNames(datasets);
         if (whereContents.isPresent()) {
             for (final JQLParser.DocFilterContext ctx : whereContents.get().docFilter()) {
                 allFilters.add(DocFilters.parseDocFilter(ctx, context));
@@ -379,7 +379,7 @@ public class Query extends AbstractPositional {
         return new Query(datasets, filter, groupBys, selects, formatStrings, options, rowLimit, useLegacy).copyPosition(this);
     }
 
-    public static void validateDatasetNames(final List<Dataset> datasets) {
+    private static void validateDatasetNames(final List<Dataset> datasets) {
         final Set<String> names = new HashSet<>();
         for (final Dataset dataset : datasets) {
             final String name = dataset.getDisplayName();

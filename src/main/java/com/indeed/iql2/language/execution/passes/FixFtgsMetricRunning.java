@@ -33,7 +33,7 @@ public class FixFtgsMetricRunning {
     private FixFtgsMetricRunning() {
     }
 
-    public static final Function<AggregateMetric, AggregateMetric> DECREMENT_RUNNING = new Function<AggregateMetric, AggregateMetric>() {
+    private static final Function<AggregateMetric, AggregateMetric> DECREMENT_RUNNING = new Function<AggregateMetric, AggregateMetric>() {
         @Override
         public AggregateMetric apply(AggregateMetric input) {
             if (input instanceof AggregateMetric.Running) {

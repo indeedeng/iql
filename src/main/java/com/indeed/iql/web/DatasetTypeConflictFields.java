@@ -17,8 +17,8 @@ package com.indeed.iql.web;
 import java.util.Set;
 
 public class DatasetTypeConflictFields {
-    public String dataset;
-    public Set<String> fields;
+    public final String dataset;
+    public final Set<String> fields;
 
     public DatasetTypeConflictFields(String dataset, Set<String> fields) {
         this.dataset = dataset;

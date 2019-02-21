@@ -13,9 +13,9 @@ import org.junit.Test;
 import java.util.Collections;
 
 public class TimeRangeTest {
-    public static final DatasetsMetadata DATASETS_METADATA = AllData.DATASET.getDatasetsMetadata();
-    public static final DateTimeZone ZONE = DateTimeZone.forOffsetHours(-6);
-    public static final DateTime STOPPED_TIME = new DateTime(2015, 1, 1, 0, 0, ZONE);
+    private static final DatasetsMetadata DATASETS_METADATA = AllData.DATASET.getDatasetsMetadata();
+    private static final DateTimeZone ZONE = DateTimeZone.forOffsetHours(-6);
+    private static final DateTime STOPPED_TIME = new DateTime(2015, 1, 1, 0, 0, ZONE);
 
     private void testStartEnd(final String query, final DateTime start, final DateTime end) {
         testStartEnd(query, start, end, false);

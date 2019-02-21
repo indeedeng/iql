@@ -92,7 +92,7 @@ public class EZImhotepSession implements Closeable {
         return pushStatInternal(stat, false);
     }
 
-    public SingleStatReference pushStatInternal(
+    private SingleStatReference pushStatInternal(
             final Stats.Stat stat,
             final boolean allowAggregateStats) throws ImhotepOutOfMemoryException {
         if(stat instanceof Stats.AggregateBinOpStat) {
@@ -120,7 +120,7 @@ public class EZImhotepSession implements Closeable {
         return statReference;
     }
 
-    public CompositeStatReference pushStatComposite(Stats.AggregateBinOpStat stat) throws ImhotepOutOfMemoryException {
+    private CompositeStatReference pushStatComposite(Stats.AggregateBinOpStat stat) throws ImhotepOutOfMemoryException {
         final int initialDepth = stackDepth;
         stackDepth = session.pushStats(stat.pushes(this));
         if (initialDepth + 2 != stackDepth) {

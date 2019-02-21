@@ -30,14 +30,14 @@ public class FTGSCallbackIterator<E> extends AbstractIterator<E> implements Peek
     private static final Logger log = Logger.getLogger(FTGSCallbackIterator.class);
 
     // current FTGS iteration state cache
-    String field;
-    boolean isIntField;
-    long termInt;
-    String termStr;
+    private String field;
+    private boolean isIntField;
+    private long termInt;
+    private String termStr;
 
     // flags for whether we need to advance field/term
-    boolean fieldOver = true;
-    boolean termOver = true;
+    private boolean fieldOver = true;
+    private boolean termOver = true;
 
     private final EZImhotepSession.FTGSIteratingCallback<E> callback;
     private final FTGSIterator ftgsIterator;

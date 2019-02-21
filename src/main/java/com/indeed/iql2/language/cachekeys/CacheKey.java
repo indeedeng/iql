@@ -30,7 +30,7 @@ public class CacheKey {
     public final String rawHash;
     public final String cacheFileName;
 
-    public CacheKey(final String rawHash, final String cacheFileName) {
+    private CacheKey(final String rawHash, final String cacheFileName) {
         this.rawHash = rawHash;
         this.cacheFileName = cacheFileName;
     }

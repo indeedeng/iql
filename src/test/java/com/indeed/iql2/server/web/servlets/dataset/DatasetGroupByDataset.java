@@ -13,8 +13,8 @@ import java.util.List;
  * @author jwolfe
  */
 public class DatasetGroupByDataset {
-    public static final DateTimeFormatter FORMATTER = DateTimeFormat.forPattern("yyyyMMdd");
-    public static final DateTimeZone DATE_TIME_ZONE = DateTimeZone.forOffsetHours(-6);
+    private static final DateTimeFormatter FORMATTER = DateTimeFormat.forPattern("yyyyMMdd");
+    private static final DateTimeZone DATE_TIME_ZONE = DateTimeZone.forOffsetHours(-6);
     private static final String DATASET = "groupByDataset";
 
     private static Dataset.DatasetShard makeShard(LocalDate day, int count) {

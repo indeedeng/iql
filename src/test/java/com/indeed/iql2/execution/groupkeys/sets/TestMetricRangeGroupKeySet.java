@@ -30,7 +30,7 @@ import java.util.Arrays;
 // TODO: test interval=1
 public class TestMetricRangeGroupKeySet {
 
-    public static final Formatter FORMATTER = Formatter.TSV;
+    private static final Formatter FORMATTER = Formatter.TSV;
 
     private static MetricRangeGroupKeySet create() {
         final DumbGroupKeySet previous = DumbGroupKeySet.create(DumbGroupKeySet.empty(), new int[]{-1, 1, 1, 1, 1, 1}, Arrays.<GroupKey>asList(null, new IntTermGroupKey(1), new IntTermGroupKey(2), new IntTermGroupKey(3), new IntTermGroupKey(4), new IntTermGroupKey(5)));

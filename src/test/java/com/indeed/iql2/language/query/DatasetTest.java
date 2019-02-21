@@ -26,8 +26,8 @@ import java.util.Random;
 
 public class DatasetTest {
 
-    public static final StoppedClock CLOCK = new StoppedClock(new DateTime(2015, 1, 2, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis());
-    public static final ImhotepClientShardResolver SHARD_RESOLVER = new ImhotepClientShardResolver(AllData.DATASET.getNormalClient());
+    private static final StoppedClock CLOCK = new StoppedClock(new DateTime(2015, 1, 2, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis());
+    private static final ImhotepClientShardResolver SHARD_RESOLVER = new ImhotepClientShardResolver(AllData.DATASET.getNormalClient());
 
     private static List<Dataset> parseQueryDatasets(
             final String query,

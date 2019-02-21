@@ -14,8 +14,6 @@
 
 package com.indeed.iql2.server.web.fieldExtractor;
 
-import java.util.Collections;
-import java.util.function.Consumer;
 import com.indeed.iql2.language.query.Queries;
 import com.indeed.iql2.language.query.shardresolution.NullShardResolver;
 import com.indeed.iql2.language.query.shardresolution.ShardResolver;
@@ -29,7 +27,9 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.junit.Assert;
 
+import java.util.Collections;
 import java.util.Set;
+import java.util.function.Consumer;
 
 /**
  * @author jessec@indeed.com (Jesse Chen)
@@ -50,8 +50,8 @@ public class BaseTest {
 	protected static final DatasetField JOBSEARCH_CTKRCVD = new DatasetField("ctkrcvd", "jobsearch", true);
 
 	private static final WallClock wallClock = new StoppedClock(new DateTime(2015, 1, 2, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis());
-	public static final TracingTreeTimer TIMER = new TracingTreeTimer();
-	public static final ShardResolver SHARD_RESOLVER = new NullShardResolver();
+	private static final TracingTreeTimer TIMER = new TracingTreeTimer();
+	private static final ShardResolver SHARD_RESOLVER = new NullShardResolver();
 
 	public void verify(final Set<DatasetField> expected, final String query) {
 		final Queries.ParseResult parseResult = Queries.parseQuery(

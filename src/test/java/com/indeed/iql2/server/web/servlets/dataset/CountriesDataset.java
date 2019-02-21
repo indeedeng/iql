@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Random;
 
 public class CountriesDataset {
-    public static final ImmutableList<String> SOME_COUNTRIES =ImmutableList.of(
+    private static final ImmutableList<String> SOME_COUNTRIES =ImmutableList.of(
             "ae", "aq", "ar", "at", "au", "be", "bh", "br", "ca", "ch", "cl",
             "cn", "co", "cr", "cz", "de", "dk", "ec", "eg", "es", "fi", "fr",
             "gb", "gr", "hk", "hu", "id", "ie", "il", "in", "it", "jp", "kr",

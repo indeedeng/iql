@@ -107,8 +107,8 @@ public class Stats {
 
     static class AggregateBinOpStat extends Stat {
         private final String op;
-        Stat statLeft;
-        Stat statRight;
+        final Stat statLeft;
+        final Stat statRight;
 
         public AggregateBinOpStat(String op, Stat statLeft, Stat statRight) {
             this.op = op;
@@ -130,7 +130,7 @@ public class Stats {
     static class AggregateBinOpConstStat extends Stat {
         private final String op;
         private final long value;
-        Stat statLeft;
+        final Stat statLeft;
 
         public AggregateBinOpConstStat(String op, Stat statLeft, long value) {
             this.op = op;

@@ -111,7 +111,7 @@ public class Session {
     public final Map<String, ImhotepSessionInfo> sessions;
     public final TracingTreeTimer timer;
     private final ProgressCallback progressCallback;
-    public final int groupLimit;
+    private final int groupLimit;
     private final long firstStartTimeMillis;
     public final Set<String> options;
     private final FieldType defaultFieldType;
@@ -124,8 +124,8 @@ public class Session {
     public int numGroups = 1;
 
     public static final String INFINITY_SYMBOL = "∞";
-    public static final String DEFAULT_FORMAT_STRING = "#.#######";
-    public static final ThreadLocal<DecimalFormat> DEFAULT_DECIMAL_FORMAT = new ThreadLocal<DecimalFormat>() {
+    private static final String DEFAULT_FORMAT_STRING = "#.#######";
+    private static final ThreadLocal<DecimalFormat> DEFAULT_DECIMAL_FORMAT = new ThreadLocal<DecimalFormat>() {
         @Override
         protected DecimalFormat initialValue() {
             return new DecimalFormat(DEFAULT_FORMAT_STRING);
@@ -389,8 +389,8 @@ public class Session {
         }
     }
 
-    public void evaluateCommand(final com.indeed.iql2.language.commands.Command lCommand,
-                                final List<String> options) throws ImhotepOutOfMemoryException, IOException {
+    private void evaluateCommand(final com.indeed.iql2.language.commands.Command lCommand,
+                                 final List<String> options) throws ImhotepOutOfMemoryException, IOException {
         final String commandTreeString = lCommand.toString();
         timer.push("evaluateCommand " + lCommand.getClass().getSimpleName(), "evaluateCommand " + (commandTreeString.length() > 500 ? (commandTreeString.substring(0, 500) + "[...](log truncated)") : commandTreeString));
         try {
@@ -406,9 +406,9 @@ public class Session {
         }
     }
 
-    public void evaluateCommandToOutput(final com.indeed.iql2.language.commands.Command lCommand,
-                                        final Consumer<String> out,
-                                        final List<String> options) throws ImhotepOutOfMemoryException, IOException {
+    private void evaluateCommandToOutput(final com.indeed.iql2.language.commands.Command lCommand,
+                                         final Consumer<String> out,
+                                         final List<String> options) throws ImhotepOutOfMemoryException, IOException {
         timer.push("evaluateCommandToOutput " + lCommand.getClass().getSimpleName(), "evaluateCommandToOutput " + lCommand);
         try {
             final Command command = lCommand.toExecutionCommand(this::namedMetricLookup, groupKeySet, options);
@@ -1143,7 +1143,7 @@ public class Session {
     }
 
     // do simple processing if possible
-    public static boolean iterateSimpleInt(
+    private static boolean iterateSimpleInt(
             final Map<String, ImhotepSessionHolder> sessions,
             final Map<String, IntList> metricIndexes,
             final Map<String, Integer> presenceIndexes,
@@ -1382,7 +1382,7 @@ public class Session {
         }
     }
 
-    public static boolean iterateSimpleString(
+    private static boolean iterateSimpleString(
             final Map<String, ImhotepSessionHolder> sessions,
             final Map<String, IntList> metricIndexes,
             final Map<String, Integer> presenceIndexes,

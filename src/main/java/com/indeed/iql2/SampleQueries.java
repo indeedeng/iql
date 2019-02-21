@@ -20,9 +20,9 @@ public class SampleQueries {
     private SampleQueries() {
     }
 
-    public static final int NUM_QUERIES = 200;
-    public static final String FILE = "/home/xweng/indeed/data-infra/performance-benchmark/iqlquery_2019-01-01_2019-01-08.tsv";
-    public static final String OUT = "/home/xweng/indeed/data-infra/performance-benchmark/sampled.csv";
+    private static final int NUM_QUERIES = 200;
+    private static final String FILE = "/home/xweng/indeed/data-infra/performance-benchmark/iqlquery_2019-01-01_2019-01-08.tsv";
+    private static final String OUT = "/home/xweng/indeed/data-infra/performance-benchmark/sampled.csv";
 
     public static void main(String[] args) throws IOException {
         long totalCount = 0L;

@@ -129,7 +129,7 @@ public class SelectQueryExecution {
     private final Set<String> defaultIQL2Options;
 
     // Query sanity limits
-    public final Limits limits;
+    private final Limits limits;
 
     // IQL2 Imhotep-based state
     private final ImhotepClient imhotepClient;
@@ -143,20 +143,20 @@ public class SelectQueryExecution {
     private final PrintWriter outputStream;
     private final QueryInfo queryInfo;
     private final TracingTreeTimer timer;
-    public final ClientInfo clientInfo;
+    private final ClientInfo clientInfo;
 
     // Query inputs
-    public final String query;
+    private final String query;
     private final boolean headOnly;
-    public final int version;
-    public final boolean isStream;
+    private final int version;
+    private final boolean isStream;
     private final boolean returnNewestShardVersionHeader;
-    public final boolean skipValidation;
+    private final boolean skipValidation;
     private final ResultFormat resultFormat;
-    public final boolean getTotals;
+    private final boolean getTotals;
     private final WallClock clock;
 
-    public boolean ran = false;
+    private boolean ran = false;
 
     public SelectQueryExecution(
             @Nullable final File tmpDir,

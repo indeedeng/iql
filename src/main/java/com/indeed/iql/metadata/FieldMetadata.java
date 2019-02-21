@@ -34,12 +34,13 @@ public class FieldMetadata {
     @Nonnull final String name;
     @Nullable String description;
     @Nonnull
+    private
     FieldType type;
     @Nonnull
-    List<String> aliases;   // first entry is the canonical name by convention
-    int frequency;
-    boolean isHidden;
-    boolean isCertified;
+    private final List<String> aliases;   // first entry is the canonical name by convention
+    private int frequency;
+    private boolean isHidden;
+    private boolean isCertified;
 
     public FieldMetadata(@Nonnull String name, @Nonnull FieldType type) {
         this.name = name;

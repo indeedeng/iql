@@ -20,7 +20,7 @@ public class SingleStatReference implements StatReference {
     final int depth;
     private final String stringRep;
     private final EZImhotepSession session;
-    boolean valid = true;
+    private boolean valid = true;
 
     SingleStatReference(int depth, String stringRep, EZImhotepSession session) {
         this.depth = depth;

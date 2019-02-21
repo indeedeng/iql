@@ -54,8 +54,8 @@ import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.ResultFo
 
 public class CacheTest extends BasicTest {
     // TODO: can we lower this?
-    public static final long CACHE_WRITE_TIMEOUT = 1000L;
-    public static final DateTimeZone TIME_ZONE = DateTimeZone.forOffsetHours(-6);
+    private static final long CACHE_WRITE_TIMEOUT = 1000L;
+    private static final DateTimeZone TIME_ZONE = DateTimeZone.forOffsetHours(-6);
     // Unique in the context of 1 day of hourly sharded data in organic yesterday (2015-01-01).
     private final ImmutableList<String> uniqueQueries = ImmutableList.of(
             "from organic yesterday today",

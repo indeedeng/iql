@@ -18,8 +18,8 @@
  */
 
 public class CompositeStatReference implements StatReference {
-    StatReference ref1;
-    StatReference ref2;
+    private final StatReference ref1;
+    private final StatReference ref2;
 
     public CompositeStatReference(StatReference ref1, StatReference ref2) {
         this.ref1 = ref1;

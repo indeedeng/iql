@@ -36,7 +36,7 @@ import java.util.Set;
 
 public class RunningQueriesManager {
     private static final Logger log = Logger.getLogger ( RunningQueriesManager.class );
-    public final int perUserPendingQueriesLimit;
+    private final int perUserPendingQueriesLimit;
     private final IQLDB iqldb;
 
     private final List<SelectQuery> queriesWaiting = Lists.newArrayList();
@@ -104,8 +104,8 @@ public class RunningQueriesManager {
     }
 
     private static class RunningQueriesUpdateResult {
-        List<SelectQuery> queriesStarting;
-        LongSet cancelledQueries;
+        final List<SelectQuery> queriesStarting;
+        final LongSet cancelledQueries;
 
         RunningQueriesUpdateResult(List<SelectQuery> queriesStarting, LongSet cancelledQueries) {
             this.queriesStarting = queriesStarting;

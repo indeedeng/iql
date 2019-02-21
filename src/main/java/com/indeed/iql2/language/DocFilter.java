@@ -664,7 +664,7 @@ public abstract class DocFilter extends AbstractPositional {
             this.filters = filters;
         }
 
-        public abstract DocFilter createFilter(final List<DocFilter> filters);
+        protected abstract DocFilter createFilter(final List<DocFilter> filters);
 
         @Override
         public final DocFilter transform(

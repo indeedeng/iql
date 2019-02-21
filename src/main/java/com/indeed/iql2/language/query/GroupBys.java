@@ -48,7 +48,7 @@ public class GroupBys {
     private GroupBys() {
     }
 
-    public static final ImmutableSet<String> VALID_ORDERINGS = ImmutableSet.of("bottom", "descending", "desc");
+    private static final ImmutableSet<String> VALID_ORDERINGS = ImmutableSet.of("bottom", "descending", "desc");
 
     public static List<GroupByEntry> parseGroupBys(
             final JQLParser.GroupByContentsContext groupByContentsContext,

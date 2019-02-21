@@ -43,8 +43,8 @@ import java.util.Map;
  */
 public class DatasetStatsCollector {
     private static final Logger log = Logger.getLogger(DatasetStatsCollector.class);
-    public static final DateTimeFormatter SHARD_VERSION_FORMATTER = DateTimeFormat.forPattern("yyyyMMddHHmmss").withZone(DateTimeZone.forOffsetHours(-6));
-    public static final long LOWEST_LEGAL_TIMESTAMP_DATE = 10000000000L;
+    private static final DateTimeFormatter SHARD_VERSION_FORMATTER = DateTimeFormat.forPattern("yyyyMMddHHmmss").withZone(DateTimeZone.forOffsetHours(-6));
+    private static final long LOWEST_LEGAL_TIMESTAMP_DATE = 10000000000L;
 
 
     public static List<DatasetStats> computeStats(ImhotepClient client, ImhotepMetadataCache metadataCacheIQL2) {

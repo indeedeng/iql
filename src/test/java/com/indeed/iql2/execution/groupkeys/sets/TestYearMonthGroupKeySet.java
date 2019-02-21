@@ -30,8 +30,8 @@ import java.util.Locale;
 
 public class TestYearMonthGroupKeySet {
 
-    public static final String FORMAT_STRING = TimeUnit.SECOND.formatString;
-    public static final DateTimeFormatter FORMATTER = DateTimeFormat.forPattern(FORMAT_STRING).withLocale(Locale.US);
+    private static final String FORMAT_STRING = TimeUnit.SECOND.formatString;
+    private static final DateTimeFormatter FORMATTER = DateTimeFormat.forPattern(FORMAT_STRING).withLocale(Locale.US);
 
     private static YearMonthGroupKeySet create() {
         final DumbGroupKeySet dumbGroupKeySet = DumbGroupKeySet.create(DumbGroupKeySet.empty(), new int[]{-1, 1, 1, 1, 1, 1}, Arrays.<GroupKey>asList(null, new IntTermGroupKey(1), new IntTermGroupKey(2), new IntTermGroupKey(3), new IntTermGroupKey(4), new IntTermGroupKey(5)));

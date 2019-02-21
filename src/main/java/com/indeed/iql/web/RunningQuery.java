@@ -76,7 +76,7 @@ public class RunningQuery {
                 "\n}";
     }
 
-    public static RowMapper<RunningQuery> resultSetRowMapper = new RowMapper<RunningQuery>() {
+    public static final RowMapper<RunningQuery> resultSetRowMapper = new RowMapper<RunningQuery>() {
         @Override
         public RunningQuery mapRow(ResultSet rs, int rowNum) throws SQLException {
             final long submitTime = rs.getLong("submit_time");
@@ -99,7 +99,7 @@ public class RunningQuery {
         }
     };
 
-    public static RowMapper<RunningQuery> resultSetRowMapperForLocking = new RowMapper<RunningQuery>() {
+    public static final RowMapper<RunningQuery> resultSetRowMapperForLocking = new RowMapper<RunningQuery>() {
         @Override
         public RunningQuery mapRow(ResultSet rs, int rowNum) throws SQLException {
 

@@ -43,7 +43,7 @@ public class ExtractNames {
         return result;
     }
 
-    public static Function<AggregateMetric, AggregateMetric> handleAggregateMetric(final Map<String, AggregateMetric> resultAggregator) {
+    private static Function<AggregateMetric, AggregateMetric> handleAggregateMetric(final Map<String, AggregateMetric> resultAggregator) {
         return new Function<AggregateMetric, AggregateMetric>() {
             public AggregateMetric apply(AggregateMetric input) {
                 if (input instanceof AggregateMetric.Named) {

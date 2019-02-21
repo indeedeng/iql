@@ -58,7 +58,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.text.DecimalFormat;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -315,7 +314,7 @@ public final class IQLQuery implements Closeable {
      * Throws UncheckedTimeoutException if current time is past the provided timeout timestamp.
      * @param timeoutTS timestamp of when the query times out in milliseconds
      */
-    public void checkTimeout(long timeoutTS) {
+    private static void checkTimeout(long timeoutTS) {
         if(System.currentTimeMillis() > timeoutTS) {
             throw new UncheckedTimeoutException("The query took longer than the allowed timeout of " + executionTimeout.toString(PeriodFormat.getDefault()));
         }
@@ -493,7 +492,7 @@ public final class IQLQuery implements Closeable {
                 sortCmd.add("-k" + i + "," + i + "n");
             }
             sortCmd.add(inputFile.getPath());
-            log.trace(IQLQuery.join(sortCmd, " "));
+            log.trace(String.join(" ", sortCmd));
 
             final Process sortProc = Runtime.getRuntime().exec(sortCmd.toArray(new String[sortCmd.size()]), null);
             sortProc.waitFor();
@@ -508,18 +507,6 @@ public final class IQLQuery implements Closeable {
             }
             throw Throwables.propagate(e);
         }
-    }
-
-    private static String join(Collection items, String delimiter) {
-        final StringBuilder sb = new StringBuilder(items.size() * 7);
-
-        for (final Iterator it = items.iterator(); it.hasNext(); ) {
-            sb.append(it.next());
-            if (it.hasNext()) {
-                sb.append(delimiter);
-            }
-        }
-        return sb.toString();
     }
 
     /**

@@ -40,7 +40,7 @@ import java.util.stream.Collectors;
 public class DatasetMetadata {
     private static final Logger log = Logger.getLogger(DatasetMetadata.class);
 
-    public static String TIME_FIELD_NAME = "unixtime";
+    public static final String TIME_FIELD_NAME = "unixtime";
     private final boolean iql2mode;
     public final String name;
     @Nullable public String description;
@@ -249,8 +249,8 @@ public class DatasetMetadata {
 
         for(final Map.Entry<String, MetricMetadata> entry : fieldToDimension.entrySet()) {
             final MetricMetadata metric = entry.getValue();
-            if(!Strings.isNullOrEmpty(metric.expression) && !metric.expression.equals(metric.name)) {
-                iql1ExpressionAliases.put(metric.name, metric.expression);
+            if(!Strings.isNullOrEmpty(metric.expression) && !metric.expression.equals(metric.getName())) {
+                iql1ExpressionAliases.put(metric.getName(), metric.expression);
             }
             dimensionEquivalenceSets
                     .computeIfAbsent(entry.getKey(), ignored -> new HashSet<>())
