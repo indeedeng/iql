@@ -56,13 +56,21 @@ public final class GroupKey<E extends Comparable> {
         }
 
         public boolean equals(final Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
 
             final List list = (List) o;
 
-            if (head != null ? !head.equals(list.head) : list.head != null) return false;
-            if (tail != null ? !tail.equals(list.tail) : list.tail != null) return false;
+            if (head != null ? !head.equals(list.head) : list.head != null) {
+                return false;
+            }
+            if (tail != null ? !tail.equals(list.tail) : list.tail != null) {
+                return false;
+            }
 
             return true;
         }
@@ -80,7 +88,9 @@ public final class GroupKey<E extends Comparable> {
 
     public E head() {
         if (front == null) {
-            if (back == null) throw new IllegalStateException("empty key has no head");
+            if (back == null) {
+                throw new IllegalStateException("empty key has no head");
+            }
             return back.last;
         }
         return front.head;
@@ -88,7 +98,9 @@ public final class GroupKey<E extends Comparable> {
 
     public E getLastInserted() {
         if (back == null) {
-            if (front == null) throw new IllegalStateException("Key is empty");
+            if (front == null) {
+                throw new IllegalStateException("Key is empty");
+            }
             return front.last;
         }
         return back.head;
@@ -96,7 +108,9 @@ public final class GroupKey<E extends Comparable> {
 
     public GroupKey<E> tail() {
         if (front == null) {
-            if (back == null) throw new IllegalStateException("empty key has no tail");
+            if (back == null) {
+                throw new IllegalStateException("empty key has no tail");
+            }
             List<E> reversed = null;
             List<E> current = back;
             while (current.tail != null) {
@@ -121,13 +135,21 @@ public final class GroupKey<E extends Comparable> {
     }
 
     public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         final GroupKey groupKey = (GroupKey) o;
 
-        if (back != null ? !back.equals(groupKey.back) : groupKey.back != null) return false;
-        if (front != null ? !front.equals(groupKey.front) : groupKey.front != null) return false;
+        if (back != null ? !back.equals(groupKey.back) : groupKey.back != null) {
+            return false;
+        }
+        if (front != null ? !front.equals(groupKey.front) : groupKey.front != null) {
+            return false;
+        }
 
         return true;
     }

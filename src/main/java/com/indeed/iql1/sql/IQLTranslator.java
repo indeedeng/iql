@@ -711,7 +711,9 @@ public final class IQLTranslator {
 
             Function<List<Expression>, Condition> luceneQueryHandler = new Function<List<Expression>, Condition>() {
                 public Condition apply(final List<Expression> input) {
-                    if (input.size() != 1) throw new IllegalArgumentException("lucene query function takes exactly one string parameter");
+                    if (input.size() != 1) {
+                        throw new IllegalArgumentException("lucene query function takes exactly one string parameter");
+                    }
                     final String queryString = getStr(input.get(0));
                     final com.indeed.flamdex.query.Query luceneQuery = parseLuceneQuery(queryString, datasetMetadata);
                     return new QueryCondition(luceneQuery, negation);
@@ -724,7 +726,9 @@ public final class IQLTranslator {
             // TODO: remove. can relax parsing of function params when it's done
             builder.put("between", new Function<List<Expression>, Condition>() {
                 public Condition apply(final List<Expression> input) {
-                    if (input.size() != 3) throw new IqlKnownException.ParseErrorException("between requires 3 arguments: stat, min, max. " + input.size() + " provided");
+                    if (input.size() != 3) {
+                        throw new IqlKnownException.ParseErrorException("between requires 3 arguments: stat, min, max. " + input.size() + " provided");
+                    }
                     final Stat stat = input.get(0).match(statMatcher);
                     final long min = parseLong(input.get(1));
                     final long max = parseLong(input.get(2));
@@ -733,7 +737,9 @@ public final class IQLTranslator {
             });
             builder.put("sample", new Function<List<Expression>, Condition>() {
                 public Condition apply(final List<Expression> input) {
-                    if (input.size() < 2 || input.size() > 4) throw new IllegalArgumentException("sample() requires 2 to 4 arguments: fieldName, samplingRatioNumerator, [samplingRatioDenominator=100], [randomSeed]. " + input.size() + " provided");
+                    if (input.size() < 2 || input.size() > 4) {
+                        throw new IllegalArgumentException("sample() requires 2 to 4 arguments: fieldName, samplingRatioNumerator, [samplingRatioDenominator=100], [randomSeed]. " + input.size() + " provided");
+                    }
                     final Expression arg0 = input.get(0);
                     if(!(arg0 instanceof NameExpression)) {
                         throw new IqlKnownException.ParseErrorException("sample() first argument has to be a field name. Instead given: " + String.valueOf(arg0));

@@ -80,7 +80,9 @@ public class Stats {
             final List<String> ret = Lists.newArrayList();
             for (Stat stat : stats) {
                 ret.addAll(stat.pushes(session));
-                if (!first) ret.add(op);
+                if (!first) {
+                    ret.add(op);
+                }
                 first = false;
             }
             return ret;

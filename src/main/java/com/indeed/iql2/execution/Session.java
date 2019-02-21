@@ -1061,7 +1061,9 @@ public class Session {
                 @Override
                 public int compare(SessionIntIterationState x, SessionIntIterationState y) {
                     int r = Longs.compare(x.nextTerm, y.nextTerm);
-                    if (r != 0) return r;
+                    if (r != 0) {
+                        return r;
+                    }
                     return Ints.compare(x.nextGroup, y.nextGroup);
                 }
             };
@@ -1333,7 +1335,9 @@ public class Session {
             final Comparator<SessionStringIterationState> comparator = new Comparator<SessionStringIterationState>() {
                 public int compare(SessionStringIterationState x, SessionStringIterationState y) {
                     int r = x.nextTerm.compareTo(y.nextTerm);
-                    if (r != 0) return r;
+                    if (r != 0) {
+                        return r;
+                    }
                     return Ints.compare(x.nextGroup, y.nextGroup);
                 }
             };

@@ -93,16 +93,30 @@ public class QueryParts {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof QueryParts)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof QueryParts)) {
+            return false;
+        }
 
         QueryParts that = (QueryParts) o;
 
-        if (!from.equals(that.from)) return false;
-        if (!groupBy.equals(that.groupBy)) return false;
-        if (!limit.equals(that.limit)) return false;
-        if (!select.equals(that.select)) return false;
-        if (!where.equals(that.where)) return false;
+        if (!from.equals(that.from)) {
+            return false;
+        }
+        if (!groupBy.equals(that.groupBy)) {
+            return false;
+        }
+        if (!limit.equals(that.limit)) {
+            return false;
+        }
+        if (!select.equals(that.select)) {
+            return false;
+        }
+        if (!where.equals(that.where)) {
+            return false;
+        }
 
         return true;
     }

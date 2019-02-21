@@ -383,8 +383,9 @@ public class Query extends AbstractPositional {
         final Set<String> names = new HashSet<>();
         for (final Dataset dataset : datasets) {
             final String name = dataset.getDisplayName();
-            if (!names.add(name))
+            if (!names.add(name)) {
                 throw new IqlKnownException.ParseErrorException("Duplicate name encountered: " + name);
+            }
         }
     }
 

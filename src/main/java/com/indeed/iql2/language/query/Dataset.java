@@ -351,8 +351,12 @@ public class Dataset extends AbstractPositional {
     public boolean equals(final Object o) {
         // fieldAliases deliberately left out due to it not affecting semantics, only prettyprint results
         // missingShardIntervals not used because it's only for diagnostics
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         final Dataset dataset1 = (Dataset) o;
         return Objects.equal(dataset, dataset1.dataset) &&
                 Objects.equal(startInclusive, dataset1.startInclusive) &&

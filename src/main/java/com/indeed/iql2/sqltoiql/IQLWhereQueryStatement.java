@@ -33,9 +33,11 @@ public class IQLWhereQueryStatement {
 
     @Override
     public String toString() {
-        if(leftSide!=null && rightSide!=null && operator!=null)
-        return Joiner.on(" ").join(Arrays.asList(leftSide, operator, rightSide));
-        else return "";
+        if(leftSide!=null && rightSide!=null && operator!=null) {
+            return Joiner.on(" ").join(Arrays.asList(leftSide, operator, rightSide));
+        } else {
+            return "";
+        }
     }
 
 }
