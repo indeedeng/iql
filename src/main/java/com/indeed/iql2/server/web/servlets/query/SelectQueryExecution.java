@@ -303,7 +303,7 @@ public class SelectQueryExecution {
         timer.push("Select query execution");
 
         timer.push("parse query");
-        final Queries.ParseResult parseResult = Queries.parseQuery(this.query, useLegacy, datasetsMetadata, defaultIQL2Options, warnings::add, clock, timer, shardResolver);
+        final Queries.ParseResult parseResult = Queries.parseQuery(query, useLegacy, datasetsMetadata, defaultIQL2Options, warnings::add, clock, timer, shardResolver);
         final Query query = parseResult.query;
         timer.pop();
 

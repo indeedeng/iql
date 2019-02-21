@@ -124,7 +124,7 @@ public class SimpleIterate implements Command {
         } else {
             topKMetricOrNull = null;
         }
-        metrics.addAll(this.selecting);
+        metrics.addAll(selecting);
         for (final AggregateMetric metric : metrics) {
             allPushes.addAll(metric.requires());
         }

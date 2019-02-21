@@ -47,7 +47,7 @@ public class SampleAction implements Action {
     @Override
     public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {
         for (final String dataset : field.datasets()) {
-            final String fieldName = this.field.datasetFieldName(dataset);
+            final String fieldName = field.datasetFieldName(dataset);
             if (!validationHelper.containsField(dataset, fieldName)) {
                 errorCollector.error(ErrorMessages.missingField(dataset, fieldName, this));
             }

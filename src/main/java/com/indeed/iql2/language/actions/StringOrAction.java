@@ -46,7 +46,7 @@ public class StringOrAction implements Action {
     @Override
     public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {
         for (final String dataset : field.datasets()) {
-            final String fieldName = this.field.datasetFieldName(dataset);
+            final String fieldName = field.datasetFieldName(dataset);
             if (!validationHelper.containsStringField(dataset, fieldName)) {
                 errorCollector.error(ErrorMessages.missingStringField(dataset, fieldName, this));
             }

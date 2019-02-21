@@ -25,7 +25,7 @@ public class QueryLogEntry implements Iterable<Entry<String,String>> {
     private final Map<String, String> propertyMap;
 
     public QueryLogEntry() {
-        this.propertyMap = new LinkedHashMap<String, String>();
+        propertyMap = new LinkedHashMap<String, String>();
     }
 
     public void setProperty(String key, String val) {

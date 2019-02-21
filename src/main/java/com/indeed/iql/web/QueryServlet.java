@@ -276,7 +276,7 @@ public class QueryServlet {
                     if (remoteAddr == null) {
                         remoteAddr = req.getRemoteAddr();
                     }
-                    logQuery(queryInfo, clientInfo, req, errorOccurred, remoteAddr, this.metricStatsEmitter);
+                    logQuery(queryInfo, clientInfo, req, errorOccurred, remoteAddr, metricStatsEmitter);
                 } catch (Throwable ignored) {
                 }
             }

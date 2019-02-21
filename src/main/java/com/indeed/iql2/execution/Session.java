@@ -584,7 +584,7 @@ public class Session {
             final boolean isRelative,
             final boolean deleteEmptyGroups) throws ImhotepOutOfMemoryException {
         timer.push("performTimeRegroup");
-        final int oldNumGroups = this.numGroups;
+        final int oldNumGroups = numGroups;
         // TODO: Parallelize
         final int maxPossibleGroups = (int) (oldNumGroups * Math.ceil(((double) end - start) / unitSize));
         int newNumGroups = 0;
@@ -662,16 +662,16 @@ public class Session {
         numGroups = groupKeySet.numGroups();
         log.debug("numGroups = " + numGroups);
         this.groupKeySet = new MaskingGroupKeySet(groupKeySet, anyPresent);
-        this.currentDepth += 1;
+        currentDepth += 1;
         timer.pop();
     }
 
     public void assumeDense(GroupKeySet groupKeySet) {
         timer.push("assumeDense");
-        this.numGroups = groupKeySet.numGroups();
+        numGroups = groupKeySet.numGroups();
         log.debug("numGroups = " + numGroups);
         this.groupKeySet = groupKeySet;
-        this.currentDepth += 1;
+        currentDepth += 1;
         timer.pop();
     }
 

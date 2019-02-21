@@ -86,7 +86,7 @@ public final class GroupKey<E extends Comparable> {
         }
 
         public E getLast() {
-            return this.last;
+            return last;
         }
     }
 

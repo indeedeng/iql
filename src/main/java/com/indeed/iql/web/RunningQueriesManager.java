@@ -220,7 +220,7 @@ public class RunningQueriesManager {
 
 
     public void register(SelectQuery selectQuery) {
-        if (!this.isEnabled()) {
+        if (!isEnabled()) {
             //For unit test, data source is null, fall into this logic
             //no db rea/write, no query management
             selectQuery.onInserted(-1L);

@@ -25,7 +25,7 @@ public class IQLGroupByQueryStatement {
 
     @Override
     public String toString() {
-         return this.columnName;
+         return columnName;
     }
 
 

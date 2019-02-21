@@ -188,7 +188,7 @@ public class SelectQuery implements Closeable {
     }
 
     public void markAsynchronousRelease() {
-        this.asynchronousRelease = true;
+        asynchronousRelease = true;
     }
 
     @JsonIgnore

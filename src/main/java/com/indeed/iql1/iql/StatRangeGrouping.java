@@ -73,7 +73,7 @@ public final class StatRangeGrouping extends Grouping {
         }
         final long expectedNumberOfRows = session.getNumGroups() * expectedBucketCount;
         if(!limits.satisfiesQueryInMemoryRowsLimit(expectedNumberOfRows) || expectedNumberOfRows < 0) {
-            throw new IqlKnownException.GroupLimitExceededException("Expected number of rows after bucketing by " + this.stat.toString() +
+            throw new IqlKnownException.GroupLimitExceededException("Expected number of rows after bucketing by " + stat.toString() +
                     " is " + df.format(expectedNumberOfRows) + " which is over the limit of " + df.format(limits.queryInMemoryRowsLimit) +
                     " rows in memory. Please optimize the query.");
         }

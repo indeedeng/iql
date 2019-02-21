@@ -241,7 +241,7 @@ public class ExtractPrecomputed {
                 return handlePrecomputed(new Precomputed.PrecomputedPercentile(percentile.field, percentile.percentile));
             } else if (input instanceof AggregateMetric.Qualified) {
                 final AggregateMetric.Qualified qualified = (AggregateMetric.Qualified) input;
-                final Set<String> oldScope = ImmutableSet.copyOf(this.scope);
+                final Set<String> oldScope = ImmutableSet.copyOf(scope);
                 final Set<String> newScope = Sets.newHashSet(qualified.scope);
                 if (!oldScope.containsAll(newScope)) {
                     throw new IqlKnownException.ParseErrorException("Cannot have a sub-scope that is not a subset of the outer scope. oldScope = [" + oldScope + "], newScope = [" + newScope + "]");

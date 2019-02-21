@@ -34,11 +34,11 @@ public enum IQLOperator {
 
     @Override
     public String toString() {
-        return this.value;
+        return value;
     }
 
     public String getValue() {
-        return this.value;
+        return value;
     }
 
     private static final ImmutableMap<String, IQLOperator> reverseLookup =

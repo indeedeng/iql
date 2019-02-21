@@ -140,7 +140,7 @@ public class EZImhotepSession implements Closeable {
     }
 
     public int getStackDepth() {
-        return this.stackDepth;
+        return stackDepth;
     }
 
     public int getNumGroups() {

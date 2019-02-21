@@ -1078,7 +1078,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
-            final String fieldName = this.field.datasetFieldName(dataset);
+            final String fieldName = field.datasetFieldName(dataset);
             final boolean missingField =
                     !validationHelper.containsField(dataset, fieldName) ||
                     (strictValidate && !validationHelper.containsStringField(dataset, fieldName));

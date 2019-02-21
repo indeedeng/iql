@@ -103,7 +103,7 @@ public class FieldResolver {
             }
         } finally {
             if (errorMode == ErrorMode.IMMEDIATE) {
-                this.error = null;
+                error = null;
             }
             this.errorMode = errorMode;
         }

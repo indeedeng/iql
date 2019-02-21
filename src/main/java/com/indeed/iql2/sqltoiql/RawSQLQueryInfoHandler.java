@@ -28,7 +28,7 @@ public class RawSQLQueryInfoHandler {
 
     public IQLFromQueryPart getFromPart() {
         final ImmutableList.Builder<IQLFromQueryStatement> queryStatementBuilder = new ImmutableList.Builder<>();
-        for (final IQLFromQueryStatement.Builder builder :  this.fromQueryStatementBuilders.values()) {
+        for (final IQLFromQueryStatement.Builder builder :  fromQueryStatementBuilders.values()) {
             queryStatementBuilder.add(builder.build());
         }
         if(queryStatementBuilder.build().size()>8){

@@ -79,7 +79,7 @@ public class DateTimeRangeGroupKeySet implements GroupKeySet {
 
     @Override
     public GroupKey groupKey(int group) {
-        final int oldGroup = this.parentGroup(group);
+        final int oldGroup = parentGroup(group);
         final int groupOffset = group - 1 - ((oldGroup - 1) * numBuckets);
         return buildGroupKey.getUnchecked(groupOffset);
     }

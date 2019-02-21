@@ -54,7 +54,7 @@ public class GetGroupStats implements Command {
 
         session.timer.push("determining pushes");
         final Set<QualifiedPush> pushesRequired = Sets.newHashSet();
-        for (final AggregateMetric metric : this.metrics) {
+        for (final AggregateMetric metric : metrics) {
             pushesRequired.addAll(metric.requires());
         }
         final Map<QualifiedPush, Integer> metricIndexes = Maps.newHashMap();
@@ -80,7 +80,7 @@ public class GetGroupStats implements Command {
         }
         session.timer.pop();
         session.timer.push("registering stats");
-        for (final AggregateMetric metric : this.metrics) {
+        for (final AggregateMetric metric : metrics) {
             metric.register(metricIndexes, session.groupKeySet);
         }
         session.timer.pop();
@@ -102,7 +102,7 @@ public class GetGroupStats implements Command {
         session.timer.pop();
 
         session.timer.push("computing aggregated stats");
-        final List<AggregateMetric> selectedMetrics = this.metrics;
+        final List<AggregateMetric> selectedMetrics = metrics;
 
         final double[][] groupStats = new double[selectedMetrics.size()][];
         for (int i = 0; i < selectedMetrics.size(); i++) {

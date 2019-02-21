@@ -26,9 +26,9 @@ public class FieldIterateOpts {
 
     public FieldIterateOpts copy() {
         final FieldIterateOpts result = new FieldIterateOpts();
-        result.limit = this.limit;
-        result.topK = this.topK;
-        result.filter = this.filter;
+        result.limit = limit;
+        result.topK = topK;
+        result.filter = filter;
         return result;
     }
 }

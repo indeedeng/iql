@@ -194,7 +194,7 @@ public class GetGroupDistinctsWindowed implements IterateHandlerable<long[]>, Co
         public Session.IntIterateCallback intIterateCallback() {
             Preconditions.checkState(groupStatsChecker == null, "groupStatsChecker must be null before this point!");
             final IterateHandlerImpl.IntIterateCallback result = new IterateHandlerImpl.IntIterateCallback();
-            this.groupStatsChecker = result;
+            groupStatsChecker = result;
             return result;
         }
 
@@ -202,7 +202,7 @@ public class GetGroupDistinctsWindowed implements IterateHandlerable<long[]>, Co
         public Session.StringIterateCallback stringIterateCallback() {
             Preconditions.checkState(groupStatsChecker == null, "groupStatsChecker must be null before this point!");
             final IterateHandlerImpl.StringIterateCallback result = new IterateHandlerImpl.StringIterateCallback();
-            this.groupStatsChecker = result;
+            groupStatsChecker = result;
             return result;
         }
 

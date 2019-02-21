@@ -1409,7 +1409,7 @@ public abstract class DocFilter extends AbstractPositional {
             if (terms.isEmpty()) {
                 errorCollector.error("Cannot have empty set of terms in [" + getTextOrToString() + "]");
             }
-            final String fieldName = this.field.datasetFieldName(dataset);
+            final String fieldName = field.datasetFieldName(dataset);
             if (!validationHelper.containsStringField(dataset, fieldName)) {
                 errorCollector.error(ErrorMessages.missingStringField(dataset, fieldName, this));
             }
