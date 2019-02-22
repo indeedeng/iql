@@ -367,9 +367,9 @@ public abstract class DocFilter extends AbstractPositional {
             return new DocMetric.MetricEqual(m1, m2);
         }
 
-        @Override
-        public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
-            return super.getExecutionActions(scope, target, positive, negative, groupSupplier);
+//        @Override
+//        public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+//            return super.getExecutionActions(scope, target, positive, negative, groupSupplier);
 //            if (m1 instanceof DocMetric.Field && m2 instanceof DocMetric.Constant) {
 //                final String field = ((DocMetric.Field) m1).field;
 //                final long value = ((DocMetric.Constant) m2).value;
@@ -383,7 +383,7 @@ public abstract class DocFilter extends AbstractPositional {
 //            } else {
 //                return Collections.<Action>singletonList(new MetricAction(scope.keySet(), this, target, positive, negative));
 //            }
-        }
+//        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -416,10 +416,10 @@ public abstract class DocFilter extends AbstractPositional {
             return new DocMetric.MetricNotEqual(m1, m2);
         }
 
-        @Override
-        public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
-            return super.getExecutionActions(scope, target, positive, negative, groupSupplier);
-            // TODO: Not duplicate logic across these two branches
+//        @Override
+//        public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+//            return super.getExecutionActions(scope, target, positive, negative, groupSupplier);
+//            // TODO: Not duplicate logic across these two branches
 //            if (m1 instanceof DocMetric.Field && m2 instanceof DocMetric.Constant) {
 //                final String field = ((DocMetric.Field) m1).field;
 //                final long value = ((DocMetric.Constant) m2).value;
@@ -431,7 +431,7 @@ public abstract class DocFilter extends AbstractPositional {
 //            } else {
 //                return Collections.<Action>singletonList(new MetricAction(scope.keySet(), this, target, positive, negative));
 //            }
-        }
+//        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -470,9 +470,9 @@ public abstract class DocFilter extends AbstractPositional {
             return new DocMetric.MetricGt(m1, m2);
         }
 
-        @Override
-        public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
-            return super.getExecutionActions(scope, target, positive, negative, groupSupplier);
+//        @Override
+//        public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+//            return super.getExecutionActions(scope, target, positive, negative, groupSupplier);
 //            if (m1 instanceof DocMetric.Field && m2 instanceof DocMetric.Constant) {
 //                final String field = ((DocMetric.Field) m1).field;
 //                final long value = ((DocMetric.Constant) m2).value;
@@ -488,7 +488,7 @@ public abstract class DocFilter extends AbstractPositional {
 //            } else {
 //                return Collections.<Action>singletonList(new MetricAction(scope.keySet(), this, target, positive, negative));
 //            }
-        }
+//        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -521,9 +521,9 @@ public abstract class DocFilter extends AbstractPositional {
             return new DocMetric.MetricGte(m1, m2);
         }
 
-        @Override
-        public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
-            return super.getExecutionActions(scope, target, positive, negative, groupSupplier);
+//        @Override
+//        public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+//            return super.getExecutionActions(scope, target, positive, negative, groupSupplier);
 //            if (m1 instanceof DocMetric.Field && m2 instanceof DocMetric.Constant) {
 //                final String field = ((DocMetric.Field) m1).field;
 //                final long value = ((DocMetric.Constant) m2).value;
@@ -539,7 +539,7 @@ public abstract class DocFilter extends AbstractPositional {
 //            } else {
 //                return Collections.<Action>singletonList(new MetricAction(scope.keySet(), this, target, positive, negative));
 //            }
-        }
+//        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -572,9 +572,9 @@ public abstract class DocFilter extends AbstractPositional {
             return new DocMetric.MetricLt(m1, m2);
         }
 
-        @Override
-        public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
-            return super.getExecutionActions(scope, target, positive, negative, groupSupplier);
+//        @Override
+//        public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+//            return super.getExecutionActions(scope, target, positive, negative, groupSupplier);
 //            if (m1 instanceof DocMetric.Field && m2 instanceof DocMetric.Constant) {
 //                final String field = ((DocMetric.Field) m1).field;
 //                final long value = ((DocMetric.Constant) m2).value;
@@ -590,7 +590,7 @@ public abstract class DocFilter extends AbstractPositional {
 //            } else {
 //                return Collections.<Action>singletonList(new MetricAction(scope.keySet(), this, target, positive, negative));
 //            }
-        }
+//        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -623,9 +623,9 @@ public abstract class DocFilter extends AbstractPositional {
             return new DocMetric.MetricLte(m1, m2);
         }
 
-        @Override
-        public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
-            return super.getExecutionActions(scope, target, positive, negative, groupSupplier);
+//        @Override
+//        public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+//            return super.getExecutionActions(scope, target, positive, negative, groupSupplier);
 //            if (m1 instanceof DocMetric.Field && m2 instanceof DocMetric.Constant) {
 //                final String field = ((DocMetric.Field) m1).field;
 //                final long value = ((DocMetric.Constant) m2).value;
@@ -641,7 +641,7 @@ public abstract class DocFilter extends AbstractPositional {
 //            } else {
 //                return Collections.<Action>singletonList(new MetricAction(scope.keySet(), this, target, positive, negative));
 //            }
-        }
+//        }
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
