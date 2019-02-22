@@ -38,10 +38,10 @@ public class RegroupEmptyFieldDataset {
         if (i2 > 0) {
             doc.addIntTerm("i2", i2);
         }
-        if (!s1.equals("")) {
+        if (!s1.isEmpty()) {
             doc.addStringTerm("s1", s1);
         }
-        if (!s2.equals("")) {
+        if (!s2.isEmpty()) {
             doc.addStringTerm("s2", s2);
         }
         // TODO: This is a work-around for MemoryFlamdex not handling missing fields.

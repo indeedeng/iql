@@ -18,7 +18,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.AbstractPositional;
@@ -849,13 +848,10 @@ public class PrettyPrint {
             @Override
             public Void visit(AggregateMetric.Min min) {
                 sb.append("min(");
-                Joiner.on(", ").appendTo(sb, Iterables.transform(min.metrics, new Function<AggregateMetric, String>() {
-                    public String apply(AggregateMetric aggregateMetric) {
-                        final StringBuilder sb = new StringBuilder();
-                        pp(aggregateMetric, consumer, clock);
-                        return sb.toString();
-                    }
-                }));
+                Joiner.on(", ").appendTo(sb, min.metrics.stream().map(metric -> {
+                    pp(metric, consumer, clock);
+                    return "";
+                }).iterator());
                 sb.append(')');
                 return null;
             }
@@ -864,10 +860,9 @@ public class PrettyPrint {
             public Void visit(AggregateMetric.Max max) {
                 sb.append("max(");
                 Joiner.on(", ").appendTo(sb, max.metrics.stream().map(metric -> {
-                        final StringBuilder sb = new StringBuilder();
                         pp(metric, consumer, clock);
-                        return sb.toString();
-                }).collect(Collectors.toList()));
+                        return "";
+                }).iterator());
                 sb.append(')');
                 return null;
             }
@@ -988,7 +983,7 @@ public class PrettyPrint {
 
             @Override
             public Void visit(DocFilter.FieldEqual fieldEqual) {
-                sb.append(getText(fieldEqual.field1) + "=" + getText(fieldEqual.field2));
+                sb.append(getText(fieldEqual.field1)).append("=").append(getText(fieldEqual.field2));
                 return null;
             }
 

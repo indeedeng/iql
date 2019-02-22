@@ -221,7 +221,7 @@ public class ValidationUtil {
             if (datasetTimePeriodSeconds%periodSeconds != 0) {
                     final StringBuilder exceptionBuilder = new StringBuilder("You requested a time period (");
                     TimePeriods.appendTimePeriod(datasetTimePeriodSeconds, exceptionBuilder);
-                    exceptionBuilder.append(") for dataset " + datasetTimeRange.getKey());
+                    exceptionBuilder.append(") for dataset ").append(datasetTimeRange.getKey());
                     exceptionBuilder.append(" not evenly divisible by the bucket size (");
                     TimePeriods.appendTimePeriod(periodSeconds, exceptionBuilder);
                     exceptionBuilder.append("). To correct, increase the time range by ");
