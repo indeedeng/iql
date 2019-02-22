@@ -38,13 +38,13 @@ public class TestScoredObjectComparator {
 
     @Test
     public void testIntComparator() {
-        ScoredObject<Integer> o1 = new ScoredObject<>(123, new Integer(12));
-        ScoredObject<Integer> o2 = new ScoredObject<>(123, new Integer(13));
-        ScoredObject<Integer> o3 = new ScoredObject<>(123, new Integer(13));
-        ScoredObject<Integer> o4 = new ScoredObject<>(124, new Integer(12));
-        ScoredObject<Integer> o5 = new ScoredObject<>(124, new Integer(13));
-        ScoredObject<Integer> o6 = new ScoredObject<>(Double.NaN, new Integer(13));
-        ScoredObject<Integer> o7 = new ScoredObject<>(-12, new Integer(13));
+        ScoredObject<Integer> o1 = new ScoredObject<>(123, 12);
+        ScoredObject<Integer> o2 = new ScoredObject<>(123, 13);
+        ScoredObject<Integer> o3 = new ScoredObject<>(123, 13);
+        ScoredObject<Integer> o4 = new ScoredObject<>(124, 12);
+        ScoredObject<Integer> o5 = new ScoredObject<>(124, 13);
+        ScoredObject<Integer> o6 = new ScoredObject<>(Double.NaN, 13);
+        ScoredObject<Integer> o7 = new ScoredObject<>(-12, 13);
 
         Comparator<ScoredObject<Integer>> topComparator =  ScoredObject.topScoredObjectComparator(Comparator.<Integer>naturalOrder());
         Comparator<ScoredObject<Integer>> bottomComparator =  ScoredObject.bottomScoredObjectComparator(Comparator.<Integer>naturalOrder());

@@ -16,6 +16,7 @@
 import com.google.common.collect.Lists;
 
 import javax.annotation.Nullable;
+import java.util.Objects;
 
 /**
  * @author jplaisance
@@ -66,14 +67,7 @@ public final class GroupKey<E extends Comparable> {
 
             final List list = (List) o;
 
-            if (head != null ? !head.equals(list.head) : list.head != null) {
-                return false;
-            }
-            if (tail != null ? !tail.equals(list.tail) : list.tail != null) {
-                return false;
-            }
-
-            return true;
+            return Objects.equals(head, list.head) && Objects.equals(tail, list.tail);
         }
 
         public int hashCode() {
@@ -115,16 +109,16 @@ public final class GroupKey<E extends Comparable> {
             List<E> reversed = null;
             List<E> current = back;
             while (current.tail != null) {
-                reversed = new List<E>(current.head, reversed);
+                reversed = new List<>(current.head, reversed);
                 current = current.tail;
             }
-            return new GroupKey<E>(reversed, null);
+            return new GroupKey<>(reversed, null);
         }
-        return new GroupKey<E>(front.tail, back);
+        return new GroupKey<>(front.tail, back);
     }
 
     public GroupKey<E> add(E e) {
-        return new GroupKey<E>(front, new List<E>(e, back));
+        return new GroupKey<>(front, new List<>(e, back));
     }
 
     public boolean isEmpty() {
@@ -145,14 +139,7 @@ public final class GroupKey<E extends Comparable> {
 
         final GroupKey groupKey = (GroupKey) o;
 
-        if (back != null ? !back.equals(groupKey.back) : groupKey.back != null) {
-            return false;
-        }
-        if (front != null ? !front.equals(groupKey.front) : groupKey.front != null) {
-            return false;
-        }
-
-        return true;
+        return Objects.equals(back, groupKey.back) && Objects.equals(front, groupKey.front);
     }
 
     public int hashCode() {

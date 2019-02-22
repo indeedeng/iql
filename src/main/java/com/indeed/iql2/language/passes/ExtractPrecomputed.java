@@ -124,7 +124,7 @@ public class ExtractPrecomputed {
         final Map<Integer, List<ComputationInfo>> result = new Int2ObjectOpenHashMap<>();
         for (final ComputationInfo info : extracted.keySet()) {
             if (!result.containsKey(info.depth)) {
-                result.put(info.depth, new ArrayList<ComputationInfo>());
+                result.put(info.depth, new ArrayList<>());
             }
             result.get(info.depth).add(info);
         }

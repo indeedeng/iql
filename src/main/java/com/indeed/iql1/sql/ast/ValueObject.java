@@ -83,7 +83,7 @@ public abstract class ValueObject {
   };
   
   private static final ConcurrentMap<Class<?>, Field[]> valueFieldMap =
-      new ConcurrentHashMap<Class<?>, Field[]>();
+          new ConcurrentHashMap<>();
       
   private static Field[] getValueFields(Class<?> type) {
     Field[] fields = valueFieldMap.get(type);
@@ -95,7 +95,7 @@ public abstract class ValueObject {
   }
   
   private static List<Object> toValueList(Object obj, Field[] fields) {
-    List<Object> list = new ArrayList<Object>();
+    List<Object> list = new ArrayList<>();
     for (Field field : fields) {
       try {
         list.add(field.get(obj));
@@ -110,7 +110,7 @@ public abstract class ValueObject {
     if (type == ValueObject.class) {
       return NO_FIELD;
     }
-    List<Field> fieldList = new ArrayList<Field>();
+    List<Field> fieldList = new ArrayList<>();
     fieldList.addAll(Arrays.asList(introspectValueFields(type.getSuperclass())));
     List<Field> myFields = tail(fieldList);
     for (Field field : type.getDeclaredFields()) {

@@ -234,7 +234,7 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
             MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
             Set<ObjectName> objs = mbs.queryNames(new ObjectName("*:type=Connector,*"),
                     Query.match(Query.attr("protocol"), Query.value("HTTP/1.1")));
-            ArrayList<String> ports = new ArrayList<String>();
+            ArrayList<String> ports = new ArrayList<>();
             for (ObjectName obj : objs) {
                 String port = obj.getKeyProperty("port");
                 ports.add(port);

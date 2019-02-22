@@ -69,7 +69,7 @@ public class QueryServletTestUtils extends BasicTest {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private static final ExecutorService executorService = new ThreadPoolExecutor(
-                3, 20, 30,TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(1000),
+                3, 20, 30,TimeUnit.SECONDS, new LinkedBlockingQueue<>(1000),
                 new NamedThreadFactory("IQL-Worker")
         );
 

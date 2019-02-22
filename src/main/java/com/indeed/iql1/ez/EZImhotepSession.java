@@ -62,7 +62,7 @@ public class EZImhotepSession implements Closeable {
     private static final Logger log = Logger.getLogger(EZImhotepSession.class);
 
     private final ImhotepSessionHolder session;
-    private final Deque<StatReference> statStack = new ArrayDeque<StatReference>();
+    private final Deque<StatReference> statStack = new ArrayDeque<>();
     private final Limits limits;
     private int stackDepth = 0;
     private int numGroups = 2;
@@ -213,7 +213,7 @@ public class EZImhotepSession implements Closeable {
         final FTGSIterator ftgsIterator = getFtgsSubsetIterator(field, termsSubset);
 
         // TODO: make sure ftgsIterator gets closed
-        return new FTGSCallbackIterator<E>(callback, ftgsIterator);
+        return new FTGSCallbackIterator<>(callback, ftgsIterator);
     }
 
     private FTGSIterator getFtgsSubsetIterator(final Field field, final List<?> terms) {
@@ -253,7 +253,7 @@ public class EZImhotepSession implements Closeable {
         final FTGSIterator ftgsIterator = getFtgsIterator(field, termLimit);
 
         // TODO: make sure ftgsIterator gets closed
-        return new FTGSCallbackIterator<E>(callback, ftgsIterator);
+        return new FTGSCallbackIterator<>(callback, ftgsIterator);
     }
 
     private FTGSIterator getFtgsIterator(final Field field, int termLimit) {
@@ -387,7 +387,7 @@ public class EZImhotepSession implements Closeable {
     }
 
     public static Int2ObjectMap<GroupKey> newGroupKeys() {
-        final Int2ObjectMap<GroupKey> ret = new Int2ObjectOpenHashMap<GroupKey>();
+        final Int2ObjectMap<GroupKey> ret = new Int2ObjectOpenHashMap<>();
         ret.put(1, GroupKey.empty());
         return ret;
     }
@@ -404,18 +404,17 @@ public class EZImhotepSession implements Closeable {
     @Deprecated
     public Int2ObjectMap<GroupKey> explodeEachGroup(IntField field, long[] terms, @Nullable Int2ObjectMap<GroupKey> groupKeys) throws ImhotepOutOfMemoryException {
         if(terms.length == 0) {
-            return new Int2ObjectOpenHashMap<GroupKey>();
+            return new Int2ObjectOpenHashMap<>();
         }
         checkGroupLimitWithFactor(terms.length);
         final GroupMultiRemapMessage[] rules = new GroupMultiRemapMessage[numGroups-1];
-        final Int2ObjectMap<GroupKey> ret = groupKeys == null ? null : new Int2ObjectOpenHashMap<GroupKey>();
+        final Int2ObjectMap<GroupKey> ret = groupKeys == null ? null : new Int2ObjectOpenHashMap<>();
         int positiveGroup = 1;
         final GroupMultiRemapMessage.Builder regroupMessageBuilder =  GroupMultiRemapMessage.newBuilder();
         final RegroupConditionMessage.Builder conditionMessageBuilder = RegroupConditionMessage.newBuilder();
         for (int group = 1; group < numGroups; group++) {
             regroupMessageBuilder.clear();
-            for (int i = 0; i < terms.length; i++) {
-                final long term = terms[i];
+            for (final long term : terms) {
                 final int newGroup = positiveGroup++;
                 regroupMessageBuilder.addPositiveGroup(newGroup);
                 if (groupKeys != null) {
@@ -442,11 +441,11 @@ public class EZImhotepSession implements Closeable {
     @Deprecated
     public Int2ObjectMap<GroupKey> explodeEachGroup(StringField field, String[] terms, @Nullable Int2ObjectMap<GroupKey> groupKeys) throws ImhotepOutOfMemoryException {
         if(terms.length == 0) {
-            return new Int2ObjectOpenHashMap<GroupKey>();
+            return new Int2ObjectOpenHashMap<>();
         }
         checkGroupLimitWithFactor(terms.length);
         final GroupMultiRemapMessage[] rules = new GroupMultiRemapMessage[numGroups-1];
-        final Int2ObjectMap<GroupKey> ret = groupKeys == null ? null : new Int2ObjectOpenHashMap<GroupKey>();
+        final Int2ObjectMap<GroupKey> ret = groupKeys == null ? null : new Int2ObjectOpenHashMap<>();
         int positiveGroup = 1;
         final GroupMultiRemapMessage.Builder regroupMessageBuilder =  GroupMultiRemapMessage.newBuilder();
         final RegroupConditionMessage.Builder conditionMessageBuilder = RegroupConditionMessage.newBuilder();
@@ -481,7 +480,7 @@ public class EZImhotepSession implements Closeable {
 
     @Nullable
     public Int2ObjectMap<GroupKey> splitAll(Field field, @Nullable Int2ObjectMap<GroupKey> groupKeys, int termLimit) throws ImhotepOutOfMemoryException {
-        final Int2ObjectMap<GroupKey> ret = groupKeys == null ? null : new Int2ObjectOpenHashMap<GroupKey>();
+        final Int2ObjectMap<GroupKey> ret = groupKeys == null ? null : new Int2ObjectOpenHashMap<>();
         if (field.isIntField()) {
             final IntField intField = (IntField) field;
             // TODO: avoid row number explosion when current groupCount already = termLimit
@@ -537,7 +536,7 @@ public class EZImhotepSession implements Closeable {
 
     @Nullable
     public Int2ObjectMap<GroupKey> splitAllTopK(Field field, @Nullable Int2ObjectMap<GroupKey> groupKeys, int topK, Stats.Stat stat, boolean bottom) throws ImhotepOutOfMemoryException {
-        final Int2ObjectMap<GroupKey> ret = groupKeys == null ? null : new Int2ObjectOpenHashMap<GroupKey>();
+        final Int2ObjectMap<GroupKey> ret = groupKeys == null ? null : new Int2ObjectOpenHashMap<>();
         if (field.isIntField()) {
             final IntField intField = (IntField) field;
             final Int2ObjectMap<PriorityQueue<ScoredLong>> termListsMap = getIntGroupTermsTopK(intField, topK, stat, bottom);
@@ -686,8 +685,8 @@ public class EZImhotepSession implements Closeable {
 
     private static final class GetGroupTermsCallback extends FTGSCallback {
 
-        final Int2ObjectMap<LongList> intTermListsMap = new Int2ObjectOpenHashMap<LongList>();
-        final Int2ObjectMap<List<String>> stringTermListsMap = new Int2ObjectOpenHashMap<List<String>>();
+        final Int2ObjectMap<LongList> intTermListsMap = new Int2ObjectOpenHashMap<>();
+        final Int2ObjectMap<List<String>> stringTermListsMap = new Int2ObjectOpenHashMap<>();
         private final Limits limits;
         private int rowCount = 0;
 
@@ -728,8 +727,8 @@ public class EZImhotepSession implements Closeable {
 
     private static final class GetGroupTermsCallbackTopK extends FTGSCallback {
 
-        final Int2ObjectMap<PriorityQueue<ScoredLong>> intTermListsMap = new Int2ObjectOpenHashMap<PriorityQueue<ScoredLong>>();
-        final Int2ObjectMap<PriorityQueue<ScoredObject<String>>> stringTermListsMap = new Int2ObjectOpenHashMap<PriorityQueue<ScoredObject<String>>>();
+        final Int2ObjectMap<PriorityQueue<ScoredLong>> intTermListsMap = new Int2ObjectOpenHashMap<>();
+        final Int2ObjectMap<PriorityQueue<ScoredObject<String>>> stringTermListsMap = new Int2ObjectOpenHashMap<>();
         final Comparator<ScoredObject<String>> scoredObjectComparator;
         final Comparator<ScoredLong> scoredLongComparator;
         private final StatReference count;
@@ -748,7 +747,7 @@ public class EZImhotepSession implements Closeable {
         public void intTermGroup(final long term, int group) {
             PriorityQueue<ScoredLong> terms = intTermListsMap.get(group);
             if (terms == null) {
-                terms = new PriorityQueue<ScoredLong>(10, scoredLongComparator);
+                terms = new PriorityQueue<>(10, scoredLongComparator);
                 intTermListsMap.put(group, terms);
             }
             final double count = getStat(this.count);
@@ -767,18 +766,18 @@ public class EZImhotepSession implements Closeable {
         public void stringTermGroup(final String term, int group) {
             PriorityQueue<ScoredObject<String>> terms = stringTermListsMap.get(group);
             if (terms == null) {
-                terms = new PriorityQueue<ScoredObject<String>>(10, scoredObjectComparator);
+                terms = new PriorityQueue<>(10, scoredObjectComparator);
                 stringTermListsMap.put(group, terms);
             }
             final double count = getStat(this.count);
             if (terms.size() < k) {
-                terms.add(new ScoredObject<String>(count, term));
+                terms.add(new ScoredObject<>(count, term));
             } else {
                 final double headCount = terms.peek().getScore();
                 if ((!isBottom && count > headCount) ||
                         (isBottom && count < headCount)) {
                     terms.remove();
-                    terms.add(new ScoredObject<String>(count, term));
+                    terms.add(new ScoredObject<>(count, term));
                 }
             }
         }

@@ -32,7 +32,7 @@ import java.util.PriorityQueue;
  * @author jplaisance
  */
 public final class TopKGroupingFTGSCallback extends EZImhotepSession.FTGSCallback {
-    private final Int2ObjectMap<PriorityQueue<ScoredObject<GroupStats>>> groupToTopK = new Int2ObjectOpenHashMap<PriorityQueue<ScoredObject<GroupStats>>>();
+    private final Int2ObjectMap<PriorityQueue<ScoredObject<GroupStats>>> groupToTopK = new Int2ObjectOpenHashMap<>();
     private final Comparator<ScoredObject<GroupStats>> comparator;
     private final Limits limits;
     private final int topK;
@@ -94,7 +94,7 @@ public final class TopKGroupingFTGSCallback extends EZImhotepSession.FTGSCallbac
         for (int i = 0; i < statRefs.size(); i++) {
             stats[i] = getStat(statRefs.get(i));
         }
-        return new ScoredObject<GroupStats>(count, new GroupStats(groupKeys.get(group).add(term), stats));
+        return new ScoredObject<>(count, new GroupStats(groupKeys.get(group).add(term), stats));
     }
 
     public List<GroupStats> getResults() {

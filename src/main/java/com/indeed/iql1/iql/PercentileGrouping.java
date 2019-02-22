@@ -107,7 +107,7 @@ public class PercentileGrouping extends Grouping {
     private Int2ObjectMap<Int2LongMap> getPercentileStats(final EZImhotepSession session, final Int2ObjectMap<GroupKey> groupKeys, final StatReference countStatRef, final long[] counts) {
         final Set<Field> uniqueFields = Sets.newHashSet(fields);
 
-        final Int2ObjectMap<Int2LongMap> groupToPositionToStats = new Int2ObjectOpenHashMap<Int2LongMap>();
+        final Int2ObjectMap<Int2LongMap> groupToPositionToStats = new Int2ObjectOpenHashMap<>();
         for (final int group : groupKeys.keySet()) {
             groupToPositionToStats.put(group, new Int2LongOpenHashMap());
         }
@@ -123,7 +123,7 @@ public class PercentileGrouping extends Grouping {
                 }
             }
 
-            final Int2ObjectMap<DoubleList> percentileValues = new Int2ObjectOpenHashMap<DoubleList>();
+            final Int2ObjectMap<DoubleList> percentileValues = new Int2ObjectOpenHashMap<>();
             for (final int group : groupKeys.keySet()) {
                 final long count = (group < counts.length) ? counts[group] : 0;
                 final DoubleList groupPercentileValues = new DoubleArrayList();
@@ -159,7 +159,7 @@ public class PercentileGrouping extends Grouping {
         for (int i = 0; i < statCount; i++) {
             statGroupValues[i] = session.getGroupStats(statRefs.get(i));
         }
-        final Int2ObjectMap<double[]> ret = new Int2ObjectOpenHashMap<double[]>(groupCount);
+        final Int2ObjectMap<double[]> ret = new Int2ObjectOpenHashMap<>(groupCount);
         for (int group = 1; group <= groupCount; group++) {
             final double[] groupStats = new double[statCount];
             for (int statNum = 0; statNum < groupStats.length; statNum++) {
@@ -196,7 +196,7 @@ public class PercentileGrouping extends Grouping {
             this.statRef = statRef;
             this.percentileValues = percentileValues;
 
-            groupToPercentileStats = new Int2ObjectOpenHashMap<LongList>();
+            groupToPercentileStats = new Int2ObjectOpenHashMap<>();
             for (final int group : percentileValues.keySet()) {
                 final LongList stats = new LongArrayList();
                 for (int i = 0; i < percentileValues.get(group).size(); ++i) {
