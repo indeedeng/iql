@@ -15,7 +15,7 @@
 package com.indeed.iql2.language;
 
 import com.google.common.base.Function;
-import junit.framework.Assert;
+import org.junit.Assert;
 
 public class CommonArithmetic {
     /**

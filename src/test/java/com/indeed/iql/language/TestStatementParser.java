@@ -16,6 +16,7 @@ package com.indeed.iql.language;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -38,7 +39,7 @@ public class TestStatementParser {
         IQLStatement query = StatementParser.parseIQLToStatement("describe " + dataset);
         assertTrue(query instanceof DescribeStatement);
         assertEquals(dataset, ((DescribeStatement) query).dataset);
-        assertEquals(null, ((DescribeStatement) query).field);
+        assertNull(((DescribeStatement) query).field);
 
         query = StatementParser.parseIQLToStatement("DESC " + dataset);
         assertTrue(query instanceof DescribeStatement);

@@ -52,7 +52,7 @@ public class TestSelectStatementParser {
     public void testLimitParser() {
         String testQuery = "from jobsearch '2012-01-01' '2012-01-02' where rcv=jsv group by grp select sjc";
         final IQL1SelectStatement expected = parseSelectStatement(testQuery);
-        assertEquals(expected.limit, Integer.MAX_VALUE - 1);
+        assertEquals(Integer.MAX_VALUE - 1, expected.limit);
     }
 
     @Test(expected = IqlKnownException.RowLimitErrorException.class)
@@ -77,7 +77,7 @@ public class TestSelectStatementParser {
     public void testLimitParserNormal() {
         String testQueryLimitNormal = "from jobsearch '2012-01-01' '2012-01-02' where rcv=jsv group by grp select sjc limit 5000";
         final IQL1SelectStatement expectedLimitNormal = parseSelectStatement(testQueryLimitNormal);
-        assertEquals(expectedLimitNormal.limit, 5000);
+        assertEquals(5000, expectedLimitNormal.limit);
     }
 
 }

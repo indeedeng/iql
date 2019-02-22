@@ -18,7 +18,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.Sets;
 import com.indeed.iql2.language.query.Queries;
 import com.indeed.util.core.Pair;
-import junit.framework.Assert;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.Arrays;

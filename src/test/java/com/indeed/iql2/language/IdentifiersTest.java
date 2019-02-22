@@ -16,7 +16,7 @@ package com.indeed.iql2.language;
 
 import com.google.common.base.Function;
 import com.indeed.iql2.language.query.Queries;
-import junit.framework.Assert;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class IdentifiersTest {
