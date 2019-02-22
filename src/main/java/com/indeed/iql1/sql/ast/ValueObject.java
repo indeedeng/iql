@@ -76,11 +76,7 @@ public abstract class ValueObject {
 
 
 
-  private static final Comparator<Field> NAME_ORDER = new Comparator<Field>() {
-    public int compare(Field field1, Field field2) {
-      return field1.getName().compareTo(field2.getName());
-    }
-  };
+  private static final Comparator<Field> NAME_ORDER = Comparator.comparing(Field::getName);
   
   private static final ConcurrentMap<Class<?>, Field[]> valueFieldMap =
           new ConcurrentHashMap<>();
@@ -118,7 +114,7 @@ public abstract class ValueObject {
         myFields.add(field);
       }
     }
-    Collections.sort(myFields, NAME_ORDER);
+    myFields.sort(NAME_ORDER);
     Field[] fields = fieldList.toArray(new Field[fieldList.size()]);
     AccessibleObject.setAccessible(fields, true);
     return fields;

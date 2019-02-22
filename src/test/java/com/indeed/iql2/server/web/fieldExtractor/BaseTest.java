@@ -29,7 +29,6 @@ import org.junit.Assert;
 
 import java.util.Collections;
 import java.util.Set;
-import java.util.function.Consumer;
 
 /**
  * @author jessec@indeed.com (Jesse Chen)
@@ -59,10 +58,7 @@ public class BaseTest {
 				false,
 				AllData.DATASET.getDatasetsMetadata(),
                 Collections.emptySet(),
-                new Consumer<String>() {
-					@Override
-					public void accept(String s) {}
-				},
+				s -> {},
 				wallClock,
 				TIMER,
 				SHARD_RESOLVER

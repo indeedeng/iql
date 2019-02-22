@@ -32,7 +32,6 @@ import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -146,12 +145,7 @@ public class DatasetStatsCollector {
             stats.reportGenerationTime = DateTime.now();
         }
 
-        Collections.sort(statsList, new Comparator<DatasetStats>() {
-            @Override
-            public int compare(DatasetStats o1, DatasetStats o2) {
-                return o1.name.compareTo(o2.name);
-            }
-        });
+        statsList.sort(Comparator.comparing(o -> o.name));
 
         return statsList;
     }

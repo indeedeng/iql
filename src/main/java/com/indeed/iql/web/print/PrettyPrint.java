@@ -58,13 +58,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 public class PrettyPrint {
-    private static final Function<String, String> RENDER_STRING = new Function<String, String>() {
-        public String apply(String s) {
-            return "\"" + stringEscape(s) + "\"";
-        }
-    };
+    private static final Function<String, String> RENDER_STRING = s -> "\"" + stringEscape(s) + "\"";
 
     public static void main(String[] args) {
         final DatasetsMetadata datasetsMetadata = DatasetsMetadata.empty();
@@ -75,11 +72,7 @@ public class PrettyPrint {
     @Nonnull
     public static String prettyPrint(String q, boolean useLegacy, DatasetsMetadata datasetsMetadata) {
         JQLParser.QueryContext queryContext = Queries.parseQueryContext(q, useLegacy);
-        Consumer<String> consumer = new Consumer<String>() {
-            @Override
-            public void accept(String s) {
-            }
-        };
+        final Consumer<String> consumer = s -> {};
         WallClock clock = new StoppedClock();
         final TracingTreeTimer timer = new TracingTreeTimer();
         Query query = Query.parseQuery(queryContext, datasetsMetadata, Collections.emptySet(), consumer, clock, timer, new NullShardResolver());
@@ -187,12 +180,7 @@ public class PrettyPrint {
             if (!dataset.fieldAliases.isEmpty()) {
                 sb.append(" aliasing (");
                 final ArrayList<Map.Entry<Positioned<String>, Positioned<String>>> sortedAliases = Lists.newArrayList(dataset.fieldAliases.entrySet());
-                Collections.sort(sortedAliases, new Comparator<Map.Entry<Positioned<String>, Positioned<String>>>() {
-                    @Override
-                    public int compare(Map.Entry<Positioned<String>, Positioned<String>> o1, Map.Entry<Positioned<String>, Positioned<String>> o2) {
-                        return o1.getKey().unwrap().compareTo(o2.getKey().unwrap());
-                    }
-                });
+                sortedAliases.sort(Comparator.comparing(o -> o.getKey().unwrap()));
                 for (final Map.Entry<Positioned<String>, Positioned<String>> entry : sortedAliases) {
                     sb.append(getText(entry.getKey())).append(" AS ").append(getText(entry.getValue()));
                 }
@@ -359,7 +347,7 @@ public class PrettyPrint {
                     Joiner.on(", ").appendTo(sb, groupByFieldIn.intTerms);
                 }
                 if (!groupByFieldIn.stringTerms.isEmpty()) {
-                    Joiner.on(", ").appendTo(sb, Iterables.transform(groupByFieldIn.stringTerms, RENDER_STRING));
+                    Joiner.on(", ").appendTo(sb, groupByFieldIn.stringTerms.stream().map(RENDER_STRING::apply).collect(Collectors.toList()));
                 }
                 sb.append(")");
                 return null;
@@ -875,13 +863,11 @@ public class PrettyPrint {
             @Override
             public Void visit(AggregateMetric.Max max) {
                 sb.append("max(");
-                Joiner.on(", ").appendTo(sb, Iterables.transform(max.metrics, new Function<AggregateMetric, String>() {
-                    public String apply(AggregateMetric aggregateMetric) {
+                Joiner.on(", ").appendTo(sb, max.metrics.stream().map(metric -> {
                         final StringBuilder sb = new StringBuilder();
-                        pp(aggregateMetric, consumer, clock);
+                        pp(metric, consumer, clock);
                         return sb.toString();
-                    }
-                }));
+                }).collect(Collectors.toList()));
                 sb.append(')');
                 return null;
             }

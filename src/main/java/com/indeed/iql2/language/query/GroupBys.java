@@ -16,7 +16,6 @@ package com.indeed.iql2.language.query;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateFilters;
@@ -42,6 +41,7 @@ import it.unimi.dsi.fastutil.longs.LongLists;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 public class GroupBys {
@@ -131,7 +131,7 @@ public class GroupBys {
             @Override
             public void enterGroupByFieldIn(JQLParser.GroupByFieldInContext ctx) {
                 if (ctx.not != null) {
-                    final Iterable<Term> terms = Iterables.transform(ctx.terms, Term::parseTerm);
+                    final Iterator<Term> terms = ctx.terms.stream().map(Term::parseTerm).iterator();
                     final AggregateFilter filter = AggregateFilters.aggregateInHelper(terms, true);
                     accept(new GroupBy.GroupByField(fieldResolver.resolve(ctx.field), Optional.of(filter), Optional.absent(), Optional.absent(), ctx.withDefault != null));
                 } else {

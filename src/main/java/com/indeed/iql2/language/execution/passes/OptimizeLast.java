@@ -17,8 +17,6 @@ package com.indeed.iql2.language.execution.passes;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Optional;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
@@ -46,12 +44,7 @@ public class OptimizeLast {
             if (last instanceof ExecutionStep.GetGroupStats
                     && penultimate instanceof ExecutionStep.ExplodeAndRegroup) {
                 final ExecutionStep.GetGroupStats getGroupStats = (ExecutionStep.GetGroupStats) last;
-                final boolean selectIsOrdered = Iterables.any(getGroupStats.stats, new Predicate<AggregateMetric>() {
-                    @Override
-                    public boolean apply(AggregateMetric input) {
-                        return input.isOrdered();
-                    }
-                });
+                final boolean selectIsOrdered = getGroupStats.stats.stream().anyMatch(AggregateMetric::isOrdered);
                 final ExecutionStep.ExplodeAndRegroup explodeAndRegroup = (ExecutionStep.ExplodeAndRegroup) penultimate;
                 // TODO: Make query execution sort on .metric whether or not there's a limit, make .metric optional. Then change this to care if .metric.isPresent() also.
                 // TODO: Figure out wtf the above TODO means.

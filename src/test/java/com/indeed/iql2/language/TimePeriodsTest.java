@@ -14,7 +14,6 @@
 
 package com.indeed.iql2.language;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Sets;
 import com.indeed.iql2.language.query.Queries;
 import com.indeed.util.core.Pair;
@@ -133,11 +132,7 @@ public class TimePeriodsTest {
     }
 
     private List<Pair<Integer, TimeUnit>> parseTimePeriod(String input, boolean useLegacy) {
-        final JQLParser.TimePeriodContext ctx = Queries.runParser(input, new Function<JQLParser, JQLParser.TimePeriodContext>() {
-            public JQLParser.TimePeriodContext apply(JQLParser input) {
-                return input.timePeriodTerminal().timePeriod();
-            }
-        });
+        final JQLParser.TimePeriodContext ctx = Queries.runParser(input, parser -> parser.timePeriodTerminal().timePeriod());
         return TimePeriods.parseTimePeriod(ctx, useLegacy);
     }
 

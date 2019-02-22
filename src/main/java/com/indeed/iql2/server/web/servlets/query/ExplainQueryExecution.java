@@ -82,12 +82,7 @@ public class ExplainQueryExecution {
     public void processExplain() throws IOException {
         final Set<String> errors = new HashSet<>();
         final Set<String> warnings = new HashSet<>();
-        final Consumer<String> warn = new Consumer<String>() {
-            @Override
-            public void accept(String s) {
-                warnings.add(s);
-            }
-        };
+        final Consumer<String> warn = warnings::add;
 
         final TracingTreeTimer timer = new TracingTreeTimer();
         final Query parsedQuery = Queries.parseQuery(query, version==1, datasetsMetadata, defaultIQL2Options, warn, clock, timer, new NullShardResolver()).query;

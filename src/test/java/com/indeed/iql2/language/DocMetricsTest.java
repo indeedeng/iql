@@ -76,11 +76,7 @@ public class DocMetricsTest {
         }
     };
 
-    private static final Function<String, String> REPLACE_DIVIDES = new Function<String, String>() {
-        public String apply(String input) {
-            return input.replace("/", "\\");
-        }
-    };
+    private static final Function<String, String> REPLACE_DIVIDES = s -> s.replace("/", "\\");
 
     public static DocMetric docField(String field) {
         return new Field(FieldSet.of("synthetic", field));

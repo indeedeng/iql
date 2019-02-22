@@ -15,7 +15,6 @@
 package com.indeed.iql2.execution;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Function;
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -32,6 +31,7 @@ import com.google.common.primitives.Longs;
 import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.RemoteImhotepMultiSession;
 import com.indeed.imhotep.Shard;
+import com.indeed.imhotep.ShardInfo;
 import com.indeed.imhotep.StrictCloser;
 import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.FTGSParams;
@@ -123,12 +123,7 @@ public class Session {
     public int numGroups = 1;
 
     private static final String DEFAULT_FORMAT_STRING = "#.#######";
-    private static final ThreadLocal<DecimalFormat> DEFAULT_DECIMAL_FORMAT = new ThreadLocal<DecimalFormat>() {
-        @Override
-        protected DecimalFormat initialValue() {
-            return new DecimalFormat(DEFAULT_FORMAT_STRING);
-        }
-    };
+    private static final ThreadLocal<DecimalFormat> DEFAULT_DECIMAL_FORMAT = ThreadLocal.withInitial(() -> new DecimalFormat(DEFAULT_FORMAT_STRING));
 
     public Session(
             Map<String, ImhotepSessionInfo> sessions,
@@ -344,16 +339,8 @@ public class Session {
             progressCallback.sessionOpened(session);
 
             treeTimer.push("determine time range");
-            final DateTime earliestStart = Ordering.natural().min(Iterables.transform(chosenShards, new Function<Shard, DateTime>() {
-                public DateTime apply(Shard input) {
-                    return input.getStart();
-                }
-            }));
-            final DateTime latestEnd = Ordering.natural().max(Iterables.transform(chosenShards, new Function<Shard, DateTime>() {
-                public DateTime apply(@Nullable Shard input) {
-                    return input.getEnd();
-                }
-            }));
+            final DateTime earliestStart = Ordering.natural().min(chosenShards.stream().map(ShardInfo::getStart).iterator());
+            final DateTime latestEnd = Ordering.natural().max(chosenShards.stream().map(ShardInfo::getEnd).iterator());
             treeTimer.pop();
             final String timeField = DatasetMetadata.TIME_FIELD_NAME;
             if (earliestStart.isBefore(startDateTime) || latestEnd.isAfter(endDateTime)) {
@@ -558,19 +545,11 @@ public class Session {
     }
 
     public long getLatestEnd() {
-        return Ordering.natural().max(Iterables.transform(sessions.values(), new Function<ImhotepSessionInfo, Long>() {
-            public Long apply(ImhotepSessionInfo input) {
-                return input.endTime.getMillis();
-            }
-        }));
+        return Ordering.natural().max(sessions.values().stream().map(s -> s.endTime.getMillis()).iterator());
     }
 
     public long getEarliestStart() {
-        return Ordering.natural().min(Iterables.transform(sessions.values(), new Function<ImhotepSessionInfo, Long>() {
-            public Long apply(ImhotepSessionInfo input) {
-                return input.startTime.getMillis();
-            }
-        }));
+        return Ordering.natural().min(sessions.values().stream().map(s -> s.startTime.getMillis()).iterator());
     }
 
     public int performTimeRegroup(

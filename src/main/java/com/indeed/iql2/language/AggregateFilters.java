@@ -19,16 +19,17 @@ import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.fieldresolution.ScopedFieldResolver;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 public class AggregateFilters {
     private AggregateFilters() {
     }
 
-    public static AggregateFilter aggregateInHelper(final Iterable<Term> terms, final boolean negate) {
+    public static AggregateFilter aggregateInHelper(final Iterator<Term> terms, final boolean negate) {
         final List<AggregateFilter> termFilters = new ArrayList<>();
-        for (final Term term : terms) {
-            termFilters.add(new AggregateFilter.TermIs(term));
+        while(terms.hasNext()) {
+            termFilters.add(new AggregateFilter.TermIs(terms.next()));
         }
         AggregateFilter filter = AggregateFilter.Or.create(termFilters);
         if (negate) {

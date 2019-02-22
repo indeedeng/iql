@@ -20,7 +20,6 @@ import org.codehaus.jparsec.Parsers;
 import org.codehaus.jparsec.Scanners;
 import org.codehaus.jparsec.Terminals;
 import org.codehaus.jparsec.Token;
-import org.codehaus.jparsec.functors.Map5;
 import org.codehaus.jparsec.misc.Mapper;
 import org.codehaus.jparsec.pattern.Patterns;
 
@@ -70,12 +69,7 @@ public class QuerySplitter {
         Parser<Token> limitParser = TERMS.token("limit").next(getContentParser());
 
         return Parsers.sequence(fromLINQParser, whereLINQParser.optional(), groupByLINQParser.optional(), selectLINQParser.optional(), limitParser.optional(),
-                new Map5<Token, Token, Token, Token, Token, QueryParts>() {
-            @Override
-            public QueryParts map(Token from, Token where, Token groupBy, Token select, Token limit) {
-                return new QueryParts(from, where, groupBy, select, limit);
-            }
-        });
+                QueryParts::new);
     }
 
     private static Parser<QueryParts> getQuerySQLParser() {
@@ -86,12 +80,7 @@ public class QuerySplitter {
         Parser<Token> limitParser = TERMS.token("limit").next(getContentParser());
 
         return Parsers.sequence(selectSQLParser.optional(), fromSQLParser, whereSQLParser.optional(), groupBySQLParser.optional(), limitParser.optional(),
-                new Map5<Token, Token, Token, Token, Token, QueryParts>() {
-                    @Override
-                    public QueryParts map(Token select, Token from, Token where, Token groupBy, Token limit) {
-                        return new QueryParts(from, where, groupBy, select, limit);
-                    }
-                });
+                (select, from, where, groupBy, limit) -> new QueryParts(from, where, groupBy, select, limit));
     }
 
     private static Parser<Token> getContentParser(String... excludedTerms) {

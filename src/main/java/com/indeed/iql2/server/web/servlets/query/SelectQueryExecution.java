@@ -23,7 +23,6 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
@@ -99,6 +98,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -716,10 +716,10 @@ public class SelectQueryExecution {
                                     // if negated then we have to iterate all terms and filter out result of subquery.
                                     final AggregateFilter filter;
                                     if (result.getFirst() != null) {
-                                        final Iterable<Term> terms = Iterables.transform(result.getFirst(), Term::term);
+                                        final Iterator<Term> terms = result.getFirst().stream().map(Term::term).iterator();
                                         filter = AggregateFilters.aggregateInHelper(terms, true);
                                     } else if (result.getSecond() != null) {
-                                        final Iterable<Term> terms = Iterables.transform(result.getSecond(), Term::term);
+                                        final Iterator<Term> terms = result.getSecond().stream().map(Term::term).iterator();
                                         filter = AggregateFilters.aggregateInHelper(terms, true);
                                     } else {
                                         filter = null;
