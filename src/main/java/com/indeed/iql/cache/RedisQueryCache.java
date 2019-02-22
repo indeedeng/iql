@@ -13,7 +13,6 @@
  */
  package com.indeed.iql.cache;
 
-import com.google.common.io.ByteStreams;
 import com.google.common.net.HostAndPort;
 import org.apache.log4j.Logger;
 import org.springframework.core.env.PropertyResolver;
@@ -21,14 +20,10 @@ import redis.clients.jedis.JedisCluster;
 import redis.clients.jedis.JedisPoolConfig;
 
 import javax.annotation.Nullable;
-import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Collectors;

@@ -92,7 +92,7 @@ public class FieldResolverTest {
         try {
             scopedResolver.resolve(parseIdentifier("MyFakeField"));
             Assert.fail("Expected UnknownFieldException");
-        } catch (final IqlKnownException.UnknownFieldException e) {
+        } catch (final IqlKnownException.UnknownFieldException ignored) {
         }
     }
 
@@ -114,7 +114,7 @@ public class FieldResolverTest {
         try {
             scopedResolver.resolve(parseIdentifier("oji3"));
             Assert.fail("Expected UnknownFieldException");
-        } catch (final IqlKnownException.UnknownFieldException e) {
+        } catch (final IqlKnownException.UnknownFieldException ignored) {
         }
     }
 
@@ -132,7 +132,7 @@ public class FieldResolverTest {
         try {
             scopedResolver.resolve(parseIdentifier("intField3"));
             Assert.fail("Expected UnknownFieldException");
-        } catch (final IqlKnownException.UnknownFieldException e) {
+        } catch (final IqlKnownException.UnknownFieldException ignored) {
         }
     }
 

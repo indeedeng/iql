@@ -146,7 +146,7 @@ public class MetricMetadataTest extends BasicTest {
         try {
             testIQL1(ImmutableList.of(ImmutableList.of()), query, options);
             Assert.fail(reason);
-        } catch (IllegalArgumentException ex) {
+        } catch (final IllegalArgumentException ignored) {
         }
 
     }
@@ -155,7 +155,7 @@ public class MetricMetadataTest extends BasicTest {
         try {
             testIQL2(ImmutableList.of(ImmutableList.of()), query, options);
             Assert.fail(reason);
-        } catch (IllegalArgumentException ex) {
+        } catch (final IllegalArgumentException ignored) {
         }
 
     }

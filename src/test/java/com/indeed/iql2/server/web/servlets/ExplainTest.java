@@ -14,7 +14,6 @@
 
 package com.indeed.iql2.server.web.servlets;
 
-import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import org.junit.Test;
 
 import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.runIQL2;

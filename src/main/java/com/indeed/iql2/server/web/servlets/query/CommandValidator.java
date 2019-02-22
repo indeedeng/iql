@@ -24,7 +24,6 @@ import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.util.core.Pair;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;

@@ -15,8 +15,6 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
-import com.indeed.iql2.server.web.servlets.dataset.AllData;
-import com.indeed.iql2.server.web.servlets.dataset.Dataset;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -46,12 +44,12 @@ public class SubQueryLimitTest extends BasicTest {
         try {
             QueryServletTestUtils.testIQL2(expected, "from subQueryLimit yesterday today where f in (from same group by f) select count()", QueryServletTestUtils.Options.create().setSkipTestDimension(true).setSubQueryTermLimit(104L));
             Assert.fail();
-        } catch (Exception e) {
+        } catch (final Exception ignored) {
         }
         try {
             QueryServletTestUtils.testIQL2(expected, "from subQueryLimit yesterday today where f in (from same group by f) select count()", QueryServletTestUtils.Options.create().setSkipTestDimension(true).setSubQueryTermLimit(1L));
             Assert.fail();
-        } catch (Exception e) {
+        } catch (final Exception ignored) {
         }
     }
 }

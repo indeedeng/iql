@@ -15,7 +15,6 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
-import com.indeed.iql2.server.web.servlets.dataset.OrganicDataset;
 import org.junit.Ignore;
 import org.junit.Test;
 

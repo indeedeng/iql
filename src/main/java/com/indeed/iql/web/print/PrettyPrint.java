@@ -366,7 +366,7 @@ public class PrettyPrint {
             }
 
             @Override
-            public Void visit(final GroupBy.GroupByFieldInQuery groupByFieldInQuery) throws RuntimeException {
+            public Void visit(final GroupBy.GroupByFieldInQuery groupByFieldInQuery) {
                 sb.append(getText(groupByFieldInQuery.field));
                 if (groupByFieldInQuery.isNegated) {
                     sb.append(" NOT");
@@ -426,7 +426,7 @@ public class PrettyPrint {
             }
 
             @Override
-            public Void visit(GroupBy.GroupByRandom groupByRandom) throws RuntimeException {
+            public Void visit(GroupBy.GroupByRandom groupByRandom) {
                 sb.append("random(")
                         .append(getText(groupByRandom.field))
                         .append(", ")
@@ -438,7 +438,7 @@ public class PrettyPrint {
             }
 
             @Override
-            public Void visit(final GroupBy.GroupByRandomMetric groupByRandom) throws RuntimeException {
+            public Void visit(final GroupBy.GroupByRandomMetric groupByRandom) {
                 sb.append("random(");
                 pp(groupByRandom.metric, consumer, clock);
                 sb.append(groupByRandom.k)
@@ -654,7 +654,7 @@ public class PrettyPrint {
             }
 
             @Override
-            public Void visit(final AggregateMetric.Floor floor) throws RuntimeException {
+            public Void visit(final AggregateMetric.Floor floor) {
                 sb.append("floor(");
                 pp(floor.m1, consumer, clock);
                 sb.append(',');
@@ -664,7 +664,7 @@ public class PrettyPrint {
             }
 
             @Override
-            public Void visit(final AggregateMetric.Ceil ceil) throws RuntimeException {
+            public Void visit(final AggregateMetric.Ceil ceil) {
                 sb.append("ceil(");
                 pp(ceil.m1, consumer, clock);
                 sb.append(',');
@@ -674,7 +674,7 @@ public class PrettyPrint {
             }
 
             @Override
-            public Void visit(final AggregateMetric.Round round) throws RuntimeException {
+            public Void visit(final AggregateMetric.Round round) {
                 sb.append("round(");
                 pp(round.m1, consumer, clock);
                 sb.append(',');
@@ -811,7 +811,7 @@ public class PrettyPrint {
             }
 
             @Override
-            public Void visit(final AggregateMetric.NeedsSubstitution needsSubstitution) throws RuntimeException {
+            public Void visit(final AggregateMetric.NeedsSubstitution needsSubstitution) {
                 sb.append(needsSubstitution.substitutionName);
                 return null;
             }
@@ -1029,7 +1029,7 @@ public class PrettyPrint {
             }
 
             @Override
-            public Void visit(final DocFilter.SampleDocMetric sample) throws RuntimeException {
+            public Void visit(final DocFilter.SampleDocMetric sample) {
                 sb.append("sample(");
                 pp(sample.metric, consumer, clock);
                 sb.append(sample.numerator).append(", ")
@@ -1052,7 +1052,7 @@ public class PrettyPrint {
             }
 
             @Override
-            public Void visit(final DocFilter.ExplainFieldIn explainFieldIn) throws RuntimeException {
+            public Void visit(final DocFilter.ExplainFieldIn explainFieldIn) {
                 throw new UnsupportedOperationException("Can't pretty-print ExplainFieldIn things: " + explainFieldIn);
             }
 
@@ -1135,7 +1135,7 @@ public class PrettyPrint {
             }
 
             @Override
-            public Void visit(final DocMetric.DocId count) throws RuntimeException {
+            public Void visit(final DocMetric.DocId count) {
                 sb.append("docId()");
                 return null;
             }
@@ -1359,7 +1359,7 @@ public class PrettyPrint {
             }
 
             @Override
-            public Void visit(DocMetric.Lucene lucene) throws RuntimeException {
+            public Void visit(DocMetric.Lucene lucene) {
                 sb.append("lucene(\"")
                         .append(stringEscape(lucene.query))
                         .append("\")");
@@ -1367,7 +1367,7 @@ public class PrettyPrint {
             }
 
             @Override
-            public Void visit(final DocMetric.FieldEqualMetric equalMetric) throws RuntimeException {
+            public Void visit(final DocMetric.FieldEqualMetric equalMetric) {
                 sb.append(getText(equalMetric.field1)).append("=").append(getText(equalMetric.field2));
                 return null;
             }
@@ -1379,7 +1379,7 @@ public class PrettyPrint {
             }
 
             @Override
-            public Void visit(final DocMetric.Sample random) throws RuntimeException {
+            public Void visit(final DocMetric.Sample random) {
                 sb.append("sample")
                         .append('(')
                         .append(getText(random.field))
@@ -1394,7 +1394,7 @@ public class PrettyPrint {
             }
 
             @Override
-            public Void visit(final DocMetric.SampleMetric random) throws RuntimeException {
+            public Void visit(final DocMetric.SampleMetric random) {
                 sb.append("sample(");
                 pp(random.metric, consumer, clock);
                 sb.append(", ")
@@ -1408,7 +1408,7 @@ public class PrettyPrint {
             }
 
             @Override
-            public Void visit(final DocMetric.Random random) throws RuntimeException {
+            public Void visit(final DocMetric.Random random) {
                 sb.append("random")
                     .append('(')
                     .append(getText(random.field))
@@ -1421,7 +1421,7 @@ public class PrettyPrint {
             }
 
             @Override
-            public Void visit(final DocMetric.RandomMetric random) throws RuntimeException {
+            public Void visit(final DocMetric.RandomMetric random) {
                 sb.append("random(");
                 pp(random.metric, consumer, clock);
                 sb.append(", ")

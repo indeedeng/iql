@@ -15,8 +15,6 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
-import com.indeed.iql2.server.web.servlets.dataset.AllData;
-import com.indeed.iql2.server.web.servlets.dataset.Dataset;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -43,7 +41,7 @@ public class FieldEqualFilterTest extends BasicTest {
         try {
             QueryServletTestUtils.testIQL2(ImmutableList.of(ImmutableList.of("", "fail")), "from fieldEqual yesterday today as o1, fieldEqual yesterday today as o2 where o1.i1 = o2.i2");
             Assert.fail("field on different dataset should throw exception");
-        } catch (Exception e) {
+        } catch (final Exception ignored) {
         }
     }
 

@@ -15,7 +15,6 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
-import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -67,7 +66,7 @@ public class RegexTest {
         try {
             QueryServletTestUtils.testAll(expected, "from organic yesterday today where tk =~ \"[]*\" select count()");
             Assert.fail("Regex should not have parsed successfully.");
-        } catch (Exception e) {
+        } catch (final Exception ignored) {
         }
     }
 
@@ -78,7 +77,7 @@ public class RegexTest {
         try {
             QueryServletTestUtils.testAll(expected, "from organic yesterday today where tk =~ \".*ios.*|.*software.*|.*web.*|.*java.*|.*hadoop.*|.*spark.*|.*nlp.*|.*algorithm.*|.*python.*|.*matlab.*|.*swift.*|.*android.*\" select count()");
             Assert.fail("Regex should not have parsed successfully.");
-        } catch (Exception e) {
+        } catch (final Exception ignored) {
         }
     }
 }
