@@ -11,13 +11,13 @@ public class TestScoredObjectComparator {
 
     @Test
     public void testStrComparator() {
-        ScoredObject<String> o1 = new ScoredObject<>(123, new String("a"));
-        ScoredObject<String> o2 = new ScoredObject<>(123, new String("b"));
-        ScoredObject<String> o3 = new ScoredObject<>(123, new String("b"));
-        ScoredObject<String> o4 = new ScoredObject<>(124, new String("a"));
-        ScoredObject<String> o5 = new ScoredObject<>(124, new String("b"));
-        ScoredObject<String> o6 = new ScoredObject<>(Double.NaN, new String("b"));
-        ScoredObject<String> o7 = new ScoredObject<>(-12, new String("b"));
+        ScoredObject<String> o1 = new ScoredObject<>(123, "a");
+        ScoredObject<String> o2 = new ScoredObject<>(123, "b");
+        ScoredObject<String> o3 = new ScoredObject<>(123, "b");
+        ScoredObject<String> o4 = new ScoredObject<>(124, "a");
+        ScoredObject<String> o5 = new ScoredObject<>(124, "b");
+        ScoredObject<String> o6 = new ScoredObject<>(Double.NaN, "b");
+        ScoredObject<String> o7 = new ScoredObject<>(-12, "b");
 
         Comparator<ScoredObject<String>> topComparator =  ScoredObject.topScoredObjectComparator(Comparator.<String>naturalOrder());
         Comparator<ScoredObject<String>> bottomComparator =  ScoredObject.bottomScoredObjectComparator(Comparator.<String>naturalOrder());

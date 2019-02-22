@@ -60,7 +60,7 @@ public class QueryInfo {
     public String queryStringTruncatedForPrint() {
         return queryStringTruncatedForPrint;
     }
-    @Nullable public long queryStartTimestamp;
+    public long queryStartTimestamp;
     public final int iqlVersion;
     public int queryLength;
     @Nullable public Set<String> datasets;

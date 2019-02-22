@@ -227,20 +227,7 @@ public class FieldExtractor {
 
 			@Override
 			public Set<DatasetField> visit(final DocFilter.Qualified qualified) {
-				final Set<DatasetField> set = Sets.newHashSet();
-				getDatasetFields(qualified.filter).forEach(
-						datasetField -> {
-							if (datasetField.dataset == null) {
-								for (final String scope : qualified.scope) {
-									set.add(new DatasetField(datasetField.field, scope));
-								}
-							} else {
-								set.add(datasetField);
-							}
-						}
-				);
-				return set;
-
+				return getDatasetFields(qualified.filter);
 			}
 
 			@Override
@@ -700,19 +687,7 @@ public class FieldExtractor {
 
 			@Override
 			public Set<DatasetField> visit(final AggregateMetric.Qualified qualified) {
-				final Set<DatasetField> set = Sets.newHashSet();
-				getDatasetFields(qualified.metric).forEach(
-						datasetField -> {
-							if (datasetField.dataset == null) {
-								for (final String scope : qualified.scope) {
-									set.add(new DatasetField(datasetField.field, scope));
-								}
-							} else {
-								set.add(datasetField);
-							}
-						}
-				);
-				return set;
+				return getDatasetFields(qualified.metric);
 			}
 
 			@Override
