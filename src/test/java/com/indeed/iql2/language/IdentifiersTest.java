@@ -14,10 +14,11 @@
 
 package com.indeed.iql2.language;
 
-import com.google.common.base.Function;
 import com.indeed.iql2.language.query.Queries;
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.util.function.Function;
 
 public class IdentifiersTest {
     private static final Function<JQLParser, String> PARSE_IDENTIFIER = new Function<JQLParser, String>() {

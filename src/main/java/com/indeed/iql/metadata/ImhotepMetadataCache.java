@@ -240,7 +240,7 @@ public class ImhotepMetadataCache {
 
     @Nonnull
     public DatasetMetadata getDataset(String dataset) {
-        return get().getMetadata(dataset).or(new DatasetMetadata(false, dataset, "", null, null, false));    // empty)
+        return get().getMetadata(dataset).orElse(new DatasetMetadata(false, dataset, "", null, null, false));    // empty)
     }
 
     // applicable to all indexes

@@ -14,13 +14,13 @@
 
 package com.indeed.iql2.language.optimizations;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocFilter;
 import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.util.core.Pair;
+
+import java.util.function.Function;
 
 public class ConstantFolding {
     private ConstantFolding() {
@@ -265,11 +265,11 @@ public class ConstantFolding {
     };
 
     public static Query apply(final Query query) {
-        return query.transform(Functions.identity(), AGG_METRIC_OPTIMIZER, METRIC_OPTIMIZER, Functions.identity(), FILTER_OPTIMIZER);
+        return query.transform(Function.identity(), AGG_METRIC_OPTIMIZER, METRIC_OPTIMIZER, Function.identity(), FILTER_OPTIMIZER);
     }
 
     public static AggregateMetric apply(final AggregateMetric metric) {
-        return metric.transform(AGG_METRIC_OPTIMIZER, METRIC_OPTIMIZER, Functions.identity(), FILTER_OPTIMIZER, Functions.identity());
+        return metric.transform(AGG_METRIC_OPTIMIZER, METRIC_OPTIMIZER, Function.identity(), FILTER_OPTIMIZER, Function.identity());
     }
 
     public static DocMetric apply(final DocMetric metric) {

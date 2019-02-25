@@ -14,7 +14,6 @@
 
 package com.indeed.iql2.language.commands;
 
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
@@ -26,6 +25,7 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 import java.util.List;
+import java.util.function.Function;
 
 @EqualsAndHashCode
 @ToString

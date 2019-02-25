@@ -14,7 +14,6 @@
 
 package com.indeed.iql2.language.util;
 
-import com.google.common.base.Optional;
 import com.indeed.flamdex.lucene.LuceneQueryTranslator;
 import com.indeed.flamdex.query.Query;
 import com.indeed.iql.metadata.DatasetMetadata;
@@ -30,6 +29,7 @@ import org.apache.lucene.queryParser.ParseException;
 import org.apache.lucene.queryParser.QueryParser;
 
 import java.util.Collections;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -93,7 +93,7 @@ public class ParserUtil {
                 }
             }
         }
-            return Optional.absent();
+            return Optional.empty();
     }
 
     public static Optional<Interval> getPreviousNode(ParserRuleContext parserRuleContext) {
@@ -121,6 +121,6 @@ public class ParserUtil {
                 }
             }
         }
-        return Optional.absent();
+        return Optional.empty();
     }
 }

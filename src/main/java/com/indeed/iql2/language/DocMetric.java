@@ -14,8 +14,6 @@
 
 package com.indeed.iql2.language;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -41,6 +39,7 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -1566,7 +1565,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public DocMetric transform(final Function<DocMetric, DocMetric> g, final Function<DocFilter, DocFilter> i) {
-            return g.apply(new FieldInQueryPlaceholderMetric(query.transform(Functions.identity(), Functions.identity(), g, Functions.identity(), i), field, isNegated, datasetsMetadata).copyPosition(this));
+            return g.apply(new FieldInQueryPlaceholderMetric(query.transform(Function.identity(), Function.identity(), g, Function.identity(), i), field, isNegated, datasetsMetadata).copyPosition(this));
         }
 
         @Override

@@ -14,9 +14,6 @@
 
 package com.indeed.iql2.language.execution.passes;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
-import com.google.common.base.Optional;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.execution.ExecutionStep;
 import com.indeed.iql2.language.precomputed.Precomputed;
@@ -31,7 +28,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class GroupIterations {
@@ -141,7 +140,7 @@ public class GroupIterations {
     private static Set<String> findNamedDependencies(Precomputed precomputed) {
         final Set<String> dependencies = new HashSet<>();
         precomputed.transform(
-                Functions.identity(),
+                Function.identity(),
                 new Function<AggregateMetric, AggregateMetric>() {
                     @Override
                     public AggregateMetric apply(AggregateMetric input) {
@@ -152,10 +151,10 @@ public class GroupIterations {
                         return input;
                     }
                 },
-                Functions.identity(),
-                Functions.identity(),
-                Functions.identity(),
-                Functions.identity()
+                Function.identity(),
+                Function.identity(),
+                Function.identity(),
+                Function.identity()
         );
         return dependencies;
     }
@@ -182,12 +181,12 @@ public class GroupIterations {
                 final Precomputed.PrecomputedPercentile precomputedPercentile = (Precomputed.PrecomputedPercentile) computation;
                 return new PrecomputedContext(datasets, Optional.of(precomputedPercentile.field));
             } else if (computation instanceof Precomputed.PrecomputedRawStats) {
-                return new PrecomputedContext(datasets, Optional.absent());
+                return new PrecomputedContext(datasets, Optional.empty());
             } else if (computation instanceof Precomputed.PrecomputedSumAcross) {
                 final Precomputed.PrecomputedSumAcross precomputedSumAcross = (Precomputed.PrecomputedSumAcross) computation;
                 return new PrecomputedContext(datasets, Optional.of(precomputedSumAcross.field));
             } else if (computation instanceof Precomputed.PrecomputedSumAcrossGroupBy) {
-                return new PrecomputedContext(datasets, Optional.absent());
+                return new PrecomputedContext(datasets, Optional.empty());
             } else if (computation instanceof Precomputed.PrecomputedFieldExtremeValue) {
                 final Precomputed.PrecomputedFieldExtremeValue precomputedFieldExtremeValue = (Precomputed.PrecomputedFieldExtremeValue) computation;
                 return new PrecomputedContext(datasets, Optional.of(precomputedFieldExtremeValue.field));

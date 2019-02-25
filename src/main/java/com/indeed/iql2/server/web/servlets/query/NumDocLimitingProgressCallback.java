@@ -14,7 +14,6 @@
 
 package com.indeed.iql2.server.web.servlets.query;
 
-import com.google.common.base.Optional;
 import com.indeed.imhotep.Shard;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql2.execution.ImhotepSessionHolder;
@@ -25,6 +24,7 @@ import com.indeed.iql2.language.query.Queries;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public class NumDocLimitingProgressCallback implements ProgressCallback {
     private final long docLimit;

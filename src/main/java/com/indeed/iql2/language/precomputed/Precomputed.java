@@ -14,8 +14,6 @@
 
 package com.indeed.iql2.language.precomputed;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
@@ -39,7 +37,9 @@ import lombok.ToString;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 
 public interface Precomputed {
     Precomputation commands(List<Dataset> datasets);
@@ -61,7 +61,7 @@ public interface Precomputed {
 
         @Override
         public Precomputation commands(List<Dataset> datasets) {
-            return Precomputation.noContext(new GetGroupDistincts(field, filter, windowSize.or(1)));
+            return Precomputation.noContext(new GetGroupDistincts(field, filter, windowSize.orElse(1)));
         }
 
         @Override
@@ -75,7 +75,7 @@ public interface Precomputed {
             if (this.filter.isPresent()) {
                 filter = Optional.of(this.filter.get().traverse1(f));
             } else {
-                filter = Optional.absent();
+                filter = Optional.empty();
             }
             return new PrecomputedDistinct(field, filter, windowSize);
         }
@@ -126,7 +126,7 @@ public interface Precomputed {
                 metrics.add(metric);
             }
             final AggregateMetric metric = AggregateMetric.Add.create(metrics);
-            return Precomputation.noContext(new GetGroupStats(Collections.singletonList(metric), Collections.singletonList(Optional.absent()), false));
+            return Precomputation.noContext(new GetGroupStats(Collections.singletonList(metric), Collections.singletonList(Optional.empty()), false));
         }
 
         @Override
@@ -185,7 +185,7 @@ public interface Precomputed {
         public Precomputation commands(List<Dataset> datasets) {
             return new Precomputation(
                     groupBy.executionStep(datasets).commands(),
-                    new GetGroupStats(Collections.singletonList(metric), Collections.singletonList(Optional.absent()), false),
+                    new GetGroupStats(Collections.singletonList(metric), Collections.singletonList(Optional.empty()), false),
                     Collections.singletonList(new RegroupIntoParent(GroupLookupMergeType.SumAll))
             );
         }
@@ -231,7 +231,7 @@ public interface Precomputed {
             return precomputed.apply(
                 new PrecomputedFieldExtremeValue(field,
                     metric.transform(f, g, h, i, groupByFunction),
-                    filter.transform(fil -> fil.transform(f, g, h, i, groupByFunction))
+                    filter.map(fil -> fil.transform(f, g, h, i, groupByFunction))
                 )
             );
         }

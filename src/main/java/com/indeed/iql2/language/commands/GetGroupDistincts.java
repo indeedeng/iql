@@ -14,8 +14,6 @@
 
 package com.indeed.iql2.language.commands;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
 import com.indeed.iql2.execution.commands.GetGroupDistinctsWindowed;
 import com.indeed.iql2.execution.commands.GetSimpleGroupDistincts;
@@ -30,6 +28,8 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Function;
 
 @EqualsAndHashCode
 @ToString
@@ -63,7 +63,7 @@ public class GetGroupDistincts implements Command {
             final String dataset = Iterables.getOnlyElement(field.datasets());
             return new GetSimpleGroupDistincts(dataset, field.datasetFieldName(dataset));
         } else {
-            final Optional<com.indeed.iql2.execution.AggregateFilter> executionFilter = filter.transform(x -> x.toExecutionFilter(namedMetricLookup, groupKeySet));
+            final Optional<com.indeed.iql2.execution.AggregateFilter> executionFilter = filter.map(x -> x.toExecutionFilter(namedMetricLookup, groupKeySet));
             if (windowSize > 1) {
                 return new GetGroupDistinctsWindowed(field, executionFilter, windowSize);
             } else {

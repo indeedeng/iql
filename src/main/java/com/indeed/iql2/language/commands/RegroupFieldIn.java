@@ -14,7 +14,6 @@
 
 package com.indeed.iql2.language.commands;
 
-import com.google.common.base.Function;
 import com.indeed.iql2.execution.commands.IntRegroupFieldIn;
 import com.indeed.iql2.execution.commands.StringRegroupFieldIn;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
@@ -28,6 +27,7 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 import java.util.List;
+import java.util.function.Function;
 
 @EqualsAndHashCode
 @ToString

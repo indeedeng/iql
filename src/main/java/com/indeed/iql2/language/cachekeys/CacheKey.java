@@ -74,7 +74,7 @@ public class CacheKey {
                 sha1.update(option.getBytes(Charsets.UTF_8));
             }
         }
-        sha1.update(Ints.toByteArray(query.rowLimit.or(-1)));
+        sha1.update(Ints.toByteArray(query.rowLimit.orElse(-1)));
         final String queryHash = Base64.encodeBase64URLSafeString(sha1.digest());
         final String cacheFileName = "IQL2-" + queryHash + ".tsv";
         return new CacheKey(queryHash, cacheFileName);

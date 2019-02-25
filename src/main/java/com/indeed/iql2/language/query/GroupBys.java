@@ -14,7 +14,6 @@
 
 package com.indeed.iql2.language.query;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql2.language.AggregateFilter;
@@ -43,6 +42,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 
 public class GroupBys {
     private GroupBys() {
@@ -66,8 +66,8 @@ public class GroupBys {
             final Query.Context context
     ) {
         final GroupBy groupBy = parseGroupBy(ctx.groupByElement(), context);
-        Optional<AggregateFilter> aggregateFilter = Optional.absent();
-        Optional<String> alias = Optional.absent();
+        Optional<AggregateFilter> aggregateFilter = Optional.empty();
+        Optional<String> alias = Optional.empty();
         if (ctx.filter != null) {
             aggregateFilter = Optional.of(AggregateFilters.parseAggregateFilter(ctx.filter, context));
         }
@@ -112,20 +112,20 @@ public class GroupBys {
                 if (ctx2.limit != null) {
                     limit = Optional.of(Long.parseLong(ctx2.limit.getText()));
                 } else {
-                    limit = Optional.absent();
+                    limit = Optional.empty();
                 }
                 Optional<AggregateMetric> metric;
                 if (ctx2.metric != null) {
                     metric = Optional.of(AggregateMetrics.parseAggregateMetric(ctx2.metric, context));
                 } else {
-                    metric = Optional.absent();
+                    metric = Optional.empty();
                 }
                 if (metric.isPresent() && ctx2.order != null) {
                     if (VALID_ORDERINGS.contains(ctx2.order.getText().toLowerCase())) {
                         metric = Optional.of(new AggregateMetric.Negate(metric.get()));
                     }
                 }
-                accept(new GroupBy.GroupByField(field, Optional.absent(), limit, metric, false));
+                accept(new GroupBy.GroupByField(field, Optional.empty(), limit, metric, false));
             }
 
             @Override
@@ -133,7 +133,7 @@ public class GroupBys {
                 if (ctx.not != null) {
                     final Iterator<Term> terms = ctx.terms.stream().map(Term::parseTerm).iterator();
                     final AggregateFilter filter = AggregateFilters.aggregateInHelper(terms, true);
-                    accept(new GroupBy.GroupByField(fieldResolver.resolve(ctx.field), Optional.of(filter), Optional.absent(), Optional.absent(), ctx.withDefault != null));
+                    accept(new GroupBy.GroupByField(fieldResolver.resolve(ctx.field), Optional.of(filter), Optional.empty(), Optional.empty(), ctx.withDefault != null));
                 } else {
                     final List<Term> terms = new ArrayList<>();
                     boolean anyString = false;
@@ -215,7 +215,7 @@ public class GroupBys {
                 if (ctx.groupByTime().timeField != null) {
                     timeField = Optional.of(fieldResolver.resolve(ctx.groupByTime().timeField));
                 } else {
-                    timeField = Optional.absent();
+                    timeField = Optional.empty();
                 }
 
                 final Optional<String> timeFormat;
@@ -229,7 +229,7 @@ public class GroupBys {
                         timeFormat = Optional.of(format);
                     }
                 } else {
-                    timeFormat = Optional.absent();
+                    timeFormat = Optional.empty();
                 }
 
                 final List<Pair<Integer, TimeUnit>> pairs = TimePeriods.parseTimePeriod(ctx.groupByTime().timePeriod(), ctx.useLegacy);
@@ -270,7 +270,7 @@ public class GroupBys {
                 if (ctx2.limit != null) {
                     limit = Optional.of(Long.parseLong(ctx2.limit.getText()));
                 } else {
-                    limit = Optional.absent();
+                    limit = Optional.empty();
                 }
                 final Optional<AggregateMetric> metric;
                 if (ctx2.metric != null) {
@@ -288,14 +288,14 @@ public class GroupBys {
                     if (reverseOrder) {
                         metric = Optional.of(new AggregateMetric.DocStats(new DocMetric.Negate(new DocMetric.Count())));
                     } else {
-                        metric = Optional.absent();
+                        metric = Optional.empty();
                     }
                 }
                 final Optional<AggregateFilter> filter;
                 if (ctx2.filter != null) {
                     filter = Optional.of(AggregateFilters.parseAggregateFilter(ctx2.filter, context));
                 } else {
-                    filter = Optional.absent();
+                    filter = Optional.empty();
                 }
                 final boolean withDefault = ctx2.withDefault != null;
                 accept(new GroupBy.GroupByField(field, filter, limit, metric, withDefault));

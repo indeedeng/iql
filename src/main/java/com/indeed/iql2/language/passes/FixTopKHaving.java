@@ -14,7 +14,6 @@
 
 package com.indeed.iql2.language.passes;
 
-import com.google.common.base.Optional;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.GroupByEntry;
 import com.indeed.iql2.language.query.GroupBy;
@@ -22,6 +21,7 @@ import com.indeed.iql2.language.query.Query;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class FixTopKHaving {
     private FixTopKHaving() {
@@ -39,7 +39,7 @@ public class FixTopKHaving {
                     newFilter = groupBy.filter.get();
                 }
                 final GroupBy.GroupByField newGroupBy = new GroupBy.GroupByField(groupByField.field, Optional.of(newFilter), groupByField.limit, groupByField.metric, groupByField.withDefault);
-                newGroupBys.add(new GroupByEntry(newGroupBy, Optional.absent(), Optional.absent()));
+                newGroupBys.add(new GroupByEntry(newGroupBy, Optional.empty(), Optional.empty()));
             } else {
                 newGroupBys.add(groupBy);
             }

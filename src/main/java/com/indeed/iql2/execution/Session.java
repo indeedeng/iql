@@ -16,7 +16,6 @@ package com.indeed.iql2.execution;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Objects;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
@@ -86,6 +85,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -264,7 +264,7 @@ public class Session {
         }
         treeTimer.pop();
 
-        return new CreateSessionResult(tempFileBytesWritten, performanceStats.build(), Optional.fromNullable(totalValues));
+        return new CreateSessionResult(tempFileBytesWritten, performanceStats.build(), Optional.ofNullable(totalValues));
     }
 
     private void ensureNoStats() {
@@ -980,7 +980,7 @@ public class Session {
         static Optional<SessionIntIterationState> construct(
                 Closer closer, ImhotepSessionHolder session, FieldSet field, IntList sessionMetricIndexes, @Nullable Integer presenceIndex,
                 Optional<RemoteTopKParams> topKParams, Optional<Integer> ftgsRowLimit, Optional<long[]> termSubset) {
-            final FTGSIterator it = closer.register(getFTGSIterator(session, field, true, topKParams, ftgsRowLimit, termSubset, Optional.absent()));
+            final FTGSIterator it = closer.register(getFTGSIterator(session, field, true, topKParams, ftgsRowLimit, termSubset, Optional.empty()));
             final int numStats = session.getNumStats();
             final long[] statsBuff = new long[numStats];
             while (it.nextField()) {
@@ -991,7 +991,7 @@ public class Session {
                     }
                 }
             }
-            return Optional.absent();
+            return Optional.empty();
         }
     }
 
@@ -1012,7 +1012,7 @@ public class Session {
      */
     public static void iterateMultiInt(Map<String, ImhotepSessionHolder> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, FieldSet field, IntIterateCallback callback, TracingTreeTimer timer,
                                        final Set<String> options) throws IOException {
-        iterateMultiInt(sessions, metricIndexes, presenceIndexes, field, Optional.absent(), Optional.absent(), Optional.absent(), callback, timer, options);
+        iterateMultiInt(sessions, metricIndexes, presenceIndexes, field, Optional.empty(), Optional.empty(), Optional.empty(), callback, timer, options);
     }
 
     /**
@@ -1142,7 +1142,7 @@ public class Session {
         try (final FTGSIterator ftgs =
                      createFTGSIterator(session, field, true,
                              topKParams, ftgsRowLimit,
-                             termSubset, Optional.absent(), callback.needSorted())) {
+                             termSubset, Optional.empty(), callback.needSorted())) {
             timer.pop();
 
             timer.push("consume FTGS iterator");
@@ -1256,7 +1256,7 @@ public class Session {
 
         static Optional<SessionStringIterationState> construct(Closer closer, ImhotepSessionHolder session, FieldSet field, IntList sessionMetricIndexes, @Nullable Integer presenceIndex,
                                                                Optional<RemoteTopKParams> topKParams, Optional<Integer> ftgsRowLimit, Optional<String[]> termSubset) {
-            final FTGSIterator it = closer.register(getFTGSIterator(session, field, false, topKParams, ftgsRowLimit, Optional.absent(), termSubset));
+            final FTGSIterator it = closer.register(getFTGSIterator(session, field, false, topKParams, ftgsRowLimit, Optional.empty(), termSubset));
             final int numStats = session.getNumStats();
             final long[] statsBuff = new long[numStats];
             while (it.nextField()) {
@@ -1267,7 +1267,7 @@ public class Session {
                     }
                 }
             }
-            return Optional.absent();
+            return Optional.empty();
         }
     }
 
@@ -1288,7 +1288,7 @@ public class Session {
      */
     public static void iterateMultiString(Map<String, ImhotepSessionHolder> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, FieldSet field, StringIterateCallback callback, TracingTreeTimer timer,
                                           final Set<String> options) throws IOException {
-        iterateMultiString(sessions, metricIndexes, presenceIndexes, field, Optional.absent(), Optional.absent(), Optional.absent(), callback, timer, options);
+        iterateMultiString(sessions, metricIndexes, presenceIndexes, field, Optional.empty(), Optional.empty(), Optional.empty(), callback, timer, options);
     }
 
     /**
@@ -1381,7 +1381,7 @@ public class Session {
         try (final FTGSIterator ftgs =
                      createFTGSIterator(session, field, false,
                              topKParams, ftgsRowLimit,
-                             Optional.absent(), termSubset, callback.needSorted())) {
+                             Optional.empty(), termSubset, callback.needSorted())) {
             timer.pop();
 
             timer.push("consume FTGS iterator");

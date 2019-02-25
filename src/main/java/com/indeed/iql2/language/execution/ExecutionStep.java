@@ -14,8 +14,6 @@
 
 package com.indeed.iql2.language.execution;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
@@ -52,7 +50,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 
 public interface ExecutionStep {
 
@@ -163,7 +163,7 @@ public interface ExecutionStep {
             if (withDefault) {
                 withDefaultName = Optional.of("DEFAULT");
             } else {
-                withDefaultName = Optional.absent();
+                withDefaultName = Optional.empty();
             }
             final Command command = new IterateAndExplode(field, opts, withDefaultName);
             return Collections.singletonList(command);
@@ -175,13 +175,13 @@ public interface ExecutionStep {
             if (this.filter.isPresent()) {
                 filter = Optional.of(this.filter.get().traverse1(f));
             } else {
-                filter = Optional.absent();
+                filter = Optional.empty();
             }
             final Optional<AggregateMetric> metric;
             if (this.metric.isPresent()) {
                 metric = Optional.of(f.apply(this.metric.get()));
             } else {
-                metric = Optional.absent();
+                metric = Optional.empty();
             }
             return new ExplodeAndRegroup(field, filter, limit, metric, withDefault);
         }
@@ -386,13 +386,13 @@ public interface ExecutionStep {
             if (this.filter.isPresent()) {
                 filter = Optional.of(this.filter.get().traverse1(f));
             } else {
-                filter = Optional.absent();
+                filter = Optional.empty();
             }
             final Optional<AggregateMetric> metric;
             if (this.metric.isPresent()) {
                 metric = Optional.of(f.apply(this.metric.get()));
             } else {
-                metric = Optional.absent();
+                metric = Optional.empty();
             }
             final List<AggregateMetric> stats = new ArrayList<>();
             for (final AggregateMetric stat : this.stats) {

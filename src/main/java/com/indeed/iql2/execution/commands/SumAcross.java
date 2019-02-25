@@ -14,7 +14,6 @@
 
 package com.indeed.iql2.execution.commands;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.Sets;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.AggregateFilter;
@@ -29,6 +28,7 @@ import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 public class SumAcross implements IterateHandlerable<double[]>, Command {

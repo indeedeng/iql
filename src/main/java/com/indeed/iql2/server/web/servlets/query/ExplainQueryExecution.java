@@ -15,8 +15,6 @@
 package com.indeed.iql2.server.web.servlets.query;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql.web.print.LevelPrinter;
@@ -38,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class ExplainQueryExecution {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -116,10 +115,10 @@ public class ExplainQueryExecution {
 
         private void explainParsedQuery() {
             final Query query = originalQuery.transform(
-                    Functions.identity(),
-                    Functions.identity(),
-                    Functions.identity(),
-                    Functions.identity(),
+                    Function.identity(),
+                    Function.identity(),
+                    Function.identity(),
+                    Function.identity(),
                     new Function<DocFilter, DocFilter>() {
                         @Nullable
                         @Override

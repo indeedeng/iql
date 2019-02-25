@@ -14,8 +14,6 @@
 
 package com.indeed.iql2.language;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
 import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.GroupBys;
 import com.indeed.iql2.language.query.Queries;
@@ -34,7 +32,9 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class GroupByTest {
     private static final Consumer<String> WARN = s -> System.out.println("PARSE WARNING: " + s);
@@ -67,19 +67,19 @@ public class GroupByTest {
 
     @Test
     public void groupByMetric() throws Exception {
-        final GroupByEntry bucketOji1to10by1 = new GroupByEntry(new GroupBy.GroupByMetric(new DocMetric.Field(FieldSet.of("organic", "oji")), 1, 10, 1, false, false), Optional.absent(), Optional.absent());
+        final GroupByEntry bucketOji1to10by1 = new GroupByEntry(new GroupBy.GroupByMetric(new DocMetric.Field(FieldSet.of("organic", "oji")), 1, 10, 1, false, false), Optional.empty(), Optional.empty());
         Assert.assertEquals(bucketOji1to10by1, Queries.runParser("bucket(oji, 1, 10, 1)", PARSE_IQL1_GROUP_BY));
         Assert.assertEquals(bucketOji1to10by1, Queries.runParser("bucket(oji, 1, 10, 1)", PARSE_IQL2_GROUP_BY));
 
-        final GroupByEntry bucketOji1to10by2NoGutter = new GroupByEntry(new GroupBy.GroupByMetric(new DocMetric.Field(FieldSet.of("organic", "oji")), 1, 10, 2, true, false), Optional.absent(), Optional.absent());
+        final GroupByEntry bucketOji1to10by2NoGutter = new GroupByEntry(new GroupBy.GroupByMetric(new DocMetric.Field(FieldSet.of("organic", "oji")), 1, 10, 2, true, false), Optional.empty(), Optional.empty());
         Assert.assertEquals(bucketOji1to10by2NoGutter, Queries.runParser("BUCKETS(oji, 1, 10, 2, true)", PARSE_IQL1_GROUP_BY));
         Assert.assertEquals(bucketOji1to10by2NoGutter, Queries.runParser("BUCKETS(oji, 1, 10, 2, true)", PARSE_IQL2_GROUP_BY));
 
-        final GroupByEntry withNegatives = new GroupByEntry(new GroupBy.GroupByMetric(new DocMetric.Field(FieldSet.of("organic", "oji")), -10, 10, 1, false, false), Optional.absent(), Optional.absent());
+        final GroupByEntry withNegatives = new GroupByEntry(new GroupBy.GroupByMetric(new DocMetric.Field(FieldSet.of("organic", "oji")), -10, 10, 1, false, false), Optional.empty(), Optional.empty());
         Assert.assertEquals(withNegatives, Queries.runParser("BUCKETS(oji, -10, 10, 1)", PARSE_IQL1_GROUP_BY));
         Assert.assertEquals(withNegatives, Queries.runParser("BUCKETS(oji, -10, 10, 1)", PARSE_IQL2_GROUP_BY));
 
-        final GroupByEntry withDefault = new GroupByEntry(new GroupBy.GroupByMetric(new DocMetric.Field(FieldSet.of("organic", "oji")), -10, 10, 1, true, true), Optional.absent(), Optional.absent());
+        final GroupByEntry withDefault = new GroupByEntry(new GroupBy.GroupByMetric(new DocMetric.Field(FieldSet.of("organic", "oji")), -10, 10, 1, true, true), Optional.empty(), Optional.empty());
         Assert.assertEquals(withDefault, Queries.runParser("BUCKET(oji, -10, 10, 1) WITH DEFAULT", PARSE_IQL2_GROUP_BY));
     }
 }

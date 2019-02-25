@@ -14,12 +14,11 @@
 
 package com.indeed.iql2.language.passes;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.query.Query;
 
 import javax.annotation.Nullable;
+import java.util.function.Function;
 
 public class RemoveNames {
     private RemoveNames() {
@@ -27,11 +26,11 @@ public class RemoveNames {
 
     public static Query removeNames(Query query) {
         return query.transform(
-                Functions.identity(),
+                Function.identity(),
                 removeNames(),
-                Functions.identity(),
-                Functions.identity(),
-                Functions.identity()
+                Function.identity(),
+                Function.identity(),
+                Function.identity()
         );
     }
 

@@ -180,7 +180,7 @@ public class FieldResolver {
                 final String imhotepName = datasetsMetadata.resolveDatasetName(typedName);
                 final DatasetMetadata metadata = datasetsMetadata
                         .getMetadata(imhotepName)
-                        .or(() -> new DatasetMetadata(true, imhotepName));
+                        .orElseGet(() -> new DatasetMetadata(true, imhotepName));
                 final String chosenName = (name != null) ? Identifiers.extractIdentifier(name) : imhotepName;
 
                 final Map<String, String> dimensionsAliases = datasetsMetadata.getDatasetToDimensionAliasFields().getOrDefault(imhotepName, Collections.emptyMap());

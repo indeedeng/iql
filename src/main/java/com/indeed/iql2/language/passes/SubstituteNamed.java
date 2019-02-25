@@ -14,8 +14,6 @@
 
 package com.indeed.iql2.language.passes;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql2.language.AggregateMetric;
@@ -24,6 +22,7 @@ import com.indeed.iql2.language.query.Query;
 import javax.annotation.Nullable;
 import java.util.Map;
 import java.util.Stack;
+import java.util.function.Function;
 
 public class SubstituteNamed {
     private SubstituteNamed() {
@@ -31,11 +30,11 @@ public class SubstituteNamed {
 
     public static Query substituteNamedMetrics(Query query, Map<String, AggregateMetric> namedMetrics) {
         return query.transform(
-                Functions.identity(),
+                Function.identity(),
                 replaceNamed(namedMetrics),
-                Functions.identity(),
-                Functions.identity(),
-                Functions.identity()
+                Function.identity(),
+                Function.identity(),
+                Function.identity()
         );
     }
 
@@ -58,10 +57,10 @@ public class SubstituteNamed {
                                     .get(field)
                                     .transform(
                                             this,
-                                            Functions.identity(),
-                                            Functions.identity(),
-                                            Functions.identity(),
-                                            Functions.identity()
+                                            Function.identity(),
+                                            Function.identity(),
+                                            Function.identity(),
+                                            Function.identity()
                                     );
                     substitutionStack.pop();
                     return result;

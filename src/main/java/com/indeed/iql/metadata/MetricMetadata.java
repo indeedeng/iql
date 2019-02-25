@@ -14,11 +14,11 @@
  package com.indeed.iql.metadata;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Optional;
 
 /**
  * @author vladimir
@@ -100,7 +100,7 @@ public class MetricMetadata {
     }
 
     public Optional<String> getAliasActualField() {
-        return Optional.fromNullable(fieldAlias);
+        return Optional.ofNullable(fieldAlias);
     }
 
     private String getAugmentedDescription() {

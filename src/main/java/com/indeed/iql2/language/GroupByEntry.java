@@ -14,11 +14,12 @@
 
 package com.indeed.iql2.language;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
 import com.indeed.iql2.language.query.GroupBy;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
+
+import java.util.Optional;
+import java.util.function.Function;
 
 // TODO: Make Positional
 @EqualsAndHashCode
@@ -40,7 +41,7 @@ public class GroupByEntry {
             final Function<DocMetric, DocMetric> g,
             final Function<AggregateFilter, AggregateFilter> h,
             final Function<DocFilter, DocFilter> i) {
-        return new GroupByEntry(groupBy.transform(groupByF, f, g, h, i), filter.transform(new Function<AggregateFilter, AggregateFilter>() {
+        return new GroupByEntry(groupBy.transform(groupByF, f, g, h, i), filter.map(new Function<AggregateFilter, AggregateFilter>() {
             public AggregateFilter apply(AggregateFilter input) {
                 return input.transform(f, g, h, i, groupByF);
             }
@@ -48,7 +49,7 @@ public class GroupByEntry {
     }
 
     public GroupByEntry traverse1(final Function<AggregateMetric, AggregateMetric> f) {
-        return new GroupByEntry(groupBy.traverse1(f), filter.transform(new Function<AggregateFilter, AggregateFilter>() {
+        return new GroupByEntry(groupBy.traverse1(f), filter.map(new Function<AggregateFilter, AggregateFilter>() {
             public AggregateFilter apply(AggregateFilter input) {
                 return input.traverse1(f);
             }

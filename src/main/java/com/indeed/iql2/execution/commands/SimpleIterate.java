@@ -14,7 +14,6 @@
 
 package com.indeed.iql2.execution.commands;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -48,6 +47,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -85,7 +85,7 @@ public class SimpleIterate implements Command {
      * terms within the IQL server. That is, this process.
      */
     private boolean requiresSortedRawFtgs() {
-        final boolean filterSorted = opts.filter.transform(AggregateFilter::needSorted).or(false);
+        final boolean filterSorted = opts.filter.map(AggregateFilter::needSorted).orElse(false);
         final boolean metricsSorted = selecting.stream().anyMatch(AggregateMetric::needSorted);
         return filterSorted || metricsSorted;
     }
@@ -101,7 +101,7 @@ public class SimpleIterate implements Command {
                 field,
                 fieldOpts,
                 selecting,
-                Collections.nCopies(selecting.size(), Optional.absent()))
+                Collections.nCopies(selecting.size(), Optional.empty()))
                 .evaluate(session, out);
     }
 
@@ -162,22 +162,22 @@ public class SimpleIterate implements Command {
         }
         final Optional<Integer> ftgsRowLimit;
         if (opts.topK.isPresent()) {
-            ftgsRowLimit = Optional.absent();
+            ftgsRowLimit = Optional.empty();
         } else {
             if (!opts.filter.isPresent()) {
                 ftgsRowLimit = opts.limit;
             } else {
-                ftgsRowLimit = Optional.absent();
+                ftgsRowLimit = Optional.empty();
             }
         }
-        final AggregateFilter filterOrNull = opts.filter.orNull();
+        final AggregateFilter filterOrNull = opts.filter.orElse(null);
 
         final Map<String, ImhotepSessionHolder> sessionsToUse = session.getSessionsMapRaw();
 
         final Optional<Session.RemoteTopKParams> topKParams;
         if (sessionsToUse.size() > 1) {
             // if there are multiple datasets, topK must be calculated on a client side.
-            topKParams = Optional.absent();
+            topKParams = Optional.empty();
         } else {
             topKParams = getTopKParamsOptional(opts);
         }
@@ -214,13 +214,13 @@ public class SimpleIterate implements Command {
         session.timer.push("prepare for iteration");
         final Map<QualifiedPush, AggregateStatTree> atomicStats = session.pushMetrics(allPushes);
         final List<AggregateStatTree> selects = selecting.stream().map(x -> x.toImhotep(atomicStats)).collect(Collectors.toList());
-        final List<AggregateStatTree> filters = opts.filter.transform(x -> Collections.singletonList(x.toImhotep(atomicStats))).or(Collections.emptyList());
+        final List<AggregateStatTree> filters = opts.filter.map(x -> Collections.singletonList(x.toImhotep(atomicStats))).orElse(Collections.emptyList());
         final boolean isIntField = session.isIntField(field);
-        int termLimit = opts.limit.or(Integer.MAX_VALUE);
+        int termLimit = opts.limit.orElse(Integer.MAX_VALUE);
         final int sortStat;
 
         if (topKMetricOrNull != null) {
-            termLimit = Math.min(termLimit, opts.topK.get().limit.or(Integer.MAX_VALUE));
+            termLimit = Math.min(termLimit, opts.topK.get().limit.orElse(Integer.MAX_VALUE));
             final AggregateStatTree topKStatTree = topKMetricOrNull.toImhotep(atomicStats);
             final int existingSortStatIndex = selects.indexOf(topKStatTree);
             if (existingSortStatIndex != -1) {
@@ -316,7 +316,7 @@ public class SimpleIterate implements Command {
     }
 
     private static Optional<Session.RemoteTopKParams> getTopKParamsOptional(final FieldIterateOpts opts) {
-        Optional<Session.RemoteTopKParams> topKParams = Optional.absent();
+        Optional<Session.RemoteTopKParams> topKParams = Optional.empty();
         if (!opts.filter.isPresent() && opts.topK.isPresent()
                 && opts.topK.get().metric.isPresent() && opts.topK.get().limit.isPresent()) {
             final TopK topK = opts.topK.get();

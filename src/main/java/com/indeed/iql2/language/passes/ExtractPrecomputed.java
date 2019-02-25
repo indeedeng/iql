@@ -14,9 +14,6 @@
 
 package com.indeed.iql2.language.passes;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Ordering;
@@ -43,8 +40,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class ExtractPrecomputed {
@@ -81,7 +80,7 @@ public class ExtractPrecomputed {
                     } else {
                         final GroupBy.GroupByField groupByField = (GroupBy.GroupByField) groupBy.groupBy;
                         final GroupBy.GroupByField newGroupByField = new GroupBy.GroupByField(
-                                groupByField.field, Optional.absent(), groupByField.limit, groupByField.metric,
+                                groupByField.field, Optional.empty(), groupByField.limit, groupByField.metric,
                                 groupByField.withDefault);
                         groupBys.add(new GroupByEntry(newGroupByField.traverse1(processor), newFilter, alias));
                     }
@@ -117,7 +116,7 @@ public class ExtractPrecomputed {
             final AggregateMetric select = query.selects.get(i);
             selects.add(processor.apply(select));
         }
-        return new Extracted(new Query(query.datasets, query.filter, groupBys, selects, query.formatStrings, query.options, query.rowLimit, query.useLegacy), processor.computedNames, Optional.fromNullable(totals));
+        return new Extracted(new Query(query.datasets, query.filter, groupBys, selects, query.formatStrings, query.options, query.rowLimit, query.useLegacy), processor.computedNames, Optional.ofNullable(totals));
     }
 
     public static Map<Integer, List<ComputationInfo>> computationStages(Map<ComputationInfo, String> extracted) {
@@ -188,7 +187,7 @@ public class ExtractPrecomputed {
                 }
                 return input;
             }
-        }, Functions.identity(), Functions.identity(), Functions.identity(), Functions.identity());
+        }, Function.identity(), Function.identity(), Function.identity(), Function.identity());
         return existed.get();
     }
 
@@ -233,7 +232,7 @@ public class ExtractPrecomputed {
                     this.setDepth(prevDepth);
                     this.setStartDepth(prevStartDepth);
                 } else {
-                    filter = Optional.absent();
+                    filter = Optional.empty();
                 }
                 return handlePrecomputed(new Precomputed.PrecomputedDistinct(distinct.field, filter, distinct.windowSize));
             } else if (input instanceof AggregateMetric.Percentile) {
@@ -334,7 +333,7 @@ public class ExtractPrecomputed {
                         }
                         return metric;
                     }
-                }, Functions.identity(), Functions.identity(), Functions.identity(), Functions.identity());
+                }, Function.identity(), Function.identity(), Function.identity(), Function.identity());
                 if (datasets.isEmpty()) {
                     throw new IllegalArgumentException("Averaging over no documents is undefined");
                 }

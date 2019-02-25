@@ -14,8 +14,6 @@
 
 package com.indeed.iql2.language;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
 import com.indeed.iql2.language.query.Queries;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.fieldresolution.FieldResolver;
@@ -33,6 +31,7 @@ import org.junit.Test;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
+import java.util.function.Function;
 
 import static com.indeed.iql2.language.DocMetric.Add;
 import static com.indeed.iql2.language.DocMetric.Divide;
@@ -111,7 +110,7 @@ public class DocMetricsTest {
         );
 
         CommonArithmetic.testLotsOfArithmetic(
-                Functions.compose(PARSE_LEGACY_DOC_METRIC, REPLACE_DIVIDES),
+                REPLACE_DIVIDES.andThen(PARSE_LEGACY_DOC_METRIC),
                 aTimesBPlusCTimesD,
                 complex
         );

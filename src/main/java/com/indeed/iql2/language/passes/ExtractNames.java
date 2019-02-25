@@ -14,14 +14,13 @@
 
 package com.indeed.iql2.language.passes;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.query.Query;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 
 public class ExtractNames {
     private ExtractNames() {
@@ -30,11 +29,11 @@ public class ExtractNames {
     public static Map<String, AggregateMetric> extractNames(Query query) {
         final Map<String, AggregateMetric> result = new HashMap<>();
         query.transform(
-                Functions.identity(),
+                Function.identity(),
                 handleAggregateMetric(result),
-                Functions.identity(),
-                Functions.identity(),
-                Functions.identity()
+                Function.identity(),
+                Function.identity(),
+                Function.identity()
         );
         return result;
     }

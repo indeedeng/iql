@@ -14,9 +14,6 @@
 
 package com.indeed.iql2.language.query;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Iterables;
@@ -62,8 +59,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @EqualsAndHashCode
@@ -220,13 +219,13 @@ public class Query extends AbstractPositional {
             selectedMetrics = isTopLevelQuery ?
                     Collections.singletonList(new AggregateMetric.DocStats(new DocMetric.Count())) :
                     Collections.emptyList();
-            formatStrings = Collections.singletonList(Optional.absent());
+            formatStrings = Collections.singletonList(Optional.empty());
         } else if (selects.size() == 1) {
             final JQLParser.SelectContentsContext selectSet = selects.get(0);
             final int numFormattedAggregateMetrics = selectSet.formattedAggregateMetric().size();
             if (numFormattedAggregateMetrics == 0) {
                 selectedMetrics = Collections.singletonList(new AggregateMetric.DocStats(new DocMetric.Count()));
-                formatStrings = Collections.singletonList(Optional.absent());
+                formatStrings = Collections.singletonList(Optional.empty());
             } else {
                 final List<JQLParser.AggregateMetricContext> metrics = new ArrayList<>(numFormattedAggregateMetrics);
                 formatStrings = new ArrayList<>();
@@ -238,7 +237,7 @@ public class Query extends AbstractPositional {
                     } else if (selectSet.precision != null) {
                         formatString = Optional.of(String.format(FORMAT_STRING_TEMPLATE, selectSet.precision.getText()));
                     } else {
-                        formatString = Optional.absent();
+                        formatString = Optional.empty();
                     }
                     formatStrings.add(formatString);
                 }
@@ -253,7 +252,7 @@ public class Query extends AbstractPositional {
 
         final Optional<Integer> rowLimit;
         if (limit == null) {
-            rowLimit = Optional.absent();
+            rowLimit = Optional.empty();
         } else {
             rowLimit = Optional.of(Integer.parseInt(limit.getText()));
         }
@@ -264,7 +263,7 @@ public class Query extends AbstractPositional {
         }
         final Optional<DocFilter> whereFilter;
         if (allFilters.isEmpty()) {
-            whereFilter = Optional.absent();
+            whereFilter = Optional.empty();
         } else {
             whereFilter = Optional.of(DocFilter.And.create(allFilters));
         }
@@ -293,8 +292,8 @@ public class Query extends AbstractPositional {
         final Query query = parseQuery(
                 queryContext,
                 context,
-                Optional.fromNullable(queryContext.whereContents()),
-                Optional.fromNullable(queryContext.groupByContents()),
+                Optional.ofNullable(queryContext.whereContents()),
+                Optional.ofNullable(queryContext.groupByContents()),
                 queryContext.selects,
                 queryContext.limit,
                 queryContext.useLegacy,
@@ -316,7 +315,7 @@ public class Query extends AbstractPositional {
         final Query query = Query.parseQuery(
                 queryContext,
                 actualContext.partialContext(),
-                Optional.fromNullable(queryContext.whereContents()),
+                Optional.ofNullable(queryContext.whereContents()),
                 Optional.of(queryContext.groupByContents()),
                 Collections.emptyList(),
                 null,
@@ -366,7 +365,7 @@ public class Query extends AbstractPositional {
         if (this.filter.isPresent()) {
             filter = Optional.of(this.filter.get().transform(g, i));
         } else {
-            filter = Optional.absent();
+            filter = Optional.empty();
         }
         final List<GroupByEntry> groupBys = Lists.newArrayList();
         for (final GroupByEntry gb : this.groupBys) {
@@ -456,10 +455,10 @@ public class Query extends AbstractPositional {
 
     private void runOnAllSubQueries(final Consumer<DocFilter.FieldInQuery> consumer) {
         transform(
-                Functions.identity(),
-                Functions.identity(),
-                Functions.identity(),
-                Functions.identity(),
+                Function.identity(),
+                Function.identity(),
+                Function.identity(),
+                Function.identity(),
                 new Function<DocFilter, DocFilter>() {
                     @Nullable
                     @Override
@@ -517,7 +516,7 @@ public class Query extends AbstractPositional {
 
     public List<Command> commands() {
         if (commands == null) {
-            totals = useLegacy ? Optional.of(new ArrayList<>()) : Optional.absent();
+            totals = useLegacy ? Optional.of(new ArrayList<>()) : Optional.empty();
             // TODO: incrementQueryLimit here seems *very* strange
             commands = Queries.queryCommands(SelectQueryExecution.incrementQueryLimit(this), totals);
         }

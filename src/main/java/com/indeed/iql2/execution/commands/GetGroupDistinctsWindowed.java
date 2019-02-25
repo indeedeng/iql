@@ -14,7 +14,6 @@
 
 package com.indeed.iql2.execution.commands;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -36,6 +35,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 public class GetGroupDistinctsWindowed implements IterateHandlerable<long[]>, Command {
@@ -95,7 +95,7 @@ public class GetGroupDistinctsWindowed implements IterateHandlerable<long[]>, Co
         private GroupStatsChecker groupStatsChecker;
 
         private IterateHandlerImpl(final Session session) {
-            this.filterPushes = Lists.newArrayList(filter.transform(Pushable::requires).or(Collections.emptySet()));
+            this.filterPushes = Lists.newArrayList(filter.map(Pushable::requires).orElse(Collections.emptySet()));
             this.statIndexes = new int[filterPushes.size()];
             this.numStats = filterPushes.size();
             this.numGroups = session.numGroups;

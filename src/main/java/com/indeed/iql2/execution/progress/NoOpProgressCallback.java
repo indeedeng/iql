@@ -14,7 +14,6 @@
 
 package com.indeed.iql2.execution.progress;
 
-import com.google.common.base.Optional;
 import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.commands.Command;
@@ -22,6 +21,7 @@ import com.indeed.iql2.language.query.Queries;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public class NoOpProgressCallback implements ProgressCallback {
     @Override

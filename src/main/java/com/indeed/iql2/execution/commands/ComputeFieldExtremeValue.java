@@ -14,20 +14,20 @@
 
 package com.indeed.iql2.execution.commands;
 
-import com.google.common.base.Optional;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
+import com.indeed.iql2.execution.AggregateFilter;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.TermSelects;
-import com.indeed.iql2.execution.AggregateFilter;
-import com.indeed.iql2.execution.metrics.aggregate.AggregateMetric;
-import com.indeed.iql2.execution.commands.misc.TopK;
-import com.indeed.iql2.execution.commands.misc.FieldIterateOpts;
 import com.indeed.iql2.execution.commands.SimpleIterate.ResultCollector;
+import com.indeed.iql2.execution.commands.misc.FieldIterateOpts;
+import com.indeed.iql2.execution.commands.misc.TopK;
+import com.indeed.iql2.execution.metrics.aggregate.AggregateMetric;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Optional;
 
 public class ComputeFieldExtremeValue implements Command {
     public final FieldSet field;

@@ -14,7 +14,6 @@
 
 package com.indeed.iql.metadata;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
@@ -29,6 +28,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
@@ -123,9 +123,9 @@ public class DatasetsMetadata {
 
     public Optional<DatasetMetadata> getMetadata(@Nullable final String dataset) {
         if (dataset == null) {
-            return Optional.absent();
+            return Optional.empty();
         }
-        return Optional.fromNullable(metadata.get(dataset));
+        return Optional.ofNullable(metadata.get(dataset));
     }
 
     public Map<String, Map<String, String>> getDatasetToDimensionAliasFields() {

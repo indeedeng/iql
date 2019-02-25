@@ -14,13 +14,14 @@
 
 package com.indeed.iql2.execution.commands;
 
-import com.google.common.base.Optional;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.TimeUnit;
 import com.indeed.iql2.execution.groupkeys.DayOfWeekGroupKey;
 import com.indeed.iql2.execution.groupkeys.sets.DayOfWeekGroupKeySet;
 import org.joda.time.DateTime;
+
+import java.util.Optional;
 
 public class ExplodeDayOfWeek implements Command {
     public static final String[] DAY_KEYS = { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
@@ -39,7 +40,7 @@ public class ExplodeDayOfWeek implements Command {
         final long start = new DateTime(session.getEarliestStart()).withTimeAtStartOfDay().getMillis();
         final long end = new DateTime(session.getLatestEnd()).plusDays(1).withTimeAtStartOfDay().getMillis();
         session.timer.push("daily regroup");
-        final int numGroups = session.performTimeRegroup(start, end, TimeUnit.DAY.millis, Optional.absent(), false, false);
+        final int numGroups = session.performTimeRegroup(start, end, TimeUnit.DAY.millis, Optional.empty(), false, false);
         session.checkGroupLimit(numGroups);
         session.timer.pop();
 

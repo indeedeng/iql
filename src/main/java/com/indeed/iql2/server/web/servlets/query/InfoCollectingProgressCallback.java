@@ -14,7 +14,6 @@
 
 package com.indeed.iql2.server.web.servlets.query;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.Session;
@@ -25,6 +24,7 @@ import com.indeed.iql2.language.query.Queries;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public class InfoCollectingProgressCallback implements ProgressCallback {
     private final List<String> sessionIds = new ArrayList<>();

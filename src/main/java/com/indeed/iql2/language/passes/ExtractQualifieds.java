@@ -14,13 +14,13 @@
 
 package com.indeed.iql2.language.passes;
 
-import com.google.common.base.Function;
 import com.indeed.iql2.language.DocFilter;
 import com.indeed.iql2.language.DocMetric;
 
 import javax.annotation.Nullable;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Function;
 
 public class ExtractQualifieds {
     private ExtractQualifieds() {

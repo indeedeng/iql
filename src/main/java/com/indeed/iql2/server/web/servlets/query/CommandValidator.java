@@ -64,7 +64,7 @@ public class CommandValidator {
         for (final Dataset relevantDataset : relevantDatasets) {
             final String aliasDataset = relevantDataset.getDisplayName();
             final String actualDataset = nameToActualDataset.get(aliasDataset);
-            final DatasetMetadata datasetMetadata = datasetsMetadata.getMetadata(actualDataset).orNull();
+            final DatasetMetadata datasetMetadata = datasetsMetadata.getMetadata(actualDataset).orElse(null);
             if (datasetMetadata == null) {
                 continue;
             }

@@ -17,9 +17,6 @@ package com.indeed.iql2.server.web.servlets.query;
 import au.com.bytecode.opencsv.CSVParser;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Charsets;
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableSet;
@@ -101,12 +98,14 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class SelectQueryExecution {
@@ -463,7 +462,7 @@ public class SelectQueryExecution {
             final ListMultimap<String, List<Shard>> allShardsUsed = query.allShardsUsed();
             final List<DatasetWithMissingShards> datasetsWithMissingShards = query.allMissingShards();
             if (isTopLevelQuery) {
-                queryMetadata.addItem("IQL-Newest-Shard", ISODateTimeFormat.dateTime().print(newestStaticShard(allShardsUsed).or(-1L)), returnNewestShardVersionHeader);
+                queryMetadata.addItem("IQL-Newest-Shard", ISODateTimeFormat.dateTime().print(newestStaticShard(allShardsUsed).orElse(-1L)), returnNewestShardVersionHeader);
                 for(DatasetWithMissingShards datasetWithMissingShards : datasetsWithMissingShards) {
                     warnings.addAll(QueryServlet.missingShardsToWarnings(datasetWithMissingShards.dataset,
                             datasetWithMissingShards.start, datasetWithMissingShards.end, datasetWithMissingShards.timeIntervalsMissingShards));
@@ -724,7 +723,7 @@ public class SelectQueryExecution {
                                     } else {
                                         filter = null;
                                     }
-                                    return new GroupBy.GroupByField(fieldInQuery.field, Optional.fromNullable(filter), Optional.absent(), Optional.absent(), fieldInQuery.withDefault);
+                                    return new GroupBy.GroupByField(fieldInQuery.field, Optional.ofNullable(filter), Optional.empty(), Optional.empty(), fieldInQuery.withDefault);
                                 } else {
                                     // if not-negated then we do group by field in terms-set.
                                     final LongArrayList intTerms = (result.getFirst() == null) ?
@@ -739,9 +738,9 @@ public class SelectQueryExecution {
                             return input;
                         }
                     },
-                    Functions.identity(),
-                    Functions.identity(),
-                    Functions.identity(),
+                    Function.identity(),
+                    Function.identity(),
+                    Function.identity(),
                     new Function<DocFilter, DocFilter>() {
                         @Nullable
                         @Override
@@ -877,7 +876,7 @@ public class SelectQueryExecution {
 
     // increment query limit so that we know that whether it filters the response data size
     public static Query incrementQueryLimit(final Query query) {
-        final Optional<Integer> newRowLimit = query.rowLimit.transform(new Function<Integer, Integer>() {
+        final Optional<Integer> newRowLimit = query.rowLimit.map(new Function<Integer, Integer>() {
             @Nullable
             @Override
             public Integer apply(@Nullable final Integer integer) {
@@ -906,7 +905,7 @@ public class SelectQueryExecution {
     }
 
     private static boolean sendCachedQuery(Consumer<String> out, Optional<Integer> rowLimit, InputStream cacheInputStream) throws IOException {
-        final int limit = rowLimit.or(Integer.MAX_VALUE);
+        final int limit = rowLimit.orElse(Integer.MAX_VALUE);
         int rowsWritten = 0;
         boolean hasMoreRows = false;
         try (final BufferedReader stream = new BufferedReader(new InputStreamReader(cacheInputStream))) {
@@ -933,7 +932,7 @@ public class SelectQueryExecution {
             }
         }
         if (newestStatic == -1) {
-            return Optional.absent();
+            return Optional.empty();
         } else {
             return Optional.of(DateTimeFormat.forPattern("yyyyMMddHHmmss").parseMillis(String.valueOf(newestStatic)));
         }

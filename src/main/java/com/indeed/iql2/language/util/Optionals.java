@@ -14,13 +14,14 @@
 
 package com.indeed.iql2.language.util;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocFilter;
 import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.query.GroupBy;
+
+import java.util.Optional;
+import java.util.function.Function;
 
 public class Optionals {
     private Optionals() {

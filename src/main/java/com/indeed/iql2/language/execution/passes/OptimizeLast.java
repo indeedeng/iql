@@ -14,9 +14,6 @@
 
 package com.indeed.iql2.language.execution.passes;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
-import com.google.common.base.Optional;
 import com.google.common.collect.Sets;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.execution.ExecutionStep;
@@ -25,7 +22,9 @@ import it.unimi.dsi.fastutil.longs.LongAVLTreeSet;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 
 
 public class OptimizeLast {
@@ -56,8 +55,8 @@ public class OptimizeLast {
                             explodeAndRegroup.limit,
                             queryLimit,
                             explodeAndRegroup.metric,
-                            Optional.absent(),
-                            Optional.absent(),
+                            Optional.empty(),
+                            Optional.empty(),
                             fixForIteration(getGroupStats.stats),
                             getGroupStats.formatStrings
                             ));
@@ -71,24 +70,24 @@ public class OptimizeLast {
                     if (!explodeFieldIn.intTerms.isEmpty()) {
                         intTermSubset = Optional.of(new LongAVLTreeSet(explodeFieldIn.intTerms));
                     } else {
-                        intTermSubset = Optional.absent();
+                        intTermSubset = Optional.empty();
                     }
 
                     final Optional<Set<String>> stringTermSubset;
                     if (!explodeFieldIn.stringTerms.isEmpty()) {
                         stringTermSubset = Optional.of(Sets.newTreeSet(explodeFieldIn.stringTerms));
                     } else {
-                        stringTermSubset = Optional.absent();
+                        stringTermSubset = Optional.empty();
                     }
 
                     final List<ExecutionStep> newSteps = new ArrayList<>();
                     newSteps.addAll(steps.subList(0, steps.size() - 2));
                     newSteps.add(new ExecutionStep.IterateStats(
                             explodeFieldIn.field,
-                            Optional.absent(),
-                            Optional.absent(),
+                            Optional.empty(),
+                            Optional.empty(),
                             queryLimit,
-                            Optional.absent(),
+                            Optional.empty(),
                             stringTermSubset,
                             intTermSubset,
                             fixForIteration(getGroupStats.stats),
@@ -106,10 +105,10 @@ public class OptimizeLast {
         for (final AggregateMetric stat : stats) {
             result.add(stat.transform(
                     PROCESS_METRIC,
-                    Functions.identity(),
-                    Functions.identity(),
-                    Functions.identity(),
-                    Functions.identity()
+                    Function.identity(),
+                    Function.identity(),
+                    Function.identity(),
+                    Function.identity()
             ));
         }
         return result;

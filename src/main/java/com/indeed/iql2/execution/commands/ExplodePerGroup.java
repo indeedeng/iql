@@ -14,7 +14,6 @@
 
 package com.indeed.iql2.execution.commands;
 
-import com.google.common.base.Optional;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.io.SingleFieldRegroupTools;
 import com.indeed.iql2.execution.Session;
@@ -26,6 +25,7 @@ import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 
 import java.util.List;
+import java.util.Optional;
 
 public class ExplodePerGroup implements Command {
     private final LongArrayList[] intTerms;
