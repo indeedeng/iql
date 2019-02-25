@@ -29,7 +29,6 @@ import com.indeed.iql2.language.query.Dataset;
 import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
-import com.indeed.iql2.language.util.Optionals;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -285,7 +284,7 @@ public class ExtractPrecomputed {
                 }
                 if (sumAcross.groupBy instanceof GroupBy.GroupByField && !((GroupBy.GroupByField) sumAcross.groupBy).limit.isPresent()) {
                     final GroupBy.GroupByField groupBy = (GroupBy.GroupByField) sumAcross.groupBy;
-                    return handlePrecomputed(new Precomputed.PrecomputedSumAcross(groupBy.field, apply(sumAcross.metric), Optionals.traverse1(groupBy.filter, this)));
+                    return handlePrecomputed(new Precomputed.PrecomputedSumAcross(groupBy.field, apply(sumAcross.metric), groupBy.filter.map(x -> x.traverse1(this))));
                 } else if (sumAcross.groupBy.isTotal()) {
                     return handlePrecomputed(new Precomputed.PrecomputedSumAcrossGroupBy(sumAcross.groupBy.traverse1(this), apply(sumAcross.metric)));
                 } else {
@@ -301,7 +300,7 @@ public class ExtractPrecomputed {
                     new Precomputed.PrecomputedFieldExtremeValue(
                         fieldMin.field,
                         apply(new AggregateMetric.Negate(getOrDefaultToAggregateAvg(fieldMin.metric, fieldMin.field))),
-                        Optionals.traverse1(fieldMin.filter, this)
+                        fieldMin.filter.map(x -> x.traverse1(this))
                     )
                 );
             } else if (input instanceof AggregateMetric.FieldMax) {
@@ -310,7 +309,7 @@ public class ExtractPrecomputed {
                     new Precomputed.PrecomputedFieldExtremeValue(
                         fieldMax.field,
                         apply(getOrDefaultToAggregateAvg(fieldMax.metric, fieldMax.field)),
-                        Optionals.traverse1(fieldMax.filter, this)
+                        fieldMax.filter.map(x -> x.traverse1(this))
                     )
                 );
             } else if (input instanceof AggregateMetric.DivideByCount) {

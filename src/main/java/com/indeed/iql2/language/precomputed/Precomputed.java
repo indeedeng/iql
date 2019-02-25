@@ -30,7 +30,6 @@ import com.indeed.iql2.language.commands.SumAcross;
 import com.indeed.iql2.language.query.Dataset;
 import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
-import com.indeed.iql2.language.util.Optionals;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
@@ -66,7 +65,7 @@ public interface Precomputed {
 
         @Override
         public Precomputed transform(Function<Precomputed, Precomputed> precomputed, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            return precomputed.apply(new PrecomputedDistinct(field, Optionals.transform(filter, f, g, h, i, groupByFunction), windowSize));
+            return precomputed.apply(new PrecomputedDistinct(field, filter.map(x -> x.transform(f, g, h, i, groupByFunction)), windowSize));
         }
 
         @Override
@@ -161,12 +160,12 @@ public interface Precomputed {
 
         @Override
         public Precomputed transform(Function<Precomputed, Precomputed> precomputed, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            return precomputed.apply(new PrecomputedSumAcross(field, metric.transform(f, g, h, i, groupByFunction), Optionals.transform(filter, f, g, h, i, groupByFunction)));
+            return precomputed.apply(new PrecomputedSumAcross(field, metric.transform(f, g, h, i, groupByFunction), filter.map(x -> x.transform(f, g, h, i, groupByFunction))));
         }
 
         @Override
         public Precomputed traverse1(Function<AggregateMetric, AggregateMetric> f) {
-            return new PrecomputedSumAcross(field, f.apply(metric), Optionals.traverse1(filter, f));
+            return new PrecomputedSumAcross(field, f.apply(metric), filter.map(x -> x.traverse1(f)));
         }
     }
 
@@ -238,7 +237,7 @@ public interface Precomputed {
 
         @Override
         public Precomputed traverse1(Function<AggregateMetric, AggregateMetric> f) {
-            return new PrecomputedFieldExtremeValue(field, f.apply(metric), Optionals.traverse1(filter, f));
+            return new PrecomputedFieldExtremeValue(field, f.apply(metric), filter.map(x -> x.traverse1(f)));
         }
     }
 

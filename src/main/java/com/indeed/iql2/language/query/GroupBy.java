@@ -460,7 +460,8 @@ public abstract class GroupBy extends AbstractPositional {
             this.field = field;
             this.filter = filter;
             this.limit = limit;
-            this.metric = limit.isPresent() ? Optional.of(metric.orElse(new AggregateMetric.DocStats(new DocMetric.Count()))) : metric;
+            // Default metric is 'count()'
+            this.metric = (limit.isPresent() && !metric.isPresent()) ? Optional.of(new AggregateMetric.DocStats(new DocMetric.Count())) : metric;
             this.withDefault = withDefault;
         }
 

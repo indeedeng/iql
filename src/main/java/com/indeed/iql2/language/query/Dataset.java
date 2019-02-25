@@ -22,6 +22,7 @@ import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql2.language.AbstractPositional;
 import com.indeed.iql2.language.DocFilter;
 import com.indeed.iql2.language.DocFilters;
+import com.indeed.iql2.language.Identifiers;
 import com.indeed.iql2.language.JQLBaseListener;
 import com.indeed.iql2.language.JQLParser;
 import com.indeed.iql2.language.ParserCommon;
@@ -109,12 +110,7 @@ public class Dataset extends AbstractPositional {
         final Positioned<String> dataset = fieldResolver.resolveImhotepDataset(datasetContext.index);
         final Positioned<DateTime> start = parseDateTime(datasetContext.start, datasetContext.useLegacy, context.clock);
         final Positioned<DateTime> end = parseDateTime(datasetContext.end, datasetContext.useLegacy, context.clock);
-        final Optional<Positioned<String>> name;
-        if (datasetContext.name != null) {
-            name = Optional.of(parseIdentifier(datasetContext.name));
-        } else {
-            name = Optional.empty();
-        }
+        final Optional<Positioned<String>> name = Optional.ofNullable(datasetContext.name).map(Identifiers::parseIdentifier);
 
         final ShardResolver.ShardResolutionResult resolutionResult = getShards(context, dataset.unwrap(), start.unwrap(), end.unwrap(), name.map(Positioned::unwrap));
 
@@ -173,12 +169,7 @@ public class Dataset extends AbstractPositional {
 
             public void enterPartialDataset(JQLParser.PartialDatasetContext ctx) {
                 final Positioned<String> dataset = fieldResolver.resolveImhotepDataset(ctx.index);
-                final Optional<Positioned<String>> name;
-                if (ctx.name != null) {
-                    name = Optional.of(parseIdentifier(ctx.name));
-                } else {
-                    name = Optional.empty();
-                }
+                final Optional<Positioned<String>> name = Optional.ofNullable(ctx.name).map(Identifiers::parseIdentifier);
 
                 final ShardResolver.ShardResolutionResult resolutionResult = getShards(context, dataset.unwrap(), defaultStart, defaultEnd, name.map(Positioned::unwrap));
 

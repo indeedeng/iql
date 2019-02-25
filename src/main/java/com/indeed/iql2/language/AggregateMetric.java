@@ -1560,7 +1560,7 @@ public abstract class AggregateMetric extends AbstractPositional {
             return new FieldMax(
                 field,
                 metric.map(f),
-                filter.isPresent() ? Optional.of(filter.get().traverse1(f)) : filter
+                filter.map(x -> x.traverse1(f))
             );
         }
 

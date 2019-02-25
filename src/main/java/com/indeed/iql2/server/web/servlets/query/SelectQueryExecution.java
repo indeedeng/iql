@@ -876,13 +876,7 @@ public class SelectQueryExecution {
 
     // increment query limit so that we know that whether it filters the response data size
     public static Query incrementQueryLimit(final Query query) {
-        final Optional<Integer> newRowLimit = query.rowLimit.map(new Function<Integer, Integer>() {
-            @Nullable
-            @Override
-            public Integer apply(@Nullable final Integer integer) {
-                return (integer == null) ? integer : integer + 1;
-            }
-        });
+        final Optional<Integer> newRowLimit = query.rowLimit.map(limit -> limit + 1);
         return new Query(query.datasets, query.filter, query.groupBys, query.selects, query.formatStrings, query.options, newRowLimit, query.useLegacy);
     }
 

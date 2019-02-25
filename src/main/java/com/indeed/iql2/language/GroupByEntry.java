@@ -41,18 +41,10 @@ public class GroupByEntry {
             final Function<DocMetric, DocMetric> g,
             final Function<AggregateFilter, AggregateFilter> h,
             final Function<DocFilter, DocFilter> i) {
-        return new GroupByEntry(groupBy.transform(groupByF, f, g, h, i), filter.map(new Function<AggregateFilter, AggregateFilter>() {
-            public AggregateFilter apply(AggregateFilter input) {
-                return input.transform(f, g, h, i, groupByF);
-            }
-        }), alias);
+        return new GroupByEntry(groupBy.transform(groupByF, f, g, h, i), filter.map(x -> x.transform(f, g, h, i, groupByF)), alias);
     }
 
     public GroupByEntry traverse1(final Function<AggregateMetric, AggregateMetric> f) {
-        return new GroupByEntry(groupBy.traverse1(f), filter.map(new Function<AggregateFilter, AggregateFilter>() {
-            public AggregateFilter apply(AggregateFilter input) {
-                return input.traverse1(f);
-            }
-        }), alias);
+        return new GroupByEntry(groupBy.traverse1(f), filter.map(x -> x.traverse1(f)), alias);
     }
 }
