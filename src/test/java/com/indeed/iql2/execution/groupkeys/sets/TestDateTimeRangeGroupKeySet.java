@@ -16,7 +16,6 @@ package com.indeed.iql2.execution.groupkeys.sets;
 
 import com.indeed.iql2.Formatter;
 import com.indeed.iql2.execution.TimeUnit;
-import com.indeed.iql2.execution.groupkeys.GroupKey;
 import com.indeed.iql2.execution.groupkeys.IntTermGroupKey;
 import com.indeed.iql2.execution.groupkeys.StringGroupKey;
 import org.joda.time.DateTime;
@@ -35,7 +34,7 @@ public class TestDateTimeRangeGroupKeySet {
     }
 
     private static DateTimeRangeGroupKeySet create() {
-        final DumbGroupKeySet previous = DumbGroupKeySet.create(DumbGroupKeySet.empty(), new int[]{-1, 1, 1, 1, 1, 1}, Arrays.<GroupKey>asList(null, new IntTermGroupKey(1), new IntTermGroupKey(2), new IntTermGroupKey(3), new IntTermGroupKey(4), new IntTermGroupKey(5)));
+        final DumbGroupKeySet previous = DumbGroupKeySet.create(DumbGroupKeySet.empty(), new int[]{-1, 1, 1, 1, 1, 1}, Arrays.asList(null, new IntTermGroupKey(1), new IntTermGroupKey(2), new IntTermGroupKey(3), new IntTermGroupKey(4), new IntTermGroupKey(5)));
         return new DateTimeRangeGroupKeySet(previous, new DateTime(2015, 2, 23, 12, 0, 0).getMillis(), TimeUnit.HOUR.millis, 24, 24 * previous.numGroups(), TimeUnit.HOUR.formatString, Formatter.TSV);
     }
 

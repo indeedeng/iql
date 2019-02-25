@@ -305,7 +305,7 @@ public abstract class DocFilter extends AbstractPositional {
             for (final String dataset : field.datasets()) {
                 datasetToQuery.put(dataset, Query.newRangeQuery(field.datasetFieldName(dataset), lowerBound, upperBound, isUpperInclusive));
             }
-            return Collections.<Action>singletonList(new QueryAction(datasetToQuery, target, positive, negative));
+            return Collections.singletonList(new QueryAction(datasetToQuery, target, positive, negative));
         }
 
         @Override
@@ -441,7 +441,7 @@ public abstract class DocFilter extends AbstractPositional {
         private static List<Action> getFieldNotEqualValue(Map<String, String> scope, String field, long value, int target, int positive, int negative) {
             final Query query = Query.newTermQuery(com.indeed.flamdex.query.Term.intTerm(field, value));
             final Query negated = Query.newBooleanQuery(BooleanOp.NOT, Collections.singletonList(query));
-            return Collections.<Action>singletonList(new QueryAction(MapUtil.replicate(scope, negated), target, positive, negative));
+            return Collections.singletonList(new QueryAction(MapUtil.replicate(scope, negated), target, positive, negative));
         }
 
         @Override
@@ -1157,7 +1157,7 @@ public abstract class DocFilter extends AbstractPositional {
                 final Query flamdexQuery = ParserUtil.getFlamdexQuery(query, dataset, datasetsMetadata, fieldResolver);
                 datasetToQuery.put(dataset, flamdexQuery);
             }
-            return Collections.<Action>singletonList(new QueryAction(datasetToQuery, target, positive, negative));
+            return Collections.singletonList(new QueryAction(datasetToQuery, target, positive, negative));
         }
 
         @Override
@@ -1207,7 +1207,7 @@ public abstract class DocFilter extends AbstractPositional {
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             Preconditions.checkState(scope.keySet().equals(field.datasets()));
-            return Collections.<Action>singletonList(new SampleAction(field, (double) numerator / denominator, seed, target, positive, negative));
+            return Collections.singletonList(new SampleAction(field, (double) numerator / denominator, seed, target, positive, negative));
         }
 
         @Override

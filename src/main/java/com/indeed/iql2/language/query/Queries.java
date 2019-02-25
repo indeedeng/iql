@@ -500,7 +500,7 @@ public class Queries {
         // Cannot be Set, need to know duplicates.
         final List<Dataset> result = new ArrayList<>();
         result.addAll(query.datasets);
-        query.transform(Functions.<GroupBy>identity(), Functions.<AggregateMetric>identity(), Functions.<DocMetric>identity(), Functions.<AggregateFilter>identity(), new Function<DocFilter, DocFilter>() {
+        query.transform(Functions.identity(), Functions.identity(), Functions.identity(), Functions.identity(), new Function<DocFilter, DocFilter>() {
             public DocFilter apply(DocFilter docFilter) {
                 if (docFilter instanceof DocFilter.FieldInQuery) {
                     result.addAll(Queries.findAllDatasets(((DocFilter.FieldInQuery) docFilter).query));

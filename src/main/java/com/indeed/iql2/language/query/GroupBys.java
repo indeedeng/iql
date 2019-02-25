@@ -122,7 +122,7 @@ public class GroupBys {
                 }
                 if (metric.isPresent() && ctx2.order != null) {
                     if (VALID_ORDERINGS.contains(ctx2.order.getText().toLowerCase())) {
-                        metric = Optional.<AggregateMetric>of(new AggregateMetric.Negate(metric.get()));
+                        metric = Optional.of(new AggregateMetric.Negate(metric.get()));
                     }
                 }
                 accept(new GroupBy.GroupByField(field, Optional.absent(), limit, metric, false));
@@ -286,7 +286,7 @@ public class GroupBys {
                     metric = Optional.of(theMetric);
                 } else {
                     if (reverseOrder) {
-                        metric = Optional.<AggregateMetric>of(new AggregateMetric.DocStats(new DocMetric.Negate(new DocMetric.Count())));
+                        metric = Optional.of(new AggregateMetric.DocStats(new DocMetric.Negate(new DocMetric.Count())));
                     } else {
                         metric = Optional.absent();
                     }

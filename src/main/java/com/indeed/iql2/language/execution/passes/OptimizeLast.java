@@ -18,12 +18,8 @@ import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Optional;
 import com.google.common.collect.Sets;
-import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
-import com.indeed.iql2.language.DocFilter;
-import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.execution.ExecutionStep;
-import com.indeed.iql2.language.query.GroupBy;
 import it.unimi.dsi.fastutil.longs.LongAVLTreeSet;
 
 import java.util.ArrayList;
@@ -60,8 +56,8 @@ public class OptimizeLast {
                             explodeAndRegroup.limit,
                             queryLimit,
                             explodeAndRegroup.metric,
-                            Optional.<Set<String>>absent(),
-                            Optional.<Set<Long>>absent(),
+                            Optional.absent(),
+                            Optional.absent(),
                             fixForIteration(getGroupStats.stats),
                             getGroupStats.formatStrings
                             ));
@@ -73,14 +69,14 @@ public class OptimizeLast {
                 if (!explodeFieldIn.withDefault) {
                     final Optional<Set<Long>> intTermSubset;
                     if (!explodeFieldIn.intTerms.isEmpty()) {
-                        intTermSubset = Optional.<Set<Long>>of(new LongAVLTreeSet(explodeFieldIn.intTerms));
+                        intTermSubset = Optional.of(new LongAVLTreeSet(explodeFieldIn.intTerms));
                     } else {
                         intTermSubset = Optional.absent();
                     }
 
                     final Optional<Set<String>> stringTermSubset;
                     if (!explodeFieldIn.stringTerms.isEmpty()) {
-                        stringTermSubset = Optional.<Set<String>>of(Sets.newTreeSet(explodeFieldIn.stringTerms));
+                        stringTermSubset = Optional.of(Sets.newTreeSet(explodeFieldIn.stringTerms));
                     } else {
                         stringTermSubset = Optional.absent();
                     }
@@ -89,10 +85,10 @@ public class OptimizeLast {
                     newSteps.addAll(steps.subList(0, steps.size() - 2));
                     newSteps.add(new ExecutionStep.IterateStats(
                             explodeFieldIn.field,
-                            Optional.<AggregateFilter>absent(),
-                            Optional.<Long>absent(),
+                            Optional.absent(),
+                            Optional.absent(),
                             queryLimit,
-                            Optional.<AggregateMetric>absent(),
+                            Optional.absent(),
                             stringTermSubset,
                             intTermSubset,
                             fixForIteration(getGroupStats.stats),
@@ -110,10 +106,10 @@ public class OptimizeLast {
         for (final AggregateMetric stat : stats) {
             result.add(stat.transform(
                     PROCESS_METRIC,
-                    Functions.<DocMetric>identity(),
-                    Functions.<AggregateFilter>identity(),
-                    Functions.<DocFilter>identity(),
-                    Functions.<GroupBy>identity()
+                    Functions.identity(),
+                    Functions.identity(),
+                    Functions.identity(),
+                    Functions.identity()
             ));
         }
         return result;

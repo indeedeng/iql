@@ -537,7 +537,7 @@ public class SelectQueryExecution {
                         timer.pop();
                         final SelectExecutionInformation selectExecutionInformation = new SelectExecutionInformation(allShardsUsed, datasetsWithMissingShards,
                                 true, totalBytesWritten[0], null,
-                                Collections.<String>emptyList(), 0, 0, 0, hasMoreRows, null, null);
+                                Collections.emptyList(), 0, 0, 0, hasMoreRows, null, null);
 
                         finalizeQueryExecution(countingExternalOutput, selectExecutionInformation);
                         return selectExecutionInformation;

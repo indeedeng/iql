@@ -707,7 +707,7 @@ public class EZImhotepSession implements Closeable {
         public void stringTermGroup(final String term, int group) {
             limits.assertQueryInMemoryRowsLimit(rowCount++);
             if (!stringTermListsMap.containsKey(group)) {
-                stringTermListsMap.put(group, Lists.<String>newArrayList());
+                stringTermListsMap.put(group, Lists.newArrayList());
             }
             stringTermListsMap.get(group).add(term);
         }

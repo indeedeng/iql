@@ -980,7 +980,7 @@ public class Session {
         static Optional<SessionIntIterationState> construct(
                 Closer closer, ImhotepSessionHolder session, FieldSet field, IntList sessionMetricIndexes, @Nullable Integer presenceIndex,
                 Optional<RemoteTopKParams> topKParams, Optional<Integer> ftgsRowLimit, Optional<long[]> termSubset) {
-            final FTGSIterator it = closer.register(getFTGSIterator(session, field, true, topKParams, ftgsRowLimit, termSubset, Optional.<String[]>absent()));
+            final FTGSIterator it = closer.register(getFTGSIterator(session, field, true, topKParams, ftgsRowLimit, termSubset, Optional.absent()));
             final int numStats = session.getNumStats();
             final long[] statsBuff = new long[numStats];
             while (it.nextField()) {
@@ -1012,7 +1012,7 @@ public class Session {
      */
     public static void iterateMultiInt(Map<String, ImhotepSessionHolder> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, FieldSet field, IntIterateCallback callback, TracingTreeTimer timer,
                                        final Set<String> options) throws IOException {
-        iterateMultiInt(sessions, metricIndexes, presenceIndexes, field, Optional.<RemoteTopKParams>absent(), Optional.<Integer>absent(), Optional.<long[]>absent(), callback, timer, options);
+        iterateMultiInt(sessions, metricIndexes, presenceIndexes, field, Optional.absent(), Optional.absent(), Optional.absent(), callback, timer, options);
     }
 
     /**
@@ -1256,7 +1256,7 @@ public class Session {
 
         static Optional<SessionStringIterationState> construct(Closer closer, ImhotepSessionHolder session, FieldSet field, IntList sessionMetricIndexes, @Nullable Integer presenceIndex,
                                                                Optional<RemoteTopKParams> topKParams, Optional<Integer> ftgsRowLimit, Optional<String[]> termSubset) {
-            final FTGSIterator it = closer.register(getFTGSIterator(session, field, false, topKParams, ftgsRowLimit, Optional.<long[]>absent(), termSubset));
+            final FTGSIterator it = closer.register(getFTGSIterator(session, field, false, topKParams, ftgsRowLimit, Optional.absent(), termSubset));
             final int numStats = session.getNumStats();
             final long[] statsBuff = new long[numStats];
             while (it.nextField()) {
@@ -1288,7 +1288,7 @@ public class Session {
      */
     public static void iterateMultiString(Map<String, ImhotepSessionHolder> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, FieldSet field, StringIterateCallback callback, TracingTreeTimer timer,
                                           final Set<String> options) throws IOException {
-        iterateMultiString(sessions, metricIndexes, presenceIndexes, field, Optional.<RemoteTopKParams>absent(), Optional.<Integer>absent(), Optional.<String[]>absent(), callback, timer, options);
+        iterateMultiString(sessions, metricIndexes, presenceIndexes, field, Optional.absent(), Optional.absent(), Optional.absent(), callback, timer, options);
     }
 
     /**

@@ -25,7 +25,7 @@ import java.util.List;
 @EqualsAndHashCode
 @ToString
 public class DumbGroupKeySet implements GroupKeySet {
-    private static final DumbGroupKeySet INITIAL_GROUP_KEY_SET = new DumbGroupKeySet(null, new int[]{-1, -1}, Arrays.<GroupKey>asList(null, InitialGroupKey.INSTANCE));
+    private static final DumbGroupKeySet INITIAL_GROUP_KEY_SET = new DumbGroupKeySet(null, new int[]{-1, -1}, Arrays.asList(null, InitialGroupKey.INSTANCE));
     public final GroupKeySet previous;
     public final int[] groupParents;
     public final List<GroupKey> groupKeys;

@@ -76,7 +76,7 @@ public class SelectStatementParser {
             throw new IqlKnownException.StatementParseException(e, "from");
         }
         final String dataset = from.getDataset();
-        final java.util.Map<String, String> aliases = metadata != null ? metadata.getDataset(dataset).getIql1ExpressionAliases() : Collections.<String, String>emptyMap();
+        final java.util.Map<String, String> aliases = metadata != null ? metadata.getDataset(dataset).getIql1ExpressionAliases() : Collections.emptyMap();
 
         try {
             select = parseSelectClause(parts.select, aliases);
@@ -113,7 +113,7 @@ public class SelectStatementParser {
     }
 
     static GroupByClause parseGroupByClause(String text) {
-        return parseGroupByClause(text, Collections.<String, String>emptyMap());
+        return parseGroupByClause(text, Collections.emptyMap());
     }
     static GroupByClause parseGroupByClause(String text, java.util.Map<String, String> aliases) {
         if(Strings.isNullOrEmpty(text)) {
@@ -127,7 +127,7 @@ public class SelectStatementParser {
     }
 
     public static WhereClause parseWhereClause(String text) {
-        return parseWhereClause(text, Collections.<String, String>emptyMap());
+        return parseWhereClause(text, Collections.emptyMap());
     }
     public static WhereClause parseWhereClause(String text, java.util.Map<String, String> aliases) {
         if(Strings.isNullOrEmpty(text)) {
@@ -253,7 +253,7 @@ public class SelectStatementParser {
     }
 
     public static SelectClause parseSelectClause(String text) {
-        return parseSelectClause(text, Collections.<String, String>emptyMap());
+        return parseSelectClause(text, Collections.emptyMap());
     }
 
     public static SelectClause parseSelectClause(String text, java.util.Map<String, String> aliases) {
@@ -273,6 +273,6 @@ public class SelectStatementParser {
 
     private static SelectClause defaultSelect() {
         // default to counts()
-        return new SelectClause(Lists.newArrayList((Expression)new FunctionExpression("count", Collections.<Expression>emptyList())));
+        return new SelectClause(Lists.newArrayList((Expression)new FunctionExpression("count", Collections.emptyList())));
     }
 }

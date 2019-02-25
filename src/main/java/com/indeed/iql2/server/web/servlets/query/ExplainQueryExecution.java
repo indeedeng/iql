@@ -21,12 +21,8 @@ import com.google.common.base.Joiner;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql.web.print.LevelPrinter;
 import com.indeed.iql2.IQL2Options;
-import com.indeed.iql2.language.AggregateFilter;
-import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocFilter;
-import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.commands.Command;
-import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.Queries;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.shardresolution.NullShardResolver;
@@ -120,10 +116,10 @@ public class ExplainQueryExecution {
 
         private void explainParsedQuery() {
             final Query query = originalQuery.transform(
-                    Functions.<GroupBy>identity(),
-                    Functions.<AggregateMetric>identity(),
-                    Functions.<DocMetric>identity(),
-                    Functions.<AggregateFilter>identity(),
+                    Functions.identity(),
+                    Functions.identity(),
+                    Functions.identity(),
+                    Functions.identity(),
                     new Function<DocFilter, DocFilter>() {
                         @Nullable
                         @Override

@@ -141,7 +141,7 @@ public class SimpleIterate implements Command {
         final Map<QualifiedPush, Integer> metricIndexes = Maps.newHashMap();
         final Map<String, IntList> sessionMetricIndexes = Maps.newHashMap();
         session.pushMetrics(allPushes, metricIndexes, sessionMetricIndexes);
-        session.registerMetrics(metricIndexes, metrics, Arrays.<AggregateFilter>asList());
+        session.registerMetrics(metricIndexes, metrics, Collections.emptyList());
         if (opts.filter.isPresent()) {
             opts.filter.get().register(metricIndexes, session.groupKeySet);
         }
@@ -188,12 +188,12 @@ public class SimpleIterate implements Command {
         if (session.isIntField(field)) {
             final Session.IntIterateCallback callback = intCallback(session, collector, topKMetricOrNull, filterOrNull);
             session.timer.push("iterateMultiInt");
-            Session.iterateMultiInt(sessionsToUse, sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, topKParams, ftgsRowLimit, opts.sortedIntTermSubset, callback, session.timer, session.options);
+            Session.iterateMultiInt(sessionsToUse, sessionMetricIndexes, Collections.emptyMap(), field, topKParams, ftgsRowLimit, opts.sortedIntTermSubset, callback, session.timer, session.options);
             session.timer.pop();
         } else if (session.isStringField(field)) {
             final Session.StringIterateCallback callback = stringCallback(session, collector, topKMetricOrNull, filterOrNull);
             session.timer.push("iterateMultiString");
-            Session.iterateMultiString(sessionsToUse, sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, topKParams, ftgsRowLimit, opts.sortedStringTermSubset, callback, session.timer, session.options);
+            Session.iterateMultiString(sessionsToUse, sessionMetricIndexes, Collections.emptyMap(), field, topKParams, ftgsRowLimit, opts.sortedStringTermSubset, callback, session.timer, session.options);
             session.timer.pop();
         } else {
             throw new IllegalArgumentException("Field is neither all int nor all string field: " + field);

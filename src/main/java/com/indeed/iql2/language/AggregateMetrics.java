@@ -84,7 +84,7 @@ public class AggregateMetrics {
 
             @Override
             public void enterLegacyAggregateDistinct(JQLParser.LegacyAggregateDistinctContext ctx) {
-                accept(new AggregateMetric.Distinct(fieldResolver.resolve(ctx.identifier()), Optional.<AggregateFilter>absent(), Optional.<Integer>absent()));
+                accept(new AggregateMetric.Distinct(fieldResolver.resolve(ctx.identifier()), Optional.absent(), Optional.absent()));
             }
 
             @Override
@@ -514,7 +514,7 @@ public class AggregateMetrics {
                     filter = Optional.of(AggregateFilters.parseJQLAggregateFilter(ctx.jqlAggregateFilter(), context));
                 }
                 final FieldSet field = fieldResolver.resolve(ctx.scopedField());
-                accept(field.wrap(new AggregateMetric.Distinct(field, filter, Optional.<Integer>absent())));
+                accept(field.wrap(new AggregateMetric.Distinct(field, filter, Optional.absent())));
             }
 
             @Override
@@ -552,7 +552,7 @@ public class AggregateMetrics {
                 final GroupBy groupBy = new GroupBy.GroupByField(field, filter, Optional.absent(), Optional.absent(), false);
                 accept(field.wrap(new AggregateMetric.Divide(
                         new AggregateMetric.SumAcross(groupBy, AggregateMetrics.parseJQLAggregateMetric(ctx.jqlAggregateMetric(), context)),
-                        new AggregateMetric.Distinct(field, filter, Optional.<Integer>absent())
+                        new AggregateMetric.Distinct(field, filter, Optional.absent())
                 )));
             }
 

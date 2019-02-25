@@ -17,11 +17,7 @@ package com.indeed.iql2.language.passes;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.indeed.iql.exceptions.IqlKnownException;
-import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
-import com.indeed.iql2.language.DocFilter;
-import com.indeed.iql2.language.DocMetric;
-import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.Query;
 
 import java.util.HashMap;
@@ -34,11 +30,11 @@ public class ExtractNames {
     public static Map<String, AggregateMetric> extractNames(Query query) {
         final Map<String, AggregateMetric> result = new HashMap<>();
         query.transform(
-                Functions.<GroupBy>identity(),
+                Functions.identity(),
                 handleAggregateMetric(result),
-                Functions.<DocMetric>identity(),
-                Functions.<AggregateFilter>identity(),
-                Functions.<DocFilter>identity()
+                Functions.identity(),
+                Functions.identity(),
+                Functions.identity()
         );
         return result;
     }

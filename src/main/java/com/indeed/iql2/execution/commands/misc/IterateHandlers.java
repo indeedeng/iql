@@ -84,7 +84,7 @@ public class IterateHandlers {
             }
             final Session.IntIterateCallback callback = new MultiIntIterateCallback(intCallbacks);
             session.timer.push("iterateMultiInt");
-            Session.iterateMultiInt(sessionsSubset, sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, callback, session.timer, session.options);
+            Session.iterateMultiInt(sessionsSubset, sessionMetricIndexes, Collections.emptyMap(), field, callback, session.timer, session.options);
             session.timer.pop();
         } else if (session.isStringField(field)) {
             final List<Session.StringIterateCallback> stringCallbacks = Lists.newArrayList();
@@ -93,7 +93,7 @@ public class IterateHandlers {
             }
             final Session.StringIterateCallback callback = new MultiStringIterateCallback(stringCallbacks);
             session.timer.push("iterateMultiString");
-            Session.iterateMultiString(sessionsSubset, sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, callback, session.timer, session.options);
+            Session.iterateMultiString(sessionsSubset, sessionMetricIndexes, Collections.emptyMap(), field, callback, session.timer, session.options);
             session.timer.pop();
         } else {
             throw new IllegalStateException("Field is neither all int nor all string field: " + field);

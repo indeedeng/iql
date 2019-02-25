@@ -786,7 +786,7 @@ public final class IQLTranslator {
                                 strings[index++] = getStr(expression);
                             }
                             Arrays.sort(strings);   // looks like terms being sorted is a pre-requisite of stringOrRegroup()
-                            return Lists.<Condition>newArrayList(new StringInCondition(Field.stringField(name.name), usingNegation, false, strings));
+                            return Lists.newArrayList(new StringInCondition(Field.stringField(name.name), usingNegation, false, strings));
                         } else if (datasetMetadata.hasIntField(name.name)) {
                             fieldNames.add(name.name);
                             final long[] ints = new long[values.expressions.size()];
@@ -798,7 +798,7 @@ public final class IQLTranslator {
                                 ints[index++] = parseLong(expression);
                             }
                             Arrays.sort(ints); // looks like terms being sorted is a pre-requisite of intOrRegroup()
-                            return Lists.<Condition>newArrayList(new IntInCondition(Field.intField(name.name), usingNegation, ints));
+                            return Lists.newArrayList(new IntInCondition(Field.intField(name.name), usingNegation, ints));
                         } else {
                             throw new IqlKnownException.UnknownFieldException("Unknown field: " + name.name);
                         }
@@ -851,7 +851,7 @@ public final class IQLTranslator {
                                 "\nError was: " + e.getMessage() +
                                 "\nThe supported regex syntax can be seen here: http://www.brics.dk/automaton/doc/index.html?dk/brics/automaton/RegExp.html", e);
                     }
-                    return Collections.<Condition>singletonList(new RegexCondition(Field.stringField(fieldName), regexp,
+                    return Collections.singletonList(new RegexCondition(Field.stringField(fieldName), regexp,
                         usingNegation));
                 case AND:
                     final List<Condition> ret = Lists.newArrayList();
@@ -882,7 +882,7 @@ public final class IQLTranslator {
                             min = value;
                             max = Long.MAX_VALUE;
                         }
-                        return Collections.<Condition>singletonList(new MetricCondition(stat, min, max, negation));
+                        return Collections.singletonList(new MetricCondition(stat, min, max, negation));
                     } else {
                         // assume we have a comparison of 2 metrics. filter for the result of that = 1
                         return handleMetricComparison(new BinaryExpression(left, op, right),
@@ -912,21 +912,21 @@ public final class IQLTranslator {
             }
             final long value = parseLong(right);    // constant we are comparing against
 
-            return Collections.<Condition>singletonList(new MetricCondition(stat, value, value, usingNegation));
+            return Collections.singletonList(new MetricCondition(stat, value, value, usingNegation));
         }
 
         private List<Condition> handleFieldComparison(NameExpression name, Expression right, boolean usingNegation) {
             if (datasetMetadata.hasStringField(name.name)) {
                 final String value = getStr(right);
                 final String[] strings = new String[] { value };
-                return Lists.<Condition>newArrayList(new StringInCondition(Field.stringField(name.name), usingNegation, true, strings));
+                return Lists.newArrayList(new StringInCondition(Field.stringField(name.name), usingNegation, true, strings));
             } else if (datasetMetadata.hasIntField(name.name)) {
                 final long[] ints = new long[1];
                 if(!(right instanceof NumberExpression)) {
                     throw new IqlKnownException.FieldTypeMismatchException(name.name + " is an integer field and has to be compared to an integer. Instead was given: " + right.toString());
                 }
                 ints[0] = parseLong(right);
-                return Lists.<Condition>newArrayList(new IntInCondition(Field.intField(name.name), usingNegation, ints));
+                return Lists.newArrayList(new IntInCondition(Field.intField(name.name), usingNegation, ints));
             } else {
                 throw new IqlKnownException.UnknownFieldException("Unknown field: " + name.name);
             }

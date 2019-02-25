@@ -55,7 +55,7 @@ public enum Formatter {
                         sb.append('\ufffd');
                     }
                 }
-                return;
+                break;
         }
     }
 

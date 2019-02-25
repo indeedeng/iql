@@ -53,7 +53,7 @@ public class ParserUtil {
 
         final Optional<DatasetMetadata> metadata = datasetsMeta.getMetadata(dataset);
         if (!metadata.isPresent()) {
-            return LuceneQueryTranslator.rewrite(parsed, Collections.<String>emptySet());
+            return LuceneQueryTranslator.rewrite(parsed, Collections.emptySet());
         } else {
             final Set<String> intFields = metadata.get().getIntFieldsStringFromMetadata();
             return LuceneQueryTranslator.rewrite(parsed, intFields);

@@ -249,7 +249,7 @@ public final class IQLQuery implements Closeable {
                 } else {
                     count = updateProgress(progress, out, count);
                     final List<GroupStats> result = Lists.newArrayList();
-                    result.add(new GroupStats(GroupKey.<Comparable>empty(), totals));
+                    result.add(new GroupStats(GroupKey.empty(), totals));
                     executionResult = new ExecutionResult(result.iterator(), totals);
                 }
                 queryInfo.timingTreeReport = timer.toString();

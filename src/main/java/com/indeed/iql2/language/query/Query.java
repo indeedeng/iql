@@ -220,13 +220,13 @@ public class Query extends AbstractPositional {
             selectedMetrics = isTopLevelQuery ?
                     Collections.singletonList(new AggregateMetric.DocStats(new DocMetric.Count())) :
                     Collections.emptyList();
-            formatStrings = Collections.singletonList(Optional.<String>absent());
+            formatStrings = Collections.singletonList(Optional.absent());
         } else if (selects.size() == 1) {
             final JQLParser.SelectContentsContext selectSet = selects.get(0);
             final int numFormattedAggregateMetrics = selectSet.formattedAggregateMetric().size();
             if (numFormattedAggregateMetrics == 0) {
-                selectedMetrics = Collections.<AggregateMetric>singletonList(new AggregateMetric.DocStats(new DocMetric.Count()));
-                formatStrings = Collections.singletonList(Optional.<String>absent());
+                selectedMetrics = Collections.singletonList(new AggregateMetric.DocStats(new DocMetric.Count()));
+                formatStrings = Collections.singletonList(Optional.absent());
             } else {
                 final List<JQLParser.AggregateMetricContext> metrics = new ArrayList<>(numFormattedAggregateMetrics);
                 formatStrings = new ArrayList<>();

@@ -39,7 +39,7 @@ public class FixTopKHaving {
                     newFilter = groupBy.filter.get();
                 }
                 final GroupBy.GroupByField newGroupBy = new GroupBy.GroupByField(groupByField.field, Optional.of(newFilter), groupByField.limit, groupByField.metric, groupByField.withDefault);
-                newGroupBys.add(new GroupByEntry(newGroupBy, Optional.<AggregateFilter>absent(), Optional.<String>absent()));
+                newGroupBys.add(new GroupByEntry(newGroupBy, Optional.absent(), Optional.absent()));
             } else {
                 newGroupBys.add(groupBy);
             }

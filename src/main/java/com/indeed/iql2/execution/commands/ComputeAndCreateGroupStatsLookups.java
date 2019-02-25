@@ -77,7 +77,7 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
             } else if (computation instanceof SumAcross) {
                 final SumAcross sumAcross = (SumAcross) computation;
                 fields.add(sumAcross.field);
-                handlerables.add(new NameIt<>(session, Functions.<double[]>identity(), sumAcross.iterateHandler(session), name));
+                handlerables.add(new NameIt<>(session, Functions.identity(), sumAcross.iterateHandler(session), name));
             } else if (computation instanceof GetGroupPercentiles) {
                 final GetGroupPercentiles getGroupPercentiles = (GetGroupPercentiles) computation;
                 fields.add(getGroupPercentiles.field);

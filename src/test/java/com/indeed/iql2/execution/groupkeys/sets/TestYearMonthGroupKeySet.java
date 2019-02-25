@@ -16,7 +16,6 @@ package com.indeed.iql2.execution.groupkeys.sets;
 
 import com.indeed.iql2.Formatter;
 import com.indeed.iql2.execution.TimeUnit;
-import com.indeed.iql2.execution.groupkeys.GroupKey;
 import com.indeed.iql2.execution.groupkeys.IntTermGroupKey;
 import com.indeed.iql2.execution.groupkeys.StringGroupKey;
 import org.joda.time.DateTime;
@@ -34,7 +33,7 @@ public class TestYearMonthGroupKeySet {
     private static final DateTimeFormatter FORMATTER = DateTimeFormat.forPattern(FORMAT_STRING).withLocale(Locale.US);
 
     private static YearMonthGroupKeySet create() {
-        final DumbGroupKeySet dumbGroupKeySet = DumbGroupKeySet.create(DumbGroupKeySet.empty(), new int[]{-1, 1, 1, 1, 1, 1}, Arrays.<GroupKey>asList(null, new IntTermGroupKey(1), new IntTermGroupKey(2), new IntTermGroupKey(3), new IntTermGroupKey(4), new IntTermGroupKey(5)));
+        final DumbGroupKeySet dumbGroupKeySet = DumbGroupKeySet.create(DumbGroupKeySet.empty(), new int[]{-1, 1, 1, 1, 1, 1}, Arrays.asList(null, new IntTermGroupKey(1), new IntTermGroupKey(2), new IntTermGroupKey(3), new IntTermGroupKey(4), new IntTermGroupKey(5)));
         return new YearMonthGroupKeySet(dumbGroupKeySet, 12, new DateTime(2015, 2, 1, 0, 0, 0), FORMAT_STRING, Formatter.TSV);
     }
 

@@ -126,7 +126,7 @@ public interface Precomputed {
                 metrics.add(metric);
             }
             final AggregateMetric metric = AggregateMetric.Add.create(metrics);
-            return Precomputation.noContext(new GetGroupStats(Collections.singletonList(metric), Collections.singletonList(Optional.<String>absent()), false));
+            return Precomputation.noContext(new GetGroupStats(Collections.singletonList(metric), Collections.singletonList(Optional.absent()), false));
         }
 
         @Override
@@ -185,8 +185,8 @@ public interface Precomputed {
         public Precomputation commands(List<Dataset> datasets) {
             return new Precomputation(
                     groupBy.executionStep(datasets).commands(),
-                    new GetGroupStats(Collections.singletonList(metric), Collections.singletonList(Optional.<String>absent()), false),
-                    Collections.<Command>singletonList(new RegroupIntoParent(GroupLookupMergeType.SumAll))
+                    new GetGroupStats(Collections.singletonList(metric), Collections.singletonList(Optional.absent()), false),
+                    Collections.singletonList(new RegroupIntoParent(GroupLookupMergeType.SumAll))
             );
         }
 
@@ -256,7 +256,7 @@ public interface Precomputed {
         }
 
         public static Precomputation noContext(Command command) {
-            return new Precomputation(Collections.<Command>emptyList(), command, Collections.<Command>emptyList());
+            return new Precomputation(Collections.emptyList(), command, Collections.emptyList());
         }
     }
 }

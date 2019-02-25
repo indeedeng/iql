@@ -68,7 +68,7 @@ public class GetGroupStats implements Command {
             metricIndexes.put(push, index);
             final String sessionName = push.sessionName;
             if (!sessionPushes.containsKey(sessionName)) {
-                sessionPushes.put(sessionName, Lists.<QualifiedPush>newArrayList());
+                sessionPushes.put(sessionName, Lists.newArrayList());
             }
             sessionPushes.get(sessionName).add(push);
             IntList metricIndex = sessionMetricIndexes.get(sessionName);

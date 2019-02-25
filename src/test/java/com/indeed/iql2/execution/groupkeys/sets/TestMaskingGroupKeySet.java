@@ -14,7 +14,6 @@
 
 package com.indeed.iql2.execution.groupkeys.sets;
 
-import com.indeed.iql2.execution.groupkeys.GroupKey;
 import com.indeed.iql2.execution.groupkeys.IntTermGroupKey;
 import org.junit.Assert;
 import org.junit.Test;
@@ -24,7 +23,7 @@ import java.util.BitSet;
 
 public class TestMaskingGroupKeySet {
     private static MaskingGroupKeySet create() {
-        final DumbGroupKeySet wrapped = DumbGroupKeySet.create(DumbGroupKeySet.empty(), new int[]{-1, 1, 3, 2, 5, 7}, Arrays.<GroupKey>asList(null, new IntTermGroupKey(1), new IntTermGroupKey(2), new IntTermGroupKey(3), new IntTermGroupKey(4), new IntTermGroupKey(5)));
+        final DumbGroupKeySet wrapped = DumbGroupKeySet.create(DumbGroupKeySet.empty(), new int[]{-1, 1, 3, 2, 5, 7}, Arrays.asList(null, new IntTermGroupKey(1), new IntTermGroupKey(2), new IntTermGroupKey(3), new IntTermGroupKey(4), new IntTermGroupKey(5)));
         final BitSet mask = new BitSet();
         mask.set(1);
         mask.set(2);

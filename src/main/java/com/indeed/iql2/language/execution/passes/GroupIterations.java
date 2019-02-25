@@ -17,14 +17,10 @@ package com.indeed.iql2.language.execution.passes;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Optional;
-import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
-import com.indeed.iql2.language.DocFilter;
-import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.execution.ExecutionStep;
 import com.indeed.iql2.language.precomputed.Precomputed;
 import com.indeed.iql2.language.query.Dataset;
-import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.util.core.Pair;
 import lombok.EqualsAndHashCode;
@@ -145,7 +141,7 @@ public class GroupIterations {
     private static Set<String> findNamedDependencies(Precomputed precomputed) {
         final Set<String> dependencies = new HashSet<>();
         precomputed.transform(
-                Functions.<Precomputed>identity(),
+                Functions.identity(),
                 new Function<AggregateMetric, AggregateMetric>() {
                     @Override
                     public AggregateMetric apply(AggregateMetric input) {
@@ -156,10 +152,10 @@ public class GroupIterations {
                         return input;
                     }
                 },
-                Functions.<DocMetric>identity(),
-                Functions.<AggregateFilter>identity(),
-                Functions.<DocFilter>identity(),
-                Functions.<GroupBy>identity()
+                Functions.identity(),
+                Functions.identity(),
+                Functions.identity(),
+                Functions.identity()
         );
         return dependencies;
     }
