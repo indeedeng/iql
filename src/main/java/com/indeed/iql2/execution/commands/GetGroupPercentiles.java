@@ -20,7 +20,6 @@ import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.QualifiedPush;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.commands.misc.IterateHandler;
-import com.indeed.iql2.execution.commands.misc.IterateHandlerable;
 import com.indeed.iql2.execution.commands.misc.IterateHandlers;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
@@ -32,7 +31,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
-public class GetGroupPercentiles implements IterateHandlerable<long[][]>, Command {
+public class GetGroupPercentiles implements Command {
     public final FieldSet field;
     public final double[] percentiles;
 
@@ -51,7 +50,6 @@ public class GetGroupPercentiles implements IterateHandlerable<long[][]>, Comman
         return IterateHandlers.executeSingle(session, field, iterateHandler(session));
     }
 
-    @Override
     public IterateHandler<long[][]> iterateHandler(Session session) throws ImhotepOutOfMemoryException {
         session.timer.push("compute counts");
         final double[] percentiles = this.percentiles;

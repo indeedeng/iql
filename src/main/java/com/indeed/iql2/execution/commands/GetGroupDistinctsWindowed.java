@@ -23,7 +23,6 @@ import com.indeed.iql2.execution.Pushable;
 import com.indeed.iql2.execution.QualifiedPush;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.commands.misc.IterateHandler;
-import com.indeed.iql2.execution.commands.misc.IterateHandlerable;
 import com.indeed.iql2.execution.commands.misc.IterateHandlers;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
@@ -38,7 +37,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-public class GetGroupDistinctsWindowed implements IterateHandlerable<long[]>, Command {
+public class GetGroupDistinctsWindowed implements Command {
     public final FieldSet field;
     public final Optional<AggregateFilter> filter;
     public final int windowSize;

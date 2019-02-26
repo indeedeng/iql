@@ -20,7 +20,6 @@ import com.indeed.iql2.execution.AggregateFilter;
 import com.indeed.iql2.execution.QualifiedPush;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.commands.misc.IterateHandler;
-import com.indeed.iql2.execution.commands.misc.IterateHandlerable;
 import com.indeed.iql2.execution.commands.misc.IterateHandlers;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.AggregateMetric;
@@ -31,7 +30,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-public class SumAcross implements IterateHandlerable<double[]>, Command {
+public class SumAcross implements Command {
     public final FieldSet field;
     public final AggregateMetric metric;
     public final Optional<AggregateFilter> filter;
@@ -69,7 +68,6 @@ public class SumAcross implements IterateHandlerable<double[]>, Command {
         return IterateHandlers.executeSingle(session, field, iterateHandler(session));
     }
 
-    @Override
     public IterateHandler<double[]> iterateHandler(Session session) {
         return new IterateHandlerImpl(session.numGroups);
     }
