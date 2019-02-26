@@ -15,7 +15,6 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
-import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -61,23 +60,15 @@ public class RegexTest {
 
     @Test
     public void testInvalid() throws Exception {
-        final List<List<String>> expected = new ArrayList<>();
-        expected.add(ImmutableList.of("", "6"));
-        try {
-            QueryServletTestUtils.testAll(expected, "from organic yesterday today where tk =~ \"[]*\" select count()");
-            Assert.fail("Regex should not have parsed successfully.");
-        } catch (final Exception ignored) {
-        }
+        QueryServletTestUtils.expectExceptionAll(
+                "from organic yesterday today where tk =~ \"[]*\" select count()",
+                ex -> (ex.contains("The provided regex filter") && ex.contains("failed to parse")));
     }
 
     @Test
     public void testExpensive() throws Exception {
-        final List<List<String>> expected = new ArrayList<>();
-        expected.add(ImmutableList.of("", "6"));
-        try {
-            QueryServletTestUtils.testAll(expected, "from organic yesterday today where tk =~ \".*ios.*|.*software.*|.*web.*|.*java.*|.*hadoop.*|.*spark.*|.*nlp.*|.*algorithm.*|.*python.*|.*matlab.*|.*swift.*|.*android.*\" select count()");
-            Assert.fail("Regex should not have parsed successfully.");
-        } catch (final Exception ignored) {
-        }
+        QueryServletTestUtils.expectExceptionAll(
+                "from organic yesterday today where tk =~ \".*ios.*|.*software.*|.*web.*|.*java.*|.*hadoop.*|.*spark.*|.*nlp.*|.*algorithm.*|.*python.*|.*matlab.*|.*swift.*|.*android.*\" select count()",
+                ex -> ex.contains("RegexTooComplexException"));
     }
 }
