@@ -365,17 +365,6 @@ public final class IQLQuery implements Closeable {
         return statRefs;
     }
 
-    private boolean requiresSorting() {
-        // TODO: enable sorting
-//        if(groupings.size() > 0) {
-//            final Grouping lastGrouping = groupings.get(groupings.size() - 1);
-//            if(lastGrouping instanceof FieldGrouping && ((FieldGrouping)lastGrouping).isNoExplode()) {
-//                return true;    // currently we only have to sort when using non-exploded field grouping as the last grouping
-//            }
-//        }
-        return false;
-    }
-
     public static class WriteResults {
         public final int rowsWritten;
         public final File unsortedFile;
@@ -392,8 +381,7 @@ public final class IQLQuery implements Closeable {
 
     @Nonnull
     public WriteResults outputResults(final Iterator<GroupStats> rows, PrintWriter httpOutStream, final boolean csv, final boolean progress, final int rowLimit, int groupingColumns, int selectColumns, boolean cacheDisabled) {
-        final boolean requiresSorting = requiresSorting();
-        if(cacheDisabled && !requiresSorting) { // just stream the rows out. don't have to worry about keeping a copy at all
+        if(cacheDisabled) { // just stream the rows out. don't have to worry about keeping a copy at all
             final int rowsWritten = writeRowsToStream(rows, httpOutStream, csv, rowLimit, progress);
             return new WriteResults(rowsWritten, null, null, rows.hasNext());
         }
@@ -417,7 +405,6 @@ public final class IQLQuery implements Closeable {
             return new WriteResults(rowsWritten, null, resultsCache.iterator(), exceedsRowLimit);
         } else {    // have to work with the files on the hard drive to avoid OOM
             File unsortedFile = null;
-            File sortedFile = null;
             try {
                 unsortedFile = File.createTempFile(TEMP_FILE_PREFIX, null);
                 // TODO: Use LimitedBufferedOutputStream or mark as skipped on limit
@@ -434,24 +421,8 @@ public final class IQLQuery implements Closeable {
                 fileOutputStream.close();
                 log.trace("Stored on disk to " + unsortedFile.getPath() + " in " + (System.currentTimeMillis() - started) + "ms");
 
-                if(requiresSorting) { // do on disk sort with gnu sort
-                    sortedFile = sortFile(unsortedFile, groupingColumns, selectColumns);
-                } else {
-                    sortedFile = unsortedFile;
-                }
-
                 // send the results out to the client
-                try {
-                    copyStream(new FileInputStream(sortedFile), httpOutStream, rowLimit, progress);
-                } finally {
-                    if (sortedFile != unsortedFile) {
-                        if (sortedFile.delete()) {
-                            sortedFile = null;
-                        } else {
-                            log.warn("Failed to delete temporary file " + sortedFile.toString());
-                        }
-                    }
-                }
+                copyStream(new FileInputStream(unsortedFile), httpOutStream, rowLimit, progress);
 
                 final boolean exceedsRowLimit = rowsWritten >= rowLimit && rows.hasNext();
                 return new WriteResults(rowsWritten, unsortedFile, null, exceedsRowLimit);
@@ -459,48 +430,8 @@ public final class IQLQuery implements Closeable {
                 if ((unsortedFile != null) && !unsortedFile.delete()) {
                     log.warn("Failed to delete temporary file " + unsortedFile.toString());
                 }
-                if ((sortedFile != null) && !sortedFile.delete()) {
-                    log.warn("Failed to delete temporary file " + sortedFile.toString());
-                }
                 throw Throwables.propagate(e);
             }
-        }
-    }
-
-    /**
-     * Sorts the given file by invoking gnu 'sort' command and returns a reference to the sorted copy.
-     * Expects inputFile to have ".tmp" in the name
-     */
-    private File sortFile(File inputFile, int groupingColumns, int selectColumns) {
-        File sortedFile = null;
-        try {
-            final long started;
-            started = System.currentTimeMillis();
-            sortedFile = new File(inputFile.getPath().replace(".tmp", ".sorted.tmp"));
-            final List<String> sortCmd = Lists.newArrayList("sort", "-o", sortedFile.getPath(), "-t", "\t");
-
-            // TODO: custom sorting orders
-            for (int i = 1; i <= groupingColumns; i++) {
-                sortCmd.add("-k" + i + "," + i);
-            }
-            for (int i = groupingColumns + 1; i <= groupingColumns + selectColumns; i++) {
-                sortCmd.add("-k" + i + "," + i + "n");
-            }
-            sortCmd.add(inputFile.getPath());
-            log.trace(String.join(" ", sortCmd));
-
-            final Process sortProc = Runtime.getRuntime().exec(sortCmd.toArray(new String[sortCmd.size()]), null);
-            sortProc.waitFor();
-            log.trace("Sorted to: " + sortedFile.getPath() + " in " + (System.currentTimeMillis() - started) + "ms");
-            return sortedFile;
-        } catch (final Exception e) {
-            if ((sortedFile != null) && !sortedFile.delete()) {
-                log.warn("Failed to delete temporary file " + sortedFile.toString());
-            }
-            if (e instanceof InterruptedException) {
-                Thread.currentThread().interrupt();
-            }
-            throw Throwables.propagate(e);
         }
     }
 

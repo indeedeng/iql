@@ -57,7 +57,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public class PrettyPrint {
     private static final Function<String, String> RENDER_STRING = s -> "\"" + stringEscape(s) + "\"";
@@ -346,7 +345,7 @@ public class PrettyPrint {
                     Joiner.on(", ").appendTo(sb, groupByFieldIn.intTerms);
                 }
                 if (!groupByFieldIn.stringTerms.isEmpty()) {
-                    Joiner.on(", ").appendTo(sb, groupByFieldIn.stringTerms.stream().map(RENDER_STRING::apply).collect(Collectors.toList()));
+                    Joiner.on(", ").appendTo(sb, groupByFieldIn.stringTerms.stream().map(RENDER_STRING).iterator());
                 }
                 sb.append(")");
                 return null;
@@ -848,10 +847,12 @@ public class PrettyPrint {
             @Override
             public Void visit(AggregateMetric.Min min) {
                 sb.append("min(");
-                Joiner.on(", ").appendTo(sb, min.metrics.stream().map(metric -> {
-                    pp(metric, consumer, clock);
-                    return "";
-                }).iterator());
+                for (int i = 0; i < min.metrics.size(); i++) {
+                    if (i > 0) {
+                        sb.append(", ");
+                    }
+                    pp(min.metrics.get(i), consumer, clock);
+                }
                 sb.append(')');
                 return null;
             }
@@ -859,10 +860,12 @@ public class PrettyPrint {
             @Override
             public Void visit(AggregateMetric.Max max) {
                 sb.append("max(");
-                Joiner.on(", ").appendTo(sb, max.metrics.stream().map(metric -> {
-                        pp(metric, consumer, clock);
-                        return "";
-                }).iterator());
+                for (int i = 0; i < max.metrics.size(); i++) {
+                    if (i > 0) {
+                        sb.append(", ");
+                    }
+                    pp(max.metrics.get(i), consumer, clock);
+                }
                 sb.append(')');
                 return null;
             }

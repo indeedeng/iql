@@ -31,11 +31,12 @@ import java.util.List;
  */
 
 public class FieldMetadata {
-    @Nonnull final String name;
-    @Nullable String description;
     @Nonnull
-    private
-    FieldType type;
+    private final String name;
+    @Nullable
+    private String description;
+    @Nonnull
+    private FieldType type;
     @Nonnull
     private final List<String> aliases;   // first entry is the canonical name by convention
     private int frequency;

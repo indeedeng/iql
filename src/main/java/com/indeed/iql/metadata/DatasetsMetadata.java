@@ -81,7 +81,7 @@ public class DatasetsMetadata {
         datasetToDimensionAliasFields = new HashMap<>();
         metadata.forEach((dataset, meta) -> {
             datasetToDimensionAliasFields.put(dataset, meta.fieldToDimension.entrySet()
-                    .stream().filter(dimension -> dimension.getValue().isAlias)
+                    .stream().filter(dimension -> dimension.getValue().isAlias())
                     .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getAliasActualField().get())));
         });
         typeConflictDatasetFieldNames = new HashSet<>();

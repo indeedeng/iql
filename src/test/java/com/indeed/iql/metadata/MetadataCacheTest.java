@@ -28,6 +28,6 @@ public class MetadataCacheTest {
         calcMetric.setName("complex");
         calcMetric.setExpr("(a1+a2)*10");
         final MetricMetadata dimensions = metadataCache.getMetricMetadataFromMetricsYaml(calcMetric, "test");
-        Assert.assertEquals("(a1+a2)*10", dimensions.expression);
+        Assert.assertEquals("(a1+a2)*10", dimensions.getExpression());
     }
 }

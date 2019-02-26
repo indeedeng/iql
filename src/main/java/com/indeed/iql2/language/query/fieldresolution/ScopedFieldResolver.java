@@ -319,7 +319,7 @@ public class ScopedFieldResolver {
         if (datasetsMetadata.getMetadata(imhotepDataset).isPresent()) {
             final DatasetMetadata metadata = datasetsMetadata.getMetadata(imhotepDataset).get();
             final MetricMetadata metricMetadata = metadata.resolveMetric(typedField);
-            if ((metricMetadata != null) && !metricMetadata.isAlias && (metricMetadata.expression != null)) {
+            if ((metricMetadata != null) && !metricMetadata.isAlias() && (metricMetadata.getExpression() != null)) {
                 return metricMetadata;
             }
         }

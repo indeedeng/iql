@@ -339,8 +339,8 @@ public class Session {
             progressCallback.sessionOpened(session);
 
             treeTimer.push("determine time range");
-            final DateTime earliestStart = Ordering.natural().min(chosenShards.stream().map(ShardInfo::getStart).iterator());
-            final DateTime latestEnd = Ordering.natural().max(chosenShards.stream().map(ShardInfo::getEnd).iterator());
+            final DateTime earliestStart = chosenShards.stream().map(ShardInfo::getStart).min(DateTime::compareTo).get();
+            final DateTime latestEnd = chosenShards.stream().map(ShardInfo::getEnd).max(DateTime::compareTo).get();
             treeTimer.pop();
             final String timeField = DatasetMetadata.TIME_FIELD_NAME;
             if (earliestStart.isBefore(startDateTime) || latestEnd.isAfter(endDateTime)) {

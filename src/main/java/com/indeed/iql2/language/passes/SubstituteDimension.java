@@ -57,15 +57,15 @@ public class SubstituteDimension {
     }
 
     public static AggregateMetric getAggregateMetric(final MetricMetadata metricMetadata, final DatasetsMetadata datasetsMetadata, final ScopedFieldResolver scopedFieldResolver) {
-        return parseDimensionsMetric(metricMetadata.getName(), metricMetadata.expression, datasetsMetadata, scopedFieldResolver);
+        return parseDimensionsMetric(metricMetadata.getName(), metricMetadata.getExpression(), datasetsMetadata, scopedFieldResolver);
     }
 
     public static DocMetric getDocMetricOrThrow(final MetricMetadata metricMetadata, final DatasetsMetadata datasetsMetadata, final ScopedFieldResolver scopedFieldResolver) {
-        final AggregateMetric metric = parseDimensionsMetric(metricMetadata.getName(), metricMetadata.expression, datasetsMetadata, scopedFieldResolver);
+        final AggregateMetric metric = parseDimensionsMetric(metricMetadata.getName(), metricMetadata.getExpression(), datasetsMetadata, scopedFieldResolver);
         if (!(metric instanceof AggregateMetric.DocStats)) {
             throw new IllegalArgumentException(
                     String.format("Cannot use compound metrics in per-document context, metric [ %s: %s ]",
-                            metricMetadata.getName(), metricMetadata.expression));
+                            metricMetadata.getName(), metricMetadata.getExpression()));
         } else {
             return ((AggregateMetric.DocStats) metric).docMetric;
         }

@@ -31,13 +31,13 @@ public class MetricMetadata {
     @Nullable
     private String description;
     @Nullable
-    public String expression;
+    private String expression;
     @Nullable
     private String unit;
     private boolean isHidden = false;
 
     // IQL2 only
-    public boolean isAlias;
+    private boolean isAlias;
 
     // TODO delete
     public MetricMetadata(final String name, final String expression, final String description, @Nullable final String fieldAlias) {

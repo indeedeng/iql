@@ -806,7 +806,7 @@ public final class IQLTranslator {
                 case NOT_EQ:
                     usingNegation = !usingNegation;
                     // fall through to EQ
-                case EQ:
+                case EQ: {
                     if(left instanceof NameExpression) {
                         final NameExpression name = (NameExpression) left;
                         if(datasetMetadata.hasField(name.name)) {
@@ -819,10 +819,9 @@ public final class IQLTranslator {
                         // assume we have a comparison of 2 metrics. filter for the result of that = 1
                         return handleMetricComparison(new BinaryExpression(left, Op.EQ, right),
                                 new NumberExpression("1"), usingNegation);
-                    } else {
-                        throw new IqlKnownException.ParseErrorException("Can't compare the provided operands: " + left + "; " + right);
                     }
-                    //noinspection fallthrough
+                    throw new IqlKnownException.ParseErrorException("Can't compare the provided operands: " + left + "; " + right);
+                }
                 case REGEX_NOT_EQ:
                     usingNegation = !usingNegation;
                     // fall through to REGEX_EQ
