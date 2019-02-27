@@ -15,7 +15,6 @@
 package com.indeed.iql2.language.query;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.indeed.imhotep.Shard;
@@ -248,7 +247,10 @@ public class Queries {
         final String groupBy = getText(queryInputStream, queryContext.groupByContents(), seenComments).trim();
 
         final List<String> selects = extractSelects(queryContext, queryInputStream);
-        final String select = Joiner.on(' ').join(queryContext.selectContents().stream().map(input -> getText(queryInputStream, input, seenComments)).iterator()).trim();
+        final String select = queryContext.selectContents().stream()
+                .map(input -> getText(queryInputStream, input, seenComments))
+                .collect(Collectors.joining(" "))
+                .trim();
 
         final String dataset;
         final String start;
