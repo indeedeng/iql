@@ -16,16 +16,17 @@ package com.indeed.iql2.execution.commands.misc;
 
 import com.google.common.base.Optional;
 import com.indeed.iql2.execution.metrics.aggregate.AggregateMetric;
+import com.indeed.iql2.language.SortOrder;
 
 // TODO: Why does this support Optionals? There's a limit one level up for the pure limit case.
 public class TopK {
     public final Optional<Integer> limit;
     public final AggregateMetric metric;
-    public final boolean isBottomK;
+    public final SortOrder sortOrder;
 
-    public TopK(Optional<Integer> limit, AggregateMetric metric, boolean isBottomK) {
+    public TopK(Optional<Integer> limit, AggregateMetric metric, SortOrder sortOrder) {
         this.limit = limit;
         this.metric = metric;
-        this.isBottomK = isBottomK;
+        this.sortOrder = sortOrder;
     }
 }

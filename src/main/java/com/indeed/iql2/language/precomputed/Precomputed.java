@@ -21,6 +21,7 @@ import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocFilter;
 import com.indeed.iql2.language.DocMetric;
+import com.indeed.iql2.language.FieldExtremeType;
 import com.indeed.iql2.language.commands.Command;
 import com.indeed.iql2.language.commands.ComputeFieldExtremeValue;
 import com.indeed.iql2.language.commands.GetGroupDistincts;
@@ -207,24 +208,24 @@ public interface Precomputed {
         public final FieldSet field;
         public final AggregateMetric metric;
         public final Optional<AggregateFilter> filter;
-        public final boolean isFieldMax;
+        public final FieldExtremeType fieldExtremeType;
 
         public PrecomputedFieldExtremeValue(
                 final FieldSet field,
                 final AggregateMetric metric,
                 final Optional<AggregateFilter> filter,
-                final boolean isFieldMax
+                final FieldExtremeType fieldExtremeType
                 ) {
             this.field = field;
             this.metric = metric;
             this.filter = filter;
-            this.isFieldMax = isFieldMax;
+            this.fieldExtremeType = fieldExtremeType;
         }
 
         @Override
         public Precomputation commands(final List<Dataset> datasets) {
             Preconditions.checkState(Dataset.datasetToScope(datasets).equals(field.datasets()));
-            return Precomputation.noContext(new ComputeFieldExtremeValue(field, metric, filter, isFieldMax));
+            return Precomputation.noContext(new ComputeFieldExtremeValue(field, metric, filter, fieldExtremeType));
         }
 
         @Override
@@ -238,14 +239,15 @@ public interface Precomputed {
             return precomputed.apply(
                 new PrecomputedFieldExtremeValue(field,
                     metric.transform(f, g, h, i, groupByFunction),
-                    filter.transform(fil -> fil.transform(f, g, h, i, groupByFunction)), isFieldMax
+                    filter.transform(fil -> fil.transform(f, g, h, i, groupByFunction)),
+                    fieldExtremeType
                 )
             );
         }
 
         @Override
         public Precomputed traverse1(Function<AggregateMetric, AggregateMetric> f) {
-            return new PrecomputedFieldExtremeValue(field, f.apply(metric), Optionals.traverse1(filter, f), isFieldMax);
+            return new PrecomputedFieldExtremeValue(field, f.apply(metric), Optionals.traverse1(filter, f), fieldExtremeType);
         }
     }
 

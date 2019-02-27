@@ -30,6 +30,7 @@ import com.indeed.iql2.language.GroupByEntry;
 import com.indeed.iql2.language.JQLBaseListener;
 import com.indeed.iql2.language.JQLParser;
 import com.indeed.iql2.language.ParserCommon;
+import com.indeed.iql2.language.SortOrder;
 import com.indeed.iql2.language.Term;
 import com.indeed.iql2.language.TimePeriods;
 import com.indeed.iql2.language.TimeUnit;
@@ -119,13 +120,13 @@ public class GroupBys {
                 } else {
                     metric = Optional.absent();
                 }
-                boolean isBottom = false;
+                SortOrder sortOrder = SortOrder.ASCENDING;
                 if ( ctx2.order != null) {
                     if (VALID_ORDERINGS.contains(ctx2.order.getText().toLowerCase())) {
-                        isBottom = true;
+                        sortOrder = SortOrder.DESCENDING;
                     }
                 }
-                final Optional<TopK> topK = (metric.isPresent() || limit.isPresent())? Optional.of(new TopK(limit, metric, isBottom)) : Optional.absent();
+                final Optional<TopK> topK = (metric.isPresent() || limit.isPresent())? Optional.of(new TopK(limit, metric, sortOrder)) : Optional.absent();
                 accept(new GroupBy.GroupByField(field, Optional.absent(), topK, false));
             }
 
@@ -266,7 +267,7 @@ public class GroupBys {
             public void enterFieldGroupBy(JQLParser.FieldGroupByContext ctx) {
                 final JQLParser.GroupByFieldContext ctx2 = ctx.groupByField();
                 final FieldSet field = fieldResolver.resolve(ctx2.field);
-                final boolean reverseOrder = ctx2.order != null && ctx2.order.getText().equalsIgnoreCase("bottom");
+                final SortOrder sortOrder = ctx2.order != null && ctx2.order.getText().equalsIgnoreCase("bottom") ? SortOrder.DESCENDING : SortOrder.ASCENDING;
                 final Optional<Long> limit;
                 if (ctx2.limit != null) {
                     limit = Optional.of(Long.parseLong(ctx2.limit.getText()));
@@ -287,7 +288,7 @@ public class GroupBys {
                     filter = Optional.absent();
                 }
                 final boolean withDefault = ctx2.withDefault != null;
-                final Optional<TopK> topK = (metric.isPresent() || limit.isPresent())? Optional.of(new TopK(limit, metric, reverseOrder)) : Optional.absent();
+                final Optional<TopK> topK = (metric.isPresent() || limit.isPresent())? Optional.of(new TopK(limit, metric, sortOrder)) : Optional.absent();
                 accept(new GroupBy.GroupByField(field, filter, topK, withDefault));
             }
 

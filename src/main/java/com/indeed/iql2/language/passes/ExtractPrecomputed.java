@@ -25,6 +25,7 @@ import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocMetric;
+import com.indeed.iql2.language.FieldExtremeType;
 import com.indeed.iql2.language.GroupByEntry;
 import com.indeed.iql2.language.execution.ExecutionStep;
 import com.indeed.iql2.language.precomputed.Precomputed;
@@ -299,7 +300,8 @@ public class ExtractPrecomputed {
                     new Precomputed.PrecomputedFieldExtremeValue(
                         fieldMin.field,
                         apply(new AggregateMetric.Negate(getOrDefaultToAggregateAvg(fieldMin.metric, fieldMin.field))),
-                        Optionals.traverse1(fieldMin.filter, this), false
+                        Optionals.traverse1(fieldMin.filter, this),
+                        FieldExtremeType.FIELDMIN
                     )
                 );
             } else if (input instanceof AggregateMetric.FieldMax) {
@@ -308,7 +310,8 @@ public class ExtractPrecomputed {
                     new Precomputed.PrecomputedFieldExtremeValue(
                         fieldMax.field,
                         apply(new AggregateMetric.Negate(getOrDefaultToAggregateAvg(fieldMax.metric, fieldMax.field))),
-                        Optionals.traverse1(fieldMax.filter, this), true
+                        Optionals.traverse1(fieldMax.filter, this),
+                        FieldExtremeType.FIELDMAX
                     )
                 );
             } else if (input instanceof AggregateMetric.DivideByCount) {

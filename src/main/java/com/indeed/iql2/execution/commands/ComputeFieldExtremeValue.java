@@ -23,6 +23,7 @@ import com.indeed.iql2.execution.metrics.aggregate.AggregateMetric;
 import com.indeed.iql2.execution.commands.misc.TopK;
 import com.indeed.iql2.execution.commands.misc.FieldIterateOpts;
 import com.indeed.iql2.execution.commands.SimpleIterate.ResultCollector;
+import com.indeed.iql2.language.FieldExtremeType;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 
 import java.io.IOException;
@@ -33,18 +34,18 @@ public class ComputeFieldExtremeValue implements Command {
     public final FieldSet field;
     public final AggregateMetric metric;
     public final Optional<AggregateFilter> filter;
-    public final boolean isFieldMax;
+    public final FieldExtremeType fieldExtremeType;
 
     public ComputeFieldExtremeValue(
         final FieldSet field,
         final AggregateMetric metric,
         final Optional<AggregateFilter> filter,
-        final boolean isFieldMax
+        final FieldExtremeType fieldExtremeType
     ) {
         this.field = field;
         this.metric = metric;
         this.filter = filter;
-        this.isFieldMax = isFieldMax;
+        this.fieldExtremeType = fieldExtremeType;
     }
 
     @Override
@@ -82,7 +83,7 @@ public class ComputeFieldExtremeValue implements Command {
             public void finish() {}
         };
         final FieldIterateOpts opts = new FieldIterateOpts();
-        opts.topK = Optional.of(new TopK(Optional.of(1), metric, isFieldMax));
+        opts.topK = Optional.of(new TopK(Optional.of(1), metric, FieldExtremeType.toSortOrder(fieldExtremeType)));
         opts.filter = filter;
         new SimpleIterate(field, opts, Collections.emptyList(), Collections.emptyList()).evaluate(session, out);
         return result;

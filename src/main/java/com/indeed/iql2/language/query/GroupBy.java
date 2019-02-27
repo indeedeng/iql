@@ -488,12 +488,7 @@ public abstract class GroupBy extends AbstractPositional {
             } else {
                 filter = Optional.absent();
             }
-            final Optional<TopK> topK;
-            if (this.topK.isPresent()) {
-                topK = this.topK.get().transformMetric(f, g, h, i, groupBy);
-            } else {
-                topK = Optional.absent();
-            }
+            final Optional<TopK> topK = this.topK.transform(x -> x.transformMetric(f, g, h, i, groupBy));
             return groupBy.apply(new GroupByField(field, filter, topK, withDefault))
                     .copyPosition(this);
         }
@@ -506,12 +501,7 @@ public abstract class GroupBy extends AbstractPositional {
             } else {
                 filter = Optional.absent();
             }
-            Optional<TopK> topK;
-            if (this.topK.isPresent()) {
-                topK = this.topK.get().transformMetric(f);
-            } else {
-                topK = Optional.absent();
-            }
+            Optional<TopK> topK = this.topK.transform(x -> x.transformMetric(f));
             return new GroupByField(field, filter, topK, withDefault)
                     .copyPosition(this);
         }

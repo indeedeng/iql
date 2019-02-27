@@ -174,14 +174,8 @@ public interface ExecutionStep {
             } else {
                 filter = Optional.absent();
             }
-            final Optional<TopK> topK;
-            if (this.topK.isPresent()) {
-                topK = this.topK.get().transformMetric(f);
-            } else {
-                topK = Optional.absent();
-            }
-
-            return new ExplodeAndRegroup(field, filter, topK, withDefault);
+            final Optional<TopK> topK1 = this.topK.transform(x -> x.transformMetric(f));
+            return new ExplodeAndRegroup(field, filter, topK1, withDefault);
         }
     }
 
@@ -384,12 +378,7 @@ public interface ExecutionStep {
             } else {
                 filter = Optional.absent();
             }
-            final Optional<TopK> topK;
-            if (this.topK.isPresent()) {
-                topK = this.topK.get().transformMetric(f);
-            } else {
-                topK = Optional.absent();
-            }
+            final Optional<TopK> topK = this.topK.transform(x -> x.transformMetric(f));
             final List<AggregateMetric> stats = new ArrayList<>();
             for (final AggregateMetric stat : this.stats) {
                 stats.add(f.apply(stat));
