@@ -11,7 +11,7 @@ import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.io.RequestTools;
 import com.indeed.imhotep.metrics.aggregate.AggregateStatTree;
-import com.indeed.imhotep.protobuf.SortOrder;
+import com.indeed.imhotep.protobuf.StatsSortOrder;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 
 import java.io.Closeable;
@@ -203,8 +203,8 @@ public class ImhotepSessionHolder implements Closeable {
             final String[] stringFields,
             final long termLimit,
             final int sortStat,
-            final SortOrder sortOrder) {
-        return session.getFTGSIterator(intFields, stringFields, termLimit, sortStat, sortOrder);
+            final StatsSortOrder statsSortOrder) {
+        return session.getFTGSIterator(intFields, stringFields, termLimit, sortStat, statsSortOrder);
     }
 
     public FTGSIterator getFTGSIterator(final FTGSParams params) {
@@ -214,7 +214,7 @@ public class ImhotepSessionHolder implements Closeable {
                 params.termLimit,
                 params.sortStat,
                 params.sorted,
-                params.sortOrder);
+                params.statsSortOrder);
         return session.getFTGSIterator(convertedParams);
     }
 

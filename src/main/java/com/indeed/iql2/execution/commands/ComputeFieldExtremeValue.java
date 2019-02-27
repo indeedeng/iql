@@ -83,7 +83,7 @@ public class ComputeFieldExtremeValue implements Command {
             public void finish() {}
         };
         final FieldIterateOpts opts = new FieldIterateOpts();
-        opts.topK = Optional.of(new TopK(Optional.of(1), metric, FieldExtremeType.toSortOrder(fieldExtremeType)));
+        opts.topK = Optional.of(new TopK(Optional.of(1), metric, fieldExtremeType.toSortOrder()));
         opts.filter = filter;
         new SimpleIterate(field, opts, Collections.emptyList(), Collections.emptyList()).evaluate(session, out);
         return result;

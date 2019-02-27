@@ -301,7 +301,7 @@ public class ExtractPrecomputed {
                         fieldMin.field,
                         apply(new AggregateMetric.Negate(getOrDefaultToAggregateAvg(fieldMin.metric, fieldMin.field))),
                         Optionals.traverse1(fieldMin.filter, this),
-                        FieldExtremeType.FIELDMIN
+                        FieldExtremeType.FIELD_MIN
                     )
                 );
             } else if (input instanceof AggregateMetric.FieldMax) {
@@ -311,7 +311,7 @@ public class ExtractPrecomputed {
                         fieldMax.field,
                         apply(new AggregateMetric.Negate(getOrDefaultToAggregateAvg(fieldMax.metric, fieldMax.field))),
                         Optionals.traverse1(fieldMax.filter, this),
-                        FieldExtremeType.FIELDMAX
+                        FieldExtremeType.FIELD_MAX
                     )
                 );
             } else if (input instanceof AggregateMetric.DivideByCount) {

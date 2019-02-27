@@ -45,6 +45,7 @@ import com.indeed.imhotep.io.SingleFieldRegroupTools;
 import com.indeed.imhotep.metrics.aggregate.AggregateStatTree;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
 import com.indeed.imhotep.StrictCloser;
+import com.indeed.imhotep.protobuf.StatsSortOrder;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql.metadata.FieldType;
@@ -1249,13 +1250,13 @@ public class Session {
         final FTGSParams params;
         if (topKParams.isPresent()) {
             final SortOrder sortOrder = topKParams.get().sortOrder;
-            params = new FTGSParams(intFields, stringFields, topKParams.get().limit, topKParams.get().sortStatIndex, isSorted, SortOrder.toProtobufSortOrder(sortOrder));
+            params = new FTGSParams(intFields, stringFields, topKParams.get().limit, topKParams.get().sortStatIndex, isSorted, sortOrder.toProtobufSortOrder());
         } else if(ftgsRowLimit.isPresent()) {
             // TODO: can term limited request be unsorted?
             // Check if calling side expects first terms in sorted order.
-            params = new FTGSParams(intFields, stringFields, ftgsRowLimit.get(), -1, true, com.indeed.imhotep.protobuf.SortOrder.UNDEFINED);
+            params = new FTGSParams(intFields, stringFields, ftgsRowLimit.get(), -1, true, StatsSortOrder.UNDEFINED);
         } else {
-            params = new FTGSParams(intFields, stringFields, 0, -1, isSorted, com.indeed.imhotep.protobuf.SortOrder.UNDEFINED);
+            params = new FTGSParams(intFields, stringFields, 0, -1, isSorted, StatsSortOrder.UNDEFINED);
         }
 
         return session.getFTGSIterator(params);
@@ -1464,7 +1465,7 @@ public class Session {
         final FTGSIterator it;
         if (topKParams.isPresent()) {
             final SortOrder sortOrder = topKParams.get().sortOrder;
-            it = session.getFTGSIterator(intFields, strFields, topKParams.get().limit, topKParams.get().sortStatIndex, SortOrder.toProtobufSortOrder(sortOrder));
+            it = session.getFTGSIterator(intFields, strFields, topKParams.get().limit, topKParams.get().sortStatIndex, sortOrder.toProtobufSortOrder());
         } else if (limit.isPresent()) {
             it = session.getFTGSIterator(intFields, strFields, limit.get());
         } else {

@@ -267,7 +267,7 @@ public class SimpleIterate implements Command {
                 termLimit,
                 sortStat,
                 sorted,
-                SortOrder.toProtobufSortOrder(sortOrder)
+                sortOrder.toProtobufSortOrder()
         )) {
             session.timer.pop();
 

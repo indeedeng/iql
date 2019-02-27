@@ -1,10 +1,17 @@
 package com.indeed.iql2.language;
 
-public enum SortOrder {
-    ASCENDING,
-    DESCENDING;
+import com.indeed.imhotep.protobuf.StatsSortOrder;
 
-    public static com.indeed.imhotep.protobuf.SortOrder toProtobufSortOrder(SortOrder sortOrder) {
-        return sortOrder == SortOrder.ASCENDING ? com.indeed.imhotep.protobuf.SortOrder.ASCENDING: com.indeed.imhotep.protobuf.SortOrder.DESCENDING;
+public enum SortOrder {
+    ASCENDING(StatsSortOrder.ASCENDING),
+    DESCENDING(StatsSortOrder.DESCENDING);
+    private StatsSortOrder statsSortOrder;
+
+    SortOrder(StatsSortOrder statsSortOrder) {
+        this.statsSortOrder = statsSortOrder;
+    }
+
+    public StatsSortOrder toProtobufSortOrder() {
+        return this.statsSortOrder;
     }
 }

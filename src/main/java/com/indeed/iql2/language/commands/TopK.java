@@ -37,13 +37,7 @@ public class TopK {
 
     public TopK(Optional<Long> limit, Optional<AggregateMetric> metric, SortOrder sortOrder) {
         Preconditions.checkArgument(limit.isPresent() || metric.isPresent(), "TopK should either have a limit or a metric");
-
-        final AggregateMetric newMetric;
-        if ( !metric.isPresent()) {
-            newMetric = new AggregateMetric.DocStats(new DocMetric.Count());
-        } else {
-            newMetric = metric.get();
-        }
+        final AggregateMetric newMetric = metric.or(() -> new AggregateMetric.DocStats(new DocMetric.Count()));
 
         this.limit = limit;
         this.metric = newMetric;
