@@ -27,7 +27,7 @@ public class IQLGroupByQueryPart implements IQLQueryPart  {
 
     @Override
     public String toString() {
-        if(iqlGroupByQueryStatements.size()!=0) {
+        if(!iqlGroupByQueryStatements.isEmpty()) {
             return COMMAND_NAME + " " + Joiner.on(", ").join(iqlGroupByQueryStatements);
         }
             return "";

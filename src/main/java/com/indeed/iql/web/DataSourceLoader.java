@@ -29,6 +29,9 @@ import javax.sql.DataSource;
  */
 
 public class DataSourceLoader {
+    private DataSourceLoader() {
+    }
+
     private static final Logger log = Logger.getLogger(DataSourceLoader.class);
 
     /**

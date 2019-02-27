@@ -32,8 +32,8 @@ import java.util.Set;
 public class AccessControl {
     private static final Logger log = Logger.getLogger(AccessControl.class);
 
-    final Set<String> bannedUsers;
-    final Set<String> multiuserClients;
+    private final Set<String> bannedUsers;
+    private final Set<String> multiuserClients;
     @Nullable private final IQLDB iqldb;
     private final Limits defaultLimits;
     private final Set<String> privilegedDatasets;
@@ -52,7 +52,7 @@ public class AccessControl {
     }
 
     @Scheduled(fixedDelay = 5 * 60 * 1000)
-    synchronized public void updateLimits() {
+    public synchronized void updateLimits() {
         try {
             if(iqldb != null) {
                 identityToLimits = iqldb.getAccessLimits();

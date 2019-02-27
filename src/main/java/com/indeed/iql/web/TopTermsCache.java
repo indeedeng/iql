@@ -15,11 +15,11 @@
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.indeed.util.core.io.Closeables2;
-import com.indeed.util.io.Files;
 import com.indeed.imhotep.TermCount;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.client.ImhotepClient;
+import com.indeed.util.core.io.Closeables2;
+import com.indeed.util.io.Files;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -113,7 +113,7 @@ public class TopTermsCache {
             final ImhotepSession imhotepSession;
             try {
                 final ImhotepClient.SessionBuilder sessionBuilder = client.sessionBuilder(dataset, startTime, endTime).username("IQL: topterms");
-                if(sessionBuilder.getChosenShards().size() == 0) {
+                if(sessionBuilder.getChosenShards().isEmpty()) {
                     log.info("Index " + dataset + " has no shards for midday " + DAYS_DELAY + " days ago");
                     continue;
                 }
@@ -129,7 +129,7 @@ public class TopTermsCache {
                 for(final String field : stringFields) {
                     final List<TermCount> termCounts = imhotepSession.approximateTopTerms(field, false, TERMS_TO_CACHE);
 
-                    if(termCounts.size() == 0) {
+                    if(termCounts.isEmpty()) {
                         log.debug(dataset + "." + field + " has no terms");
                     }
 
@@ -146,7 +146,7 @@ public class TopTermsCache {
                 Closeables2.closeQuietly(imhotepSession, log);
             }
 
-            if(fieldToTerms.size() > 0) {
+            if(!fieldToTerms.isEmpty()) {
                 newDatasetToFieldToTerms.put(dataset, fieldToTerms);
             }
 

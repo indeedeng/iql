@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.Map;
 
 public class RandomMetricRegroup implements Command {
-    public final ImmutableMap<String, ImmutableList<String>> perDatasetMetric;
+    private final ImmutableMap<String, ImmutableList<String>> perDatasetMetric;
     private final int k;
     private final String salt;
 

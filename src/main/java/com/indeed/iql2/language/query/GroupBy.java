@@ -14,8 +14,6 @@
 
 package com.indeed.iql2.language.query;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.indeed.iql.exceptions.IqlKnownException;
@@ -36,7 +34,9 @@ import lombok.ToString;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 
 public abstract class GroupBy extends AbstractPositional {
     public interface Visitor<T, E extends Throwable> {
@@ -71,7 +71,7 @@ public abstract class GroupBy extends AbstractPositional {
     public abstract ExecutionStep executionStep(List<Dataset> datasets);
 
     public abstract boolean isTotal();
-    public abstract GroupBy makeTotal() throws CannotMakeTotalException;
+    public abstract GroupBy makeTotal();
 
     @Override
     public abstract int hashCode();
@@ -137,7 +137,7 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public GroupBy makeTotal() throws CannotMakeTotalException {
+        public GroupBy makeTotal() {
             if (isTotal()) {
                 return this;
             }
@@ -187,7 +187,7 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public GroupBy makeTotal() throws CannotMakeTotalException {
+        public GroupBy makeTotal() {
             return this;
         }
     }
@@ -220,7 +220,7 @@ public abstract class GroupBy extends AbstractPositional {
         @Override
         public ExecutionStep executionStep(List<Dataset> datasets) {
             final long periodMillis = TimePeriods.inferTimeBucketSize(Dataset.getEarliestStart(datasets), Dataset.getLatestEnd(datasets), Dataset.getLongestRange(datasets), isRelative);
-            return new ExecutionStep.ExplodeTimePeriod(periodMillis, Optional.absent(), Optional.absent(), isRelative);
+            return new ExecutionStep.ExplodeTimePeriod(periodMillis, Optional.empty(), Optional.empty(), isRelative);
         }
 
         @Override
@@ -229,7 +229,7 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public GroupBy makeTotal() throws CannotMakeTotalException {
+        public GroupBy makeTotal() {
             return this;
         }
     }
@@ -277,7 +277,7 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public GroupBy makeTotal() throws CannotMakeTotalException {
+        public GroupBy makeTotal() {
             return this;
         }
     }
@@ -323,7 +323,7 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public GroupBy makeTotal() throws CannotMakeTotalException {
+        public GroupBy makeTotal() {
             return this;
         }
     }
@@ -348,10 +348,10 @@ public abstract class GroupBy extends AbstractPositional {
             if (new LongOpenHashSet(intTerms).size() != intTerms.size()) {
                 throw new IqlKnownException.ParseErrorException("Int terms must be unique: " + intTerms);
             }
-            if (intTerms.size() > 0 && stringTerms.size() > 0) {
+            if (!intTerms.isEmpty() && !stringTerms.isEmpty()) {
                 throw new IqlKnownException.ParseErrorException("Cannot have both int terms and string terms.");
             }
-            if (intTerms.size() == 0 && stringTerms.size() == 0) {
+            if (intTerms.isEmpty() && stringTerms.isEmpty()) {
                 throw new IqlKnownException.ParseErrorException("Cannot have empty field in Set");
             }
         }
@@ -373,7 +373,7 @@ public abstract class GroupBy extends AbstractPositional {
 
         @Override
         public ExecutionStep executionStep(List<Dataset> datasets) {
-            if (intTerms.size() > 0) {
+            if (!intTerms.isEmpty()) {
                 return ExecutionStep.ExplodeFieldIn.intExplode(field, intTerms, withDefault);
             } else {
                 return ExecutionStep.ExplodeFieldIn.stringExplode(field, stringTerms, withDefault);
@@ -386,7 +386,7 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public GroupBy makeTotal() throws CannotMakeTotalException {
+        public GroupBy makeTotal() {
             return new GroupByFieldIn(field, intTerms, stringTerms, true);
         }
     }
@@ -442,7 +442,7 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public GroupBy makeTotal() throws CannotMakeTotalException {
+        public GroupBy makeTotal() {
             throw new IllegalStateException("GroupByFieldInQuery must be already transformed into another GroupBy");
         }
     }
@@ -460,7 +460,8 @@ public abstract class GroupBy extends AbstractPositional {
             this.field = field;
             this.filter = filter;
             this.limit = limit;
-            this.metric = limit.isPresent() ? metric.or(Optional.of(new AggregateMetric.DocStats(new DocMetric.Count()))) : metric;
+            // Default metric is 'count()'
+            this.metric = (limit.isPresent() && !metric.isPresent()) ? Optional.of(new AggregateMetric.DocStats(new DocMetric.Count())) : metric;
             this.withDefault = withDefault;
         }
 
@@ -479,13 +480,13 @@ public abstract class GroupBy extends AbstractPositional {
             if (this.filter.isPresent()) {
                 filter = Optional.of(this.filter.get().transform(f, g, h, i, groupBy));
             } else {
-                filter = Optional.absent();
+                filter = Optional.empty();
             }
             final Optional<AggregateMetric> metric;
             if (this.metric.isPresent()) {
                 metric = Optional.of(this.metric.get().transform(f, g, h, i, groupBy));
             } else {
-                metric = Optional.absent();
+                metric = Optional.empty();
             }
             return groupBy.apply(new GroupByField(field, filter, limit, metric, withDefault))
                     .copyPosition(this);
@@ -497,13 +498,13 @@ public abstract class GroupBy extends AbstractPositional {
             if (this.filter.isPresent()) {
                 filter = Optional.of(this.filter.get().traverse1(f));
             } else {
-                filter = Optional.absent();
+                filter = Optional.empty();
             }
             final Optional<AggregateMetric> metric;
             if (this.metric.isPresent()) {
                 metric = Optional.of(f.apply(this.metric.get()));
             } else {
-                metric = Optional.absent();
+                metric = Optional.empty();
             }
             return new GroupByField(field, filter, limit, metric, withDefault)
                     .copyPosition(this);
@@ -520,7 +521,7 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public GroupBy makeTotal() throws CannotMakeTotalException {
+        public GroupBy makeTotal() {
             return new GroupByField(field, filter, limit, metric, true);
         }
     }
@@ -552,7 +553,7 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public GroupBy makeTotal() throws CannotMakeTotalException {
+        public GroupBy makeTotal() {
             return this;
         }
 
@@ -599,7 +600,7 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public GroupBy makeTotal() throws CannotMakeTotalException {
+        public GroupBy makeTotal() {
             return this;
         }
 
@@ -658,7 +659,7 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public GroupBy makeTotal() throws CannotMakeTotalException {
+        public GroupBy makeTotal() {
             return this;
         }
     }
@@ -704,7 +705,7 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public GroupBy makeTotal() throws CannotMakeTotalException {
+        public GroupBy makeTotal() {
             return this;
         }
     }
@@ -749,7 +750,7 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public GroupBy makeTotal() throws CannotMakeTotalException {
+        public GroupBy makeTotal() {
             return this;
         }
     }
@@ -803,7 +804,7 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public GroupBy makeTotal() throws CannotMakeTotalException {
+        public GroupBy makeTotal() {
             return this;
         }
     }

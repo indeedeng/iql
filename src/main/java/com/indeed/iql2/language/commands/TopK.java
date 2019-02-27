@@ -14,13 +14,14 @@
 
 package com.indeed.iql2.language.commands;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.AggregateMetric;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
+
+import java.util.Optional;
+import java.util.function.Function;
 
 @EqualsAndHashCode
 @ToString
@@ -35,8 +36,8 @@ public class TopK {
 
     public com.indeed.iql2.execution.commands.misc.TopK toExecution(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
         return new com.indeed.iql2.execution.commands.misc.TopK(
-                limit.transform(x -> (int)(long)x),
-                metric.transform(x -> x.toExecutionMetric(namedMetricLookup, groupKeySet))
+                limit.map(x -> (int)(long)x),
+                metric.map(x -> x.toExecutionMetric(namedMetricLookup, groupKeySet))
         );
     }
 }

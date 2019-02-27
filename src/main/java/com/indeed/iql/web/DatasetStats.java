@@ -42,7 +42,7 @@ public class DatasetStats {
     public long numDocs;
     public long lastShardNumDocs;
     public long lastWeekNumDocs;
-    public List<Integer> shardSizesHours = Lists.newArrayList();
+    public final List<Integer> shardSizesHours = Lists.newArrayList();
     @Nullable
     public DateTime firstShardBuildTimestamp;
     @Nullable

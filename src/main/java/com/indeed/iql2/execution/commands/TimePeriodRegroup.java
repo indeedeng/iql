@@ -14,11 +14,13 @@
 
 package com.indeed.iql2.execution.commands;
 
-import com.google.common.base.Optional;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.groupkeys.sets.DateTimeRangeGroupKeySet;
+import com.indeed.iql2.language.TimeUnit;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
+
+import java.util.Optional;
 
 public class TimePeriodRegroup implements Command {
     public final long periodMillis;
@@ -58,7 +60,7 @@ public class TimePeriodRegroup implements Command {
         session.checkGroupLimit(numBuckets * session.numGroups);
         final boolean deleteEmptyGroups = (session.iqlVersion == 1) && !isRelative;
         final int groupCount = session.performTimeRegroup(shardStart, shardEnd, periodMillis, timeField, isRelative, deleteEmptyGroups);
-        final String format = timeFormat.or("yyyy-MM-dd HH:mm:ss");
+        final String format = timeFormat.orElse(TimeUnit.SECOND.formatString);
         final DateTimeRangeGroupKeySet groupKeySet = new DateTimeRangeGroupKeySet(session.groupKeySet, shardStart, periodMillis, numBuckets, groupCount, format, session.formatter);
         session.assumeDense(groupKeySet);
     }

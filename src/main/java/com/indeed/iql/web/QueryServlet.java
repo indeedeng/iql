@@ -25,7 +25,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.StrictCloser;
-import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.ImhotepErrorResolver;
 import com.indeed.imhotep.exceptions.ImhotepKnownException;
@@ -105,7 +104,6 @@ import java.util.TimeZone;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 /**
@@ -277,7 +275,7 @@ public class QueryServlet {
                     if (remoteAddr == null) {
                         remoteAddr = req.getRemoteAddr();
                     }
-                    logQuery(queryInfo, clientInfo, req, errorOccurred, remoteAddr, this.metricStatsEmitter);
+                    logQuery(queryInfo, clientInfo, req, errorOccurred, remoteAddr, metricStatsEmitter);
                 } catch (Throwable ignored) {
                 }
             }
@@ -353,7 +351,7 @@ public class QueryServlet {
     }
 
     private void handleSelectStatement(SelectStatement selectStatement, QueryInfo queryInfo, ClientInfo clientInfo,
-                                       QueryRequestParams queryRequestParams, HttpServletResponse resp) throws IOException, ImhotepOutOfMemoryException {
+                                       QueryRequestParams queryRequestParams, HttpServletResponse resp) throws IOException {
         try (final TracingTreeTimer timer = new TracingTreeTimer()) {
 
             final String query = selectStatement.selectQuery;
@@ -468,12 +466,12 @@ public class QueryServlet {
         warningList.addAll(missingShardsToWarnings(dataset, startTime, endTime, timeIntervalsMissingShards));
 
         final Set<String> conflictFieldsUsed = Sets.intersection(iqlQuery.getDatasetFields(), metadataCacheIQL1.get().getTypeConflictDatasetFieldNames());
-        if (conflictFieldsUsed.size() > 0) {
+        if (!conflictFieldsUsed.isEmpty()) {
             final String conflictWarning = "Fields with type conflicts used in query: " + String.join(", ", conflictFieldsUsed);
             warningList.add(conflictWarning);
         }
 
-        if(timeIntervalsMissingShards.size() > 0) {
+        if(!timeIntervalsMissingShards.isEmpty()) {
             final String missingIntervals = intervalListToString(timeIntervalsMissingShards);
             queryMetadata.addItem("IQL-Missing-Shards", missingIntervals, true);
         }
@@ -505,7 +503,7 @@ public class QueryServlet {
             queryInfo.rows = IQLQuery.copyStream(cacheInputStream, outputStream, Integer.MAX_VALUE, args.isEventStream);
             queryInfo.totalTime = System.currentTimeMillis() - queryInfo.queryStartTimestamp;
             queryMetadata.addItem("IQL-Query-Info", queryInfo.toJSON(), false);
-            finalizeQueryExecution(args, queryMetadata, outputStream, queryInfo);
+            finalizeQueryExecution(args, queryMetadata, outputStream);
             return;
         }
 
@@ -529,8 +527,6 @@ public class QueryServlet {
             if (writeResults.exceedsLimit) {
                 warningList.add("Only first " + iqlQuery.getRowLimit() + " rows returned sorted on the last group by column");
             }
-        } catch (ImhotepOutOfMemoryException e) {
-            throw Throwables.propagate(e);
         } catch (final Exception e) {
             selectQuery.get().checkCancelled();
             throw Throwables.propagate(e);
@@ -541,7 +537,7 @@ public class QueryServlet {
                 log.error("Exception while closing IQLQuery object", e);
             }
         }
-        if (warningList.size()>0){
+        if (!warningList.isEmpty()){
             String warning = "[\"" + StringUtils.join(warningList, "\",\"") + "\"]";
             queryMetadata.addItem("IQL-Warning", warning, false);
         }
@@ -572,10 +568,10 @@ public class QueryServlet {
                 }
             });
         }
-        finalizeQueryExecution(args, queryMetadata, outputStream, queryInfo);
+        finalizeQueryExecution(args, queryMetadata, outputStream);
     }
 
-    private void finalizeQueryExecution(QueryRequestParams args, QueryMetadata queryMetadata, PrintWriter outputStream, QueryInfo queryInfo) throws IOException {
+    private void finalizeQueryExecution(QueryRequestParams args, QueryMetadata queryMetadata, PrintWriter outputStream) {
         if (args.isEventStream) {
             completeEventStream(outputStream, queryMetadata);
         }
@@ -601,7 +597,7 @@ public class QueryServlet {
             }
         }
 
-        if(properTimeIntervalsMissingShards.size() > 0) {
+        if(!properTimeIntervalsMissingShards.isEmpty()) {
             long millisMissing = 0;
             final int countMissingIntervals = properTimeIntervalsMissingShards.size();
 
@@ -628,7 +624,7 @@ public class QueryServlet {
         return warningList;
     }
 
-    public static void completeEventStream(PrintWriter outputStream, QueryMetadata queryMetadata) throws IOException {
+    public static void completeEventStream(PrintWriter outputStream, QueryMetadata queryMetadata) {
         outputStream.println();
         outputStream.println("event: header");
         outputStream.print("data: ");
@@ -642,7 +638,7 @@ public class QueryServlet {
     @Nullable
     private static DateTime getLatestShardVersion(List<Shard> shardVersionList) {
         long maxVersion = 0;
-        if(shardVersionList == null || shardVersionList.size() == 0) {
+        if(shardVersionList == null || shardVersionList.isEmpty()) {
             return null;
         }
         for(Shard shard : shardVersionList) {
@@ -709,7 +705,7 @@ public class QueryServlet {
         }
     }
 
-    private void handleExplainStatement(ExplainStatement explainStatement, QueryRequestParams queryRequestParams, HttpServletResponse resp, WallClock clock) throws IOException, TimeoutException, ImhotepOutOfMemoryException {
+    private void handleExplainStatement(ExplainStatement explainStatement, QueryRequestParams queryRequestParams, HttpServletResponse resp, WallClock clock) throws IOException {
         if(queryRequestParams.version == 1 && !queryRequestParams.legacyMode) {
             throw new IqlKnownException.ParseErrorException("IQL 1 doesn't support EXPLAIN statements");
         }
@@ -918,10 +914,10 @@ public class QueryServlet {
         logLong(logEntry, "resultBytes", queryInfo.resultBytes);
         logSet(logEntry, "dataset", queryInfo.datasets);
         logBoolean(logEntry, "fieldHadDescription", queryInfo.fieldHadDescription);
-        if (queryInfo.datasetFields != null && queryInfo.datasetFields.size() > 0) {
+        if (queryInfo.datasetFields != null && !queryInfo.datasetFields.isEmpty()) {
             logSet(logEntry, "datasetfield", queryInfo.datasetFields);
         }
-        if (queryInfo.datasetFieldsNoDescription != null && queryInfo.datasetFieldsNoDescription.size() > 0) {
+        if (queryInfo.datasetFieldsNoDescription != null && !queryInfo.datasetFieldsNoDescription.isEmpty()) {
             logSet(logEntry, "datasetFieldsNoDescription", queryInfo.datasetFieldsNoDescription);
         }
         if (queryInfo.totalDatasetRangeDays != null) {
@@ -1104,7 +1100,7 @@ public class QueryServlet {
         public final String requestURL;
         public final String remoteAddr;
 
-        public QueryRequestParams(HttpServletRequest req, String userName, String clientName, String contentType) {
+        QueryRequestParams(HttpServletRequest req, String userName, String clientName, String contentType) {
             avoidFileSave = req.getParameter("view") != null;
             csv = req.getParameter("csv") != null;
             interactive = req.getParameter("interactive") != null;
@@ -1117,7 +1113,7 @@ public class QueryServlet {
             getTotals = req.getParameter("totals") != null;
             skipValidation = "1".equals(req.getParameter("skipValidation"));
             username = userName;
-            imhotepUserName = (!Strings.isNullOrEmpty(userName) ? userName : clientName);
+            imhotepUserName = (Strings.isNullOrEmpty(userName) ? clientName : userName);
             requestURL = req.getRequestURL().toString();
             remoteAddr = req.getRemoteAddr();
             sql = req.getParameter("sql") != null;

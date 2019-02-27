@@ -32,8 +32,8 @@ import java.util.regex.Pattern;
 public class QueryInfo {
     private static final Logger log = Logger.getLogger(QueryInfo.class);
 
-    private static Pattern queryTruncatePattern = Pattern.compile("\\(([^\\)]{0,200}+)[^\\)]+\\)");
-    private final static ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final Pattern queryTruncatePattern = Pattern.compile("\\(([^\\)]{0,200}+)[^\\)]+\\)");
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     static {
         OBJECT_MAPPER.configure(SerializationFeature.INDENT_OUTPUT, true);
     }
@@ -51,65 +51,66 @@ public class QueryInfo {
         return query == null ? null : queryTruncatePattern.matcher(query).replaceAll("\\($1\\.\\.\\.\\)");
     }
 
+    @Nullable
     @JsonIgnore
-    public @Nullable String statementType;
+    public String statementType;
     @JsonIgnore
     public String queryStringTruncatedForPrint;
     @JsonProperty("query")
     public String queryStringTruncatedForPrint() {
         return queryStringTruncatedForPrint;
     }
-    public @Nullable long queryStartTimestamp;
+    public long queryStartTimestamp;
     public final int iqlVersion;
     public int queryLength;
-    public @Nullable Set<String> datasets;
-    public @Nullable Integer totalDatasetRangeDays; // SUM(dataset (End - Start)). duration in FROM even if missing shards
-    public @Nullable Integer totalShardPeriodHours; // SUM(shard (end-start)). time actually covered by shards
-    public @Nullable Long ftgsMB;
-    public @Nullable Long imhotepcputimems;
-    public @Nullable Long imhoteprammb;
-    public @Nullable Long imhotepftgsmb;
-    public @Nullable Long imhotepfieldfilesmb;
-    public @Nullable Long cpuSlotsExecTimeMs;
-    public @Nullable Long cpuSlotsWaitTimeMs;
-    public @Nullable Long ioSlotsExecTimeMs;
-    public @Nullable Long ioSlotsWaitTimeMs;
-    public @Nullable Long queryId;
-    public @Nullable Set<String> sessionIDs;
-    public @Nullable Integer numShards;
-    public @Nullable Long numDocs;
-    public @Nullable Set<String> imhotepServers;
-    public @Nullable Integer numImhotepServers;
-    public @Nullable Boolean cached;
-    public @Nullable Integer rows;
-    public @Nullable Boolean cacheUploadSkipped;
-    public @Nullable Long resultBytes;
-    public @Nullable Set<String> cacheHashes;
-    public @Nullable Integer maxGroups = 0;
-    public @Nullable Integer maxConcurrentSessions;
-    public @Nullable Set<String> datasetFields;
-    public @Nullable Set<String> datasetFieldsNoDescription;
-    public @Nullable Boolean fieldHadDescription;
-    public @Nullable Integer selectCount;
-    public @Nullable Integer groupByCount;
-    public @Nullable Boolean headOnly;
+    @Nullable public Set<String> datasets;
+    @Nullable public Integer totalDatasetRangeDays; // SUM(dataset (End - Start)). duration in FROM even if missing shards
+    @Nullable public Integer totalShardPeriodHours; // SUM(shard (end-start)). time actually covered by shards
+    @Nullable public Long ftgsMB;
+    @Nullable public Long imhotepcputimems;
+    @Nullable public Long imhoteprammb;
+    @Nullable public Long imhotepftgsmb;
+    @Nullable public Long imhotepfieldfilesmb;
+    @Nullable public Long cpuSlotsExecTimeMs;
+    @Nullable public Long cpuSlotsWaitTimeMs;
+    @Nullable public Long ioSlotsExecTimeMs;
+    @Nullable public Long ioSlotsWaitTimeMs;
+    @Nullable public Long queryId;
+    @Nullable public Set<String> sessionIDs;
+    @Nullable public Integer numShards;
+    @Nullable public Long numDocs;
+    @Nullable public Set<String> imhotepServers;
+    @Nullable public Integer numImhotepServers;
+    @Nullable public Boolean cached;
+    @Nullable public Integer rows;
+    @Nullable public Boolean cacheUploadSkipped;
+    @Nullable public Long resultBytes;
+    @Nullable public Set<String> cacheHashes;
+    @Nullable public Integer maxGroups = 0;
+    @Nullable public Integer maxConcurrentSessions;
+    @Nullable public Set<String> datasetFields;
+    @Nullable public Set<String> datasetFieldsNoDescription;
+    @Nullable public Boolean fieldHadDescription;
+    @Nullable public Integer selectCount;
+    @Nullable public Integer groupByCount;
+    @Nullable public Boolean headOnly;
 
-    public @Nullable String timingTreeReport;
-    public @Nullable Long totalTime;
+    @Nullable public String timingTreeReport;
+    @Nullable public Long totalTime;
 
-    public @Nullable Long lockWaitMillis;
-    public @Nullable Long cacheCheckMillis;
-    public @Nullable Long sendToClientMillis;
-    public @Nullable Long shardsSelectionMillis;
-    public @Nullable Long createSessionMillis;
-    public @Nullable Long timeFilterMillis;
-    public @Nullable Long conditionFilterMillis;
-    public @Nullable Long regroupMillis;
-    public @Nullable Long ftgsMillis;
-    public @Nullable Long pushStatsMillis;
-    public @Nullable Long getStatsMillis;
+    @Nullable public Long lockWaitMillis;
+    @Nullable public Long cacheCheckMillis;
+    @Nullable public Long sendToClientMillis;
+    @Nullable public Long shardsSelectionMillis;
+    @Nullable public Long createSessionMillis;
+    @Nullable public Long timeFilterMillis;
+    @Nullable public Long conditionFilterMillis;
+    @Nullable public Long regroupMillis;
+    @Nullable public Long ftgsMillis;
+    @Nullable public Long pushStatsMillis;
+    @Nullable public Long getStatsMillis;
 
-    public @Nullable String sqlQuery;
+    @Nullable public String sqlQuery;
 
 
     public void setFromPerformanceStats(PerformanceStats performanceStats) {

@@ -31,7 +31,7 @@ import java.io.IOException;
 public class NoCacheFilter implements Filter {
 
     @Override
-    public void init(@Nonnull final FilterConfig filterConfig) throws ServletException {
+    public void init(@Nonnull final FilterConfig filterConfig) {
     }
 
     @Override

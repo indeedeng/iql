@@ -1,13 +1,14 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
-import com.indeed.iql2.server.web.servlets.dataset.AllData;
-import com.indeed.iql2.server.web.servlets.dataset.Dataset;
 import org.junit.Test;
 
 import java.util.List;
 
-import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.*;
+import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.Options;
+import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testAll;
+import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testIQL1;
+import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testIQL2;
 
 public class MetricInequalityTest extends BasicTest {
     @Test

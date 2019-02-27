@@ -15,7 +15,6 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
-import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -40,6 +39,6 @@ public class PrintfTest extends BasicTest {
         // More convoluted than printf(1/3, '%0.2d') to support both IQL1 and IQL2.
         // In IQL1, 1/3 == count() / 3
         // IQL1 does not support 'printf'
-        QueryServletTestUtils.testIQL2AndLegacy(ImmutableList.<List<String>>of(ImmutableList.of("", "0.33")), "from organic yesterday today select printf('%.2f', count()/(3*count()))");
+        QueryServletTestUtils.testIQL2AndLegacy(ImmutableList.of(ImmutableList.of("", "0.33")), "from organic yesterday today select printf('%.2f', count()/(3*count()))");
     }
 }

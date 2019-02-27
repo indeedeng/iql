@@ -29,11 +29,14 @@ import java.util.Map;
  * @author vladimir
  */
 public class Preprocessor {
-    public static final Parser<String> wordParser = Scanners.IDENTIFIER;
-    public static final Parser<String> nonWordParser = Scanners.pattern(Patterns.regex("[^a-zA-Z]"), "nonword").source();
-    public static final Parser<String> termsTokenizer = Parsers.or(Terminals.StringLiteral.SINGLE_QUOTE_TOKENIZER,
+    private Preprocessor() {
+    }
+
+    private static final Parser<String> wordParser = Scanners.IDENTIFIER;
+    private static final Parser<String> nonWordParser = Scanners.pattern(Patterns.regex("[^a-zA-Z]"), "nonword").source();
+    private static final Parser<String> termsTokenizer = Parsers.or(Terminals.StringLiteral.SINGLE_QUOTE_TOKENIZER,
             Terminals.StringLiteral.DOUBLE_QUOTE_TOKENIZER, wordParser, nonWordParser).source();
-    final static  Parser<List<Token>> tokenizer = termsTokenizer.lexer(Scanners.SQL_DELIMITER); // could use Scanners.WHITESPACES instead of SQL_DELIMITER
+    private static final Parser<List<Token>> tokenizer = termsTokenizer.lexer(Scanners.SQL_DELIMITER); // could use Scanners.WHITESPACES instead of SQL_DELIMITER
 
     public static String applyAliases(String clause, Map<String, String> aliases) {
         if(Strings.isNullOrEmpty(clause)) {

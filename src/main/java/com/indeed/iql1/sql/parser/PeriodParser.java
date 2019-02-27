@@ -25,6 +25,9 @@ import java.util.regex.Pattern;
  */
 
 public class PeriodParser {
+    private PeriodParser() {
+    }
+
     /**
      * Returns a JodaTime Period object representing the provided string period value.
      * Only first symbol of each field tag is mandatory, the rest of the tag is optional. e.g. 1d = 1 day

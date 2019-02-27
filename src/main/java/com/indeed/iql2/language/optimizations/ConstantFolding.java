@@ -14,16 +14,19 @@
 
 package com.indeed.iql2.language.optimizations;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocFilter;
 import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.util.core.Pair;
 
+import java.util.function.Function;
+
 public class ConstantFolding {
-    public static final Function<AggregateMetric, AggregateMetric> AGG_METRIC_OPTIMIZER = new Function<AggregateMetric, AggregateMetric>() {
+    private ConstantFolding() {
+    }
+
+    private static final Function<AggregateMetric, AggregateMetric> AGG_METRIC_OPTIMIZER = new Function<AggregateMetric, AggregateMetric>() {
         @Override
         public AggregateMetric apply(final AggregateMetric input) {
             if (input instanceof AggregateMetric.Negate) {
@@ -39,7 +42,7 @@ public class ConstantFolding {
         }
     };
 
-    public static final Function<DocMetric, DocMetric> METRIC_OPTIMIZER = new Function<DocMetric, DocMetric>() {
+    private static final Function<DocMetric, DocMetric> METRIC_OPTIMIZER = new Function<DocMetric, DocMetric>() {
         @Override
         public DocMetric apply(DocMetric input) {
             if (input instanceof DocMetric.Multiply) {
@@ -93,8 +96,7 @@ public class ConstantFolding {
                 if (isConstant(abs.m1)) {
                     return new DocMetric.Constant(Math.abs(getConstant(abs.m1)));
                 } else if (abs.m1 instanceof DocMetric.Abs) {
-                    final DocMetric.Abs innerAbs = (DocMetric.Abs) abs.m1;
-                    return innerAbs;
+                    return abs.m1;
                 }
             } else if (input instanceof DocMetric.Count) {
                 return new DocMetric.Constant(1);
@@ -205,7 +207,7 @@ public class ConstantFolding {
             return input;
         }
     };
-    public static final Function<DocFilter, DocFilter> FILTER_OPTIMIZER = new Function<DocFilter, DocFilter>() {
+    private static final Function<DocFilter, DocFilter> FILTER_OPTIMIZER = new Function<DocFilter, DocFilter>() {
         @Override
         public DocFilter apply(DocFilter input) {
             if (input instanceof DocFilter.MetricEqual) {
@@ -263,11 +265,11 @@ public class ConstantFolding {
     };
 
     public static Query apply(final Query query) {
-        return query.transform(Functions.identity(), AGG_METRIC_OPTIMIZER, METRIC_OPTIMIZER, Functions.identity(), FILTER_OPTIMIZER);
+        return query.transform(Function.identity(), AGG_METRIC_OPTIMIZER, METRIC_OPTIMIZER, Function.identity(), FILTER_OPTIMIZER);
     }
 
     public static AggregateMetric apply(final AggregateMetric metric) {
-        return metric.transform(AGG_METRIC_OPTIMIZER, METRIC_OPTIMIZER, Functions.identity(), FILTER_OPTIMIZER, Functions.identity());
+        return metric.transform(AGG_METRIC_OPTIMIZER, METRIC_OPTIMIZER, Function.identity(), FILTER_OPTIMIZER, Function.identity());
     }
 
     public static DocMetric apply(final DocMetric metric) {

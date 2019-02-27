@@ -32,7 +32,6 @@ import it.unimi.dsi.fastutil.longs.LongList;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -224,7 +223,7 @@ public class Dataset {
 
     private class AliasDimensionClient implements ImsClientInterface {
         private final Map<String, DatasetYaml> datasetMap;
-        public AliasDimensionClient(final List<Shard> shards) {
+        AliasDimensionClient(final List<Shard> shards) {
             datasetMap = new HashMap<>();
             for (final Shard shard : shards) {
                 if (datasetMap.containsKey(shard.dataset)) {

@@ -14,7 +14,6 @@
 
 package com.indeed.iql2.language;
 
-import com.google.common.base.Function;
 import com.indeed.iql2.language.query.Queries;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.fieldresolution.FieldResolver;
@@ -32,6 +31,7 @@ import org.junit.Test;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
+import java.util.function.Function;
 
 import static com.indeed.iql2.language.AggregateMetric.Add;
 import static com.indeed.iql2.language.AggregateMetric.Divide;
@@ -42,7 +42,7 @@ import static com.indeed.iql2.language.DocMetricsTest.docField;
 
 public class AggregateMetricsTest {
     private static final WallClock CLOCK = new StoppedClock(new DateTime(2015, 2, 1, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis());
-    public static final FieldResolver FIELD_RESOLVER = FieldResolverTest.fromQuery("from synthetic 2d 1d");
+    private static final FieldResolver FIELD_RESOLVER = FieldResolverTest.fromQuery("from synthetic 2d 1d");
     private static final Query.Context CONTEXT = new Query.Context(
             Collections.emptyList(),
             AllData.DATASET.getDatasetsMetadata(),
@@ -64,7 +64,7 @@ public class AggregateMetricsTest {
             return AggregateMetrics.parseAggregateMetric(ctx, CONTEXT);
         }
     };
-    public static final Function<String, AggregateMetric> PARSE_LEGACY_AGGREGATE_METRIC = new Function<String, AggregateMetric>() {
+    private static final Function<String, AggregateMetric> PARSE_LEGACY_AGGREGATE_METRIC = new Function<String, AggregateMetric>() {
         public AggregateMetric apply(@Nullable String input) {
             final JQLParser.AggregateMetricContext ctx = Queries.runParser(input, new Function<JQLParser, JQLParser.AggregateMetricContext>() {
                 public JQLParser.AggregateMetricContext apply(JQLParser input) {

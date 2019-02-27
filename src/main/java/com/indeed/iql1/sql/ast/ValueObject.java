@@ -76,14 +76,10 @@ public abstract class ValueObject {
 
 
 
-  private static final Comparator<Field> NAME_ORDER = new Comparator<Field>() {
-    public int compare(Field field1, Field field2) {
-      return field1.getName().compareTo(field2.getName());
-    }
-  };
+  private static final Comparator<Field> NAME_ORDER = Comparator.comparing(Field::getName);
   
   private static final ConcurrentMap<Class<?>, Field[]> valueFieldMap =
-      new ConcurrentHashMap<Class<?>, Field[]>();
+          new ConcurrentHashMap<>();
       
   private static Field[] getValueFields(Class<?> type) {
     Field[] fields = valueFieldMap.get(type);
@@ -95,7 +91,7 @@ public abstract class ValueObject {
   }
   
   private static List<Object> toValueList(Object obj, Field[] fields) {
-    List<Object> list = new ArrayList<Object>();
+    List<Object> list = new ArrayList<>();
     for (Field field : fields) {
       try {
         list.add(field.get(obj));
@@ -110,7 +106,7 @@ public abstract class ValueObject {
     if (type == ValueObject.class) {
       return NO_FIELD;
     }
-    List<Field> fieldList = new ArrayList<Field>();
+    List<Field> fieldList = new ArrayList<>();
     fieldList.addAll(Arrays.asList(introspectValueFields(type.getSuperclass())));
     List<Field> myFields = tail(fieldList);
     for (Field field : type.getDeclaredFields()) {
@@ -118,7 +114,7 @@ public abstract class ValueObject {
         myFields.add(field);
       }
     }
-    Collections.sort(myFields, NAME_ORDER);
+    myFields.sort(NAME_ORDER);
     Field[] fields = fieldList.toArray(new Field[fieldList.size()]);
     AccessibleObject.setAccessible(fields, true);
     return fields;

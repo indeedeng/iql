@@ -103,10 +103,10 @@ public class IntRegroupFieldIn implements Command {
         @Override
         public GroupKey groupKey(int group) {
             final int termIndex = (group - 1) % groupsPerOldGroup();
-            if (termIndex == this.groupKeys.length) {
+            if (termIndex == groupKeys.length) {
                 return DefaultGroupKey.DEFAULT_INSTANCE;
             }
-            return this.groupKeys[(termIndex)];
+            return groupKeys[(termIndex)];
         }
 
         @Override

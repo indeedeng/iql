@@ -44,7 +44,7 @@ public class SplitServlet {
     public Object split(
             final HttpServletRequest request,
             final HttpServletResponse response,
-            final @Nonnull @RequestParam("q") String q
+            @RequestParam("q") @Nonnull final String q
     ) {
         final int version = ServletUtil.getIQLVersionBasedOnParam(request);
         response.setHeader("Content-Type", "application/json");

@@ -21,7 +21,6 @@ import com.indeed.iql1.ez.GroupKey;
 import com.indeed.iql1.ez.StatReference;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-import org.apache.log4j.Logger;
 
 import java.text.DecimalFormat;
 import java.util.Arrays;
@@ -33,9 +32,7 @@ import java.util.PriorityQueue;
  * @author jplaisance
  */
 public final class TopKGroupingFTGSCallback extends EZImhotepSession.FTGSCallback {
-    private static final Logger log = Logger.getLogger(TopKGroupingFTGSCallback.class);
-
-    private final Int2ObjectMap<PriorityQueue<ScoredObject<GroupStats>>> groupToTopK = new Int2ObjectOpenHashMap<PriorityQueue<ScoredObject<GroupStats>>>();
+    private final Int2ObjectMap<PriorityQueue<ScoredObject<GroupStats>>> groupToTopK = new Int2ObjectOpenHashMap<>();
     private final Comparator<ScoredObject<GroupStats>> comparator;
     private final Limits limits;
     private final int topK;
@@ -58,11 +55,11 @@ public final class TopKGroupingFTGSCallback extends EZImhotepSession.FTGSCallbac
         this.limits = limits;
     }
 
-    protected void intTermGroup(final String field, final long term, final int group) {
+    protected void intTermGroup(final long term, final int group) {
         termGroup(term, group);
     }
 
-    protected void stringTermGroup(final String field, final String term, final int group) {
+    protected void stringTermGroup(final String term, final int group) {
         termGroup(term, group);
     }
 
@@ -97,7 +94,7 @@ public final class TopKGroupingFTGSCallback extends EZImhotepSession.FTGSCallbac
         for (int i = 0; i < statRefs.size(); i++) {
             stats[i] = getStat(statRefs.get(i));
         }
-        return new ScoredObject<GroupStats>(count, new GroupStats(groupKeys.get(group).add(term), stats));
+        return new ScoredObject<>(count, new GroupStats(groupKeys.get(group).add(term), stats));
     }
 
     public List<GroupStats> getResults() {

@@ -19,7 +19,6 @@ import com.indeed.iql1.ez.EZImhotepSession;
 import com.indeed.iql1.ez.GroupKey;
 import com.indeed.iql1.ez.StatReference;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import org.apache.log4j.Logger;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -29,8 +28,6 @@ import java.util.List;
  * @author jplaisance
  */
 public abstract class Grouping {
-    private static final Logger log = Logger.getLogger(Grouping.class);
-
     public abstract Int2ObjectMap<GroupKey> regroup(EZImhotepSession session, Int2ObjectMap<GroupKey> groupKeys) throws ImhotepOutOfMemoryException;
 
     public Iterator<GroupStats> getGroupStats(EZImhotepSession session, Int2ObjectMap<GroupKey> groupKeys, List<StatReference> statRefs) throws ImhotepOutOfMemoryException {

@@ -14,28 +14,33 @@
  package com.indeed.iql.metadata;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Optional;
 
 /**
  * @author vladimir
  */
 public class MetricMetadata {
-    public @Nonnull final String name;
-    public @Nullable String fieldAlias;
-    public @Nullable String description;
-    public @Nullable String expression;
-    public @Nullable String unit;
-    public boolean isHidden = false;
+    @Nonnull
+    private final String name;
+    @Nullable
+    private final String fieldAlias;
+    @Nullable
+    private String description;
+    @Nullable
+    private String expression;
+    @Nullable
+    private String unit;
+    private boolean isHidden = false;
 
     // IQL2 only
-    public boolean isAlias;
+    private boolean isAlias;
 
     // TODO delete
-    public MetricMetadata(final String name, final String expression, final String description, final @Nullable String fieldAlias) {
+    public MetricMetadata(final String name, final String expression, final String description, @Nullable final String fieldAlias) {
         this.name = name;
         this.expression = expression;
         this.description = description;
@@ -95,7 +100,7 @@ public class MetricMetadata {
     }
 
     public Optional<String> getAliasActualField() {
-        return Optional.fromNullable(fieldAlias);
+        return Optional.ofNullable(fieldAlias);
     }
 
     private String getAugmentedDescription() {

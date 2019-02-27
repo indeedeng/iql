@@ -15,10 +15,6 @@
 package com.indeed.iql2.language.query;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
-import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.indeed.imhotep.Shard;
@@ -73,11 +69,16 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class Queries {
+    private Queries() {
+    }
+
     private static final Logger log = Logger.getLogger(Queries.class);
 
     public static class QueryDataset {
@@ -114,7 +115,7 @@ public class Queries {
                     dataset.startInclusive.unwrap().toString(),
                     dataset.getDisplayName(),
                     dataset.endExclusive.unwrap().toString(),
-                    dataset.alias.or(dataset.dataset).unwrap(),
+                    dataset.alias.orElse(dataset.dataset).unwrap(),
                     dataset.shards
             ));
         }
@@ -188,12 +189,7 @@ public class Queries {
     }
 
     public static ParseResult parseQuery(String q, boolean useLegacy, DatasetsMetadata datasetsMetadata, final Set<String> defaultOptions, WallClock clock, final TracingTreeTimer timer, final ShardResolver shardResolver) {
-        return parseQuery(q, useLegacy, datasetsMetadata, defaultOptions, new Consumer<String>() {
-            @Override
-            public void accept(String s) {
-
-            }
-        }, clock, timer, shardResolver);
+        return parseQuery(q, useLegacy, datasetsMetadata, defaultOptions, s -> {}, clock, timer, shardResolver);
     }
 
     public static ParseResult parseQuery(String q, boolean useLegacy, DatasetsMetadata datasetsMetadata, final Set<String> defaultOptions, Consumer<String> warn, WallClock clock, final TracingTreeTimer timer, final ShardResolver shardResolver) {
@@ -238,11 +234,11 @@ public class Queries {
         final String from = getText(queryInputStream, queryContext.fromContents(), seenComments).trim();
         final String where;
         if (queryContext.whereContents() != null) {
-            where = Joiner.on(' ').join(Iterables.transform(queryContext.whereContents().docFilter(), new Function<JQLParser.DocFilterContext, String>() {
-                public String apply(@Nullable JQLParser.DocFilterContext input) {
-                    return getText(queryInputStream, input, seenComments);
-                }
-            })).trim();
+            where = queryContext.whereContents().docFilter()
+                    .stream()
+                    .map(filter -> getText(queryInputStream, filter, seenComments))
+                    .collect(Collectors.joining(" "))
+                    .trim();
         } else {
             where = "";
         }
@@ -251,11 +247,10 @@ public class Queries {
         final String groupBy = getText(queryInputStream, queryContext.groupByContents(), seenComments).trim();
 
         final List<String> selects = extractSelects(queryContext, queryInputStream);
-        final String select = Joiner.on(' ').join(Iterables.transform(queryContext.selectContents(), new Function<JQLParser.SelectContentsContext, String>() {
-            public String apply(@Nullable JQLParser.SelectContentsContext input) {
-                return getText(queryInputStream, input, seenComments);
-            }
-        })).trim();
+        final String select = queryContext.selectContents().stream()
+                .map(input -> getText(queryInputStream, input, seenComments))
+                .collect(Collectors.joining(" "))
+                .trim();
 
         final String dataset;
         final String start;
@@ -334,7 +329,7 @@ public class Queries {
     public static List<String> extractHeaders(Query parsed) {
         final List<String> result = new ArrayList<>();
         for (GroupByEntry groupBy : parsed.groupBys) {
-            result.add(groupBy.alias.or(groupBy.groupBy::getRawInput));
+            result.add(groupBy.alias.orElseGet(groupBy.groupBy::getRawInput));
         }
         if (result.isEmpty()) {
             result.add("");
@@ -403,7 +398,7 @@ public class Queries {
             }
 
             final String extra;
-            if (exceptions.size() > 0) {
+            if (!exceptions.isEmpty()) {
                 final RecognitionException anException = exceptions.get(0);
                 final String message = anException.getExpectedTokens().toString(JQLParser.VOCABULARY);
                 extra = ", expected " + message + ", found [" + anException.getOffendingToken().getText() + "]";
@@ -420,11 +415,7 @@ public class Queries {
     }
 
     public static JQLParser.QueryContext parseQueryContext(String q, final boolean useLegacy) {
-        return runParser(q, new Function<JQLParser, JQLParser.QueryContext>() {
-            public JQLParser.QueryContext apply(JQLParser input) {
-                return input.query(useLegacy);
-            }
-        });
+        return runParser(q, parser -> parser.query(useLegacy));
     }
 
     public static AggregateMetric parseAggregateMetric(
@@ -451,7 +442,7 @@ public class Queries {
     }
 
     public static List<Command> queryCommands(final Query query) {
-        return queryCommands(query, Optional.absent());
+        return queryCommands(query, Optional.empty());
     }
 
 
@@ -514,7 +505,7 @@ public class Queries {
         // Cannot be Set, need to know duplicates.
         final List<Dataset> result = new ArrayList<>();
         result.addAll(query.datasets);
-        query.transform(Functions.<GroupBy>identity(), Functions.<AggregateMetric>identity(), Functions.<DocMetric>identity(), Functions.<AggregateFilter>identity(), new Function<DocFilter, DocFilter>() {
+        query.transform(Function.identity(), Function.identity(), Function.identity(), Function.identity(), new Function<DocFilter, DocFilter>() {
             public DocFilter apply(DocFilter docFilter) {
                 if (docFilter instanceof DocFilter.FieldInQuery) {
                     result.addAll(Queries.findAllDatasets(((DocFilter.FieldInQuery) docFilter).query));

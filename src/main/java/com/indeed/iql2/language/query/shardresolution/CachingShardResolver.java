@@ -47,7 +47,7 @@ public class CachingShardResolver implements ShardResolver {
         final DateTime start;
         final DateTime end;
 
-        public Key(final String dataset, final DateTime start, final DateTime end) {
+        Key(final String dataset, final DateTime start, final DateTime end) {
             this.dataset = dataset;
             this.start = start;
             this.end = end;

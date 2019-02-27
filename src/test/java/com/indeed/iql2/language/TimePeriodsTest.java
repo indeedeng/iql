@@ -14,14 +14,10 @@
 
 package com.indeed.iql2.language;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Sets;
-import com.indeed.iql2.language.TimePeriods;
-import com.indeed.iql2.language.TimeUnit;
 import com.indeed.iql2.language.query.Queries;
-import com.indeed.iql2.language.JQLParser;
 import com.indeed.util.core.Pair;
-import junit.framework.Assert;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -51,7 +47,7 @@ public class TimePeriodsTest {
 
     }
     
-    private static List<TestDef> TEST_CASES = Arrays.asList(
+    private static final List<TestDef> TEST_CASES = Arrays.asList(
             new TestDef("1 b", Pair.of(1, TimeUnit.BUCKETS)),
             new TestDef("1 bucket", Pair.of(1, TimeUnit.BUCKETS)),
             new TestDef("100 buckets", Pair.of(100, TimeUnit.BUCKETS)),
@@ -136,11 +132,7 @@ public class TimePeriodsTest {
     }
 
     private List<Pair<Integer, TimeUnit>> parseTimePeriod(String input, boolean useLegacy) {
-        final JQLParser.TimePeriodContext ctx = Queries.runParser(input, new Function<JQLParser, JQLParser.TimePeriodContext>() {
-            public JQLParser.TimePeriodContext apply(JQLParser input) {
-                return input.timePeriodTerminal().timePeriod();
-            }
-        });
+        final JQLParser.TimePeriodContext ctx = Queries.runParser(input, parser -> parser.timePeriodTerminal().timePeriod());
         return TimePeriods.parseTimePeriod(ctx, useLegacy);
     }
 

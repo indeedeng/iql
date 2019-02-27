@@ -27,7 +27,10 @@ import java.util.List;
  * @author jwolfe
  */
 public class Stats {
-    public static abstract class Stat {
+    private Stats() {
+    }
+
+    public abstract static class Stat {
         protected abstract List<String> pushes(EZImhotepSession session);
     }
 
@@ -77,7 +80,9 @@ public class Stats {
             final List<String> ret = Lists.newArrayList();
             for (Stat stat : stats) {
                 ret.addAll(stat.pushes(session));
-                if (!first) ret.add(op);
+                if (!first) {
+                    ret.add(op);
+                }
                 first = false;
             }
             return ret;
@@ -102,8 +107,8 @@ public class Stats {
 
     static class AggregateBinOpStat extends Stat {
         private final String op;
-        Stat statLeft;
-        Stat statRight;
+        final Stat statLeft;
+        final Stat statRight;
 
         public AggregateBinOpStat(String op, Stat statLeft, Stat statRight) {
             this.op = op;
@@ -125,7 +130,7 @@ public class Stats {
     static class AggregateBinOpConstStat extends Stat {
         private final String op;
         private final long value;
-        Stat statLeft;
+        final Stat statLeft;
 
         public AggregateBinOpConstStat(String op, Stat statLeft, long value) {
             this.op = op;

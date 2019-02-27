@@ -14,8 +14,6 @@
 
 package com.indeed.iql2.language.precomputed;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
@@ -32,14 +30,15 @@ import com.indeed.iql2.language.commands.SumAcross;
 import com.indeed.iql2.language.query.Dataset;
 import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
-import com.indeed.iql2.language.util.Optionals;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 
 public interface Precomputed {
     Precomputation commands(List<Dataset> datasets);
@@ -61,12 +60,12 @@ public interface Precomputed {
 
         @Override
         public Precomputation commands(List<Dataset> datasets) {
-            return Precomputation.noContext(new GetGroupDistincts(field, filter, windowSize.or(1)));
+            return Precomputation.noContext(new GetGroupDistincts(field, filter, windowSize.orElse(1)));
         }
 
         @Override
         public Precomputed transform(Function<Precomputed, Precomputed> precomputed, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            return precomputed.apply(new PrecomputedDistinct(field, Optionals.transform(filter, f, g, h, i, groupByFunction), windowSize));
+            return precomputed.apply(new PrecomputedDistinct(field, filter.map(x -> x.transform(f, g, h, i, groupByFunction)), windowSize));
         }
 
         @Override
@@ -75,7 +74,7 @@ public interface Precomputed {
             if (this.filter.isPresent()) {
                 filter = Optional.of(this.filter.get().traverse1(f));
             } else {
-                filter = Optional.absent();
+                filter = Optional.empty();
             }
             return new PrecomputedDistinct(field, filter, windowSize);
         }
@@ -126,7 +125,7 @@ public interface Precomputed {
                 metrics.add(metric);
             }
             final AggregateMetric metric = AggregateMetric.Add.create(metrics);
-            return Precomputation.noContext(new GetGroupStats(Collections.singletonList(metric), Collections.singletonList(Optional.<String>absent()), false));
+            return Precomputation.noContext(new GetGroupStats(Collections.singletonList(metric), Collections.singletonList(Optional.empty()), false));
         }
 
         @Override
@@ -161,12 +160,12 @@ public interface Precomputed {
 
         @Override
         public Precomputed transform(Function<Precomputed, Precomputed> precomputed, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            return precomputed.apply(new PrecomputedSumAcross(field, metric.transform(f, g, h, i, groupByFunction), Optionals.transform(filter, f, g, h, i, groupByFunction)));
+            return precomputed.apply(new PrecomputedSumAcross(field, metric.transform(f, g, h, i, groupByFunction), filter.map(x -> x.transform(f, g, h, i, groupByFunction))));
         }
 
         @Override
         public Precomputed traverse1(Function<AggregateMetric, AggregateMetric> f) {
-            return new PrecomputedSumAcross(field, f.apply(metric), Optionals.traverse1(filter, f));
+            return new PrecomputedSumAcross(field, f.apply(metric), filter.map(x -> x.traverse1(f)));
         }
     }
 
@@ -185,8 +184,8 @@ public interface Precomputed {
         public Precomputation commands(List<Dataset> datasets) {
             return new Precomputation(
                     groupBy.executionStep(datasets).commands(),
-                    new GetGroupStats(Collections.singletonList(metric), Collections.singletonList(Optional.<String>absent()), false),
-                    Collections.<Command>singletonList(new RegroupIntoParent(GroupLookupMergeType.SumAll))
+                    new GetGroupStats(Collections.singletonList(metric), Collections.singletonList(Optional.empty()), false),
+                    Collections.singletonList(new RegroupIntoParent(GroupLookupMergeType.SumAll))
             );
         }
 
@@ -231,14 +230,14 @@ public interface Precomputed {
             return precomputed.apply(
                 new PrecomputedFieldExtremeValue(field,
                     metric.transform(f, g, h, i, groupByFunction),
-                    filter.transform(fil -> fil.transform(f, g, h, i, groupByFunction))
+                    filter.map(fil -> fil.transform(f, g, h, i, groupByFunction))
                 )
             );
         }
 
         @Override
         public Precomputed traverse1(Function<AggregateMetric, AggregateMetric> f) {
-            return new PrecomputedFieldExtremeValue(field, f.apply(metric), Optionals.traverse1(filter, f));
+            return new PrecomputedFieldExtremeValue(field, f.apply(metric), filter.map(x -> x.traverse1(f)));
         }
     }
 
@@ -256,7 +255,7 @@ public interface Precomputed {
         }
 
         public static Precomputation noContext(Command command) {
-            return new Precomputation(Collections.<Command>emptyList(), command, Collections.<Command>emptyList());
+            return new Precomputation(Collections.emptyList(), command, Collections.emptyList());
         }
     }
 }

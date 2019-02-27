@@ -17,6 +17,7 @@ import com.indeed.iql1.sql.ast.ValueObject;
 import org.joda.time.DateTime;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 /**
  * @author vladimir
@@ -67,16 +68,18 @@ public class FromClause extends ValueObject implements Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof FromClause)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof FromClause)) {
+            return false;
+        }
 
         FromClause that = (FromClause) o;
 
-        if (dataset != null ? !dataset.equals(that.dataset) : that.dataset != null) return false;
-        if (end != null ? !end.isEqual(that.end) : that.end != null) return false;
-        if (start != null ? !start.isEqual(that.start) : that.start != null) return false;
-
-        return true;
+        return Objects.equals(dataset, that.dataset)
+                && Objects.equals(end, that.end)
+                && Objects.equals(start, that.start);
     }
 
     @Override

@@ -14,7 +14,6 @@
 
 package com.indeed.iql2.language.execution.passes;
 
-import com.google.common.base.Function;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.execution.ExecutionStep;
 import com.indeed.iql2.language.precomputed.Precomputed;
@@ -22,6 +21,7 @@ import com.indeed.util.core.Pair;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 // Some metrics require precomputation but then still have AggregateMetric.Running instances
 // which will have an incorrect depth.
@@ -33,7 +33,7 @@ public class FixFtgsMetricRunning {
     private FixFtgsMetricRunning() {
     }
 
-    public static final Function<AggregateMetric, AggregateMetric> DECREMENT_RUNNING = new Function<AggregateMetric, AggregateMetric>() {
+    private static final Function<AggregateMetric, AggregateMetric> DECREMENT_RUNNING = new Function<AggregateMetric, AggregateMetric>() {
         @Override
         public AggregateMetric apply(AggregateMetric input) {
             if (input instanceof AggregateMetric.Running) {

@@ -15,24 +15,17 @@
 package com.indeed.iql2.server.web.servlets.query;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql.web.print.LevelPrinter;
 import com.indeed.iql2.IQL2Options;
-import com.indeed.iql2.language.AggregateFilter;
-import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocFilter;
-import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.commands.Command;
-import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.Queries;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.shardresolution.NullShardResolver;
 import com.indeed.util.core.time.WallClock;
 import com.indeed.util.logging.TracingTreeTimer;
-import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -43,10 +36,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class ExplainQueryExecution {
-    private static final Logger log = Logger.getLogger(ExplainQueryExecution.class);
-
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     // IQL2 Imhotep-based state
@@ -62,8 +54,6 @@ public class ExplainQueryExecution {
     private final String query;
     private final int version;
     private final LevelPrinter printer;
-
-    private boolean ran = false;
 
     public ExplainQueryExecution(
             final DatasetsMetadata datasetsMetadata,
@@ -87,12 +77,7 @@ public class ExplainQueryExecution {
     public void processExplain() throws IOException {
         final Set<String> errors = new HashSet<>();
         final Set<String> warnings = new HashSet<>();
-        final Consumer<String> warn = new Consumer<String>() {
-            @Override
-            public void accept(String s) {
-                warnings.add(s);
-            }
-        };
+        final Consumer<String> warn = warnings::add;
 
         final TracingTreeTimer timer = new TracingTreeTimer();
         final Query parsedQuery = Queries.parseQuery(query, version==1, datasetsMetadata, defaultIQL2Options, warn, clock, timer, new NullShardResolver()).query;
@@ -130,10 +115,10 @@ public class ExplainQueryExecution {
 
         private void explainParsedQuery() {
             final Query query = originalQuery.transform(
-                    Functions.<GroupBy>identity(),
-                    Functions.<AggregateMetric>identity(),
-                    Functions.<DocMetric>identity(),
-                    Functions.<AggregateFilter>identity(),
+                    Function.identity(),
+                    Function.identity(),
+                    Function.identity(),
+                    Function.identity(),
                     new Function<DocFilter, DocFilter>() {
                         @Nullable
                         @Override

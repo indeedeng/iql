@@ -17,16 +17,15 @@ import com.google.common.base.Joiner;
 
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
 public class QueryLogEntry implements Iterable<Entry<String,String>> {
-    private Map<String, String> propertyMap;
+    private final Map<String, String> propertyMap;
 
     public QueryLogEntry() {
-        this.propertyMap = new LinkedHashMap<String, String>();
+        propertyMap = new LinkedHashMap<>();
     }
 
     public void setProperty(String key, String val) {

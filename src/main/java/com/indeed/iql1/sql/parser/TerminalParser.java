@@ -30,6 +30,8 @@ import java.util.List;
  * @author Ben Yu
  */
 public final class TerminalParser {
+    private TerminalParser() {
+    }
 
     private static final String[] WHERE_OPERATORS = {
             "=", ":", "!=", "-",
@@ -62,7 +64,7 @@ public final class TerminalParser {
         return parser.from(TOKENIZER, Scanners.SQL_DELIMITER).parse(source);
     }
 
-    public static Parser<List<Token>> LEXER = TOKENIZER.lexer(Scanners.SQL_DELIMITER);
+    public static final Parser<List<Token>> LEXER = TOKENIZER.lexer(Scanners.SQL_DELIMITER);
 
     public static Parser<?> term(String term) {
         try {

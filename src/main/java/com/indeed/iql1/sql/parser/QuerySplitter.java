@@ -15,8 +15,11 @@
 
 import com.google.common.collect.Lists;
 import com.indeed.iql1.sql.ast2.QueryParts;
-import org.codehaus.jparsec.*;
-import org.codehaus.jparsec.functors.Map5;
+import org.codehaus.jparsec.Parser;
+import org.codehaus.jparsec.Parsers;
+import org.codehaus.jparsec.Scanners;
+import org.codehaus.jparsec.Terminals;
+import org.codehaus.jparsec.Token;
 import org.codehaus.jparsec.misc.Mapper;
 import org.codehaus.jparsec.pattern.Patterns;
 
@@ -27,6 +30,9 @@ import java.util.List;
  */
 
 public class QuerySplitter {
+    private QuerySplitter() {
+    }
+
     private static final String[] KEYWORDS = new String[] {
             "select", "from", "where", "group", "by", "limit", "=", ":", //query
 
@@ -63,12 +69,7 @@ public class QuerySplitter {
         Parser<Token> limitParser = TERMS.token("limit").next(getContentParser());
 
         return Parsers.sequence(fromLINQParser, whereLINQParser.optional(), groupByLINQParser.optional(), selectLINQParser.optional(), limitParser.optional(),
-                new Map5<Token, Token, Token, Token, Token, QueryParts>() {
-            @Override
-            public QueryParts map(Token from, Token where, Token groupBy, Token select, Token limit) {
-                return new QueryParts(from, where, groupBy, select, limit);
-            }
-        });
+                QueryParts::new);
     }
 
     private static Parser<QueryParts> getQuerySQLParser() {
@@ -79,12 +80,7 @@ public class QuerySplitter {
         Parser<Token> limitParser = TERMS.token("limit").next(getContentParser());
 
         return Parsers.sequence(selectSQLParser.optional(), fromSQLParser, whereSQLParser.optional(), groupBySQLParser.optional(), limitParser.optional(),
-                new Map5<Token, Token, Token, Token, Token, QueryParts>() {
-                    @Override
-                    public QueryParts map(Token select, Token from, Token where, Token groupBy, Token limit) {
-                        return new QueryParts(from, where, groupBy, select, limit);
-                    }
-                });
+                (select, from, where, groupBy, limit) -> new QueryParts(from, where, groupBy, select, limit));
     }
 
     private static Parser<Token> getContentParser(String... excludedTerms) {
@@ -104,19 +100,5 @@ public class QuerySplitter {
         alternatives.add(TERMS.token(excludedTerms).not().next(Parsers.ANY_TOKEN));
 
         return Parsers.or(alternatives).many().source().token();
-    }
-
-    static void runBenchmark() {
-        runBenchmarkJParsec();
-        System.out.println("Warm up done");
-        long start = System.currentTimeMillis();
-        runBenchmarkJParsec();
-        // 5.3s this jparsec implementation, 3.7s custom implementation
-        System.out.println("done in " + (System.currentTimeMillis()-start));
-    }
-    private static void runBenchmarkJParsec() {
-        for (int i = 0; i < 100000; i++) {
-            splitQuery("select count() from ramsaccess \"2012-02-01T00:00:00\" \"2013-02-09T00:00:00\" where searches=1 and fields in (\"affiliate\", \"affchan\", \"affchannel\", \"affshr\", \"affshare\", \"agent\", \"asecmp\", \"ascompany\", \"asettl\", \"astitle\", \"emailuser\", \"emaildomain\", \"adschn\", \"adschan\", \"adschannel\", \"language\", \"ch\", \"chn\", \"spon\", \"clkcnt\", \"clk\", \"rq\", \"conversion\") group by fields");
-        }
     }
 }

@@ -14,8 +14,6 @@
 
 package com.indeed.iql2.language;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
 import com.indeed.iql2.language.query.Queries;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.fieldresolution.FieldResolver;
@@ -26,13 +24,14 @@ import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import com.indeed.util.core.time.StoppedClock;
 import com.indeed.util.core.time.WallClock;
 import com.indeed.util.logging.TracingTreeTimer;
-import junit.framework.Assert;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
+import org.junit.Assert;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
+import java.util.function.Function;
 
 import static com.indeed.iql2.language.DocMetric.Add;
 import static com.indeed.iql2.language.DocMetric.Divide;
@@ -42,7 +41,7 @@ import static com.indeed.iql2.language.DocMetric.Subtract;
 
 public class DocMetricsTest {
     public static final WallClock CLOCK = new StoppedClock(new DateTime(2015, 2, 1, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis());
-    public static final FieldResolver FIELD_RESOLVER = FieldResolverTest.fromQuery("from synthetic 2d 1d");
+    private static final FieldResolver FIELD_RESOLVER = FieldResolverTest.fromQuery("from synthetic 2d 1d");
     public static final Query.Context CONTEXT = new Query.Context(
             Collections.emptyList(),
             AllData.DATASET.getDatasetsMetadata(),
@@ -76,11 +75,7 @@ public class DocMetricsTest {
         }
     };
 
-    private static final Function<String, String> REPLACE_DIVIDES = new Function<String, String>() {
-        public String apply(String input) {
-            return input.replace("/", "\\");
-        }
-    };
+    private static final Function<String, String> REPLACE_DIVIDES = s -> s.replace("/", "\\");
 
     public static DocMetric docField(String field) {
         return new Field(FieldSet.of("synthetic", field));
@@ -115,7 +110,7 @@ public class DocMetricsTest {
         );
 
         CommonArithmetic.testLotsOfArithmetic(
-                Functions.compose(PARSE_LEGACY_DOC_METRIC, REPLACE_DIVIDES),
+                REPLACE_DIVIDES.andThen(PARSE_LEGACY_DOC_METRIC),
                 aTimesBPlusCTimesD,
                 complex
         );

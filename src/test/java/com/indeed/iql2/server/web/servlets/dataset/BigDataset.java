@@ -15,8 +15,6 @@
 package com.indeed.iql2.server.web.servlets.dataset;
 
 import com.indeed.flamdex.writer.FlamdexDocument;
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
 
 import java.util.ArrayList;
 import java.util.List;

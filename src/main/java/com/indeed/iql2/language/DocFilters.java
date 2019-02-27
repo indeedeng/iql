@@ -14,7 +14,6 @@
 
 package com.indeed.iql2.language;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetMetadata;
@@ -31,11 +30,15 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import static com.indeed.iql2.language.DocMetrics.extractPlainDimensionDocMetric;
 
 public class DocFilters {
+    private DocFilters() {
+    }
+
     public static DocFilter parseDocFilter(
             final JQLParser.DocFilterContext docFilterContext,
             final Query.Context context) {
@@ -464,7 +467,7 @@ public class DocFilters {
         return null;
     }
 
-    public static DocFilter docInHelper(
+    private static DocFilter docInHelper(
             final DatasetsMetadata datasetsMetadata,
             final FieldSet field,
             final boolean negate,

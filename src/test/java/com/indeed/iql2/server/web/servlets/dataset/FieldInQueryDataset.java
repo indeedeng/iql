@@ -4,7 +4,6 @@ import com.google.common.collect.Lists;
 import com.indeed.flamdex.writer.FlamdexDocument;
 import com.indeed.iql2.server.web.servlets.dataset.Dataset.DatasetShard;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
-import it.unimi.dsi.fastutil.longs.LongList;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -36,10 +35,10 @@ public class FieldInQueryDataset {
 
         final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
         for (final String term : stringTerms) {
-            flamdex.addDocument(new FlamdexDocument(Collections.<String, LongList>emptyMap(), Collections.singletonMap(field, Collections.singletonList(term))));
+            flamdex.addDocument(new FlamdexDocument(Collections.emptyMap(), Collections.singletonMap(field, Collections.singletonList(term))));
         }
         for (final Integer term : intTerms) {
-            flamdex.addDocument(new FlamdexDocument(Collections.<String, LongList>singletonMap(field, new LongArrayList(new long[]{term})), Collections.emptyMap()));
+            flamdex.addDocument(new FlamdexDocument(Collections.singletonMap(field, new LongArrayList(new long[]{term})), Collections.emptyMap()));
         }
         shards.add(new DatasetShard(dataset, "index20150101", flamdex));
         return shards;

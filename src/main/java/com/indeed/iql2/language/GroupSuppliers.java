@@ -17,6 +17,9 @@ package com.indeed.iql2.language;
 import java.util.Stack;
 
 public class GroupSuppliers {
+    private GroupSuppliers() {
+    }
+
     public static GroupSupplier newGroupSupplier(final int start) {
         return new GroupSupplier() {
             final Stack<Integer> repushed = new Stack<>();

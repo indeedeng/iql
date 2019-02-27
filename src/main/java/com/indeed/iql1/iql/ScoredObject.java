@@ -14,8 +14,6 @@
 
 package com.indeed.iql1.iql;
 
-import java.lang.Double;
-
 import java.util.Comparator;
 
 /**
@@ -24,7 +22,7 @@ import java.util.Comparator;
 public final class ScoredObject<T> {
     // do a custom comparator to ensure that real numbers are preferred to NaNs
 
-    public final static <T> Comparator<ScoredObject<T>> topScoredObjectComparator(final Comparator<T> comparator) {
+    public static <T> Comparator<ScoredObject<T>> topScoredObjectComparator(final Comparator<T> comparator) {
         return new Comparator<ScoredObject<T>>() {
             @Override
             public int compare(ScoredObject<T> o1, ScoredObject<T> o2) {
@@ -37,7 +35,7 @@ public final class ScoredObject<T> {
         };
     }
 
-    public final static <T> Comparator<ScoredObject<T>> bottomScoredObjectComparator(final Comparator<T> comparator) {
+    public static <T> Comparator<ScoredObject<T>> bottomScoredObjectComparator(final Comparator<T> comparator) {
         return new Comparator<ScoredObject<T>>() {
             @Override
             public int compare(ScoredObject<T> o1, ScoredObject<T> o2) {

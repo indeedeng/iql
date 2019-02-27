@@ -21,5 +21,5 @@ import com.indeed.iql1.ez.EZImhotepSession;
  */
 public interface Condition {
 
-    public void filter(EZImhotepSession session) throws ImhotepOutOfMemoryException;
+    void filter(EZImhotepSession session) throws ImhotepOutOfMemoryException;
 }

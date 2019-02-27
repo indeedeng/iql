@@ -25,7 +25,6 @@ import com.indeed.iql1.ez.Field;
 import com.indeed.iql1.ez.GroupKey;
 import com.indeed.iql1.ez.StatReference;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import org.apache.log4j.Logger;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -39,8 +38,6 @@ import static com.indeed.iql1.ez.Stats.Stat;
  * @author jplaisance
  */
 public final class FieldGrouping extends Grouping {
-    private static final Logger log = Logger.getLogger(FieldGrouping.class);
-
     private static final Stat DEFAULT_SORT_STAT = EZImhotepSession.counts();
 
     private final Field field;
@@ -52,7 +49,7 @@ public final class FieldGrouping extends Grouping {
     private final int rowLimit;
 
     public FieldGrouping(final Field field, int rowLimit, Limits limits) {
-        this(field, 0, DEFAULT_SORT_STAT, false, Collections.<String>emptyList(), rowLimit, limits);
+        this(field, 0, DEFAULT_SORT_STAT, false, Collections.emptyList(), rowLimit, limits);
     }
 
     public FieldGrouping(final Field field, List<String> termSubset, Limits limits) {
@@ -60,7 +57,7 @@ public final class FieldGrouping extends Grouping {
     }
 
     public FieldGrouping(final Field field, int topK, Stat sortStat, boolean isBottom, Limits limits) {
-        this(field, topK, sortStat, isBottom, Collections.<String>emptyList(), 0, limits);
+        this(field, topK, sortStat, isBottom, Collections.emptyList(), 0, limits);
     }
 
     private FieldGrouping(final Field field, int topK, Stat sortStat, boolean isBottom, List<String> termSubset, int rowLimit, Limits limits) {

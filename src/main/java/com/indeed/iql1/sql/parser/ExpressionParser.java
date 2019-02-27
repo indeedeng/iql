@@ -39,11 +39,10 @@ import org.codehaus.jparsec.misc.Mapper;
  * @author Ben Yu
  */
 public final class ExpressionParser {
-  
-  static final Parser<Expression> NUMBER =
-      curry(NumberExpression.class).sequence(TerminalParser.NUMBER);
+  private ExpressionParser() {
+  }
 
-  static final Parser<Expression> SIGNED_NUMBER =
+  private static final Parser<Expression> SIGNED_NUMBER =
       Parsers.sequence(TerminalParser.term("-").retn("-").optional(), TerminalParser.NUMBER, new Map2<String, String, Expression>() {
           @Override
           public Expression map(String o, String s) {
@@ -57,35 +56,35 @@ public final class ExpressionParser {
           }
       });
   
-  static final Parser<Expression> STRING =
+  private static final Parser<Expression> STRING =
        curry(StringExpression.class).sequence(TerminalParser.STRING);
 
-  static final Parser<Expression> UNQUOTED_STRING =
+  private static final Parser<Expression> UNQUOTED_STRING =
             curry(StringExpression.class).sequence(Parsers.or(TerminalParser.STRING, TerminalParser.NUMBER, TerminalParser.NAME).many1().source());
 
-  static final Parser<Expression> NAME =
+  private static final Parser<Expression> NAME =
        curry(NameExpression.class).sequence(TerminalParser.NAME);
 
   public static Expression parseExpression(String str) {
       return TerminalParser.parse(expression(), str);
   }
 
-  static Parser<Expression> functionCall(Parser<Expression> param) {
+  private static Parser<Expression> functionCall(Parser<Expression> param) {
     return curry(FunctionExpression.class)
         .sequence(TerminalParser.NAME,
             TerminalParser.term("("), param.sepBy(TerminalParser.term(",")), TerminalParser.term(")")).label("function call");
   }
   
-  static Parser<Expression> tuple(Parser<Expression> expr) {
+  private static Parser<Expression> tuple(Parser<Expression> expr) {
     return curry(TupleExpression.class)
         .sequence(TerminalParser.term("("), expr.sepBy(TerminalParser.term(",")), TerminalParser.term(")"));
   }
   
-  static <T> Parser<T> paren(Parser<T> parser) {
+  private static <T> Parser<T> paren(Parser<T> parser) {
     return parser.between(TerminalParser.term("("), TerminalParser.term(")"));
   }
 
-  static Parser<Expression> arithmetic(Parser<Expression> atom) {
+  private static Parser<Expression> arithmetic(Parser<Expression> atom) {
     Reference<Expression> reference = Parser.newReference();
     Parser<Expression> operand =
         Parsers.or(paren(reference.lazy()), functionCall(reference.lazy()), atom);
@@ -108,12 +107,12 @@ public final class ExpressionParser {
     return parser;
   }
 
-  static Parser<Expression> atomWhere() {
+  private static Parser<Expression> atomWhere() {
       // can't have unquoted strings at the top level of where expressions as the spaces there are meaningful
       return Parsers.or(SIGNED_NUMBER, STRING, NAME);
   }
 
-  static Parser<Expression> atom() {
+  private static Parser<Expression> atom() {
       return Parsers.longest(SIGNED_NUMBER, STRING, NAME, UNQUOTED_STRING);
   }
 
@@ -125,11 +124,11 @@ public final class ExpressionParser {
             groupByIn()).label("group by expression");
   }
 
-    static Parser<Expression> groupByIn() {
+    private static Parser<Expression> groupByIn() {
         return binaryExpression(Op.IN).sequence(NAME, TerminalParser.term("in"), tuple(atom())).label("IN grouping");
     }
 
-    static Parser<Expression> explodeExpression() {
+    private static Parser<Expression> explodeExpression() {
         return unaryExpression(Op.EXPLODE).sequence(NAME, TerminalParser.term("*")).label("explode grouping");
     }
 
@@ -150,7 +149,7 @@ public final class ExpressionParser {
         return TerminalParser.parse(whereExpression(), str);
     }
   
-  static Parser<Expression> whereExpression() {
+  private static Parser<Expression> whereExpression() {
       Parser<Expression> singleFilter = filter();
 
       return new OperatorTable<Expression>()
@@ -159,7 +158,7 @@ public final class ExpressionParser {
               .build(singleFilter).label("where expression");
   }
 
-  static Parser<Expression> filter() {
+  private static Parser<Expression> filter() {
     // each filter is one of: 1) simple field equality 2) metric inequality/comparison 3) IN operation 4) function call with any expressions as params
     // TODO: should be able to do a metric comparison involving functions e.g. floatscale(yearlysalary,1,0) != 0
     return Parsers.or(
@@ -170,7 +169,7 @@ public final class ExpressionParser {
     );
   }
 
-  static Parser<Expression> comparison(Parser<Expression> opLeft, Parser<Expression> opRight) {
+  private static Parser<Expression> comparison(Parser<Expression> opLeft, Parser<Expression> opRight) {
       return Parsers.or(
               compare(opLeft, "=", Op.EQ, opRight),
               compare(opLeft, ":", Op.EQ, opRight),
@@ -179,7 +178,7 @@ public final class ExpressionParser {
               compare(opLeft, "!=~", Op.REGEX_NOT_EQ, opRight)).label("comparison");
   }
 
-    static Parser<Expression> inCondition() {
+    private static Parser<Expression> inCondition() {
     return binaryExpression(Op.IN).sequence(NAME, TerminalParser.term("in"), tuple(atom())).label("IN condition").or(
         binaryExpression(Op.NOT_IN).sequence(NAME, TerminalParser.phrase("not in"), tuple(atom())).label("NOT IN condition")
     );

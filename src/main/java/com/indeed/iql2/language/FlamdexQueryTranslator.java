@@ -22,6 +22,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class FlamdexQueryTranslator {
+    private FlamdexQueryTranslator() {
+    }
+
     public static DocFilter translate(Query query, final ScopedFieldResolver fieldResolver) {
         switch (query.getQueryType()) {
             case TERM:

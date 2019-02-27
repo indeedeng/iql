@@ -18,11 +18,11 @@
  */
 
 public class ErrorResult {
-    String exceptionType;
-    String message;
-    String stackTrace;
-    String clause;
-    int offsetInClause;
+    private final String exceptionType;
+    private final String message;
+    private final String stackTrace;
+    private final String clause;
+    private final int offsetInClause;
 
     public ErrorResult(String exceptionType, String message, String stackTrace, String clause, int offsetInClause) {
         this.exceptionType = exceptionType;

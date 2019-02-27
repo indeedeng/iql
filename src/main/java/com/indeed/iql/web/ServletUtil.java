@@ -19,6 +19,9 @@ import org.springframework.web.bind.ServletRequestUtils;
 import javax.servlet.http.HttpServletRequest;
 
 public class ServletUtil {
+    private ServletUtil() {
+    }
+
     public static int getIQLVersionBasedOnPath(HttpServletRequest request) {
         if(request.getRequestURI().startsWith("/iql2/")) {
             return 2;

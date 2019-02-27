@@ -19,6 +19,9 @@ import org.apache.commons.lang.StringEscapeUtils;
 import org.joda.time.DateTimeZone;
 
 public class ParserCommon {
+    private ParserCommon() {
+    }
+
     static {
         DateTimeZone.setDefault(DateTimeZone.forOffsetHours(-6));
     }

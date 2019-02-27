@@ -33,17 +33,18 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * @author jessec
  */
 
 public class FieldExtractor {
+	private FieldExtractor() {
+	}
 
 	public static class DatasetField {
 		@Nonnull public String dataset;
-		@Nonnull public String field;
+		@Nonnull public final String field;
 		boolean aliasResolved;
 
 		DatasetField(final String field, final String dataset) {
@@ -87,7 +88,7 @@ public class FieldExtractor {
 
 	private static Set<DatasetField> union(final Set<DatasetField> set1, final Set<DatasetField> set2) {
 		return Sets.union(set1, set2).immutableCopy();
-	};
+	}
 
 	public static Set<DatasetField> getDatasetFields(final Query query) {
 
@@ -147,143 +148,130 @@ public class FieldExtractor {
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocFilter.FieldIs fieldIs) throws RuntimeException {
+			public Set<DatasetField> visit(final DocFilter.FieldIs fieldIs) {
 				return fieldIs.field.datasetFields();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocFilter.FieldIsnt fieldIsnt) throws RuntimeException {
+			public Set<DatasetField> visit(final DocFilter.FieldIsnt fieldIsnt) {
 				return fieldIsnt.field.datasetFields();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocFilter.MetricEqual metricEqual) throws RuntimeException {
+			public Set<DatasetField> visit(final DocFilter.MetricEqual metricEqual) {
 				return getFieldsForBinop(metricEqual);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocFilter.FieldInQuery fieldInQuery) throws RuntimeException {
+			public Set<DatasetField> visit(final DocFilter.FieldInQuery fieldInQuery) {
 				return Sets.union(fieldInQuery.field.datasetFields(), getDatasetFields(fieldInQuery.query));
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocFilter.Between between) throws RuntimeException {
+			public Set<DatasetField> visit(final DocFilter.Between between) {
 				return between.field.datasetFields();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocFilter.MetricNotEqual metricNotEqual) throws RuntimeException {
+			public Set<DatasetField> visit(final DocFilter.MetricNotEqual metricNotEqual) {
 				return getFieldsForBinop(metricNotEqual);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocFilter.MetricGt metricGt) throws RuntimeException {
+			public Set<DatasetField> visit(final DocFilter.MetricGt metricGt) {
 				return getFieldsForBinop(metricGt);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocFilter.MetricGte metricGte) throws RuntimeException {
+			public Set<DatasetField> visit(final DocFilter.MetricGte metricGte) {
 				return getFieldsForBinop(metricGte);
 
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocFilter.MetricLt metricLt) throws RuntimeException {
+			public Set<DatasetField> visit(final DocFilter.MetricLt metricLt) {
 				return getFieldsForBinop(metricLt);
 
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocFilter.MetricLte metricLte) throws RuntimeException {
+			public Set<DatasetField> visit(final DocFilter.MetricLte metricLte) {
 				return getFieldsForBinop(metricLte);
 
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocFilter.And and) throws RuntimeException {
+			public Set<DatasetField> visit(final DocFilter.And and) {
 				return getDatasetFields(and);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocFilter.Or or) throws RuntimeException {
+			public Set<DatasetField> visit(final DocFilter.Or or) {
 				return getDatasetFields(or);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocFilter.Not not) throws RuntimeException {
+			public Set<DatasetField> visit(final DocFilter.Not not) {
 				return getDatasetFields(not.filter);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocFilter.Regex regex) throws RuntimeException {
+			public Set<DatasetField> visit(final DocFilter.Regex regex) {
 				return regex.field.datasetFields();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocFilter.NotRegex notRegex) throws RuntimeException {
+			public Set<DatasetField> visit(final DocFilter.NotRegex notRegex) {
 				return notRegex.field.datasetFields();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocFilter.Qualified qualified) throws RuntimeException {
-				final Set<DatasetField> set = Sets.newHashSet();
-				getDatasetFields(qualified.filter).forEach(
-						datasetField -> {
-							if (datasetField.dataset == null) {
-								for (final String scope : qualified.scope) {
-									set.add(new DatasetField(datasetField.field, scope));
-								}
-							} else {
-								set.add(datasetField);
-							}
-						}
-				);
-				return set;
-
+			public Set<DatasetField> visit(final DocFilter.Qualified qualified) {
+				return getDatasetFields(qualified.filter);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocFilter.Lucene lucene) throws RuntimeException {
+			public Set<DatasetField> visit(final DocFilter.Lucene lucene) {
 				return ImmutableSet.of();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocFilter.Sample sample) throws RuntimeException {
+			public Set<DatasetField> visit(final DocFilter.Sample sample) {
 				return sample.field.datasetFields();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocFilter.SampleDocMetric sample) throws RuntimeException {
+			public Set<DatasetField> visit(final DocFilter.SampleDocMetric sample) {
 				return getDatasetFields(sample.metric);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocFilter.Always always) throws RuntimeException {
+			public Set<DatasetField> visit(final DocFilter.Always always) {
 				return ImmutableSet.of();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocFilter.Never never) throws RuntimeException {
+			public Set<DatasetField> visit(final DocFilter.Never never) {
 				return ImmutableSet.of();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocFilter.StringFieldIn stringFieldIn) throws RuntimeException {
+			public Set<DatasetField> visit(final DocFilter.StringFieldIn stringFieldIn) {
 				return stringFieldIn.field.datasetFields();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocFilter.IntFieldIn intFieldIn) throws RuntimeException {
+			public Set<DatasetField> visit(final DocFilter.IntFieldIn intFieldIn) {
 				return intFieldIn.field.datasetFields();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocFilter.ExplainFieldIn explainFieldIn) throws RuntimeException {
+			public Set<DatasetField> visit(final DocFilter.ExplainFieldIn explainFieldIn) {
 				return getDatasetFields(explainFieldIn.query);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocFilter.FieldEqual equal) throws RuntimeException {
+			public Set<DatasetField> visit(final DocFilter.FieldEqual equal) {
 				return Sets.union(equal.field1.datasetFields(), equal.field2.datasetFields());
 			}
 		});
@@ -299,12 +287,12 @@ public class FieldExtractor {
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.Log log) throws RuntimeException {
+			public Set<DatasetField> visit(final DocMetric.Log log) {
 				return getDatasetFields(log.metric);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.PerDatasetDocMetric perDatasetDocMetric) throws RuntimeException {
+			public Set<DatasetField> visit(final DocMetric.PerDatasetDocMetric perDatasetDocMetric) {
 				final Set<DatasetField> set = Sets.newHashSet();
  				for (final DocMetric metric : perDatasetDocMetric.datasetToMetric.values()) {
 					set.addAll(getDatasetFields(metric));
@@ -313,208 +301,201 @@ public class FieldExtractor {
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.Count count) throws RuntimeException {
+			public Set<DatasetField> visit(final DocMetric.Count count) {
 				return ImmutableSet.of();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.DocId count) throws RuntimeException {
+			public Set<DatasetField> visit(final DocMetric.DocId count) {
 				return ImmutableSet.of();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.Field field) throws RuntimeException {
+			public Set<DatasetField> visit(final DocMetric.Field field) {
 				return field.field.datasetFields();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.Exponentiate exponentiate) throws RuntimeException {
+			public Set<DatasetField> visit(final DocMetric.Exponentiate exponentiate) {
 				return getDatasetFields(exponentiate.metric);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.Negate negate) throws RuntimeException {
+			public Set<DatasetField> visit(final DocMetric.Negate negate) {
 				return getDatasetFields(negate.m1);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.Abs abs) throws RuntimeException {
+			public Set<DatasetField> visit(final DocMetric.Abs abs) {
 				return getDatasetFields(abs.m1);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.Signum signum) throws RuntimeException {
+			public Set<DatasetField> visit(final DocMetric.Signum signum) {
 				return getDatasetFields(signum.m1);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.Add add) throws RuntimeException {
+			public Set<DatasetField> visit(final DocMetric.Add add) {
 				return getDatasetFieldsForMetrics(add.metrics);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.Subtract subtract) throws RuntimeException {
+			public Set<DatasetField> visit(final DocMetric.Subtract subtract) {
 				return getFieldsForBinop(subtract);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.Multiply multiply) throws RuntimeException {
+			public Set<DatasetField> visit(final DocMetric.Multiply multiply) {
 				return getFieldsForBinop(multiply);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.Divide divide) throws RuntimeException {
+			public Set<DatasetField> visit(final DocMetric.Divide divide) {
 				return getFieldsForBinop(divide);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.Modulus modulus) throws RuntimeException {
+			public Set<DatasetField> visit(final DocMetric.Modulus modulus) {
 				return getFieldsForBinop(modulus);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.Min min) throws RuntimeException {
+			public Set<DatasetField> visit(final DocMetric.Min min) {
 				return getFieldsForBinop(min);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.Max max) throws RuntimeException {
+			public Set<DatasetField> visit(final DocMetric.Max max) {
 				return getFieldsForBinop(max);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.MetricEqual metricEqual) throws RuntimeException {
+			public Set<DatasetField> visit(final DocMetric.MetricEqual metricEqual) {
 				return getFieldsForBinop(metricEqual);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.MetricNotEqual metricNotEqual) throws RuntimeException {
+			public Set<DatasetField> visit(final DocMetric.MetricNotEqual metricNotEqual) {
 				return getFieldsForBinop(metricNotEqual);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.MetricLt metricLt) throws RuntimeException {
+			public Set<DatasetField> visit(final DocMetric.MetricLt metricLt) {
 				return getFieldsForBinop(metricLt);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.MetricLte metricLte) throws RuntimeException {
+			public Set<DatasetField> visit(final DocMetric.MetricLte metricLte) {
 				return getFieldsForBinop(metricLte);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.MetricGt metricGt) throws RuntimeException {
+			public Set<DatasetField> visit(final DocMetric.MetricGt metricGt) {
 				return getFieldsForBinop(metricGt);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.MetricGte metricGte) throws RuntimeException {
+			public Set<DatasetField> visit(final DocMetric.MetricGte metricGte) {
 				return getFieldsForBinop(metricGte);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.RegexMetric regexMetric) throws RuntimeException {
+			public Set<DatasetField> visit(final DocMetric.RegexMetric regexMetric) {
 				return regexMetric.field.datasetFields();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.FloatScale floatScale) throws RuntimeException {
+			public Set<DatasetField> visit(final DocMetric.FloatScale floatScale) {
 				return floatScale.field.datasetFields();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.Constant constant) throws RuntimeException {
+			public Set<DatasetField> visit(final DocMetric.Constant constant) {
 				return ImmutableSet.of();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.HasIntField hasIntField) throws RuntimeException {
+			public Set<DatasetField> visit(final DocMetric.HasIntField hasIntField) {
 				return hasIntField.field.datasetFields();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.HasStringField hasStringField) throws RuntimeException {
+			public Set<DatasetField> visit(final DocMetric.HasStringField hasStringField) {
 				return hasStringField.field.datasetFields();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.IntTermCount intTermCount) throws RuntimeException {
+			public Set<DatasetField> visit(final DocMetric.IntTermCount intTermCount) {
 				return intTermCount.field.datasetFields();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.StrTermCount stringTermCount) throws RuntimeException {
+			public Set<DatasetField> visit(final DocMetric.StrTermCount stringTermCount) {
 				return stringTermCount.field.datasetFields();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.HasInt hasInt) throws RuntimeException {
+			public Set<DatasetField> visit(final DocMetric.HasInt hasInt) {
 				return hasInt.field.datasetFields();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.HasString hasString) throws RuntimeException {
+			public Set<DatasetField> visit(final DocMetric.HasString hasString) {
 				return hasString.field.datasetFields();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.IfThenElse ifThenElse) throws RuntimeException {
+			public Set<DatasetField> visit(final DocMetric.IfThenElse ifThenElse) {
 				return union(getDatasetFields(ifThenElse.trueCase), union(getDatasetFields(ifThenElse.condition), getDatasetFields(ifThenElse.falseCase)));
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.Qualified qualified) throws RuntimeException {
-				return getDatasetFields(qualified.metric).stream().map(
-						datasetField -> {
-							if(datasetField.dataset == null) {
-								datasetField.dataset = qualified.dataset;
-							}
-							return datasetField;
-						})
-						.collect(Collectors.toSet());
+			public Set<DatasetField> visit(final DocMetric.Qualified qualified) {
+				return getDatasetFields(qualified.metric);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.Extract extract) throws RuntimeException {
+			public Set<DatasetField> visit(final DocMetric.Extract extract) {
 				return extract.field.datasetFields();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.Lucene lucene) throws RuntimeException {
+			public Set<DatasetField> visit(final DocMetric.Lucene lucene) {
 				return ImmutableSet.of();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.FieldEqualMetric equalMetric) throws RuntimeException {
+			public Set<DatasetField> visit(final DocMetric.FieldEqualMetric equalMetric) {
 				return Sets.union(equalMetric.field1.datasetFields(), equalMetric.field2.datasetFields());
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.StringLen hasStringField) throws RuntimeException {
+			public Set<DatasetField> visit(final DocMetric.StringLen hasStringField) {
 				return hasStringField.field.datasetFields();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.Sample random) throws RuntimeException {
+			public Set<DatasetField> visit(final DocMetric.Sample random) {
 				return random.field.datasetFields();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.SampleMetric random) throws RuntimeException {
+			public Set<DatasetField> visit(final DocMetric.SampleMetric random) {
 				return getDatasetFields(random.metric);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.Random random) throws RuntimeException {
+			public Set<DatasetField> visit(final DocMetric.Random random) {
 				return random.field.datasetFields();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocMetric.RandomMetric random) throws RuntimeException {
+			public Set<DatasetField> visit(final DocMetric.RandomMetric random) {
 				return getDatasetFields(random.metric);
 			}
 		});
-	};
+	}
 
 
 	@Nonnull
@@ -522,12 +503,12 @@ public class FieldExtractor {
 		
 		return groupBy.visit(new GroupBy.Visitor<Set<DatasetField>, RuntimeException>() {
 			@Override
-			public Set<DatasetField> visit(final GroupBy.GroupByMetric groupByMetric) throws RuntimeException {
+			public Set<DatasetField> visit(final GroupBy.GroupByMetric groupByMetric) {
 				return getDatasetFields(groupByMetric.metric);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final GroupBy.GroupByTime groupByTime) throws RuntimeException {
+			public Set<DatasetField> visit(final GroupBy.GroupByTime groupByTime) {
 				if (groupByTime.field.isPresent()) {
 					return groupByTime.field.get().datasetFields();
 				}
@@ -536,7 +517,7 @@ public class FieldExtractor {
 			}
 
 			@Override
-			public Set<DatasetField> visit(final GroupBy.GroupByTimeBuckets groupByTimeBuckets) throws RuntimeException {
+			public Set<DatasetField> visit(final GroupBy.GroupByTimeBuckets groupByTimeBuckets) {
 				if (groupByTimeBuckets.field.isPresent()) {
 					return groupByTimeBuckets.field.get().datasetFields();
 				}
@@ -544,7 +525,7 @@ public class FieldExtractor {
 			}
 
 			@Override
-			public Set<DatasetField> visit(final GroupBy.GroupByMonth groupByMonth) throws RuntimeException {
+			public Set<DatasetField> visit(final GroupBy.GroupByMonth groupByMonth) {
 				if (groupByMonth.timeField.isPresent()) {
 					return groupByMonth.timeField.get().datasetFields();
 				}
@@ -552,17 +533,17 @@ public class FieldExtractor {
 			}
 
 			@Override
-			public Set<DatasetField> visit(final GroupBy.GroupByInferredTime groupByInferredTime) throws RuntimeException {
+			public Set<DatasetField> visit(final GroupBy.GroupByInferredTime groupByInferredTime) {
 				return ImmutableSet.of();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final GroupBy.GroupByFieldIn groupByFieldIn) throws RuntimeException {
+			public Set<DatasetField> visit(final GroupBy.GroupByFieldIn groupByFieldIn) {
 				return groupByFieldIn.field.datasetFields();
 			}
 
 			@Override
-            public Set<DatasetField> visit(final GroupBy.GroupByFieldInQuery groupByFieldInQuery) throws RuntimeException {
+            public Set<DatasetField> visit(final GroupBy.GroupByFieldInQuery groupByFieldInQuery) {
 			    return union(
                         groupByFieldInQuery.field.datasetFields(),
                         getDatasetFields(groupByFieldInQuery.query)
@@ -570,7 +551,7 @@ public class FieldExtractor {
             }
 
             @Override
-			public Set<DatasetField> visit(final GroupBy.GroupByField groupByField) throws RuntimeException {
+			public Set<DatasetField> visit(final GroupBy.GroupByField groupByField) {
 				final Set<DatasetField> set = Sets.newHashSet();
 				set.addAll(groupByField.field.datasetFields());
 				if (groupByField.filter.isPresent()) {
@@ -583,33 +564,33 @@ public class FieldExtractor {
 			}
 
 			@Override
-			public Set<DatasetField> visit(final GroupBy.GroupByDayOfWeek groupByDayOfWeek) throws RuntimeException {
+			public Set<DatasetField> visit(final GroupBy.GroupByDayOfWeek groupByDayOfWeek) {
 				//"unixtime" is implicitly used here.
 				return ImmutableSet.of();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final GroupBy.GroupBySessionName groupBySessionName) throws RuntimeException {
+			public Set<DatasetField> visit(final GroupBy.GroupBySessionName groupBySessionName) {
 				return ImmutableSet.of();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final GroupBy.GroupByQuantiles groupByQuantiles) throws RuntimeException {
+			public Set<DatasetField> visit(final GroupBy.GroupByQuantiles groupByQuantiles) {
 				return groupByQuantiles.field.datasetFields();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final GroupBy.GroupByPredicate groupByPredicate) throws RuntimeException {
+			public Set<DatasetField> visit(final GroupBy.GroupByPredicate groupByPredicate) {
 				return getDatasetFields(groupByPredicate.docFilter);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final GroupBy.GroupByRandom groupByRandom) throws RuntimeException {
+			public Set<DatasetField> visit(final GroupBy.GroupByRandom groupByRandom) {
 				return groupByRandom.field.datasetFields();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final GroupBy.GroupByRandomMetric groupByRandom) throws RuntimeException {
+			public Set<DatasetField> visit(final GroupBy.GroupByRandomMetric groupByRandom) {
 				return getDatasetFields(groupByRandom.metric);
 			}
 		});
@@ -625,129 +606,117 @@ public class FieldExtractor {
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateMetric.Add add) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateMetric.Add add) {
 				return getDatasetFieldsForAggregateMetrics(add.metrics);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateMetric.Log log) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateMetric.Log log) {
 				return getDatasetFields(log.m1);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateMetric.Negate negate) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateMetric.Negate negate) {
 				return getDatasetFields(negate.m1);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateMetric.Abs abs) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateMetric.Abs abs) {
 				return getDatasetFields(abs.m1);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateMetric.Floor floor) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateMetric.Floor floor) {
 				return getDatasetFields(floor.m1);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateMetric.Ceil ceil) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateMetric.Ceil ceil) {
 				return getDatasetFields(ceil.m1);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateMetric.Round round) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateMetric.Round round) {
 				return getDatasetFields(round.m1);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateMetric.Subtract subtract) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateMetric.Subtract subtract) {
 				return getFieldsForBinop(subtract);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateMetric.Multiply multiply) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateMetric.Multiply multiply) {
 				return getFieldsForBinop(multiply);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateMetric.Divide divide) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateMetric.Divide divide) {
 				return getFieldsForBinop(divide);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateMetric.Modulus modulus) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateMetric.Modulus modulus) {
 				return getFieldsForBinop(modulus);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateMetric.Power power) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateMetric.Power power) {
 				return getFieldsForBinop(power);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateMetric.Parent parent) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateMetric.Parent parent) {
 				return getDatasetFields(parent.metric);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateMetric.Lag lag) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateMetric.Lag lag) {
 				return getDatasetFields(lag.metric);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateMetric.IterateLag iterateLag) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateMetric.IterateLag iterateLag) {
 				return getDatasetFields(iterateLag.metric);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateMetric.Window window) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateMetric.Window window) {
 				return getDatasetFields(window.metric);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateMetric.Qualified qualified) throws RuntimeException {
-				final Set<DatasetField> set = Sets.newHashSet();
-				getDatasetFields(qualified.metric).forEach(
-						datasetField -> {
-							if (datasetField.dataset == null) {
-								for (final String scope : qualified.scope) {
-									set.add(new DatasetField(datasetField.field, scope));
-								}
-							} else {
-								set.add(datasetField);
-							}
-						}
-				);
-				return set;
+			public Set<DatasetField> visit(final AggregateMetric.Qualified qualified) {
+				return getDatasetFields(qualified.metric);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateMetric.DocStatsPushes docStatsPushes) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateMetric.DocStatsPushes docStatsPushes) {
 				return getDatasetFields(docStatsPushes.pushes);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateMetric.DocStats docStats) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateMetric.DocStats docStats) {
 				return getDatasetFields(docStats.docMetric);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateMetric.Constant constant) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateMetric.Constant constant) {
 				return ImmutableSet.of();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateMetric.Percentile percentile) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateMetric.Percentile percentile) {
                 return percentile.field.datasetFields();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateMetric.Running running) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateMetric.Running running) {
 				return getDatasetFields(running.metric);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateMetric.Distinct distinct) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateMetric.Distinct distinct) {
 				return union(
 						distinct.field.datasetFields(),
 						distinct.filter.isPresent() ? getDatasetFields(distinct.filter.get()) : ImmutableSet.of()
@@ -755,52 +724,52 @@ public class FieldExtractor {
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateMetric.Named named) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateMetric.Named named) {
 				return getDatasetFields(named.metric);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateMetric.NeedsSubstitution needsSubstitution) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateMetric.NeedsSubstitution needsSubstitution) {
 				return Collections.emptySet();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateMetric.GroupStatsLookup groupStatsLookup) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateMetric.GroupStatsLookup groupStatsLookup) {
 				return ImmutableSet.of();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateMetric.SumAcross sumAcross) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateMetric.SumAcross sumAcross) {
 				return union(getDatasetFields(sumAcross.groupBy), getDatasetFields(sumAcross.metric));
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateMetric.IfThenElse ifThenElse) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateMetric.IfThenElse ifThenElse) {
 				return union(getDatasetFields(ifThenElse.condition), union(getDatasetFields(ifThenElse.trueCase), getDatasetFields(ifThenElse.falseCase)));
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateMetric.FieldMin fieldMin) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateMetric.FieldMin fieldMin) {
 				return fieldMin.field.datasetFields();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateMetric.FieldMax fieldMax) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateMetric.FieldMax fieldMax) {
 				return fieldMax.field.datasetFields();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateMetric.Min min) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateMetric.Min min) {
 				return getDatasetFieldsForAggregateMetrics(min.metrics);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateMetric.Max max) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateMetric.Max max) {
 				return getDatasetFieldsForAggregateMetrics(max.metrics);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateMetric.DivideByCount divideByCount) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateMetric.DivideByCount divideByCount) {
 				return getDatasetFields(divideByCount.metric);
 			}
 		});
@@ -811,77 +780,77 @@ public class FieldExtractor {
 		return aggregateFilter.visit(new AggregateFilter.Visitor<Set<DatasetField>, RuntimeException>() {
 
 			@Override
-			public Set<DatasetField> visit(final AggregateFilter.TermIs termIs) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateFilter.TermIs termIs) {
 				return ImmutableSet.of();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateFilter.TermRegex termIsRegex) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateFilter.TermRegex termIsRegex) {
 				return ImmutableSet.of();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateFilter.MetricIs metricIs) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateFilter.MetricIs metricIs) {
 				return union(getDatasetFields(metricIs.m1), getDatasetFields(metricIs.m2));
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateFilter.MetricIsnt metricIsnt) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateFilter.MetricIsnt metricIsnt) {
 				return union(getDatasetFields(metricIsnt.m1), getDatasetFields(metricIsnt.m2));
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateFilter.Gt gt) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateFilter.Gt gt) {
 				return union(getDatasetFields(gt.m1), getDatasetFields(gt.m2));
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateFilter.Gte gte) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateFilter.Gte gte) {
 				return union(getDatasetFields(gte.m1), getDatasetFields(gte.m2));
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateFilter.Lt lt) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateFilter.Lt lt) {
 				return union(getDatasetFields(lt.m1), getDatasetFields(lt.m2));
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateFilter.Lte lte) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateFilter.Lte lte) {
 				return union(getDatasetFields(lte.m1), getDatasetFields(lte.m2));
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateFilter.And and) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateFilter.And and) {
 				return getDatasetFields(and);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateFilter.Or or) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateFilter.Or or) {
 				return getDatasetFields(or);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateFilter.Not not) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateFilter.Not not) {
 				return getDatasetFields(not.filter);
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateFilter.Regex regex) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateFilter.Regex regex) {
 				return regex.field.datasetFields();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateFilter.Always always) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateFilter.Always always) {
 				return ImmutableSet.of();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateFilter.Never never) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateFilter.Never never) {
 				return ImmutableSet.of();
 			}
 
 			@Override
-			public Set<DatasetField> visit(final AggregateFilter.IsDefaultGroup isDefaultGroup) throws RuntimeException {
+			public Set<DatasetField> visit(final AggregateFilter.IsDefaultGroup isDefaultGroup) {
 				return ImmutableSet.of();
 			}
 		});

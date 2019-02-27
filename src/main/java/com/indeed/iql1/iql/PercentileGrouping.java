@@ -36,6 +36,7 @@ import it.unimi.dsi.fastutil.longs.LongList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -59,7 +60,7 @@ public class PercentileGrouping extends Grouping {
     }
 
     @Override
-    public Int2ObjectMap<GroupKey> regroup(final EZImhotepSession session, final Int2ObjectMap<GroupKey> groupKeys) throws ImhotepOutOfMemoryException {
+    public Int2ObjectMap<GroupKey> regroup(final EZImhotepSession session, final Int2ObjectMap<GroupKey> groupKeys) {
         throw new UnsupportedOperationException("Percentiles must be used as the last group");
     }
 
@@ -107,7 +108,7 @@ public class PercentileGrouping extends Grouping {
     private Int2ObjectMap<Int2LongMap> getPercentileStats(final EZImhotepSession session, final Int2ObjectMap<GroupKey> groupKeys, final StatReference countStatRef, final long[] counts) throws ImhotepOutOfMemoryException {
         final Set<Field> uniqueFields = Sets.newHashSet(fields);
 
-        final Int2ObjectMap<Int2LongMap> groupToPositionToStats = new Int2ObjectOpenHashMap<Int2LongMap>();
+        final Int2ObjectMap<Int2LongMap> groupToPositionToStats = new Int2ObjectOpenHashMap<>();
         for (final int group : groupKeys.keySet()) {
             groupToPositionToStats.put(group, new Int2LongOpenHashMap());
         }
@@ -123,7 +124,7 @@ public class PercentileGrouping extends Grouping {
                 }
             }
 
-            final Int2ObjectMap<DoubleList> percentileValues = new Int2ObjectOpenHashMap<DoubleList>();
+            final Int2ObjectMap<DoubleList> percentileValues = new Int2ObjectOpenHashMap<>();
             for (final int group : groupKeys.keySet()) {
                 final long count = (group < counts.length) ? counts[group] : 0;
                 final DoubleList groupPercentileValues = new DoubleArrayList();
@@ -140,11 +141,11 @@ public class PercentileGrouping extends Grouping {
             session.ftgsIterate(ftgsField, callback);
 
             final Int2ObjectMap<LongList> groupToPercentileStats = callback.finalizeAndGetGroupToPercentileStats();
-            for (final int group : groupToPercentileStats.keySet()) {
-                final LongList percentileStats = groupToPercentileStats.get(group);
+            for (final Map.Entry<Integer, LongList> entry : groupToPercentileStats.entrySet()) {
+                final LongList percentileStats = entry.getValue();
                 for (int i = 0; i < percentileStats.size(); ++i) {
                     final int position = projectionPositions.get(i);
-                    groupToPositionToStats.get(group).put(position, percentileStats.getLong(i));
+                    groupToPositionToStats.get((int) entry.getKey()).put(position, percentileStats.getLong(i));
                 }
             }
         }
@@ -159,7 +160,7 @@ public class PercentileGrouping extends Grouping {
         for (int i = 0; i < statCount; i++) {
             statGroupValues[i] = session.getGroupStats(statRefs.get(i));
         }
-        final Int2ObjectMap<double[]> ret = new Int2ObjectOpenHashMap<double[]>(groupCount);
+        final Int2ObjectMap<double[]> ret = new Int2ObjectOpenHashMap<>(groupCount);
         for (int group = 1; group <= groupCount; group++) {
             final double[] groupStats = new double[statCount];
             for (int statNum = 0; statNum < groupStats.length; statNum++) {
@@ -187,8 +188,8 @@ public class PercentileGrouping extends Grouping {
         private final StatReference statRef;
         private final Int2ObjectMap<DoubleList> percentileValues;
 
-        private Int2LongMap groupToPrevCount = new Int2LongOpenHashMap();
-        private Int2LongMap groupToPrevTerm = new Int2LongOpenHashMap();
+        private final Int2LongMap groupToPrevCount = new Int2LongOpenHashMap();
+        private final Int2LongMap groupToPrevTerm = new Int2LongOpenHashMap();
 
         private PercentileFTGSCallback(final int numStats, final StatReference statRef, final Int2ObjectMap<DoubleList> percentileValues) {
             super(numStats);
@@ -196,18 +197,18 @@ public class PercentileGrouping extends Grouping {
             this.statRef = statRef;
             this.percentileValues = percentileValues;
 
-            groupToPercentileStats = new Int2ObjectOpenHashMap<LongList>();
-            for (final int group : percentileValues.keySet()) {
+            groupToPercentileStats = new Int2ObjectOpenHashMap<>();
+            for (final Map.Entry<Integer, DoubleList> entry : percentileValues.entrySet()) {
                 final LongList stats = new LongArrayList();
-                for (int i = 0; i < percentileValues.get(group).size(); ++i) {
+                for (int i = 0; i < entry.getValue().size(); ++i) {
                     stats.add(Long.MIN_VALUE);
                 }
-                groupToPercentileStats.put(group, stats);
+                groupToPercentileStats.put((int) entry.getKey(), stats);
             }
         }
 
         @Override
-        protected void intTermGroup(final String field, final long term, final int group) {
+        protected void intTermGroup(final long term, final int group) {
             final long prevCount = groupToPrevCount.get(group);
             final long countForTerm = Math.round(getStat(statRef));
             final long newCount = prevCount + countForTerm;
@@ -225,16 +226,16 @@ public class PercentileGrouping extends Grouping {
         }
 
         @Override
-        protected void stringTermGroup(final String field, final String term, final int group) {
+        protected void stringTermGroup(final String term, final int group) {
             throw new UnsupportedOperationException("Percentiles do not work with string fields");
         }
 
         public Int2ObjectMap<LongList> finalizeAndGetGroupToPercentileStats() {
-            for (final int group : groupToPercentileStats.keySet()) {
-                final LongList stats = groupToPercentileStats.get(group);
+            for (final Map.Entry<Integer, LongList> entry : groupToPercentileStats.entrySet()) {
+                final LongList stats = entry.getValue();
                 for (int i = 0; i < stats.size(); ++i) {
                     if (stats.getLong(i) == Long.MIN_VALUE) {
-                        stats.set(i, groupToPrevTerm.get(group));
+                        stats.set(i, groupToPrevTerm.get((int) entry.getKey()));
                     }
                 }
             }

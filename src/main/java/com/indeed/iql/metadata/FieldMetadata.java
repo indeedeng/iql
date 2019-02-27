@@ -31,15 +31,17 @@ import java.util.List;
  */
 
 public class FieldMetadata {
-    @Nonnull final String name;
-    @Nullable String description;
     @Nonnull
-    FieldType type;
+    private final String name;
+    @Nullable
+    private String description;
     @Nonnull
-    List<String> aliases;   // first entry is the canonical name by convention
-    int frequency;
-    boolean isHidden;
-    boolean isCertified;
+    private FieldType type;
+    @Nonnull
+    private final List<String> aliases;   // first entry is the canonical name by convention
+    private int frequency;
+    private boolean isHidden;
+    private boolean isCertified;
 
     public FieldMetadata(@Nonnull String name, @Nonnull FieldType type) {
         this.name = name;
@@ -149,7 +151,7 @@ public class FieldMetadata {
         jsonNode.put("description", description);
         jsonNode.put("type", getType().toString());
         jsonNode.put("frequency", getFrequency());
-        if (getAliases().size() > 0) {
+        if (!getAliases().isEmpty()) {
             final ArrayNode aliasesArray = jsonNode.putArray("aliases");
             for (String alias : getNonCanonicalNames()) {
                 aliasesArray.add(alias);

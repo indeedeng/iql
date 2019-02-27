@@ -14,7 +14,6 @@
 
 package com.indeed.iql.metadata;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
@@ -29,6 +28,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
@@ -61,7 +61,7 @@ public class DatasetsMetadata {
     public List<DatasetTypeConflictFields> getTypeConflictFields() {
         final List<DatasetTypeConflictFields> result = Lists.newArrayList();
         for (DatasetMetadata datasetMetadata : metadata.values()) {
-            if (datasetMetadata.conflictFieldNames.size() > 0) {
+            if (!datasetMetadata.conflictFieldNames.isEmpty()) {
                 result.add(new DatasetTypeConflictFields(datasetMetadata.name, datasetMetadata.conflictFieldNames));
             }
         }
@@ -81,7 +81,7 @@ public class DatasetsMetadata {
         datasetToDimensionAliasFields = new HashMap<>();
         metadata.forEach((dataset, meta) -> {
             datasetToDimensionAliasFields.put(dataset, meta.fieldToDimension.entrySet()
-                    .stream().filter(dimension -> dimension.getValue().isAlias)
+                    .stream().filter(dimension -> dimension.getValue().isAlias())
                     .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getAliasActualField().get())));
         });
         typeConflictDatasetFieldNames = new HashSet<>();
@@ -123,9 +123,9 @@ public class DatasetsMetadata {
 
     public Optional<DatasetMetadata> getMetadata(@Nullable final String dataset) {
         if (dataset == null) {
-            return Optional.absent();
+            return Optional.empty();
         }
-        return Optional.fromNullable(metadata.get(dataset));
+        return Optional.ofNullable(metadata.get(dataset));
     }
 
     public Map<String, Map<String, String>> getDatasetToDimensionAliasFields() {

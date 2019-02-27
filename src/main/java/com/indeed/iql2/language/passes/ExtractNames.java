@@ -14,33 +14,31 @@
 
 package com.indeed.iql2.language.passes;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
 import com.indeed.iql.exceptions.IqlKnownException;
-import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
-import com.indeed.iql2.language.DocFilter;
-import com.indeed.iql2.language.DocMetric;
-import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.Query;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 
 public class ExtractNames {
+    private ExtractNames() {
+    }
+
     public static Map<String, AggregateMetric> extractNames(Query query) {
         final Map<String, AggregateMetric> result = new HashMap<>();
         query.transform(
-                Functions.<GroupBy>identity(),
+                Function.identity(),
                 handleAggregateMetric(result),
-                Functions.<DocMetric>identity(),
-                Functions.<AggregateFilter>identity(),
-                Functions.<DocFilter>identity()
+                Function.identity(),
+                Function.identity(),
+                Function.identity()
         );
         return result;
     }
 
-    public static Function<AggregateMetric, AggregateMetric> handleAggregateMetric(final Map<String, AggregateMetric> resultAggregator) {
+    private static Function<AggregateMetric, AggregateMetric> handleAggregateMetric(final Map<String, AggregateMetric> resultAggregator) {
         return new Function<AggregateMetric, AggregateMetric>() {
             public AggregateMetric apply(AggregateMetric input) {
                 if (input instanceof AggregateMetric.Named) {

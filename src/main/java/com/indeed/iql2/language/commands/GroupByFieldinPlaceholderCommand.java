@@ -1,6 +1,5 @@
 package com.indeed.iql2.language.commands;
 
-import com.google.common.base.Function;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.execution.ResultFormat;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
@@ -15,6 +14,7 @@ import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 import lombok.EqualsAndHashCode;
 
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * Exists so that we can transform a Query with subqueries into a

@@ -15,7 +15,6 @@
 package com.indeed.iql2.execution.groupkeys.sets;
 
 import com.indeed.iql2.execution.groupkeys.DayOfWeekGroupKey;
-import com.indeed.iql2.execution.groupkeys.GroupKey;
 import com.indeed.iql2.execution.groupkeys.IntTermGroupKey;
 import org.junit.Assert;
 import org.junit.Test;
@@ -24,7 +23,7 @@ import java.util.Arrays;
 
 public class TestDayOfWeekGroupKeySet {
     private static DayOfWeekGroupKeySet create() {
-        final DumbGroupKeySet previous = DumbGroupKeySet.create(DumbGroupKeySet.empty(), new int[]{-1, 1, 1, 1, 1, 1}, Arrays.<GroupKey>asList(null, new IntTermGroupKey(1), new IntTermGroupKey(2), new IntTermGroupKey(3), new IntTermGroupKey(4), new IntTermGroupKey(5)));
+        final DumbGroupKeySet previous = DumbGroupKeySet.create(DumbGroupKeySet.empty(), new int[]{-1, 1, 1, 1, 1, 1}, Arrays.asList(null, new IntTermGroupKey(1), new IntTermGroupKey(2), new IntTermGroupKey(3), new IntTermGroupKey(4), new IntTermGroupKey(5)));
         return new DayOfWeekGroupKeySet(previous);
     }
 

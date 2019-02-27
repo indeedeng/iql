@@ -28,6 +28,9 @@ import javax.annotation.Nullable;
 import java.util.List;
 
 public class DocMetrics {
+    private DocMetrics() {
+    }
+
     public static DocMetric parseDocMetric(
             final JQLParser.DocMetricContext metricContext,
             final Query.Context context) {
@@ -636,14 +639,6 @@ public class DocMetrics {
     public static JQLParser.SinglyScopedFieldContext asPlainField(final JQLParser.JqlDocMetricAtomContext ctx) {
         if (ctx instanceof JQLParser.SyntacticallyAtomicDocMetricAtomContext) {
             return asPlainField(((JQLParser.SyntacticallyAtomicDocMetricAtomContext) ctx).jqlSyntacticallyAtomicDocMetricAtom());
-        }
-        return null;
-    }
-
-    @Nullable
-    public static JQLParser.SinglyScopedFieldContext asPlainField(final JQLParser.JqlDocMetricContext ctx) {
-        if (ctx instanceof JQLParser.DocAtomContext) {
-            return asPlainField(((JQLParser.DocAtomContext) ctx).jqlDocMetricAtom());
         }
         return null;
     }

@@ -19,10 +19,10 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 * @author jwolfe
 */
 public interface StatReference {
-    public double[] getGroupStats() throws ImhotepOutOfMemoryException;
+    double[] getGroupStats() throws ImhotepOutOfMemoryException;
 
-    public boolean isValid();
-    public void invalidate();
+    boolean isValid();
+    void invalidate();
 
-    public double getValue(long[] stats);
+    double getValue(long[] stats);
 }

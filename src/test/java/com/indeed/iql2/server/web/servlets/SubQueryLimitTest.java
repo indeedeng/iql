@@ -15,9 +15,6 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
-import com.indeed.iql2.server.web.servlets.dataset.AllData;
-import com.indeed.iql2.server.web.servlets.dataset.Dataset;
-import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -41,17 +38,16 @@ public class SubQueryLimitTest extends BasicTest {
 
     @Test
     public void testQueryLimitTriggered() throws Exception {
-        final List<List<String>> expected = new ArrayList<>();
-        expected.add(ImmutableList.of("", "105"));
-        try {
-            QueryServletTestUtils.testIQL2(expected, "from subQueryLimit yesterday today where f in (from same group by f) select count()", QueryServletTestUtils.Options.create().setSkipTestDimension(true).setSubQueryTermLimit(104L));
-            Assert.fail();
-        } catch (Exception e) {
-        }
-        try {
-            QueryServletTestUtils.testIQL2(expected, "from subQueryLimit yesterday today where f in (from same group by f) select count()", QueryServletTestUtils.Options.create().setSkipTestDimension(true).setSubQueryTermLimit(1L));
-            Assert.fail();
-        } catch (Exception e) {
-        }
+        QueryServletTestUtils.expectException(
+                "from subQueryLimit yesterday today where f in (from same group by f) select count()",
+                QueryServletTestUtils.LanguageVersion.IQL2,
+                QueryServletTestUtils.Options.create().setSkipTestDimension(true).setSubQueryTermLimit(104L),
+                ex -> ex.contains("GroupLimitExceededException"));
+
+        QueryServletTestUtils.expectException(
+                "from subQueryLimit yesterday today where f in (from same group by f) select count()",
+                QueryServletTestUtils.LanguageVersion.IQL2,
+                QueryServletTestUtils.Options.create().setSkipTestDimension(true).setSubQueryTermLimit(1L),
+                ex -> ex.contains("GroupLimitExceededException"));
     }
 }

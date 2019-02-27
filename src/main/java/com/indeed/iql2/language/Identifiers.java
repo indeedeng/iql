@@ -19,6 +19,9 @@ import com.indeed.iql.exceptions.IqlKnownException;
 import java.util.regex.Pattern;
 
 public class Identifiers {
+    private Identifiers() {
+    }
+
     private static final Pattern IDENTIFIER_PATTERN = Pattern.compile("[a-zA-Z_][a-zA-Z0-9_]*");
 
     public static String extractIdentifier(final JQLParser.IdentifierContext identifierContext) {

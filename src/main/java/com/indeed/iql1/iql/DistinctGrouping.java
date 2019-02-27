@@ -51,7 +51,7 @@ public class DistinctGrouping extends Grouping {
     }
 
     @Override
-    public Int2ObjectMap<GroupKey> regroup(EZImhotepSession session, Int2ObjectMap<GroupKey> groupKeys) throws ImhotepOutOfMemoryException {
+    public Int2ObjectMap<GroupKey> regroup(EZImhotepSession session, Int2ObjectMap<GroupKey> groupKeys) {
         throw new UnsupportedOperationException("DistinctGrouping requires FTGS so always should go last in the list of groupings");
     }
 
@@ -103,7 +103,7 @@ public class DistinctGrouping extends Grouping {
     }
 
     private Int2ObjectMap<Int2IntMap> getDistinctData(EZImhotepSession session, Int2ObjectMap<GroupKey> groupKeys) {
-        Int2ObjectMap<Int2IntMap> distinctData = new Int2ObjectOpenHashMap<Int2IntMap>();
+        Int2ObjectMap<Int2IntMap> distinctData = new Int2ObjectOpenHashMap<>();
 
         // get distinct data
         for(int i = 0; i < fields.size(); i++) {
@@ -133,7 +133,7 @@ public class DistinctGrouping extends Grouping {
         for (int i = 0; i < statCount; i++) {
             statGroupValues[i] = session.getGroupStats(statRefs.get(i));
         }
-        final Int2ObjectMap<double[]> ret = new Int2ObjectOpenHashMap<double[]>(groupCount);
+        final Int2ObjectMap<double[]> ret = new Int2ObjectOpenHashMap<>(groupCount);
         for (int group = 1; group <= groupCount; group++) {
             final double[] groupStats = new double[statCount];
             for (int statNum = 0; statNum < groupStats.length; statNum++) {

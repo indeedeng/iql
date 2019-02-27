@@ -14,7 +14,6 @@
 
 package com.indeed.iql2.execution.commands;
 
-import com.google.common.base.Optional;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.TermSelects;
@@ -26,6 +25,7 @@ import it.unimi.dsi.fastutil.longs.LongArrayList;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class IterateAndExplode implements Command {
     public final FieldSet field;

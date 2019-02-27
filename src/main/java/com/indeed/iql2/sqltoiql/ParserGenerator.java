@@ -17,6 +17,6 @@ package com.indeed.iql2.sqltoiql;
 
 public interface ParserGenerator {
 
-    public IQLQuery parse(final String sqlInput);
+    IQLQuery parse(final String sqlInput);
 
 }

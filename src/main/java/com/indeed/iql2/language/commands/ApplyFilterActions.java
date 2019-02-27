@@ -14,7 +14,6 @@
 
 package com.indeed.iql2.language.commands;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
@@ -25,6 +24,7 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @EqualsAndHashCode
@@ -48,7 +48,7 @@ public class ApplyFilterActions implements Command {
         return new com.indeed.iql2.execution.commands.ApplyFilterActions(
                 actions
                 .stream()
-                .map(x -> x.toExecutionAction(namedMetricLookup, groupKeySet))
+                .map(Action::toExecutionAction)
                 .collect(Collectors.toList())
         );
     }

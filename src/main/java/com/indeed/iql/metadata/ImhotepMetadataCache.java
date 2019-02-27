@@ -79,7 +79,7 @@ public class ImhotepMetadataCache {
         Map<String, DatasetInfo> datasetToShardList = imhotepClient.getDatasetToDatasetInfo();
         log.trace("Loaded metadata for " + datasetToShardList.size() + " datasets from Imhotep");
 
-        if(datasetToShardList.size() == 0) {   // if we get no data, just keep what we already have
+        if(datasetToShardList.isEmpty()) {   // if we get no data, just keep what we already have
             log.warn("Imhotep returns no datasets");
             return;
         }
@@ -240,7 +240,7 @@ public class ImhotepMetadataCache {
 
     @Nonnull
     public DatasetMetadata getDataset(String dataset) {
-        return get().getMetadata(dataset).or(new DatasetMetadata(false, dataset, "", null, null, false));    // empty)
+        return get().getMetadata(dataset).orElse(new DatasetMetadata(false, dataset, "", null, null, false));    // empty)
     }
 
     // applicable to all indexes

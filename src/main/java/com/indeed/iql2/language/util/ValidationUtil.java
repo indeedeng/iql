@@ -44,6 +44,9 @@ import java.util.Set;
 import java.util.function.BiPredicate;
 
 public class ValidationUtil {
+    private ValidationUtil() {
+    }
+
     private static void findFieldsUsed(Query query, Set<String> intFields, Set<String> stringFields) {
         switch (query.getQueryType()) {
             case TERM:
@@ -218,7 +221,7 @@ public class ValidationUtil {
             if (datasetTimePeriodSeconds%periodSeconds != 0) {
                     final StringBuilder exceptionBuilder = new StringBuilder("You requested a time period (");
                     TimePeriods.appendTimePeriod(datasetTimePeriodSeconds, exceptionBuilder);
-                    exceptionBuilder.append(") for dataset " + datasetTimeRange.getKey());
+                    exceptionBuilder.append(") for dataset ").append(datasetTimeRange.getKey());
                     exceptionBuilder.append(" not evenly divisible by the bucket size (");
                     TimePeriods.appendTimePeriod(periodSeconds, exceptionBuilder);
                     exceptionBuilder.append("). To correct, increase the time range by ");

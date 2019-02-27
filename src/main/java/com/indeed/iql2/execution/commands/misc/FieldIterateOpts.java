@@ -14,21 +14,14 @@
 
 package com.indeed.iql2.execution.commands.misc;
 
-import com.google.common.base.Optional;
 import com.indeed.iql2.execution.AggregateFilter;
 
-public class FieldIterateOpts {
-    public Optional<Integer> limit = Optional.absent();
-    public Optional<TopK> topK = Optional.absent();
-    public Optional<AggregateFilter> filter = Optional.absent();
-    public Optional<long[]> sortedIntTermSubset = Optional.absent();
-    public Optional<String[]> sortedStringTermSubset = Optional.absent();
+import java.util.Optional;
 
-    public FieldIterateOpts copy() {
-        final FieldIterateOpts result = new FieldIterateOpts();
-        result.limit = this.limit;
-        result.topK = this.topK;
-        result.filter = this.filter;
-        return result;
-    }
+public class FieldIterateOpts {
+    public Optional<Integer> limit = Optional.empty();
+    public Optional<TopK> topK = Optional.empty();
+    public Optional<AggregateFilter> filter = Optional.empty();
+    public Optional<long[]> sortedIntTermSubset = Optional.empty();
+    public Optional<String[]> sortedStringTermSubset = Optional.empty();
 }

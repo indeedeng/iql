@@ -20,7 +20,6 @@ import com.indeed.util.core.io.Closeables2;
 import org.apache.log4j.Logger;
 
 import java.io.Closeable;
-import java.io.IOException;
 
 /**
  * Allows iterating over return values of the provided callback which is being run on each field/term/group tuple.
@@ -30,14 +29,13 @@ public class FTGSCallbackIterator<E> extends AbstractIterator<E> implements Peek
     private static final Logger log = Logger.getLogger(FTGSCallbackIterator.class);
 
     // current FTGS iteration state cache
-    String field;
-    boolean isIntField;
-    long termInt;
-    String termStr;
+    private boolean isIntField;
+    private long termInt;
+    private String termStr;
 
     // flags for whether we need to advance field/term
-    boolean fieldOver = true;
-    boolean termOver = true;
+    private boolean fieldOver = true;
+    private boolean termOver = true;
 
     private final EZImhotepSession.FTGSIteratingCallback<E> callback;
     private final FTGSIterator ftgsIterator;
@@ -52,7 +50,6 @@ public class FTGSCallbackIterator<E> extends AbstractIterator<E> implements Peek
     protected E computeNext() {
         while (!fieldOver || ftgsIterator.nextField()) {
             if(fieldOver) {
-                field = ftgsIterator.fieldName();
                 isIntField = ftgsIterator.fieldIsIntType();
                 fieldOver = false;
             }
@@ -69,9 +66,9 @@ public class FTGSCallbackIterator<E> extends AbstractIterator<E> implements Peek
                     final int group = ftgsIterator.group();
                     ftgsIterator.groupStats(callback.stats);
                     if (isIntField) {
-                        return callback.intTermGroup(field, termInt, group);
+                        return callback.intTermGroup(termInt, group);
                     } else {
-                        return callback.stringTermGroup(field, termStr, group);
+                        return callback.stringTermGroup(termStr, group);
                     }
                 }
                 termOver = true;
@@ -82,7 +79,7 @@ public class FTGSCallbackIterator<E> extends AbstractIterator<E> implements Peek
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         Closeables2.closeQuietly(ftgsIterator, log);
     }
 }

@@ -40,7 +40,7 @@ import java.util.stream.Collectors;
 public class DatasetMetadata {
     private static final Logger log = Logger.getLogger(DatasetMetadata.class);
 
-    public static String TIME_FIELD_NAME = "unixtime";
+    public static final String TIME_FIELD_NAME = "unixtime";
     private final boolean iql2mode;
     public final String name;
     @Nullable public String description;
@@ -119,7 +119,7 @@ public class DatasetMetadata {
 
     public String getFieldDescription(final String field) {
         final FieldMetadata fieldMetadata = getField(field);
-        return fieldMetadata == null ? null : Strings.nullToEmpty(fieldMetadata.description);
+        return fieldMetadata == null ? null : Strings.nullToEmpty(fieldMetadata.getDescription());
     }
 
     @Nullable
@@ -249,8 +249,8 @@ public class DatasetMetadata {
 
         for(final Map.Entry<String, MetricMetadata> entry : fieldToDimension.entrySet()) {
             final MetricMetadata metric = entry.getValue();
-            if(!Strings.isNullOrEmpty(metric.expression) && !metric.expression.equals(metric.name)) {
-                iql1ExpressionAliases.put(metric.name, metric.expression);
+            if(!Strings.isNullOrEmpty(metric.getExpression()) && !metric.getExpression().equals(metric.getName())) {
+                iql1ExpressionAliases.put(metric.getName(), metric.getExpression());
             }
             dimensionEquivalenceSets
                     .computeIfAbsent(entry.getKey(), ignored -> new HashSet<>())
@@ -258,8 +258,8 @@ public class DatasetMetadata {
         }
         iql1ExpressionAliases = Collections.unmodifiableMap(iql1ExpressionAliases);
 
-        final Set<String> intFieldNames = intFields.stream().map(x -> x.name).collect(Collectors.toSet());
-        final Set<String> stringFieldNames = stringFields.stream().map(x -> x.name).collect(Collectors.toSet());
+        final Set<String> intFieldNames = intFields.stream().map(FieldMetadata::getName).collect(Collectors.toSet());
+        final Set<String> stringFieldNames = stringFields.stream().map(FieldMetadata::getName).collect(Collectors.toSet());
         conflictFieldNames = Sets.intersection(intFieldNames, stringFieldNames);
 
         for (final String fieldName : Iterables.concat(intFieldNames, stringFieldNames)) {

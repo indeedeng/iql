@@ -24,7 +24,6 @@ import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.util.core.Pair;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -65,7 +64,7 @@ public class CommandValidator {
         for (final Dataset relevantDataset : relevantDatasets) {
             final String aliasDataset = relevantDataset.getDisplayName();
             final String actualDataset = nameToActualDataset.get(aliasDataset);
-            final DatasetMetadata datasetMetadata = datasetsMetadata.getMetadata(actualDataset).orNull();
+            final DatasetMetadata datasetMetadata = datasetsMetadata.getMetadata(actualDataset).orElse(null);
             if (datasetMetadata == null) {
                 continue;
             }

@@ -14,17 +14,12 @@
  package com.indeed.iql.cache;
 
 import com.google.common.base.Preconditions;
-import com.google.common.io.ByteStreams;
 import org.apache.log4j.Logger;
 import org.springframework.core.env.PropertyResolver;
 
-import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 
 /**
  * @author vladimir
@@ -33,8 +28,8 @@ import java.io.OutputStream;
 public class MultiLevelQueryCache implements QueryCache {
     private static final Logger log = Logger.getLogger(MultiLevelQueryCache.class);
 
-    private QueryCache primaryCache;
-    private QueryCache largeDataCache;
+    private final QueryCache primaryCache;
+    private final QueryCache largeDataCache;
     private final long maxFileSizeForPrimaryCacheBytes;
     private static final int[] MARK_OF_LARGE_DATA_CACHE_USED = new int[] {0xFF, 0xFF, 0xFF, 0xFF};
 
@@ -88,7 +83,7 @@ public class MultiLevelQueryCache implements QueryCache {
     }
 
     @Override
-    public CompletableOutputStream getOutputStream(String cachedFileName) throws IOException {
+    public CompletableOutputStream getOutputStream(String cachedFileName) {
         final ByteArrayOutputStream inMemoryCacheStream = new ByteArrayOutputStream(1000);
         //noinspection IOResourceOpenedButNotSafelyClosed
         final DelegatingCompletableOutputStream wrappedInMemoryStream = new DelegatingCompletableOutputStream(inMemoryCacheStream);

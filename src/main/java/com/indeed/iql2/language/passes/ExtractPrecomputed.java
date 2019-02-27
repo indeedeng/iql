@@ -14,9 +14,6 @@
 
 package com.indeed.iql2.language.passes;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Ordering;
@@ -32,7 +29,6 @@ import com.indeed.iql2.language.query.Dataset;
 import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
-import com.indeed.iql2.language.util.Optionals;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -43,11 +39,16 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class ExtractPrecomputed {
+    private ExtractPrecomputed() {
+    }
+
     public static Extracted extractPrecomputed(final Query query, final boolean extractTotals) {
         final Processor processor = new Processor(1, 1, query.extractDatasetNames());
         final List<GroupByEntry> groupBys = new ArrayList<>();
@@ -78,7 +79,7 @@ public class ExtractPrecomputed {
                     } else {
                         final GroupBy.GroupByField groupByField = (GroupBy.GroupByField) groupBy.groupBy;
                         final GroupBy.GroupByField newGroupByField = new GroupBy.GroupByField(
-                                groupByField.field, Optional.absent(), groupByField.limit, groupByField.metric,
+                                groupByField.field, Optional.empty(), groupByField.limit, groupByField.metric,
                                 groupByField.withDefault);
                         groupBys.add(new GroupByEntry(newGroupByField.traverse1(processor), newFilter, alias));
                     }
@@ -114,14 +115,14 @@ public class ExtractPrecomputed {
             final AggregateMetric select = query.selects.get(i);
             selects.add(processor.apply(select));
         }
-        return new Extracted(new Query(query.datasets, query.filter, groupBys, selects, query.formatStrings, query.options, query.rowLimit, query.useLegacy), processor.computedNames, Optional.fromNullable(totals));
+        return new Extracted(new Query(query.datasets, query.filter, groupBys, selects, query.formatStrings, query.options, query.rowLimit, query.useLegacy), processor.computedNames, Optional.ofNullable(totals));
     }
 
     public static Map<Integer, List<ComputationInfo>> computationStages(Map<ComputationInfo, String> extracted) {
         final Map<Integer, List<ComputationInfo>> result = new Int2ObjectOpenHashMap<>();
         for (final ComputationInfo info : extracted.keySet()) {
             if (!result.containsKey(info.depth)) {
-                result.put(info.depth, new ArrayList<ComputationInfo>());
+                result.put(info.depth, new ArrayList<>());
             }
             result.get(info.depth).add(info);
         }
@@ -185,7 +186,7 @@ public class ExtractPrecomputed {
                 }
                 return input;
             }
-        }, Functions.identity(), Functions.identity(), Functions.identity(), Functions.identity());
+        }, Function.identity(), Function.identity(), Function.identity(), Function.identity());
         return existed.get();
     }
 
@@ -199,7 +200,7 @@ public class ExtractPrecomputed {
 
         private final Map<ComputationType, Map<ComputationInfo, String>> computedNames = new HashMap<>();
 
-        public Processor(int depth, int startDepth, Set<String> scope) {
+        Processor(int depth, int startDepth, Set<String> scope) {
             this.depth = depth;
             this.startDepth = startDepth;
             this.scope = scope;
@@ -230,7 +231,7 @@ public class ExtractPrecomputed {
                     this.setDepth(prevDepth);
                     this.setStartDepth(prevStartDepth);
                 } else {
-                    filter = Optional.absent();
+                    filter = Optional.empty();
                 }
                 return handlePrecomputed(new Precomputed.PrecomputedDistinct(distinct.field, filter, distinct.windowSize));
             } else if (input instanceof AggregateMetric.Percentile) {
@@ -238,7 +239,7 @@ public class ExtractPrecomputed {
                 return handlePrecomputed(new Precomputed.PrecomputedPercentile(percentile.field, percentile.percentile));
             } else if (input instanceof AggregateMetric.Qualified) {
                 final AggregateMetric.Qualified qualified = (AggregateMetric.Qualified) input;
-                final Set<String> oldScope = ImmutableSet.copyOf(this.scope);
+                final Set<String> oldScope = ImmutableSet.copyOf(scope);
                 final Set<String> newScope = Sets.newHashSet(qualified.scope);
                 if (!oldScope.containsAll(newScope)) {
                     throw new IqlKnownException.ParseErrorException("Cannot have a sub-scope that is not a subset of the outer scope. oldScope = [" + oldScope + "], newScope = [" + newScope + "]");
@@ -283,7 +284,7 @@ public class ExtractPrecomputed {
                 }
                 if (sumAcross.groupBy instanceof GroupBy.GroupByField && !((GroupBy.GroupByField) sumAcross.groupBy).limit.isPresent()) {
                     final GroupBy.GroupByField groupBy = (GroupBy.GroupByField) sumAcross.groupBy;
-                    return handlePrecomputed(new Precomputed.PrecomputedSumAcross(groupBy.field, apply(sumAcross.metric), Optionals.traverse1(groupBy.filter, this)));
+                    return handlePrecomputed(new Precomputed.PrecomputedSumAcross(groupBy.field, apply(sumAcross.metric), groupBy.filter.map(x -> x.traverse1(this))));
                 } else if (sumAcross.groupBy.isTotal()) {
                     return handlePrecomputed(new Precomputed.PrecomputedSumAcrossGroupBy(sumAcross.groupBy.traverse1(this), apply(sumAcross.metric)));
                 } else {
@@ -299,7 +300,7 @@ public class ExtractPrecomputed {
                     new Precomputed.PrecomputedFieldExtremeValue(
                         fieldMin.field,
                         apply(new AggregateMetric.Negate(getOrDefaultToAggregateAvg(fieldMin.metric, fieldMin.field))),
-                        Optionals.traverse1(fieldMin.filter, this)
+                        fieldMin.filter.map(x -> x.traverse1(this))
                     )
                 );
             } else if (input instanceof AggregateMetric.FieldMax) {
@@ -308,7 +309,7 @@ public class ExtractPrecomputed {
                     new Precomputed.PrecomputedFieldExtremeValue(
                         fieldMax.field,
                         apply(getOrDefaultToAggregateAvg(fieldMax.metric, fieldMax.field)),
-                        Optionals.traverse1(fieldMax.filter, this)
+                        fieldMax.filter.map(x -> x.traverse1(this))
                     )
                 );
             } else if (input instanceof AggregateMetric.DivideByCount) {
@@ -331,7 +332,7 @@ public class ExtractPrecomputed {
                         }
                         return metric;
                     }
-                }, Functions.identity(), Functions.identity(), Functions.identity(), Functions.identity());
+                }, Function.identity(), Function.identity(), Function.identity(), Function.identity());
                 if (datasets.isEmpty()) {
                     throw new IllegalArgumentException("Averaging over no documents is undefined");
                 }
@@ -450,7 +451,7 @@ public class ExtractPrecomputed {
         private final int depth;
         private final Set<String> scope;
 
-        public ComputationInfo(final Precomputed precomputed, final int depth, final Set<String> scope) {
+        ComputationInfo(final Precomputed precomputed, final int depth, final Set<String> scope) {
             this.precomputed = precomputed;
             this.depth = depth;
             this.scope = scope;
@@ -459,6 +460,6 @@ public class ExtractPrecomputed {
 
     private enum ComputationType {
         PreComputation,
-        PostComputation;
+        PostComputation
     }
 }

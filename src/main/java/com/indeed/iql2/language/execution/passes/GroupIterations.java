@@ -14,20 +14,10 @@
 
 package com.indeed.iql2.language.execution.passes;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
-import com.google.common.base.Optional;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
-import com.indeed.iql2.language.DocFilter;
-import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.execution.ExecutionStep;
 import com.indeed.iql2.language.precomputed.Precomputed;
 import com.indeed.iql2.language.query.Dataset;
-import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.util.core.Pair;
 import lombok.EqualsAndHashCode;
@@ -38,10 +28,15 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class GroupIterations {
+    private GroupIterations() {
+    }
+
     public static List<ExecutionStep> apply(List<ExecutionStep> steps) {
         final List<ExecutionStep> result = new ArrayList<>();
         final List<ExecutionStep.ComputePrecomputed> runOfPrecomputeds = new ArrayList<>();
@@ -123,12 +118,9 @@ public class GroupIterations {
             for (final Map.Entry<PrecomputedContext, List<ExecutionStep.ComputePrecomputed>> entry : contextMembers.entrySet()) {
                 final Grouping grouping = Grouping.from(entry.getKey(), entry.getValue());
                 soFar.add(grouping);
-                recursivelyConsiderAllOrders(soFar, Lists.newArrayList(Iterables.filter(precomputeds, new Predicate<ExecutionStep.ComputePrecomputed>() {
-                    @Override
-                    public boolean apply(ExecutionStep.ComputePrecomputed input) {
-                        return !entry.getValue().contains(input);
-                    }
-                })), bestGrouping);
+                final List<ExecutionStep.ComputePrecomputed> filtered =
+                        precomputeds.stream().filter(x -> !entry.getValue().contains(x)).collect(Collectors.toList());
+                recursivelyConsiderAllOrders(soFar, filtered, bestGrouping);
                 soFar.remove(soFar.size() - 1);
             }
         }
@@ -138,11 +130,8 @@ public class GroupIterations {
         final Map<PrecomputedContext, List<ExecutionStep.ComputePrecomputed>> contextMembers = new HashMap<>();
         for (final ExecutionStep.ComputePrecomputed elem : usable) {
             final PrecomputedContext ctx = PrecomputedContext.create(elem);
-            List<ExecutionStep.ComputePrecomputed> members = contextMembers.get(ctx);
-            if (members == null) {
-                members = new ArrayList<>();
-                contextMembers.put(ctx, members);
-            }
+            final List<ExecutionStep.ComputePrecomputed> members =
+                    contextMembers.computeIfAbsent(ctx, k -> new ArrayList<>());
             members.add(elem);
         }
         return contextMembers;
@@ -151,7 +140,7 @@ public class GroupIterations {
     private static Set<String> findNamedDependencies(Precomputed precomputed) {
         final Set<String> dependencies = new HashSet<>();
         precomputed.transform(
-                Functions.<Precomputed>identity(),
+                Function.identity(),
                 new Function<AggregateMetric, AggregateMetric>() {
                     @Override
                     public AggregateMetric apply(AggregateMetric input) {
@@ -162,10 +151,10 @@ public class GroupIterations {
                         return input;
                     }
                 },
-                Functions.<DocMetric>identity(),
-                Functions.<AggregateFilter>identity(),
-                Functions.<DocFilter>identity(),
-                Functions.<GroupBy>identity()
+                Function.identity(),
+                Function.identity(),
+                Function.identity(),
+                Function.identity()
         );
         return dependencies;
     }
@@ -176,7 +165,7 @@ public class GroupIterations {
         private final List<Dataset> datasets;
         private final Optional<FieldSet> field;
 
-        public PrecomputedContext(final List<Dataset> datasets, final Optional<FieldSet> field) {
+        PrecomputedContext(final List<Dataset> datasets, final Optional<FieldSet> field) {
             this.datasets = datasets;
             this.field = field;
         }
@@ -192,13 +181,12 @@ public class GroupIterations {
                 final Precomputed.PrecomputedPercentile precomputedPercentile = (Precomputed.PrecomputedPercentile) computation;
                 return new PrecomputedContext(datasets, Optional.of(precomputedPercentile.field));
             } else if (computation instanceof Precomputed.PrecomputedRawStats) {
-                return new PrecomputedContext(datasets, Optional.absent());
+                return new PrecomputedContext(datasets, Optional.empty());
             } else if (computation instanceof Precomputed.PrecomputedSumAcross) {
                 final Precomputed.PrecomputedSumAcross precomputedSumAcross = (Precomputed.PrecomputedSumAcross) computation;
                 return new PrecomputedContext(datasets, Optional.of(precomputedSumAcross.field));
             } else if (computation instanceof Precomputed.PrecomputedSumAcrossGroupBy) {
-                final Precomputed.PrecomputedSumAcrossGroupBy precomputedSumAcrossGroupBy = (Precomputed.PrecomputedSumAcrossGroupBy) computation;
-                return new PrecomputedContext(datasets, Optional.absent());
+                return new PrecomputedContext(datasets, Optional.empty());
             } else if (computation instanceof Precomputed.PrecomputedFieldExtremeValue) {
                 final Precomputed.PrecomputedFieldExtremeValue precomputedFieldExtremeValue = (Precomputed.PrecomputedFieldExtremeValue) computation;
                 return new PrecomputedContext(datasets, Optional.of(precomputedFieldExtremeValue.field));

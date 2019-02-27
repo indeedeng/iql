@@ -14,7 +14,6 @@
 
 package com.indeed.iql2.execution.commands;
 
-import com.google.common.base.Optional;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.TimeUnit;
@@ -23,6 +22,8 @@ import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.Months;
+
+import java.util.Optional;
 
 public class ExplodeMonthOfYear implements Command {
     private static final DateTimeZone IMHOTEP_TIME = DateTimeZone.forOffsetHours(-6);
@@ -93,7 +94,7 @@ public class ExplodeMonthOfYear implements Command {
                 session.groupKeySet,
                 numMonths,
                 startMonth,
-                timeFormat.or(TimeUnit.SECOND.formatString),
+                timeFormat.orElse(TimeUnit.SECOND.formatString),
                 session.formatter
         );
         session.assumeDense(groupKeySet);

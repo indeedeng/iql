@@ -14,10 +14,7 @@
 
 package com.indeed.iql2.language.actions;
 
-import com.google.common.base.Function;
 import com.indeed.flamdex.query.Query;
-import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
-import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
@@ -54,7 +51,7 @@ public class QueryAction implements Action {
     }
 
     @Override
-    public com.indeed.iql2.execution.actions.Action toExecutionAction(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+    public com.indeed.iql2.execution.actions.Action toExecutionAction() {
         return new com.indeed.iql2.execution.actions.QueryAction(
                 perDatasetQuery,
                 targetGroup,

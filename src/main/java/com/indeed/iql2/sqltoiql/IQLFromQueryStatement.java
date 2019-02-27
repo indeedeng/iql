@@ -24,12 +24,12 @@ import java.util.Optional;
 
 public class IQLFromQueryStatement {
 
-    private final static DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("\"yyyy-MM-dd HH:mm:ss\"");
+    private static final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("\"yyyy-MM-dd HH:mm:ss\"");
 
     private final String identifier;
     private final LocalDateTime startTime;
     private final LocalDateTime endTime;
-    private Optional<String> alias;
+    private final Optional<String> alias;
 
     private IQLFromQueryStatement(
             final String identifier,
@@ -63,20 +63,20 @@ public class IQLFromQueryStatement {
 
         public IQLFromQueryStatement build() {
             if (!startTime.isPresent() || !endTime.isPresent()) {
-                throw new IQLFromQueryStatementBuildException(this.identifier);
+                throw new IQLFromQueryStatementBuildException(identifier);
             }
 
-            if (this.startTime.get().isAfter(this.endTime.get())) {
-                return new IQLFromQueryStatement(this.identifier, this.endTime.get(), this.startTime.get(), this.alias);
+            if (startTime.get().isAfter(endTime.get())) {
+                return new IQLFromQueryStatement(identifier, endTime.get(), startTime.get(), alias);
             }
-            return new IQLFromQueryStatement(this.identifier, this.startTime.get(), this.endTime.get(), this.alias);
+            return new IQLFromQueryStatement(identifier, startTime.get(), endTime.get(), alias);
         }
 
         public Builder addTime(final LocalDateTime newTime) {
-            if (this.startTime.isPresent()) {
-                this.endTime = Optional.of(newTime);
+            if (startTime.isPresent()) {
+                endTime = Optional.of(newTime);
             } else {
-                this.startTime = Optional.of(newTime);
+                startTime = Optional.of(newTime);
             }
             return this;
         }
@@ -87,13 +87,13 @@ public class IQLFromQueryStatement {
         }
 
         public Optional<String> getAlias() {
-            return this.alias;
+            return alias;
         }
         public Optional<LocalDateTime> getStartTime() {
-            return this.startTime;
+            return startTime;
         }
         public Optional<LocalDateTime> getEndTime() {
-            return this.endTime;
+            return endTime;
         }
 
     }

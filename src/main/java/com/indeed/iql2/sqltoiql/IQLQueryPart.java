@@ -17,6 +17,6 @@ package com.indeed.iql2.sqltoiql;
 
 public interface IQLQueryPart {
 
-    public String toString();
+    String toString();
 
 }

@@ -15,6 +15,9 @@
 package com.indeed.iql2.language.util;
 
 public class ErrorMessages {
+    private ErrorMessages() {
+    }
+
     public static String missingStringField(String dataset, String field, Object context) {
         return "Dataset \"" + dataset + "\" does not contain expected string field \"" + field + "\" in [" + context + "]";
     }

@@ -14,14 +14,12 @@
 
 package com.indeed.iql2.execution.commands;
 
-import com.google.common.base.Optional;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.AggregateFilter;
 import com.indeed.iql2.execution.Pushable;
 import com.indeed.iql2.execution.QualifiedPush;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.commands.misc.IterateHandler;
-import com.indeed.iql2.execution.commands.misc.IterateHandlerable;
 import com.indeed.iql2.execution.commands.misc.IterateHandlers;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
@@ -29,9 +27,10 @@ import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
-public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
+public class GetGroupDistincts implements Command {
     public final FieldSet field;
     public final Optional<AggregateFilter> filter;
 
@@ -63,7 +62,7 @@ public class GetGroupDistincts implements IterateHandlerable<long[]>, Command {
 
         @Override
         public Set<QualifiedPush> requires() {
-            return filter.transform(Pushable::requires).or(Collections.emptySet());
+            return filter.map(Pushable::requires).orElse(Collections.emptySet());
         }
 
         @Override

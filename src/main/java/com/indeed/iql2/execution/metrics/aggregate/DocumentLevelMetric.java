@@ -48,7 +48,7 @@ public class DocumentLevelMetric implements AggregateMetric {
 
     @Override
     public void register(final Map<QualifiedPush, Integer> metricIndexes, final GroupKeySet groupKeySet) {
-        this.index = metricIndexes.get(push());
+        index = metricIndexes.get(push());
     }
 
     @Override

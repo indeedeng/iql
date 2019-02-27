@@ -32,7 +32,6 @@ import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -43,8 +42,8 @@ import java.util.Map;
  */
 public class DatasetStatsCollector {
     private static final Logger log = Logger.getLogger(DatasetStatsCollector.class);
-    public static final DateTimeFormatter SHARD_VERSION_FORMATTER = DateTimeFormat.forPattern("yyyyMMddHHmmss").withZone(DateTimeZone.forOffsetHours(-6));
-    public static final long LOWEST_LEGAL_TIMESTAMP_DATE = 10000000000L;
+    private static final DateTimeFormatter SHARD_VERSION_FORMATTER = DateTimeFormat.forPattern("yyyyMMddHHmmss").withZone(DateTimeZone.forOffsetHours(-6));
+    private static final long LOWEST_LEGAL_TIMESTAMP_DATE = 10000000000L;
 
 
     public static List<DatasetStats> computeStats(ImhotepClient client, ImhotepMetadataCache metadataCacheIQL2) {
@@ -146,12 +145,7 @@ public class DatasetStatsCollector {
             stats.reportGenerationTime = DateTime.now();
         }
 
-        Collections.sort(statsList, new Comparator<DatasetStats>() {
-            @Override
-            public int compare(DatasetStats o1, DatasetStats o2) {
-                return o1.name.compareTo(o2.name);
-            }
-        });
+        statsList.sort(Comparator.comparing(o -> o.name));
 
         return statsList;
     }

@@ -34,7 +34,8 @@ public class IntOrAction implements Action {
     public final int positiveGroup;
     public final int negativeGroup;
 
-    private @Nullable Set<String> stringifiedTerms;
+    @Nullable
+    private Set<String> stringifiedTerms;
 
     public IntOrAction(FieldSet field, Set<Long> terms, int targetGroup, int positiveGroup, int negativeGroup) {
         this.field = field;

@@ -2,63 +2,64 @@ package com.indeed.iql.comparators;
 
 import com.indeed.iql1.iql.ScoredObject;
 import org.junit.Test;
+
 import java.util.Comparator;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 public class TestScoredObjectComparator {
 
     @Test
     public void testStrComparator() {
-        ScoredObject o1 = new ScoredObject(123, new String("a"));
-        ScoredObject o2 = new ScoredObject(123, new String("b"));
-        ScoredObject o3 = new ScoredObject(123, new String("b"));
-        ScoredObject o4 = new ScoredObject(124, new String("a"));
-        ScoredObject o5 = new ScoredObject(124, new String("b"));
-        ScoredObject o6 = new ScoredObject(Double.NaN, new String("b"));
-        ScoredObject o7 = new ScoredObject(-12, new String("b"));
+        ScoredObject<String> o1 = new ScoredObject<>(123, "a");
+        ScoredObject<String> o2 = new ScoredObject<>(123, "b");
+        ScoredObject<String> o3 = new ScoredObject<>(123, "b");
+        ScoredObject<String> o4 = new ScoredObject<>(124, "a");
+        ScoredObject<String> o5 = new ScoredObject<>(124, "b");
+        ScoredObject<String> o6 = new ScoredObject<>(Double.NaN, "b");
+        ScoredObject<String> o7 = new ScoredObject<>(-12, "b");
 
         Comparator<ScoredObject<String>> topComparator =  ScoredObject.topScoredObjectComparator(Comparator.<String>naturalOrder());
         Comparator<ScoredObject<String>> bottomComparator =  ScoredObject.bottomScoredObjectComparator(Comparator.<String>naturalOrder());
 
-        assertEquals(topComparator.compare(o1, o2), -1);
-        assertEquals(bottomComparator.compare(o1, o2),1);
-        assertEquals(topComparator.compare(o2, o3), 0);
-        assertEquals(bottomComparator.compare(o2, o3), 0);
-        assertEquals(topComparator.compare(o1, o4), -1);
-        assertEquals(topComparator.compare(o5, o2), 1);
-        assertEquals(bottomComparator.compare(o5, o2), -1);
-        assertEquals(bottomComparator.compare(o6, o2), -1);
-        assertEquals(topComparator.compare(o6, o2), -1);
-        assertEquals(bottomComparator.compare(o7, o6), 1);
-        assertEquals(topComparator.compare(o7, o6), 1);
+        assertEquals(-1, topComparator.compare(o1, o2));
+        assertEquals(1, bottomComparator.compare(o1, o2));
+        assertEquals(0, topComparator.compare(o2, o3));
+        assertEquals(0, bottomComparator.compare(o2, o3));
+        assertEquals(-1, topComparator.compare(o1, o4));
+        assertEquals(1, topComparator.compare(o5, o2));
+        assertEquals(-1, bottomComparator.compare(o5, o2));
+        assertEquals(-1, bottomComparator.compare(o6, o2));
+        assertEquals(-1, topComparator.compare(o6, o2));
+        assertEquals(1, bottomComparator.compare(o7, o6));
+        assertEquals(1, topComparator.compare(o7, o6));
 
     }
 
     @Test
     public void testIntComparator() {
-        ScoredObject o1 = new ScoredObject(123, new Integer(12));
-        ScoredObject o2 = new ScoredObject(123, new Integer(13));
-        ScoredObject o3 = new ScoredObject(123, new Integer(13));
-        ScoredObject o4 = new ScoredObject(124, new Integer(12));
-        ScoredObject o5 = new ScoredObject(124, new Integer(13));
-        ScoredObject o6 = new ScoredObject(Double.NaN, new Integer(13));
-        ScoredObject o7 = new ScoredObject(-12, new Integer(13));
+        ScoredObject<Integer> o1 = new ScoredObject<>(123, 12);
+        ScoredObject<Integer> o2 = new ScoredObject<>(123, 13);
+        ScoredObject<Integer> o3 = new ScoredObject<>(123, 13);
+        ScoredObject<Integer> o4 = new ScoredObject<>(124, 12);
+        ScoredObject<Integer> o5 = new ScoredObject<>(124, 13);
+        ScoredObject<Integer> o6 = new ScoredObject<>(Double.NaN, 13);
+        ScoredObject<Integer> o7 = new ScoredObject<>(-12, 13);
 
         Comparator<ScoredObject<Integer>> topComparator =  ScoredObject.topScoredObjectComparator(Comparator.<Integer>naturalOrder());
         Comparator<ScoredObject<Integer>> bottomComparator =  ScoredObject.bottomScoredObjectComparator(Comparator.<Integer>naturalOrder());
 
-        assertEquals(topComparator.compare(o1, o2), -1);
-        assertEquals(bottomComparator.compare(o1, o2),1);
-        assertEquals(topComparator.compare(o2, o3), 0);
-        assertEquals(bottomComparator.compare(o2, o3), 0);
-        assertEquals(topComparator.compare(o1, o4), -1);
-        assertEquals(topComparator.compare(o5, o2), 1);
-        assertEquals(bottomComparator.compare(o5, o2), -1);
-        assertEquals(bottomComparator.compare(o6, o2), -1);
-        assertEquals(topComparator.compare(o6, o2), -1);
-        assertEquals(bottomComparator.compare(o7, o6), 1);
-        assertEquals(topComparator.compare(o7, o6), 1);
+        assertEquals(-1, topComparator.compare(o1, o2));
+        assertEquals(1, bottomComparator.compare(o1, o2));
+        assertEquals(0, topComparator.compare(o2, o3));
+        assertEquals(0, bottomComparator.compare(o2, o3));
+        assertEquals(-1, topComparator.compare(o1, o4));
+        assertEquals(1, topComparator.compare(o5, o2));
+        assertEquals(-1, bottomComparator.compare(o5, o2));
+        assertEquals(-1, bottomComparator.compare(o6, o2));
+        assertEquals(-1, topComparator.compare(o6, o2));
+        assertEquals(1, bottomComparator.compare(o7, o6));
+        assertEquals(1, topComparator.compare(o7, o6));
 
     }
 }

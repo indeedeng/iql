@@ -31,6 +31,9 @@ import java.io.IOException;
 import java.util.Collections;
 
 public class CompatibilityTest {
+    private CompatibilityTest() {
+    }
+
     private static final Logger log = Logger.getLogger(CompatibilityTest.class);
 
     public static void main(String[] args) throws IOException, InterruptedException {

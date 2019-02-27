@@ -14,18 +14,18 @@
  package com.indeed.iql1.ez;
 
 import com.google.common.collect.Lists;
-import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
+import java.util.Objects;
 
 /**
  * @author jplaisance
  */
 public final class GroupKey<E extends Comparable> {
-    private static final Logger log = Logger.getLogger(GroupKey.class);
-
-    private final @Nullable List<E> front;
-    private final @Nullable List<E> back;
+    @Nullable
+    private final List<E> front;
+    @Nullable
+    private final List<E> back;
 
     private static final GroupKey EMPTY = new GroupKey(null, null);
 
@@ -37,7 +37,7 @@ public final class GroupKey<E extends Comparable> {
         return EMPTY.add(e);
     }
 
-    private GroupKey(final @Nullable List<E> front, final @Nullable List<E> back) {
+    private GroupKey(@Nullable final List<E> front, @Nullable final List<E> back) {
         this.front = front;
         this.back = back;
     }
@@ -45,26 +45,29 @@ public final class GroupKey<E extends Comparable> {
     private static final class List<E> {
         private final E head;
 
-        private final @Nullable List<E> tail;
+        @Nullable
+        private final List<E> tail;
 
-        private @Nullable E last;
+        @Nullable
+        private final E last;
 
-        private List(final E head, final @Nullable List<E> tail) {
+        private List(final E head, @Nullable final List<E> tail) {
             this.head = head;
             this.tail = tail;
             this.last = (tail==null)? head : tail.last;
         }
 
         public boolean equals(final Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
 
             final List list = (List) o;
 
-            if (head != null ? !head.equals(list.head) : list.head != null) return false;
-            if (tail != null ? !tail.equals(list.tail) : list.tail != null) return false;
-
-            return true;
+            return Objects.equals(head, list.head) && Objects.equals(tail, list.tail);
         }
 
         public int hashCode() {
@@ -74,13 +77,15 @@ public final class GroupKey<E extends Comparable> {
         }
 
         public E getLast() {
-            return this.last;
+            return last;
         }
     }
 
     public E head() {
         if (front == null) {
-            if (back == null) throw new IllegalStateException("empty key has no head");
+            if (back == null) {
+                throw new IllegalStateException("empty key has no head");
+            }
             return back.last;
         }
         return front.head;
@@ -88,7 +93,9 @@ public final class GroupKey<E extends Comparable> {
 
     public E getLastInserted() {
         if (back == null) {
-            if (front == null) throw new IllegalStateException("Key is empty");
+            if (front == null) {
+                throw new IllegalStateException("Key is empty");
+            }
             return front.last;
         }
         return back.head;
@@ -96,20 +103,22 @@ public final class GroupKey<E extends Comparable> {
 
     public GroupKey<E> tail() {
         if (front == null) {
-            if (back == null) throw new IllegalStateException("empty key has no tail");
+            if (back == null) {
+                throw new IllegalStateException("empty key has no tail");
+            }
             List<E> reversed = null;
             List<E> current = back;
             while (current.tail != null) {
-                reversed = new List<E>(current.head, reversed);
+                reversed = new List<>(current.head, reversed);
                 current = current.tail;
             }
-            return new GroupKey<E>(reversed, null);
+            return new GroupKey<>(reversed, null);
         }
-        return new GroupKey<E>(front.tail, back);
+        return new GroupKey<>(front.tail, back);
     }
 
     public GroupKey<E> add(E e) {
-        return new GroupKey<E>(front, new List<E>(e, back));
+        return new GroupKey<>(front, new List<>(e, back));
     }
 
     public boolean isEmpty() {
@@ -121,15 +130,16 @@ public final class GroupKey<E extends Comparable> {
     }
 
     public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         final GroupKey groupKey = (GroupKey) o;
 
-        if (back != null ? !back.equals(groupKey.back) : groupKey.back != null) return false;
-        if (front != null ? !front.equals(groupKey.front) : groupKey.front != null) return false;
-
-        return true;
+        return Objects.equals(back, groupKey.back) && Objects.equals(front, groupKey.front);
     }
 
     public int hashCode() {

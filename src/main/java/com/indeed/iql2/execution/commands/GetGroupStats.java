@@ -14,7 +14,6 @@
 
 package com.indeed.iql2.execution.commands;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -28,6 +27,7 @@ import it.unimi.dsi.fastutil.ints.IntList;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 public class GetGroupStats implements Command {
@@ -54,7 +54,7 @@ public class GetGroupStats implements Command {
 
         session.timer.push("determining pushes");
         final Set<QualifiedPush> pushesRequired = Sets.newHashSet();
-        for (final AggregateMetric metric : this.metrics) {
+        for (final AggregateMetric metric : metrics) {
             pushesRequired.addAll(metric.requires());
         }
         final Map<QualifiedPush, Integer> metricIndexes = Maps.newHashMap();
@@ -68,7 +68,7 @@ public class GetGroupStats implements Command {
             metricIndexes.put(push, index);
             final String sessionName = push.sessionName;
             if (!sessionPushes.containsKey(sessionName)) {
-                sessionPushes.put(sessionName, Lists.<QualifiedPush>newArrayList());
+                sessionPushes.put(sessionName, Lists.newArrayList());
             }
             sessionPushes.get(sessionName).add(push);
             IntList metricIndex = sessionMetricIndexes.get(sessionName);
@@ -80,7 +80,7 @@ public class GetGroupStats implements Command {
         }
         session.timer.pop();
         session.timer.push("registering stats");
-        for (final AggregateMetric metric : this.metrics) {
+        for (final AggregateMetric metric : metrics) {
             metric.register(metricIndexes, session.groupKeySet);
         }
         session.timer.pop();
@@ -100,7 +100,7 @@ public class GetGroupStats implements Command {
         session.timer.pop();
 
         session.timer.push("computing aggregated stats");
-        final List<AggregateMetric> selectedMetrics = this.metrics;
+        final List<AggregateMetric> selectedMetrics = metrics;
 
         final double[][] groupStats = new double[selectedMetrics.size()][];
         for (int i = 0; i < selectedMetrics.size(); i++) {

@@ -1,6 +1,5 @@
 package com.indeed.iql2.language.query.shardresolution;
 
-import com.google.common.collect.ImmutableList;
 import com.indeed.imhotep.Shard;
 import org.joda.time.DateTime;
 import org.joda.time.Interval;

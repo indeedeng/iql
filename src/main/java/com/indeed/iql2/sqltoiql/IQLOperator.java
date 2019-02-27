@@ -34,14 +34,14 @@ public enum IQLOperator {
 
     @Override
     public String toString() {
-        return this.value;
+        return value;
     }
 
     public String getValue() {
-        return this.value;
+        return value;
     }
 
-    private static ImmutableMap<String, IQLOperator> reverseLookup =
+    private static final ImmutableMap<String, IQLOperator> reverseLookup =
             Maps.uniqueIndex(Arrays.asList(IQLOperator.values()), IQLOperator::getValue);
 
     public static IQLOperator fromString(final String id) {

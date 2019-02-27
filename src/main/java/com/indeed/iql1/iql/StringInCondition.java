@@ -16,16 +16,13 @@
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql1.ez.EZImhotepSession;
 import com.indeed.iql1.ez.Field;
-import org.apache.log4j.Logger;
 
 /**
  * @author jplaisance
  */
 public final class StringInCondition implements Condition {
-    private static final Logger log = Logger.getLogger(StringInCondition.class);
-
     private final Field.StringField stringField;
-    private boolean equality;   // true = equality, false = IN clause
+    private final boolean equality;   // true = equality, false = IN clause
     private final String[] values;
     private final boolean negation;
 

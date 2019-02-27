@@ -55,7 +55,7 @@ public class InMemoryQueryCache implements QueryCache {
     }
 
     @Override
-    public InputStream getInputStream(String cachedFileName) throws IOException {
+    public InputStream getInputStream(String cachedFileName) {
         final String cachedValue = cachedValues.get(cachedFileName);
         if (cachedValue == null) {
             return null;
@@ -65,21 +65,21 @@ public class InMemoryQueryCache implements QueryCache {
     }
 
     @Override
-    public CompletableOutputStream getOutputStream(final String cachedFileName) throws IOException {
+    public CompletableOutputStream getOutputStream(final String cachedFileName) {
         final ByteList bytes = new ByteArrayList();
         return new CompletableOutputStream() {
             @Override
-            public void write(int b) throws IOException {
+            public void write(int b) {
                 bytes.addAll(Bytes.asList(Ints.toByteArray(b)));
             }
 
             @Override
-            public void flush() throws IOException {
+            public void flush() {
                 // cachedValues.put(cachedFileName, new String(bytes.toByteArray()));
             }
 
             @Override
-            public void close() throws IOException {
+            public void close() {
                 if (completed) {
                     writesTracked.add(cachedFileName);
                     cachedValues.put(cachedFileName, new String(bytes.toByteArray()));
@@ -96,8 +96,7 @@ public class InMemoryQueryCache implements QueryCache {
     }
 
     @Override
-    public void healthcheck() throws IOException {
-
+    public void healthcheck() {
     }
 
     public Set<String> getReadsTracked() {

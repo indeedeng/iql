@@ -58,6 +58,6 @@ public class QuantilesDataset {
     public enum FieldType {
         MANDATORY,
         OPTIONAL,
-        MULTI_VALUE;
+        MULTI_VALUE
     }
 }

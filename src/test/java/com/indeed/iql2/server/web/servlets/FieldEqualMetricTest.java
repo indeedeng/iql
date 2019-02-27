@@ -15,9 +15,6 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
-import com.indeed.iql2.server.web.servlets.dataset.AllData;
-import com.indeed.iql2.server.web.servlets.dataset.Dataset;
-import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -40,11 +37,10 @@ public class FieldEqualMetricTest extends BasicTest {
 
     @Test
     public void testMultiDatasetEqualFieldMetric() {
-        try {
-            QueryServletTestUtils.testIQL2(ImmutableList.of(ImmutableList.of("", "fail")), "from fieldEqual yesterday today as o1, fieldEqual yesterday today as o2 select o1.i1=o2.i2");
-            Assert.fail("field on different dataset should throw exception");
-        } catch (Exception e) {
-        }
+        QueryServletTestUtils.expectException(
+                "from fieldEqual yesterday today as o1, fieldEqual yesterday today as o2 select o1.i1=o2.i2",
+                QueryServletTestUtils.LanguageVersion.IQL2,
+                ex -> ex.contains("scope mismatches between equality fields"));
     }
 
     @Test

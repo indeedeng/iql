@@ -36,7 +36,7 @@ import java.util.Set;
 
 public class RunningQueriesManager {
     private static final Logger log = Logger.getLogger ( RunningQueriesManager.class );
-    public final int perUserPendingQueriesLimit;
+    private final int perUserPendingQueriesLimit;
     private final IQLDB iqldb;
 
     private final List<SelectQuery> queriesWaiting = Lists.newArrayList();
@@ -57,7 +57,7 @@ public class RunningQueriesManager {
             return;
         }
         lastDaemonRunningQueries = iqldb.getRunningQueriesForThisHost();
-        if(lastDaemonRunningQueries.size() > 0) {
+        if(!lastDaemonRunningQueries.isEmpty()) {
             log.warn("Daemon was in the process of running the following queries when it was shutdown: ");
             for (RunningQuery query : lastDaemonRunningQueries) {
                 log.warn(query.toString());
@@ -71,7 +71,7 @@ public class RunningQueriesManager {
     private void tryStartingWaitingQueries() {
         try {
             synchronized (queriesWaiting) {
-                if (queriesWaiting.size() == 0 && queriesRunning.size() == 0) {
+                if (queriesWaiting.isEmpty() && queriesRunning.isEmpty()) {
                     return;
                 }
                 // if there is a large volume of queries, batch them instead of letting each one trigger a DB check immediately
@@ -89,7 +89,7 @@ public class RunningQueriesManager {
 
                 synchronized (queriesRunning) {
                     queriesRunning.addAll(result.queriesStarting);
-                    if(result.cancelledQueries.size() > 0) {
+                    if(!result.cancelledQueries.isEmpty()) {
                         applyCancellations(result.cancelledQueries);
                     }
                 }
@@ -104,10 +104,10 @@ public class RunningQueriesManager {
     }
 
     private static class RunningQueriesUpdateResult {
-        List<SelectQuery> queriesStarting;
-        LongSet cancelledQueries;
+        final List<SelectQuery> queriesStarting;
+        final LongSet cancelledQueries;
 
-        public RunningQueriesUpdateResult(List<SelectQuery> queriesStarting, LongSet cancelledQueries) {
+        RunningQueriesUpdateResult(List<SelectQuery> queriesStarting, LongSet cancelledQueries) {
             this.queriesStarting = queriesStarting;
             this.cancelledQueries = cancelledQueries;
         }
@@ -220,7 +220,7 @@ public class RunningQueriesManager {
 
 
     public void register(SelectQuery selectQuery) {
-        if (!this.isEnabled()) {
+        if (!isEnabled()) {
             //For unit test, data source is null, fall into this logic
             //no db rea/write, no query management
             selectQuery.onInserted(-1L);

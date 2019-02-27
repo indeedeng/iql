@@ -14,8 +14,6 @@
 
 package com.indeed.iql2.execution.commands;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -43,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class ComputeAndCreateGroupStatsLookups implements Command {
@@ -79,15 +78,11 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
             } else if (computation instanceof SumAcross) {
                 final SumAcross sumAcross = (SumAcross) computation;
                 fields.add(sumAcross.field);
-                handlerables.add(new NameIt<>(session, Functions.<double[]>identity(), sumAcross.iterateHandler(session), name));
+                handlerables.add(new NameIt<>(session, Function.identity(), sumAcross.iterateHandler(session), name));
             } else if (computation instanceof GetGroupPercentiles) {
                 final GetGroupPercentiles getGroupPercentiles = (GetGroupPercentiles) computation;
                 fields.add(getGroupPercentiles.field);
-                handlerables.add(new NameIt<>(session, new Function<long[][], double[]>() {
-                    public double[] apply(long[][] input) {
-                        return longToDouble(input[0]);
-                    }
-                }, getGroupPercentiles.iterateHandler(session), name));
+                handlerables.add(new NameIt<>(session, p -> longToDouble(p[0]), getGroupPercentiles.iterateHandler(session), name));
             } else if (computation instanceof GetGroupStats) {
                 final double[][] groupStats = ((GetGroupStats)computation).evaluate(session);
                 final double[] results = Arrays.copyOf(groupStats[0], session.numGroups + 1);
@@ -104,11 +99,7 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
             if (fields.size() != 1) {
                 throw new IllegalStateException("Invalid number of fields seen: " + fields.size());
             }
-            FieldSet theField = null;
-            for (final FieldSet field : fields) {
-                theField = field;
-                break;
-            }
+            final FieldSet theField = fields.stream().findFirst().orElse(null);
             session.timer.push("IterateHandlers.executeMulti");
             IterateHandlers.executeMulti(session, theField, handlerables);
             session.timer.pop();
@@ -133,7 +124,7 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
             if (command instanceof GetGroupDistincts) {
                 final GetGroupDistincts distinct = (GetGroupDistincts) command;
                 fields.add(distinct.field);
-                final AggregateFilter filter = distinct.filter.or(new AggregateFilter.Constant(true));
+                final AggregateFilter filter = distinct.filter.orElse(new AggregateFilter.Constant(true));
                 allNonOrdered &= !filter.needSorted();
                 namedFilters.put(computation.getSecond(), new FilterInfo(filter, 1));
             } else if (command instanceof GetSimpleGroupDistincts) {
@@ -143,7 +134,7 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
             } else if (command instanceof GetGroupDistinctsWindowed) {
                 final GetGroupDistinctsWindowed distinct = (GetGroupDistinctsWindowed) command;
                 fields.add(distinct.field);
-                final AggregateFilter filter = distinct.filter.or(new AggregateFilter.Constant(true));
+                final AggregateFilter filter = distinct.filter.orElse(new AggregateFilter.Constant(true));
                 allNonOrdered &= !filter.needSorted();
                 anyWindowed = true;
                 namedFilters.put(computation.getSecond(), new FilterInfo(filter, distinct.windowSize));

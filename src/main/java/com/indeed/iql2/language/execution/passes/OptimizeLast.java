@@ -14,27 +14,23 @@
 
 package com.indeed.iql2.language.execution.passes;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
-import com.google.common.base.Optional;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
-import com.indeed.iql2.language.DocFilter;
-import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.execution.ExecutionStep;
-import com.indeed.iql2.language.query.GroupBy;
 import it.unimi.dsi.fastutil.longs.LongAVLTreeSet;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 
 
 public class OptimizeLast {
+    private OptimizeLast() {
+    }
+
     public static List<ExecutionStep> optimize(List<ExecutionStep> steps, Optional<Integer> queryLimit) {
         steps = Collections.unmodifiableList(steps);
         if (steps.size() > 1) {
@@ -43,12 +39,7 @@ public class OptimizeLast {
             if (last instanceof ExecutionStep.GetGroupStats
                     && penultimate instanceof ExecutionStep.ExplodeAndRegroup) {
                 final ExecutionStep.GetGroupStats getGroupStats = (ExecutionStep.GetGroupStats) last;
-                final boolean selectIsOrdered = Iterables.any(getGroupStats.stats, new Predicate<AggregateMetric>() {
-                    @Override
-                    public boolean apply(AggregateMetric input) {
-                        return input.isOrdered();
-                    }
-                });
+                final boolean selectIsOrdered = getGroupStats.stats.stream().anyMatch(AggregateMetric::isOrdered);
                 final ExecutionStep.ExplodeAndRegroup explodeAndRegroup = (ExecutionStep.ExplodeAndRegroup) penultimate;
                 // TODO: Make query execution sort on .metric whether or not there's a limit, make .metric optional. Then change this to care if .metric.isPresent() also.
                 // TODO: Figure out wtf the above TODO means.
@@ -64,8 +55,8 @@ public class OptimizeLast {
                             explodeAndRegroup.limit,
                             queryLimit,
                             explodeAndRegroup.metric,
-                            Optional.<Set<String>>absent(),
-                            Optional.<Set<Long>>absent(),
+                            Optional.empty(),
+                            Optional.empty(),
                             fixForIteration(getGroupStats.stats),
                             getGroupStats.formatStrings
                             ));
@@ -77,26 +68,26 @@ public class OptimizeLast {
                 if (!explodeFieldIn.withDefault) {
                     final Optional<Set<Long>> intTermSubset;
                     if (!explodeFieldIn.intTerms.isEmpty()) {
-                        intTermSubset = Optional.<Set<Long>>of(new LongAVLTreeSet(explodeFieldIn.intTerms));
+                        intTermSubset = Optional.of(new LongAVLTreeSet(explodeFieldIn.intTerms));
                     } else {
-                        intTermSubset = Optional.absent();
+                        intTermSubset = Optional.empty();
                     }
 
                     final Optional<Set<String>> stringTermSubset;
                     if (!explodeFieldIn.stringTerms.isEmpty()) {
-                        stringTermSubset = Optional.<Set<String>>of(Sets.newTreeSet(explodeFieldIn.stringTerms));
+                        stringTermSubset = Optional.of(Sets.newTreeSet(explodeFieldIn.stringTerms));
                     } else {
-                        stringTermSubset = Optional.absent();
+                        stringTermSubset = Optional.empty();
                     }
 
                     final List<ExecutionStep> newSteps = new ArrayList<>();
                     newSteps.addAll(steps.subList(0, steps.size() - 2));
                     newSteps.add(new ExecutionStep.IterateStats(
                             explodeFieldIn.field,
-                            Optional.<AggregateFilter>absent(),
-                            Optional.<Long>absent(),
+                            Optional.empty(),
+                            Optional.empty(),
                             queryLimit,
-                            Optional.<AggregateMetric>absent(),
+                            Optional.empty(),
                             stringTermSubset,
                             intTermSubset,
                             fixForIteration(getGroupStats.stats),
@@ -114,10 +105,10 @@ public class OptimizeLast {
         for (final AggregateMetric stat : stats) {
             result.add(stat.transform(
                     PROCESS_METRIC,
-                    Functions.<DocMetric>identity(),
-                    Functions.<AggregateFilter>identity(),
-                    Functions.<DocFilter>identity(),
-                    Functions.<GroupBy>identity()
+                    Function.identity(),
+                    Function.identity(),
+                    Function.identity(),
+                    Function.identity()
             ));
         }
         return result;

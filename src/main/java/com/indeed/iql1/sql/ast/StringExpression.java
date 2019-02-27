@@ -20,7 +20,7 @@ package com.indeed.iql1.sql.ast;
  * @author Ben Yu
  */
 public final class StringExpression extends ValueObject implements Expression {
-  public final String string;
+  private final String string;
 
   public StringExpression(String string) {
     this.string = string;

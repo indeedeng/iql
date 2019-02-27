@@ -14,7 +14,6 @@
 
 package com.indeed.iql1.iql;
 
-import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql1.ez.EZImhotepSession;
 import com.indeed.iql1.ez.Field;
 import com.indeed.iql1.ez.GroupKey;
@@ -59,12 +58,12 @@ public class DiffGrouping extends Grouping {
     }
 
     @Override
-    public Int2ObjectMap<GroupKey> regroup(EZImhotepSession session, Int2ObjectMap<GroupKey> groupKeys) throws ImhotepOutOfMemoryException {
+    public Int2ObjectMap<GroupKey> regroup(EZImhotepSession session, Int2ObjectMap<GroupKey> groupKeys) {
         throw new UnsupportedOperationException();  // This should always be rewritten in the IQLTranslator so that it never gets invoked
     }
 
     @Override
-    public Iterator<GroupStats> getGroupStats(EZImhotepSession session, Int2ObjectMap<GroupKey> groupKeys, List<StatReference> statRefs) throws ImhotepOutOfMemoryException {
+    public Iterator<GroupStats> getGroupStats(EZImhotepSession session, Int2ObjectMap<GroupKey> groupKeys, List<StatReference> statRefs) {
         throw new UnsupportedOperationException();  // This should always be rewritten in the IQLTranslator so that it never gets invoked
     }
 }

@@ -23,7 +23,6 @@ import com.indeed.iql2.execution.QualifiedPush;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import it.unimi.dsi.fastutil.ints.IntList;
-import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -35,7 +34,8 @@ import java.util.Map;
 import java.util.Set;
 
 public class IterateHandlers {
-    private static final Logger log = Logger.getLogger(IterateHandlers.class);
+    private IterateHandlers() {
+    }
 
     public static <T> List<T> executeMulti(Session session, FieldSet field, Collection<IterateHandler<T>> iterateHandlers) throws ImhotepOutOfMemoryException, IOException {
         session.timer.push("IterateHandlers.executeMulti");
@@ -95,7 +95,7 @@ public class IterateHandlers {
             }
             final Session.StringIterateCallback callback = new MultiStringIterateCallback(stringCallbacks);
             session.timer.push("iterateMultiString");
-            Session.iterateMultiString(sessionsSubset, sessionMetricIndexes, Collections.<String, Integer>emptyMap(), field, sessionStats, callback, session.timer, session.options);
+            Session.iterateMultiString(sessionsSubset, sessionMetricIndexes, Collections.emptyMap(), field, sessionStats, callback, session.timer, session.options);
             session.timer.pop();
         } else {
             throw new IllegalStateException("Field is neither all int nor all string field: " + field);

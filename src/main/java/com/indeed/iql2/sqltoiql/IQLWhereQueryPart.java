@@ -29,7 +29,7 @@ public class IQLWhereQueryPart implements IQLQueryPart {
 
     @Override
     public String toString() {
-        if(iqlWhereQueryStatements.size()!=0){
+        if(!iqlWhereQueryStatements.isEmpty()){
             return COMMAND_NAME + " " + Joiner.on(" AND ").join(iqlWhereQueryStatements);
         }
         else {

@@ -14,7 +14,6 @@
 
 package com.indeed.iql2.language.util;
 
-import com.google.common.base.Optional;
 import com.indeed.flamdex.lucene.LuceneQueryTranslator;
 import com.indeed.flamdex.query.Query;
 import com.indeed.iql.metadata.DatasetMetadata;
@@ -30,12 +29,15 @@ import org.apache.lucene.queryParser.ParseException;
 import org.apache.lucene.queryParser.QueryParser;
 
 import java.util.Collections;
+import java.util.Optional;
 import java.util.Set;
 
 /**
  *
  */
 public class ParserUtil {
+    private ParserUtil() {
+    }
 
     public static Query getFlamdexQuery(final String query, final String dataset,
                                         final DatasetsMetadata datasetsMeta, final ScopedFieldResolver resolver) {
@@ -51,7 +53,7 @@ public class ParserUtil {
 
         final Optional<DatasetMetadata> metadata = datasetsMeta.getMetadata(dataset);
         if (!metadata.isPresent()) {
-            return LuceneQueryTranslator.rewrite(parsed, Collections.<String>emptySet());
+            return LuceneQueryTranslator.rewrite(parsed, Collections.emptySet());
         } else {
             final Set<String> intFields = metadata.get().getIntFieldsStringFromMetadata();
             return LuceneQueryTranslator.rewrite(parsed, intFields);
@@ -91,7 +93,7 @@ public class ParserUtil {
                 }
             }
         }
-            return Optional.absent();
+            return Optional.empty();
     }
 
     public static Optional<Interval> getPreviousNode(ParserRuleContext parserRuleContext) {
@@ -119,6 +121,6 @@ public class ParserUtil {
                 }
             }
         }
-        return Optional.absent();
+        return Optional.empty();
     }
 }

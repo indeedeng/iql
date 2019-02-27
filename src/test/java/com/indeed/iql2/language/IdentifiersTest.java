@@ -14,13 +14,14 @@
 
 package com.indeed.iql2.language;
 
-import com.google.common.base.Function;
 import com.indeed.iql2.language.query.Queries;
-import junit.framework.Assert;
+import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.function.Function;
+
 public class IdentifiersTest {
-    public static final Function<JQLParser, String> PARSE_IDENTIFIER = new Function<JQLParser, String>() {
+    private static final Function<JQLParser, String> PARSE_IDENTIFIER = new Function<JQLParser, String>() {
         @Override
         public String apply(JQLParser input) {
             return Identifiers.parseIdentifier(input.identifier()).unwrap();

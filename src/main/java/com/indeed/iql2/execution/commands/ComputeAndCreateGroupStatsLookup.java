@@ -18,7 +18,6 @@ import com.google.common.base.Preconditions;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.Session;
 import com.indeed.util.core.Pair;
-import com.sun.org.apache.xalan.internal.xsltc.dom.SimpleResultTreeImpl;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -64,6 +63,6 @@ public class ComputeAndCreateGroupStatsLookup implements Command {
         if (longResults != null) {
             results = ComputeAndCreateGroupStatsLookups.longToDouble(longResults);
         }
-        new CreateGroupStatsLookup(results, this.name).execute(session);
+        new CreateGroupStatsLookup(results, name).execute(session);
     }
 }

@@ -14,8 +14,6 @@
 
 package com.indeed.iql2.language.execution;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
@@ -52,11 +50,14 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 
 public interface ExecutionStep {
 
     List<Command> commands();
+    // TODO: this is never used
     ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f);
 
     @EqualsAndHashCode
@@ -111,7 +112,7 @@ public interface ExecutionStep {
                 precomputeds.add(Pair.of(precomputation.computationCommand, computation.getSecond()));
             }
 
-            return Collections.<Command>singletonList(new ComputeAndCreateGroupStatsLookups(precomputeds));
+            return Collections.singletonList(new ComputeAndCreateGroupStatsLookups(precomputeds));
         }
 
         private List<Command> naiveExecutionCommands() {
@@ -162,7 +163,7 @@ public interface ExecutionStep {
             if (withDefault) {
                 withDefaultName = Optional.of("DEFAULT");
             } else {
-                withDefaultName = Optional.absent();
+                withDefaultName = Optional.empty();
             }
             final Command command = new IterateAndExplode(field, opts, withDefaultName);
             return Collections.singletonList(command);
@@ -174,13 +175,13 @@ public interface ExecutionStep {
             if (this.filter.isPresent()) {
                 filter = Optional.of(this.filter.get().traverse1(f));
             } else {
-                filter = Optional.absent();
+                filter = Optional.empty();
             }
             final Optional<AggregateMetric> metric;
             if (this.metric.isPresent()) {
                 metric = Optional.of(f.apply(this.metric.get()));
             } else {
-                metric = Optional.absent();
+                metric = Optional.empty();
             }
             return new ExplodeAndRegroup(field, filter, limit, metric, withDefault);
         }
@@ -204,7 +205,7 @@ public interface ExecutionStep {
         }
 
         public static ExplodeFieldIn intExplode(FieldSet field, LongList terms, boolean withDefault) {
-            return new ExplodeFieldIn(field, Collections.<String>emptyList(), terms, true, withDefault);
+            return new ExplodeFieldIn(field, Collections.emptyList(), terms, true, withDefault);
         }
 
         public static ExplodeFieldIn stringExplode(FieldSet field, List<String> terms, boolean withDefault) {
@@ -213,7 +214,7 @@ public interface ExecutionStep {
 
         @Override
         public List<Command> commands() {
-            return Collections.<Command>singletonList(new RegroupFieldIn(field, stringTerms, intTerms, isIntField, withDefault));
+            return Collections.singletonList(new RegroupFieldIn(field, stringTerms, intTerms, isIntField, withDefault));
         }
 
         @Override
@@ -273,7 +274,7 @@ public interface ExecutionStep {
 
         @Override
         public List<Command> commands() {
-            return Collections.<Command>singletonList(new TimePeriodRegroup(periodMillis, timeField, timeFormat, isRelative));
+            return Collections.singletonList(new TimePeriodRegroup(periodMillis, timeField, timeFormat, isRelative));
         }
 
         @Override
@@ -285,7 +286,7 @@ public interface ExecutionStep {
     class ExplodeDayOfWeek implements ExecutionStep {
         @Override
         public List<Command> commands() {
-            return Collections.<Command>singletonList(new com.indeed.iql2.language.commands.ExplodeDayOfWeek());
+            return Collections.singletonList(new com.indeed.iql2.language.commands.ExplodeDayOfWeek());
         }
 
         @Override
@@ -324,7 +325,7 @@ public interface ExecutionStep {
     class ExplodeSessionNames implements ExecutionStep {
         @Override
         public List<Command> commands() {
-            return Collections.<Command>singletonList(new com.indeed.iql2.language.commands.ExplodeSessionNames());
+            return Collections.singletonList(new com.indeed.iql2.language.commands.ExplodeSessionNames());
         }
 
         @Override
@@ -376,7 +377,7 @@ public interface ExecutionStep {
             opts.intTermSubset = intTermSubset;
             opts.stringTermSubset = stringTermSubset;
             final SimpleIterate simpleIterate = new SimpleIterate(field, opts, stats, formatStrings);
-            return Collections.<Command>singletonList(simpleIterate);
+            return Collections.singletonList(simpleIterate);
         }
 
         @Override
@@ -385,13 +386,13 @@ public interface ExecutionStep {
             if (this.filter.isPresent()) {
                 filter = Optional.of(this.filter.get().traverse1(f));
             } else {
-                filter = Optional.absent();
+                filter = Optional.empty();
             }
             final Optional<AggregateMetric> metric;
             if (this.metric.isPresent()) {
                 metric = Optional.of(f.apply(this.metric.get()));
             } else {
-                metric = Optional.absent();
+                metric = Optional.empty();
             }
             final List<AggregateMetric> stats = new ArrayList<>();
             for (final AggregateMetric stat : this.stats) {
@@ -414,7 +415,7 @@ public interface ExecutionStep {
 
         @Override
         public List<Command> commands() {
-            return Collections.<Command>singletonList(new com.indeed.iql2.language.commands.GetGroupStats(stats, formatStrings, true));
+            return Collections.singletonList(new com.indeed.iql2.language.commands.GetGroupStats(stats, formatStrings, true));
         }
 
         @Override
@@ -440,7 +441,7 @@ public interface ExecutionStep {
 
         @Override
         public List<Command> commands() {
-            return Collections.<Command>singletonList(new com.indeed.iql2.language.commands.ExplodePerDocPercentile(field, numBuckets));
+            return Collections.singletonList(new com.indeed.iql2.language.commands.ExplodePerDocPercentile(field, numBuckets));
         }
 
         @Override
@@ -460,7 +461,7 @@ public interface ExecutionStep {
 
         @Override
         public List<Command> commands() {
-            return Collections.<Command>singletonList(new ApplyFilterActions(actions));
+            return Collections.singletonList(new ApplyFilterActions(actions));
         }
 
         @Override
@@ -480,7 +481,7 @@ public interface ExecutionStep {
 
         @Override
         public List<Command> commands() {
-            return Collections.<Command>singletonList(new ApplyGroupFilter(filter));
+            return Collections.singletonList(new ApplyGroupFilter(filter));
         }
 
         @Override

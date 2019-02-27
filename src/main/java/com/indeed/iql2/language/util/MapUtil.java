@@ -18,6 +18,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class MapUtil {
+    private MapUtil() {
+    }
+
     public static <T> Map<String, T> replicate(Map<String, String> scope, T query) {
         final Map<String, T> datasetToT = new HashMap<>();
         for (final String dataset : scope.keySet()) {

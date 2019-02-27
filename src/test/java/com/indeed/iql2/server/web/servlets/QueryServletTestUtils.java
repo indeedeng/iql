@@ -68,8 +68,8 @@ import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.ResultFo
 public class QueryServletTestUtils extends BasicTest {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    private static ExecutorService executorService = new ThreadPoolExecutor(
-                3, 20, 30,TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(1000),
+    private static final ExecutorService executorService = new ThreadPoolExecutor(
+                3, 20, 30,TimeUnit.SECONDS, new LinkedBlockingQueue<>(1000),
                 new NamedThreadFactory("IQL-Worker")
         );
 
@@ -108,7 +108,7 @@ public class QueryServletTestUtils extends BasicTest {
                 options.queryCache,
                 runningQueriesManager,
                 executorService,
-                new AccessControl(Collections.<String>emptySet(), Collections.<String>emptySet(),
+                new AccessControl(Collections.emptySet(), Collections.emptySet(),
                         null, new Limits(50, options.subQueryTermLimit.intValue(), 1000, 1000, 2, 8),
                         Collections.emptySet(), Collections.emptySet()),
                 options.maxCacheQuerySizeLimitBytes,
@@ -334,11 +334,7 @@ public class QueryServletTestUtils extends BasicTest {
         final ImhotepClient client = options.dataset.getNormalClient();
         final JsonNode header = getQueryHeader(client, query, version, options);
         if (expectedWarnings.isEmpty()) {
-            try {
-                Assert.assertNull(header.get("IQL-Warning"));
-            } catch (Error e) {
-                System.out.println("oh no");
-            }
+            Assert.assertNull(header.get("IQL-Warning"));
         } else {
             expectedWarnings = expectedWarnings.stream().map(s -> "[\"" + s + "\"]").collect(Collectors.toList());
             Assert.assertArrayEquals(expectedWarnings.toArray(new String[expectedWarnings.size()]), header.get("IQL-Warning").textValue().split("\n"));
@@ -563,19 +559,32 @@ public class QueryServletTestUtils extends BasicTest {
 
     static void expectException(String query, LanguageVersion version, Predicate<String> exceptionMessagePredicate) {
         final Options options = Options.create();
+        expectException(query, version, options, exceptionMessagePredicate);
+    }
+
+    static void expectException(
+            final String query,
+            final LanguageVersion version,
+            final Options options,
+            final Predicate<String> exceptionMessagePredicate) {
         final ImhotepClient client = options.dataset.getNormalClient();
         try {
             runQuery(client, query, version, EVENT_STREAM, options, Collections.emptySet());
             Assert.fail("No exception returned in expectException");
-        } catch (Exception e) {
+        } catch (final Exception e) {
             Assert.assertTrue(exceptionMessagePredicate.test(e.getMessage()));
         }
     }
 
-    static void expectExceptionAll(String query, Predicate<String> exceptionMessagePredicate) {
-        for (LanguageVersion languageVersion: LanguageVersion.values()) {
-            expectException(query, languageVersion, exceptionMessagePredicate);
+    static void expectExceptionAll(final String query, final Options options, final Predicate<String> exceptionMessagePredicate) {
+        for (final LanguageVersion languageVersion: LanguageVersion.values()) {
+            expectException(query, languageVersion, options, exceptionMessagePredicate);
         }
+    }
+
+    static void expectExceptionAll(final String query, final Predicate<String> exceptionMessagePredicate) {
+        final Options options = Options.create();
+        expectExceptionAll(query, options, exceptionMessagePredicate);
     }
 
     static List<List<String>> withoutLastColumn(List<List<String>> input) {
@@ -601,12 +610,11 @@ public class QueryServletTestUtils extends BasicTest {
         return output;
     }
 
-    @SuppressWarnings("WeakerAccess")
-    public static class QueryResult {
-        public JsonNode header;
-        public List<List<String>> data;
+    private static class QueryResult {
+        final JsonNode header;
+        final List<List<String>> data;
 
-        public QueryResult(final JsonNode header, final List<List<String>> data) {
+        QueryResult(final JsonNode header, final List<List<String>> data) {
             this.header = header;
             this.data = data;
         }

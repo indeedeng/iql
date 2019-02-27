@@ -135,16 +135,6 @@ public class ImhotepSessionHolder implements Closeable {
         session.randomRegroup(field, isIntField, salt, p, targetGroup, negativeGroup, positiveGroup);
     }
 
-    public void randomMultiRegroup(
-            final FieldSet field,
-            final boolean isIntField,
-            final String salt,
-            final int targetGroup,
-            final double[] percentages,
-            final int[] resultGroups) throws ImhotepOutOfMemoryException {
-        session.randomMultiRegroup(field.datasetFieldName(datasetName), isIntField, salt, targetGroup, percentages, resultGroups);
-    }
-
     public void intOrRegroup(
             final String field,
             final long[] terms,

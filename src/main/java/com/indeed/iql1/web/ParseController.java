@@ -22,7 +22,6 @@ import com.indeed.iql.web.QueryServlet;
 import com.indeed.iql.web.ServletUtil;
 import com.indeed.iql1.sql.parser.SelectStatementParser;
 import com.indeed.iql2.server.web.servlets.ParseServlet;
-import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -40,9 +39,7 @@ import java.io.IOException;
 
 @Controller
 public class ParseController {
-    private static final Logger log = Logger.getLogger(ParseController.class);
-
-    private ImhotepMetadataCache metadata;
+    private final ImhotepMetadataCache metadata;
     private final ParseServlet parseServletV2;
 
     @Autowired

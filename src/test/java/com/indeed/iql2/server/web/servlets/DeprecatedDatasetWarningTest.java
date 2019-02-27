@@ -9,7 +9,7 @@ import java.util.Collections;
 
 public class DeprecatedDatasetWarningTest {
     private static final DeprecatedImsClient DEPRECATED_IMS_CLIENT = new DeprecatedImsClient();
-    public static final QueryServletTestUtils.Options OPTIONS = QueryServletTestUtils.Options.create().setImsClient(DEPRECATED_IMS_CLIENT);
+    private static final QueryServletTestUtils.Options OPTIONS = QueryServletTestUtils.Options.create().setImsClient(DEPRECATED_IMS_CLIENT);
 
     @Test
     public void testDeprecatedFlag() throws Exception {
@@ -32,7 +32,7 @@ public class DeprecatedDatasetWarningTest {
     private static class DeprecatedImsClient implements ImsClientInterface {
         private final DatasetYaml[] datasets;
 
-        public DeprecatedImsClient() {
+        DeprecatedImsClient() {
             datasets = new DatasetYaml[]{deprecatedOrganic(), deprecatedJobsearchDescription()};
         }
 

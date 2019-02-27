@@ -17,13 +17,9 @@ package com.indeed.iql2.server.web.servlets.query;
 import au.com.bytecode.opencsv.CSVParser;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Charsets;
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
@@ -100,13 +96,16 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class SelectQueryExecution {
@@ -127,7 +126,7 @@ public class SelectQueryExecution {
     private final Set<String> defaultIQL2Options;
 
     // Query sanity limits
-    public final Limits limits;
+    private final Limits limits;
 
     // IQL2 Imhotep-based state
     private final ImhotepClient imhotepClient;
@@ -141,20 +140,20 @@ public class SelectQueryExecution {
     private final PrintWriter outputStream;
     private final QueryInfo queryInfo;
     private final TracingTreeTimer timer;
-    public final ClientInfo clientInfo;
+    private final ClientInfo clientInfo;
 
     // Query inputs
-    public final String query;
+    private final String query;
     private final boolean headOnly;
-    public final int version;
-    public final boolean isStream;
+    private final int version;
+    private final boolean isStream;
     private final boolean returnNewestShardVersionHeader;
-    public final boolean skipValidation;
+    private final boolean skipValidation;
     private final ResultFormat resultFormat;
-    public final boolean getTotals;
+    private final boolean getTotals;
     private final WallClock clock;
 
-    public boolean ran = false;
+    private boolean ran = false;
 
     public SelectQueryExecution(
             @Nullable final File tmpDir,
@@ -301,7 +300,7 @@ public class SelectQueryExecution {
         timer.push("Select query execution");
 
         timer.push("parse query");
-        final Queries.ParseResult parseResult = Queries.parseQuery(this.query, useLegacy, datasetsMetadata, defaultIQL2Options, warnings::add, clock, timer, shardResolver);
+        final Queries.ParseResult parseResult = Queries.parseQuery(query, useLegacy, datasetsMetadata, defaultIQL2Options, warnings::add, clock, timer, shardResolver);
         final Query query = parseResult.query;
         timer.pop();
 
@@ -309,7 +308,7 @@ public class SelectQueryExecution {
             timer.push("validate query");
             final Set<String> errors = new HashSet<>();
             CommandValidator.validate(query, datasetsMetadata, new ErrorCollector(errors, warnings));
-            if (errors.size() != 0) {
+            if (!errors.isEmpty()) {
                 throw new IqlKnownException.ParseErrorException("Errors found when validating query: " + errors);
             }
             timer.pop();
@@ -430,7 +429,7 @@ public class SelectQueryExecution {
                 final ResultFormat resultFormat,
                 final ProgressCallback progressCallback,
                 final Query query,
-                final @Nullable Integer groupLimit,
+                @Nullable final Integer groupLimit,
                 final SharedReference<SelectQuery> selectQuery,
                 final StrictCloser strictCloser) {
             this.isTopLevelQuery = isTopLevelQuery;
@@ -450,7 +449,7 @@ public class SelectQueryExecution {
             final Map<Query, Pair<Set<Long>, Set<String>>> queryToResults = new HashMap<>();
 
             final Set<String> conflictFieldsUsed = Sets.intersection(queryInfo.datasetFields, datasetsMetadata.getTypeConflictDatasetFieldNames());
-            if (conflictFieldsUsed.size() > 0) {
+            if (!conflictFieldsUsed.isEmpty()) {
                 final String conflictWarning = "Fields with type conflicts used in query: " + String.join(", ", conflictFieldsUsed);
                 warnings.add(conflictWarning);
             }
@@ -463,7 +462,7 @@ public class SelectQueryExecution {
             final ListMultimap<String, List<Shard>> allShardsUsed = query.allShardsUsed();
             final List<DatasetWithMissingShards> datasetsWithMissingShards = query.allMissingShards();
             if (isTopLevelQuery) {
-                queryMetadata.addItem("IQL-Newest-Shard", ISODateTimeFormat.dateTime().print(newestStaticShard(allShardsUsed).or(-1L)), returnNewestShardVersionHeader);
+                queryMetadata.addItem("IQL-Newest-Shard", ISODateTimeFormat.dateTime().print(newestStaticShard(allShardsUsed).orElse(-1L)), returnNewestShardVersionHeader);
                 for(DatasetWithMissingShards datasetWithMissingShards : datasetsWithMissingShards) {
                     warnings.addAll(QueryServlet.missingShardsToWarnings(datasetWithMissingShards.dataset,
                             datasetWithMissingShards.start, datasetWithMissingShards.end, datasetWithMissingShards.timeIntervalsMissingShards));
@@ -537,7 +536,7 @@ public class SelectQueryExecution {
                         timer.pop();
                         final SelectExecutionInformation selectExecutionInformation = new SelectExecutionInformation(allShardsUsed, datasetsWithMissingShards,
                                 true, totalBytesWritten[0], null,
-                                Collections.<String>emptyList(), 0, 0, 0, hasMoreRows, null, null);
+                                Collections.emptyList(), 0, 0, 0, hasMoreRows, null, null);
 
                         finalizeQueryExecution(countingExternalOutput, selectExecutionInformation);
                         return selectExecutionInformation;
@@ -712,15 +711,15 @@ public class SelectQueryExecution {
                                     // if negated then we have to iterate all terms and filter out result of subquery.
                                     final AggregateFilter filter;
                                     if (result.getFirst() != null) {
-                                        final Iterable<Term> terms = Iterables.transform(result.getFirst(), Term::term);
+                                        final Iterator<Term> terms = result.getFirst().stream().map(Term::term).iterator();
                                         filter = AggregateFilters.aggregateInHelper(terms, true);
                                     } else if (result.getSecond() != null) {
-                                        final Iterable<Term> terms = Iterables.transform(result.getSecond(), Term::term);
+                                        final Iterator<Term> terms = result.getSecond().stream().map(Term::term).iterator();
                                         filter = AggregateFilters.aggregateInHelper(terms, true);
                                     } else {
                                         filter = null;
                                     }
-                                    return new GroupBy.GroupByField(fieldInQuery.field, Optional.fromNullable(filter), Optional.absent(), Optional.absent(), fieldInQuery.withDefault);
+                                    return new GroupBy.GroupByField(fieldInQuery.field, Optional.ofNullable(filter), Optional.empty(), Optional.empty(), fieldInQuery.withDefault);
                                 } else {
                                     // if not-negated then we do group by field in terms-set.
                                     final LongArrayList intTerms = (result.getFirst() == null) ?
@@ -735,9 +734,9 @@ public class SelectQueryExecution {
                             return input;
                         }
                     },
-                    Functions.identity(),
-                    Functions.identity(),
-                    Functions.identity(),
+                    Function.identity(),
+                    Function.identity(),
+                    Function.identity(),
                     new Function<DocFilter, DocFilter>() {
                         @Nullable
                         @Override
@@ -873,13 +872,7 @@ public class SelectQueryExecution {
 
     // increment query limit so that we know that whether it filters the response data size
     public static Query incrementQueryLimit(final Query query) {
-        final Optional<Integer> newRowLimit = query.rowLimit.transform(new Function<Integer, Integer>() {
-            @Nullable
-            @Override
-            public Integer apply(@Nullable final Integer integer) {
-                return (integer == null) ? integer : integer + 1;
-            }
-        });
+        final Optional<Integer> newRowLimit = query.rowLimit.map(limit -> limit + 1);
         return new Query(query.datasets, query.filter, query.groupBys, query.selects, query.formatStrings, query.options, newRowLimit, query.useLegacy);
     }
 
@@ -902,7 +895,7 @@ public class SelectQueryExecution {
     }
 
     private static boolean sendCachedQuery(Consumer<String> out, Optional<Integer> rowLimit, InputStream cacheInputStream) throws IOException {
-        final int limit = rowLimit.or(Integer.MAX_VALUE);
+        final int limit = rowLimit.orElse(Integer.MAX_VALUE);
         int rowsWritten = 0;
         boolean hasMoreRows = false;
         try (final BufferedReader stream = new BufferedReader(new InputStreamReader(cacheInputStream))) {
@@ -929,7 +922,7 @@ public class SelectQueryExecution {
             }
         }
         if (newestStatic == -1) {
-            return Optional.absent();
+            return Optional.empty();
         } else {
             return Optional.of(DateTimeFormat.forPattern("yyyyMMddHHmmss").parseMillis(String.valueOf(newestStatic)));
         }

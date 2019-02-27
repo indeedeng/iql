@@ -13,7 +13,6 @@
  */
  package com.indeed.iql1.sql;
 
-import com.google.common.base.Function;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
@@ -70,9 +69,7 @@ import org.apache.lucene.queryParser.ParseException;
 import org.apache.lucene.queryParser.QueryParser;
 import org.apache.lucene.search.Query;
 import org.joda.time.DateTime;
-import org.joda.time.DurationFieldType;
 import org.joda.time.Period;
-import org.joda.time.PeriodType;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
@@ -83,6 +80,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -123,6 +121,9 @@ import static com.indeed.iql2.language.TimePeriods.appendTimePeriod;
  * @author jplaisance
  */
 public final class IQLTranslator {
+    private IQLTranslator() {
+    }
+
     private static final Logger log = Logger.getLogger(IQLTranslator.class);
 
     public static IQLQuery translate(
@@ -208,7 +209,7 @@ public final class IQLTranslator {
      * This properly handles the case where filtered and grouped by field has multiple terms per doc (e.g. grp, rcv).
      * Modifies the passed in lists.
      */
-    static void handleMultitermIn(List<Condition> conditions, List<Grouping> groupings, Limits limits) {
+    private static void handleMultitermIn(List<Condition> conditions, List<Grouping> groupings, Limits limits) {
         for(int i = 0; i < conditions.size(); i++) {
             Condition condition = conditions.get(i);
             if(! (condition instanceof StringInCondition)) {
@@ -280,7 +281,7 @@ public final class IQLTranslator {
         }
     }
 
-    static DistinctGrouping getDistinctGrouping(List<Expression> projections, DatasetMetadata datasetMetadata, Set<String> fieldNames) {
+    private static DistinctGrouping getDistinctGrouping(List<Expression> projections, DatasetMetadata datasetMetadata, Set<String> fieldNames) {
         DistinctGrouping distinctGrouping = null;
         int projectionNumber = 0;
         for(Iterator<Expression> projectionsIter = projections.iterator(); projectionsIter.hasNext(); projectionNumber++) {
@@ -309,7 +310,7 @@ public final class IQLTranslator {
         return distinctGrouping;
     }
 
-    static PercentileGrouping getPercentileGrouping(List<Expression> projections, DatasetMetadata datasetMetadata, Stat countStat, Set<String> fieldNames) {
+    private static PercentileGrouping getPercentileGrouping(List<Expression> projections, DatasetMetadata datasetMetadata, Stat countStat, Set<String> fieldNames) {
         PercentileGrouping percentileGrouping = null;
         int projectionNumber = 0;
         for(Iterator<Expression> projectionsIter = projections.iterator(); projectionsIter.hasNext(); projectionNumber++) {
@@ -368,7 +369,7 @@ public final class IQLTranslator {
         private Stat[] getStats(final List<Expression> input) {
             List<Stat> stats = Lists.newArrayList();
             for(Expression statString : input) {
-                stats.add(statString.match(StatMatcher.this));
+                stats.add(statString.match(this));
             }
             return stats.toArray(new Stat[stats.size()]);
         }
@@ -379,7 +380,7 @@ public final class IQLTranslator {
             final ImmutableMap.Builder<String, Function<List<Expression>, Stat>> builder = ImmutableMap.builder();
             builder.put("count", new Function<List<Expression>, Stat>() {
                 public Stat apply(final List<Expression> input) {
-                    if(input.size() > 0) {
+                    if(!input.isEmpty()) {
                         throw new IqlKnownException.ParseErrorException("Only count() with no arguments is supported which returns the total number of documents in the group");
                     }
                     return counts();
@@ -710,7 +711,9 @@ public final class IQLTranslator {
 
             Function<List<Expression>, Condition> luceneQueryHandler = new Function<List<Expression>, Condition>() {
                 public Condition apply(final List<Expression> input) {
-                    if (input.size() != 1) throw new IllegalArgumentException("lucene query function takes exactly one string parameter");
+                    if (input.size() != 1) {
+                        throw new IllegalArgumentException("lucene query function takes exactly one string parameter");
+                    }
                     final String queryString = getStr(input.get(0));
                     final com.indeed.flamdex.query.Query luceneQuery = parseLuceneQuery(queryString, datasetMetadata);
                     return new QueryCondition(luceneQuery, negation);
@@ -723,7 +726,9 @@ public final class IQLTranslator {
             // TODO: remove. can relax parsing of function params when it's done
             builder.put("between", new Function<List<Expression>, Condition>() {
                 public Condition apply(final List<Expression> input) {
-                    if (input.size() != 3) throw new IqlKnownException.ParseErrorException("between requires 3 arguments: stat, min, max. " + input.size() + " provided");
+                    if (input.size() != 3) {
+                        throw new IqlKnownException.ParseErrorException("between requires 3 arguments: stat, min, max. " + input.size() + " provided");
+                    }
                     final Stat stat = input.get(0).match(statMatcher);
                     final long min = parseLong(input.get(1));
                     final long max = parseLong(input.get(2));
@@ -732,10 +737,12 @@ public final class IQLTranslator {
             });
             builder.put("sample", new Function<List<Expression>, Condition>() {
                 public Condition apply(final List<Expression> input) {
-                    if (input.size() < 2 || input.size() > 4) throw new IllegalArgumentException("sample() requires 2 to 4 arguments: fieldName, samplingRatioNumerator, [samplingRatioDenominator=100], [randomSeed]. " + input.size() + " provided");
+                    if (input.size() < 2 || input.size() > 4) {
+                        throw new IllegalArgumentException("sample() requires 2 to 4 arguments: fieldName, samplingRatioNumerator, [samplingRatioDenominator=100], [randomSeed]. " + input.size() + " provided");
+                    }
                     final Expression arg0 = input.get(0);
                     if(!(arg0 instanceof NameExpression)) {
-                        throw new IqlKnownException.ParseErrorException("sample() first argument has to be a field name. Instead given: " + String.valueOf(arg0));
+                        throw new IqlKnownException.ParseErrorException("sample() first argument has to be a field name. Instead given: " + arg0);
                     }
                     final NameExpression nameExpression = (NameExpression) arg0;
                     final String fieldName = nameExpression.name;
@@ -779,7 +786,7 @@ public final class IQLTranslator {
                                 strings[index++] = getStr(expression);
                             }
                             Arrays.sort(strings);   // looks like terms being sorted is a pre-requisite of stringOrRegroup()
-                            return Lists.<Condition>newArrayList(new StringInCondition(Field.stringField(name.name), usingNegation, false, strings));
+                            return Lists.newArrayList(new StringInCondition(Field.stringField(name.name), usingNegation, false, strings));
                         } else if (datasetMetadata.hasIntField(name.name)) {
                             fieldNames.add(name.name);
                             final long[] ints = new long[values.expressions.size()];
@@ -791,7 +798,7 @@ public final class IQLTranslator {
                                 ints[index++] = parseLong(expression);
                             }
                             Arrays.sort(ints); // looks like terms being sorted is a pre-requisite of intOrRegroup()
-                            return Lists.<Condition>newArrayList(new IntInCondition(Field.intField(name.name), usingNegation, ints));
+                            return Lists.newArrayList(new IntInCondition(Field.intField(name.name), usingNegation, ints));
                         } else {
                             throw new IqlKnownException.UnknownFieldException("Unknown field: " + name.name);
                         }
@@ -799,7 +806,7 @@ public final class IQLTranslator {
                 case NOT_EQ:
                     usingNegation = !usingNegation;
                     // fall through to EQ
-                case EQ:
+                case EQ: {
                     if(left instanceof NameExpression) {
                         final NameExpression name = (NameExpression) left;
                         if(datasetMetadata.hasField(name.name)) {
@@ -812,15 +819,15 @@ public final class IQLTranslator {
                         // assume we have a comparison of 2 metrics. filter for the result of that = 1
                         return handleMetricComparison(new BinaryExpression(left, Op.EQ, right),
                                 new NumberExpression("1"), usingNegation);
-                    } else {
-                        throw new IqlKnownException.ParseErrorException("Can't compare the provided operands: " + left + "; " + right);
                     }
+                    throw new IqlKnownException.ParseErrorException("Can't compare the provided operands: " + left + "; " + right);
+                }
                 case REGEX_NOT_EQ:
                     usingNegation = !usingNegation;
                     // fall through to REGEX_EQ
                 case REGEX_EQ:
                     if(!(left instanceof NameExpression)) {
-                        throw new IqlKnownException.ParseErrorException("Regexp compare only works on field names. Instead given: " + String.valueOf(left));
+                        throw new IqlKnownException.ParseErrorException("Regexp compare only works on field names. Instead given: " + left);
                     }
                     final NameExpression nameExpression = (NameExpression) left;
                     final String fieldName = nameExpression.name;
@@ -843,7 +850,7 @@ public final class IQLTranslator {
                                 "\nError was: " + e.getMessage() +
                                 "\nThe supported regex syntax can be seen here: http://www.brics.dk/automaton/doc/index.html?dk/brics/automaton/RegExp.html", e);
                     }
-                    return Collections.<Condition>singletonList(new RegexCondition(Field.stringField(fieldName), regexp,
+                    return Collections.singletonList(new RegexCondition(Field.stringField(fieldName), regexp,
                         usingNegation));
                 case AND:
                     final List<Condition> ret = Lists.newArrayList();
@@ -874,7 +881,7 @@ public final class IQLTranslator {
                             min = value;
                             max = Long.MAX_VALUE;
                         }
-                        return Collections.<Condition>singletonList(new MetricCondition(stat, min, max, negation));
+                        return Collections.singletonList(new MetricCondition(stat, min, max, negation));
                     } else {
                         // assume we have a comparison of 2 metrics. filter for the result of that = 1
                         return handleMetricComparison(new BinaryExpression(left, op, right),
@@ -904,21 +911,21 @@ public final class IQLTranslator {
             }
             final long value = parseLong(right);    // constant we are comparing against
 
-            return Collections.<Condition>singletonList(new MetricCondition(stat, value, value, usingNegation));
+            return Collections.singletonList(new MetricCondition(stat, value, value, usingNegation));
         }
 
         private List<Condition> handleFieldComparison(NameExpression name, Expression right, boolean usingNegation) {
             if (datasetMetadata.hasStringField(name.name)) {
                 final String value = getStr(right);
                 final String[] strings = new String[] { value };
-                return Lists.<Condition>newArrayList(new StringInCondition(Field.stringField(name.name), usingNegation, true, strings));
+                return Lists.newArrayList(new StringInCondition(Field.stringField(name.name), usingNegation, true, strings));
             } else if (datasetMetadata.hasIntField(name.name)) {
                 final long[] ints = new long[1];
                 if(!(right instanceof NumberExpression)) {
                     throw new IqlKnownException.FieldTypeMismatchException(name.name + " is an integer field and has to be compared to an integer. Instead was given: " + right.toString());
                 }
                 ints[0] = parseLong(right);
-                return Lists.<Condition>newArrayList(new IntInCondition(Field.intField(name.name), usingNegation, ints));
+                return Lists.newArrayList(new IntInCondition(Field.intField(name.name), usingNegation, ints));
             } else {
                 throw new IqlKnownException.UnknownFieldException("Unknown field: " + name.name);
             }
@@ -966,8 +973,6 @@ public final class IQLTranslator {
     }
 
     private static final class GroupByMatcher extends Expression.Matcher<Grouping> {
-        private static final int MAX_RECOMMENDED_BUCKETS = 1000;
-
         private final Map<String, Function<List<Expression>, Grouping>> functionLookup;
 
         private final DatasetMetadata datasetMetadata;
@@ -1064,7 +1069,7 @@ public final class IQLTranslator {
                     if (input.size() > 3) {
                         throw new IqlKnownException.ParseErrorException("time function takes up to 3 args");
                     }
-                    final String bucket = input.size() > 0 ? getStr(input.get(0)) : null;
+                    final String bucket = input.isEmpty() ? null : getStr(input.get(0));
                     final String format = input.size() > 1 ? getStr(input.get(1)) : null;
                     final Expression timeField = input.size() > 2 ? input.get(2) : null;
 
@@ -1176,8 +1181,6 @@ public final class IQLTranslator {
         private static final int SECONDS_IN_MINUTE = 60;
         private static final int SECONDS_IN_HOUR = SECONDS_IN_MINUTE * 60;
         private static final int SECONDS_IN_DAY = SECONDS_IN_HOUR * 24;
-        private static final int SECONDS_IN_WEEK = SECONDS_IN_DAY * 7;
-
 
         protected Grouping functionExpression(final String name, final List<Expression> args) {
             final Function<List<Expression>, Grouping> function = functionLookup.get(name);

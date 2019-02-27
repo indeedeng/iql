@@ -21,7 +21,6 @@ import com.indeed.iql1.ez.GroupKey;
 import com.indeed.iql1.ez.SingleStatReference;
 import com.indeed.util.serialization.Stringifier;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import org.apache.log4j.Logger;
 
 import java.text.DecimalFormat;
 
@@ -31,8 +30,6 @@ import static com.indeed.iql1.ez.Stats.Stat;
  * @author jplaisance
  */
 public final class StatRangeGrouping extends Grouping {
-    private static final Logger log = Logger.getLogger(StatRangeGrouping.class);
-
     private final Stat stat;
     private final long minValue;
     private final long maxValue;
@@ -73,7 +70,7 @@ public final class StatRangeGrouping extends Grouping {
         }
         final long expectedNumberOfRows = session.getNumGroups() * expectedBucketCount;
         if(!limits.satisfiesQueryInMemoryRowsLimit(expectedNumberOfRows) || expectedNumberOfRows < 0) {
-            throw new IqlKnownException.GroupLimitExceededException("Expected number of rows after bucketing by " + this.stat.toString() +
+            throw new IqlKnownException.GroupLimitExceededException("Expected number of rows after bucketing by " + stat.toString() +
                     " is " + df.format(expectedNumberOfRows) + " which is over the limit of " + df.format(limits.queryInMemoryRowsLimit) +
                     " rows in memory. Please optimize the query.");
         }

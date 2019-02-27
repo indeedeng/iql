@@ -49,7 +49,7 @@ class TransformTestUtil {
             if (extendsOrImplements(c, target)) {
                 return true;
             }
-        } catch(final Throwable e){
+        } catch(final Throwable ignored){
         }
         return false;
     }

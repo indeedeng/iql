@@ -1,6 +1,5 @@
 package com.indeed.iql2.language.transform;
 
-import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableList;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocMetricsTest;
@@ -12,6 +11,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static com.indeed.iql2.language.transform.TransformTestUtil.findImplementationsOf;
@@ -43,7 +43,7 @@ public class AggregateMetricTransformTest {
         final AggregateMetric parsed = Queries.parseAggregateMetric(metricText, false, DocMetricsTest.CONTEXT);
         classesToTest.remove(parsed.getClass());
         Assert.assertEquals(metricText, parsed.getRawInput());
-        final AggregateMetric transformed = parsed.transform(Functions.identity(), Functions.identity(), Functions.identity(), Functions.identity(), Functions.identity());
+        final AggregateMetric transformed = parsed.transform(Function.identity(), Function.identity(), Function.identity(), Function.identity(), Function.identity());
         Assert.assertEquals(parsed, transformed);
         Assert.assertNotSame(parsed, transformed);
         Assert.assertEquals(parsed.getRawInput(), transformed.getRawInput());

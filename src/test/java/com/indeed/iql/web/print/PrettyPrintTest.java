@@ -20,7 +20,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 public class PrettyPrintTest {
-    public static final DatasetsMetadata DATASETS_METADATA =AllData.DATASET.getDatasetsMetadata();
+    private static final DatasetsMetadata DATASETS_METADATA = AllData.DATASET.getDatasetsMetadata();
 
     @Test
     public void prettyPrint() {

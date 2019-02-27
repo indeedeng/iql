@@ -21,11 +21,6 @@ public class DescribeStatement extends IQLStatement {
     public final String dataset;
     public final String field;
 
-    public DescribeStatement(String dataset) {
-        this.dataset = dataset;
-        this.field = null;
-    }
-
     public DescribeStatement(String dataset, String field) {
         this.dataset = dataset;
         this.field = field;

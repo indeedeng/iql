@@ -40,6 +40,9 @@ import static com.google.common.base.Preconditions.checkArgument;
  * @author dwahler
  */
 public final class KerberosUtils {
+    private KerberosUtils() {
+    }
+
     private static final Logger log = Logger.getLogger(KerberosUtils.class);
 
     public static void loginFromKeytab(@Nonnull Configuration props) throws IOException {

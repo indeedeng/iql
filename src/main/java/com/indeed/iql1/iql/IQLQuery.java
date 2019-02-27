@@ -15,7 +15,6 @@
 
 import au.com.bytecode.opencsv.CSVWriter;
 import com.google.common.base.Charsets;
-import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.io.CharStreams;
@@ -59,7 +58,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.text.DecimalFormat;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -104,8 +102,8 @@ public final class IQLQuery implements Closeable {
             final String dataset,
             final DateTime start,
             final DateTime end,
-            final @Nonnull List<Condition> conditions,
-            final @Nonnull List<Grouping> groupings,
+            @Nonnull final List<Condition> conditions,
+            @Nonnull final List<Grouping> groupings,
             final int rowLimit,
             final String username,
             final Limits limits,
@@ -153,7 +151,7 @@ public final class IQLQuery implements Closeable {
     /**
      * Not thread safe due to session reference caching for close().
      */
-    public ExecutionResult execute(boolean progress, PrintWriter outputStream) throws ImhotepOutOfMemoryException {
+    public ExecutionResult execute(boolean progress, PrintWriter outputStream) {
         queryInfo.shardsSelectionMillis = shardsSelectionMillis;
         //if outputStream passed, update on progress
         final PrintWriter out = progress ? outputStream : null;
@@ -180,7 +178,7 @@ public final class IQLQuery implements Closeable {
             final long timeoutTS = System.currentTimeMillis() + executionTimeout.toStandardSeconds().getSeconds() * 1000;
 
             try {
-                final int steps = conditions.size() + (groupings.size() == 0 ? 1 : groupings.size()) - 1;
+                final int steps = conditions.size() + (groupings.isEmpty() ? 1 : groupings.size()) - 1;
                 int count = 0;
                 if (progress) {
                     out.println(": Beginning IQL Query");
@@ -221,7 +219,7 @@ public final class IQLQuery implements Closeable {
                 final double[] totals = getStats(statRefs);
                 queryInfo.getStatsMillis = (long) timer.pop();
 
-                if (groupings.size() > 0) {
+                if (!groupings.isEmpty()) {
                     long regroupMillis = 0;
                     Int2ObjectMap<GroupKey> groupKeys = EZImhotepSession.newGroupKeys();
                     // do Imhotep regroup on all except the last grouping
@@ -251,7 +249,7 @@ public final class IQLQuery implements Closeable {
                 } else {
                     count = updateProgress(progress, out, count);
                     final List<GroupStats> result = Lists.newArrayList();
-                    result.add(new GroupStats(GroupKey.<Comparable>empty(), totals));
+                    result.add(new GroupStats(GroupKey.empty(), totals));
                     executionResult = new ExecutionResult(result.iterator(), totals);
                 }
                 queryInfo.timingTreeReport = timer.toString();
@@ -316,7 +314,7 @@ public final class IQLQuery implements Closeable {
      * Throws UncheckedTimeoutException if current time is past the provided timeout timestamp.
      * @param timeoutTS timestamp of when the query times out in milliseconds
      */
-    public void checkTimeout(long timeoutTS) {
+    private static void checkTimeout(long timeoutTS) {
         if(System.currentTimeMillis() > timeoutTS) {
             throw new UncheckedTimeoutException("The query took longer than the allowed timeout of " + executionTimeout.toString(PeriodFormat.getDefault()));
         }
@@ -367,17 +365,6 @@ public final class IQLQuery implements Closeable {
         return statRefs;
     }
 
-    private boolean requiresSorting() {
-        // TODO: enable sorting
-//        if(groupings.size() > 0) {
-//            final Grouping lastGrouping = groupings.get(groupings.size() - 1);
-//            if(lastGrouping instanceof FieldGrouping && ((FieldGrouping)lastGrouping).isNoExplode()) {
-//                return true;    // currently we only have to sort when using non-exploded field grouping as the last grouping
-//            }
-//        }
-        return false;
-    }
-
     public static class WriteResults {
         public final int rowsWritten;
         public final File unsortedFile;
@@ -390,17 +377,11 @@ public final class IQLQuery implements Closeable {
             this.resultCacheIterator = resultCacheIterator;
             this.exceedsLimit = exceedsLimit;
         }
-
-        public boolean didOverflowToDisk() {
-            return unsortedFile != null;
-        }
     }
 
     @Nonnull
     public WriteResults outputResults(final Iterator<GroupStats> rows, PrintWriter httpOutStream, final boolean csv, final boolean progress, final int rowLimit, int groupingColumns, int selectColumns, boolean cacheDisabled) {
-        final long timeStarted = System.currentTimeMillis();
-        final boolean requiresSorting = requiresSorting();
-        if(cacheDisabled && !requiresSorting) { // just stream the rows out. don't have to worry about keeping a copy at all
+        if(cacheDisabled) { // just stream the rows out. don't have to worry about keeping a copy at all
             final int rowsWritten = writeRowsToStream(rows, httpOutStream, csv, rowLimit, progress);
             return new WriteResults(rowsWritten, null, null, rows.hasNext());
         }
@@ -424,7 +405,6 @@ public final class IQLQuery implements Closeable {
             return new WriteResults(rowsWritten, null, resultsCache.iterator(), exceedsRowLimit);
         } else {    // have to work with the files on the hard drive to avoid OOM
             File unsortedFile = null;
-            File sortedFile = null;
             try {
                 unsortedFile = File.createTempFile(TEMP_FILE_PREFIX, null);
                 // TODO: Use LimitedBufferedOutputStream or mark as skipped on limit
@@ -441,24 +421,8 @@ public final class IQLQuery implements Closeable {
                 fileOutputStream.close();
                 log.trace("Stored on disk to " + unsortedFile.getPath() + " in " + (System.currentTimeMillis() - started) + "ms");
 
-                if(requiresSorting) { // do on disk sort with gnu sort
-                    sortedFile = sortFile(unsortedFile, groupingColumns, selectColumns);
-                } else {
-                    sortedFile = unsortedFile;
-                }
-
                 // send the results out to the client
-                try {
-                    copyStream(new FileInputStream(sortedFile), httpOutStream, rowLimit, progress);
-                } finally {
-                    if (sortedFile != unsortedFile) {
-                        if (sortedFile.delete()) {
-                            sortedFile = null;
-                        } else {
-                            log.warn("Failed to delete temporary file " + sortedFile.toString());
-                        }
-                    }
-                }
+                copyStream(new FileInputStream(unsortedFile), httpOutStream, rowLimit, progress);
 
                 final boolean exceedsRowLimit = rowsWritten >= rowLimit && rows.hasNext();
                 return new WriteResults(rowsWritten, unsortedFile, null, exceedsRowLimit);
@@ -466,61 +430,9 @@ public final class IQLQuery implements Closeable {
                 if ((unsortedFile != null) && !unsortedFile.delete()) {
                     log.warn("Failed to delete temporary file " + unsortedFile.toString());
                 }
-                if ((sortedFile != null) && !sortedFile.delete()) {
-                    log.warn("Failed to delete temporary file " + sortedFile.toString());
-                }
                 throw Throwables.propagate(e);
             }
         }
-    }
-
-    /**
-     * Sorts the given file by invoking gnu 'sort' command and returns a reference to the sorted copy.
-     * Expects inputFile to have ".tmp" in the name
-     */
-    private File sortFile(File inputFile, int groupingColumns, int selectColumns) {
-        File sortedFile = null;
-        try {
-            final long started;
-            started = System.currentTimeMillis();
-            sortedFile = new File(inputFile.getPath().replace(".tmp", ".sorted.tmp"));
-            final List<String> sortCmd = Lists.newArrayList("sort", "-o", sortedFile.getPath(), "-t", "\t");
-
-            // TODO: custom sorting orders
-            for (int i = 1; i <= groupingColumns; i++) {
-                sortCmd.add("-k" + i + "," + i);
-            }
-            for (int i = groupingColumns + 1; i <= groupingColumns + selectColumns; i++) {
-                sortCmd.add("-k" + i + "," + i + "n");
-            }
-            sortCmd.add(inputFile.getPath());
-            log.trace(IQLQuery.join(sortCmd, " "));
-
-            final Process sortProc = Runtime.getRuntime().exec(sortCmd.toArray(new String[sortCmd.size()]), null);
-            sortProc.waitFor();
-            log.trace("Sorted to: " + sortedFile.getPath() + " in " + (System.currentTimeMillis() - started) + "ms");
-            return sortedFile;
-        } catch (final Exception e) {
-            if ((sortedFile != null) && !sortedFile.delete()) {
-                log.warn("Failed to delete temporary file " + sortedFile.toString());
-            }
-            if (e instanceof InterruptedException) {
-                Thread.currentThread().interrupt();
-            }
-            throw Throwables.propagate(e);
-        }
-    }
-
-    private static String join(Collection items, String delimiter) {
-        final StringBuilder sb = new StringBuilder(items.size() * 7);
-
-        for (final Iterator it = items.iterator(); it.hasNext(); ) {
-            sb.append(it.next());
-            if (it.hasNext()) {
-                sb.append(delimiter);
-            }
-        }
-        return sb.toString();
     }
 
     /**
@@ -694,7 +606,7 @@ public final class IQLQuery implements Closeable {
     }
 
     public Set<String> getDatasetFields() {
-        return this.datasetFields;
+        return datasetFields;
     }
 
     public Set<String> getFields() {

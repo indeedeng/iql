@@ -14,7 +14,6 @@
 
 package com.indeed.iql2.language;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.Sets;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.query.GroupBy;
@@ -27,8 +26,12 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 public class AggregateMetrics {
+    private AggregateMetrics() {
+    }
+
     // The max digits after decimal point for floor/ceil/round
     private static final int ROUNDING_MAX_DIGITS = 10;
 
@@ -81,7 +84,7 @@ public class AggregateMetrics {
 
             @Override
             public void enterLegacyAggregateDistinct(JQLParser.LegacyAggregateDistinctContext ctx) {
-                accept(new AggregateMetric.Distinct(fieldResolver.resolve(ctx.identifier()), Optional.<AggregateFilter>absent(), Optional.<Integer>absent()));
+                accept(new AggregateMetric.Distinct(fieldResolver.resolve(ctx.identifier()), Optional.empty(), Optional.empty()));
             }
 
             @Override
@@ -380,7 +383,7 @@ public class AggregateMetrics {
                 final AggregateMetric totalCount = parseJQLAggregateMetric(ctx.total, context);
                 final DocMetric groupingMetric = DocMetrics.parseJQLDocMetric(ctx.grouping, context);
 
-                final GroupBy.GroupByMetric modelGrouping = new GroupBy.GroupByMetric(groupingMetric, lowerLimit, upperLimit, stepSize, true, true);;
+                final GroupBy.GroupByMetric modelGrouping = new GroupBy.GroupByMetric(groupingMetric, lowerLimit, upperLimit, stepSize, true, true);
 
                 final AggregateMetric modelRatio;
                 if (useRatio != null && useRatio.toLowerCase().equals("true")){
@@ -477,7 +480,7 @@ public class AggregateMetrics {
             public void enterAggregateDistinctWindow(JQLParser.AggregateDistinctWindowContext ctx) {
                 final Optional<AggregateFilter> filter;
                 if (ctx.jqlAggregateFilter() == null) {
-                    filter = Optional.absent();
+                    filter = Optional.empty();
                 } else {
                     filter = Optional.of(AggregateFilters.parseJQLAggregateFilter(ctx.jqlAggregateFilter(), context));
                 }
@@ -506,12 +509,12 @@ public class AggregateMetrics {
             public void enterAggregateDistinct(JQLParser.AggregateDistinctContext ctx) {
                 final Optional<AggregateFilter> filter;
                 if (ctx.jqlAggregateFilter() == null) {
-                    filter = Optional.absent();
+                    filter = Optional.empty();
                 } else {
                     filter = Optional.of(AggregateFilters.parseJQLAggregateFilter(ctx.jqlAggregateFilter(), context));
                 }
                 final FieldSet field = fieldResolver.resolve(ctx.scopedField());
-                accept(field.wrap(new AggregateMetric.Distinct(field, filter, Optional.<Integer>absent())));
+                accept(field.wrap(new AggregateMetric.Distinct(field, filter, Optional.empty())));
             }
 
             @Override
@@ -527,10 +530,10 @@ public class AggregateMetrics {
                 if (ctx.jqlAggregateFilter() != null) {
                     filter = Optional.of(AggregateFilters.parseJQLAggregateFilter(ctx.jqlAggregateFilter(), context));
                 } else {
-                    filter = Optional.absent();
+                    filter = Optional.empty();
                 }
                 final FieldSet field = fieldResolver.resolve(ctx.field);
-                final GroupBy groupBy = new GroupBy.GroupByField(field, filter, Optional.absent(), Optional.absent(), false);
+                final GroupBy groupBy = new GroupBy.GroupByField(field, filter, Optional.empty(), Optional.empty(), false);
                 accept(field.wrap(new AggregateMetric.SumAcross(groupBy, AggregateMetrics.parseJQLAggregateMetric(ctx.jqlAggregateMetric(), context))));
             }
 
@@ -540,36 +543,36 @@ public class AggregateMetrics {
                 if (ctx.jqlAggregateFilter() != null) {
                     filter = Optional.of(AggregateFilters.parseJQLAggregateFilter(ctx.jqlAggregateFilter(), context));
                 } else {
-                    filter = Optional.absent();
+                    filter = Optional.empty();
                 }
                 if (ctx.havingBrackets != null) {
                     context.warn.accept("Used square brackets in AVG_OVER HAVING. This is no longer necessary and is deprecated.");
                 }
                 final FieldSet field = fieldResolver.resolve(ctx.field);
-                final GroupBy groupBy = new GroupBy.GroupByField(field, filter, Optional.absent(), Optional.absent(), false);
+                final GroupBy groupBy = new GroupBy.GroupByField(field, filter, Optional.empty(), Optional.empty(), false);
                 accept(field.wrap(new AggregateMetric.Divide(
                         new AggregateMetric.SumAcross(groupBy, AggregateMetrics.parseJQLAggregateMetric(ctx.jqlAggregateMetric(), context)),
-                        new AggregateMetric.Distinct(field, filter, Optional.<Integer>absent())
+                        new AggregateMetric.Distinct(field, filter, Optional.empty())
                 )));
             }
 
             @Override
             public void enterAggregateFieldMin(JQLParser.AggregateFieldMinContext ctx) {
                 final FieldSet field = fieldResolver.resolve(ctx.scopedField());
-                final Optional<AggregateMetric> metric = Optional.fromNullable(ctx.aggregate)
-                    .transform(m -> AggregateMetrics.parseJQLAggregateMetric(m, context));
-                final Optional<AggregateFilter> filter = Optional.fromNullable(ctx.filter)
-                    .transform(f -> AggregateFilters.parseJQLAggregateFilter(f, context));
+                final Optional<AggregateMetric> metric = Optional.ofNullable(ctx.aggregate)
+                    .map(m -> AggregateMetrics.parseJQLAggregateMetric(m, context));
+                final Optional<AggregateFilter> filter = Optional.ofNullable(ctx.filter)
+                    .map(f -> AggregateFilters.parseJQLAggregateFilter(f, context));
                 accept(field.wrap(new AggregateMetric.FieldMin(field, metric, filter)));
             }
 
             @Override
             public void enterAggregateFieldMax(JQLParser.AggregateFieldMaxContext ctx) {
                 final FieldSet field = fieldResolver.resolve(ctx.scopedField());
-                final Optional<AggregateMetric> metric = Optional.fromNullable(ctx.aggregate)
-                    .transform(m -> AggregateMetrics.parseJQLAggregateMetric(m, context));
-                final Optional<AggregateFilter> filter = Optional.fromNullable(ctx.filter)
-                    .transform(f -> AggregateFilters.parseJQLAggregateFilter(f, context));
+                final Optional<AggregateMetric> metric = Optional.ofNullable(ctx.aggregate)
+                    .map(m -> AggregateMetrics.parseJQLAggregateMetric(m, context));
+                final Optional<AggregateFilter> filter = Optional.ofNullable(ctx.filter)
+                    .map(f -> AggregateFilters.parseJQLAggregateFilter(f, context));
                 accept(field.wrap(new AggregateMetric.FieldMax(field, metric, filter)));
             }
 

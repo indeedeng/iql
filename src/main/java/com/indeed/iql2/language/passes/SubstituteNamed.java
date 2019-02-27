@@ -14,29 +14,27 @@
 
 package com.indeed.iql2.language.passes;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
 import com.indeed.iql.exceptions.IqlKnownException;
-import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
-import com.indeed.iql2.language.DocFilter;
-import com.indeed.iql2.language.DocMetric;
-import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.Query;
 
 import javax.annotation.Nullable;
 import java.util.Map;
 import java.util.Stack;
+import java.util.function.Function;
 
 public class SubstituteNamed {
+    private SubstituteNamed() {
+    }
+
     public static Query substituteNamedMetrics(Query query, Map<String, AggregateMetric> namedMetrics) {
         return query.transform(
-                Functions.<GroupBy>identity(),
+                Function.identity(),
                 replaceNamed(namedMetrics),
-                Functions.<DocMetric>identity(),
-                Functions.<AggregateFilter>identity(),
-                Functions.<DocFilter>identity()
+                Function.identity(),
+                Function.identity(),
+                Function.identity()
         );
     }
 
@@ -59,10 +57,10 @@ public class SubstituteNamed {
                                     .get(field)
                                     .transform(
                                             this,
-                                            Functions.<DocMetric>identity(),
-                                            Functions.<AggregateFilter>identity(),
-                                            Functions.<DocFilter>identity(),
-                                            Functions.<GroupBy>identity()
+                                            Function.identity(),
+                                            Function.identity(),
+                                            Function.identity(),
+                                            Function.identity()
                                     );
                     substitutionStack.pop();
                     return result;

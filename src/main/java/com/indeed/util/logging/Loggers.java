@@ -28,6 +28,9 @@ import javax.annotation.Nonnull;
  * detailed log messages inside isDebugEnabled() conditionals.
  */
 public class Loggers {
+    private Loggers() {
+    }
+
     public static void trace(
             @Nonnull final Logger logger,
             @Nonnull final String message

@@ -14,25 +14,23 @@
 
 package com.indeed.iql2.language.passes;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
-import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
-import com.indeed.iql2.language.DocFilter;
-import com.indeed.iql2.language.DocMetric;
-import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.Query;
 
 import javax.annotation.Nullable;
+import java.util.function.Function;
 
 public class RemoveNames {
+    private RemoveNames() {
+    }
+
     public static Query removeNames(Query query) {
         return query.transform(
-                Functions.<GroupBy>identity(),
+                Function.identity(),
                 removeNames(),
-                Functions.<DocMetric>identity(),
-                Functions.<AggregateFilter>identity(),
-                Functions.<DocFilter>identity()
+                Function.identity(),
+                Function.identity(),
+                Function.identity()
         );
     }
 

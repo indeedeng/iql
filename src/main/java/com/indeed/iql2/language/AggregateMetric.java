@@ -14,8 +14,6 @@
 
 package com.indeed.iql2.language;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -35,13 +33,15 @@ import lombok.ToString;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 // TODO: PerGroupConstants, IfThenElse ????
 public abstract class AggregateMetric extends AbstractPositional {
 
-    public static final String PRECOMPUTED_EXCEPTION = "Should be extracted by ExtractPrecomputed";
+    private static final String PRECOMPUTED_EXCEPTION = "Should be extracted by ExtractPrecomputed";
 
     public interface Visitor<T, E extends Throwable> {
         T visit(Add add) throws E;
@@ -1213,7 +1213,7 @@ public abstract class AggregateMetric extends AbstractPositional {
                 return f.apply(new Distinct(field, Optional.of(filter.get().transform(f, g, h, i, groupByFunction)), windowSize))
                         .copyPosition(this);
             } else {
-                return f.apply(new Distinct(field, Optional.absent(), windowSize)).copyPosition(this);
+                return f.apply(new Distinct(field, Optional.empty(), windowSize)).copyPosition(this);
             }
         }
 
@@ -1491,8 +1491,8 @@ public abstract class AggregateMetric extends AbstractPositional {
             return f.apply(
                 new FieldMin(
                     field,
-                    metric.transform(m -> m.transform(f, g, h, i, groupByFunction)),
-                    filter.transform(fil -> fil.transform(f, g, h, i, groupByFunction))
+                    metric.map(m -> m.transform(f, g, h, i, groupByFunction)),
+                    filter.map(fil -> fil.transform(f, g, h, i, groupByFunction))
                 )
             ).copyPosition(this);
         }
@@ -1501,7 +1501,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         public AggregateMetric traverse1(final Function<AggregateMetric, AggregateMetric> f) {
             return new FieldMin(
                 field,
-                metric.transform(f),
+                metric.map(f),
                 filter.isPresent() ? Optional.of(filter.get().traverse1(f)) : filter
             );
         }
@@ -1549,8 +1549,8 @@ public abstract class AggregateMetric extends AbstractPositional {
             return f.apply(
                 new FieldMax(
                     field,
-                    metric.transform(m -> m.transform(f, g, h, i, groupByFunction)),
-                    filter.transform(fil -> fil.transform(f, g, h, i, groupByFunction))
+                    metric.map(m -> m.transform(f, g, h, i, groupByFunction)),
+                    filter.map(fil -> fil.transform(f, g, h, i, groupByFunction))
                 )
             ).copyPosition(this);
         }
@@ -1559,8 +1559,8 @@ public abstract class AggregateMetric extends AbstractPositional {
         public AggregateMetric traverse1(final Function<AggregateMetric, AggregateMetric> f) {
             return new FieldMax(
                 field,
-                metric.transform(f),
-                filter.isPresent() ? Optional.of(filter.get().traverse1(f)) : filter
+                metric.map(f),
+                filter.map(x -> x.traverse1(f))
             );
         }
 

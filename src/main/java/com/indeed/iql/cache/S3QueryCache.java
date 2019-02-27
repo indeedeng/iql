@@ -18,7 +18,6 @@ import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.Region;
-
 import org.apache.log4j.Logger;
 import org.springframework.core.env.PropertyResolver;
 
@@ -36,8 +35,8 @@ import java.io.InputStream;
 public class S3QueryCache implements QueryCache {
     private static final Logger log = Logger.getLogger(S3QueryCache.class);
 
-    private AmazonS3Client client;
-    private String bucket;
+    private final AmazonS3Client client;
+    private final String bucket;
 
     public S3QueryCache(PropertyResolver props) {
         String awsRegion;
@@ -92,7 +91,7 @@ public class S3QueryCache implements QueryCache {
 
     @Override
     @Nullable
-    public InputStream getInputStream(String cachedFileName) throws IOException {
+    public InputStream getInputStream(String cachedFileName) {
         try {
             return client.getObject(bucket, cachedFileName).getObjectContent();
         } catch (Exception e) {
@@ -101,7 +100,7 @@ public class S3QueryCache implements QueryCache {
     }
 
     @Override
-    public CompletableOutputStream getOutputStream(final String cachedFileName) throws IOException {
+    public CompletableOutputStream getOutputStream(final String cachedFileName) {
         final ByteArrayOutputStream os = new ByteArrayOutputStream();
         // Wrap the returned OutputStream so that we can write to buffer and do actual write on close()
         return new CompletableOutputStream() {
@@ -113,7 +112,7 @@ public class S3QueryCache implements QueryCache {
             }
 
             @Override
-            public void write(byte[] b, int off, int len) throws IOException {
+            public void write(byte[] b, int off, int len) {
                 os.write(b, off, len);
             }
 
@@ -123,7 +122,7 @@ public class S3QueryCache implements QueryCache {
             }
 
             @Override
-            public void write(int b) throws IOException {
+            public void write(int b) {
                 os.write(b);
             }
 
@@ -148,7 +147,7 @@ public class S3QueryCache implements QueryCache {
     }
 
     @Override
-    public void writeFromFile(String cachedFileName, File localFile) throws IOException {
+    public void writeFromFile(String cachedFileName, File localFile) {
         client.putObject(bucket, cachedFileName, localFile);
     }
 
@@ -157,7 +156,7 @@ public class S3QueryCache implements QueryCache {
      * @throws IOException
      */
     @Override
-    public void healthcheck() throws IOException {
+    public void healthcheck() {
         client.listObjects(bucket);
     }
 }

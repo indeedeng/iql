@@ -14,32 +14,13 @@
 
 package com.indeed.iql2.server.web.servlets;
 
-import com.google.common.collect.ImmutableList;
-import com.indeed.iql.exceptions.IqlKnownException;
-import com.indeed.iql2.server.web.servlets.dataset.AllData;
-import com.indeed.iql2.server.web.servlets.dataset.Dataset;
-import org.junit.Assert;
 import org.junit.Test;
-
-import java.util.List;
 
 public class IQL704Test extends BasicTest {
     @Test
     public void ensureErrorThrown() throws Exception {
-        final QueryServletTestUtils.Options options = QueryServletTestUtils.Options.create(true).setSubQueryTermLimit(5000L);
-        try {
-            QueryServletTestUtils.testIQL1(ImmutableList.of(), "from big yesterday today group by field, field", options);
-            Assert.fail();
-        } catch (Exception e) {
-            // Ensure we get *just* above the limit, instead of way above
-            Assert.assertTrue(e.getMessage().contains("Number of groups [5001] exceeds the group limit [5000]"));
-        }
-        try {
-            QueryServletTestUtils.testIQL2(ImmutableList.of(), "from big yesterday today group by field, field", options);
-            Assert.fail();
-        } catch (Exception e) {
-            // Ensure we get *just* above the limit, instead of way above
-            Assert.assertTrue(e.getMessage().contains("Number of groups [5001] exceeds the group limit [5000]"));
-        }
+        QueryServletTestUtils.expectExceptionAll("from big yesterday today group by field, field",
+                QueryServletTestUtils.Options.create(true).setSubQueryTermLimit(5000L),
+                s -> s.contains("Number of groups [5001] exceeds the group limit [5000]"));
     }
 }

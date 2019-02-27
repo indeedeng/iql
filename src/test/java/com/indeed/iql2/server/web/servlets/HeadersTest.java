@@ -9,7 +9,7 @@ import java.util.List;
 
 import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testAll;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertNotNull;
 
 public class HeadersTest extends BasicTest {
 
@@ -26,9 +26,7 @@ public class HeadersTest extends BasicTest {
             final LanguageVersion version) throws Exception {
         final JsonNode header = QueryServletTestUtils.getQueryHeader(query, version);
         final JsonNode totals = header.get("IQL-Totals");
-        if (totals == null) {
-            fail();
-        }
+        assertNotNull(totals);
         final String quotedValue = totals.toString();
         assertEquals(quotedValue, "\"" + expectedTotals + "\"");
     }

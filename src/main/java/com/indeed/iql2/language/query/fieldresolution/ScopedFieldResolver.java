@@ -1,6 +1,5 @@
 package com.indeed.iql2.language.query.fieldresolution;
 
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -30,6 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -319,7 +319,7 @@ public class ScopedFieldResolver {
         if (datasetsMetadata.getMetadata(imhotepDataset).isPresent()) {
             final DatasetMetadata metadata = datasetsMetadata.getMetadata(imhotepDataset).get();
             final MetricMetadata metricMetadata = metadata.resolveMetric(typedField);
-            if ((metricMetadata != null) && !metricMetadata.isAlias && (metricMetadata.expression != null)) {
+            if ((metricMetadata != null) && !metricMetadata.isAlias() && (metricMetadata.getExpression() != null)) {
                 return metricMetadata;
             }
         }

@@ -33,11 +33,11 @@ public final class GroupingFTGSCallbackNoExplode extends EZImhotepSession.FTGSIt
         this.groupKeys = groupKeys;
     }
 
-    public GroupStats intTermGroup(final String field, final long term, final int group) {
+    public GroupStats intTermGroup(final long term, final int group) {
         return getStats(group, term);
     }
 
-    public GroupStats stringTermGroup(final String field, final String term, final int group) {
+    public GroupStats stringTermGroup(final String term, final int group) {
         return getStats(group, term);
     }
 

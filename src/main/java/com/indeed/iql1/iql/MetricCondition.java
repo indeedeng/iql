@@ -17,13 +17,11 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql1.ez.EZImhotepSession;
 import com.indeed.iql1.ez.SingleStatReference;
 import com.indeed.iql1.ez.Stats;
-import org.apache.log4j.Logger;
 
 /**
  * @author jplaisance
  */
 public final class MetricCondition implements Condition {
-    private static final Logger log = Logger.getLogger(MetricCondition.class);
     private final Stats.Stat stat;
     private final long min;
     private final long max;

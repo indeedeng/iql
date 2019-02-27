@@ -15,7 +15,6 @@
 package com.indeed.iql2.language.query;
 
 import com.google.common.base.Objects;
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.indeed.imhotep.Shard;
@@ -23,6 +22,7 @@ import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql2.language.AbstractPositional;
 import com.indeed.iql2.language.DocFilter;
 import com.indeed.iql2.language.DocFilters;
+import com.indeed.iql2.language.Identifiers;
 import com.indeed.iql2.language.JQLBaseListener;
 import com.indeed.iql2.language.JQLParser;
 import com.indeed.iql2.language.ParserCommon;
@@ -42,6 +42,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -85,7 +86,7 @@ public class Dataset extends AbstractPositional {
     }
 
     public String getDisplayName() {
-        return alias.or(dataset).unwrap();
+        return alias.orElse(dataset).unwrap();
     }
 
     public static Set<String> datasetToScope(List<Dataset> datasets){
@@ -109,17 +110,12 @@ public class Dataset extends AbstractPositional {
         final Positioned<String> dataset = fieldResolver.resolveImhotepDataset(datasetContext.index);
         final Positioned<DateTime> start = parseDateTime(datasetContext.start, datasetContext.useLegacy, context.clock);
         final Positioned<DateTime> end = parseDateTime(datasetContext.end, datasetContext.useLegacy, context.clock);
-        final Optional<Positioned<String>> name;
-        if (datasetContext.name != null) {
-            name = Optional.of(parseIdentifier(datasetContext.name));
-        } else {
-            name = Optional.absent();
-        }
+        final Optional<Positioned<String>> name = Optional.ofNullable(datasetContext.name).map(Identifiers::parseIdentifier);
 
-        final ShardResolver.ShardResolutionResult resolutionResult = getShards(context, dataset.unwrap(), start.unwrap(), end.unwrap(), name.transform(Positioned::unwrap));
+        final ShardResolver.ShardResolutionResult resolutionResult = getShards(context, dataset.unwrap(), start.unwrap(), end.unwrap(), name.map(Positioned::unwrap));
 
         // Overwrite variables to avoid accidentally using the wrong one.
-        final String resolvedDataset = fieldResolver.resolveDataset(name.or(dataset).unwrap());
+        final String resolvedDataset = fieldResolver.resolveDataset(name.orElse(dataset).unwrap());
         fieldResolver = fieldResolver.forScope(Collections.singleton(resolvedDataset));
         context = context.withFieldResolver(fieldResolver);
 
@@ -130,9 +126,9 @@ public class Dataset extends AbstractPositional {
             for (final JQLParser.DocFilterContext ctx : datasetContext.whereContents().docFilter()) {
                 filters.add(DocFilters.parseDocFilter(ctx, context));
             }
-            initializerFilter = Optional.of(new DocFilter.Qualified(Collections.singletonList(name.or(dataset).unwrap()), DocFilter.And.create(filters)));
+            initializerFilter = Optional.of(new DocFilter.Qualified(Collections.singletonList(name.orElse(dataset).unwrap()), DocFilter.And.create(filters)));
         } else {
-            initializerFilter = Optional.absent();
+            initializerFilter = Optional.empty();
         }
         checkRange(start.unwrap(), end.unwrap());
         final Dataset dataset1 = new Dataset(dataset, start, end, name, fieldAliases, resolutionResult);
@@ -141,7 +137,7 @@ public class Dataset extends AbstractPositional {
     }
 
     private static ShardResolver.ShardResolutionResult getShards(final Query.Context context, final String dataset, final DateTime start, final DateTime end, final Optional<String> name) {
-        context.timer.push("resolve shards for dataset " + name.or(dataset));
+        context.timer.push("resolve shards for dataset " + name.orElse(dataset));
         final ShardResolver.ShardResolutionResult shardResolutionResult = context.shardResolver.resolve(dataset, start, end);
         context.timer.pop();
         return shardResolutionResult;
@@ -156,7 +152,7 @@ public class Dataset extends AbstractPositional {
             final DateTime defaultEnd,
             final JQLParser.DatasetOptTimeContext datasetOptTimeContext,
             final Query.Context context) {
-        final Object[] ref = new Object[1];
+        final Pair<Dataset, Optional<DocFilter>>[] ref = new Pair[1];
         final ScopedFieldResolver fieldResolver = context.fieldResolver;
 
         datasetOptTimeContext.enterRule(new JQLBaseListener() {
@@ -173,16 +169,11 @@ public class Dataset extends AbstractPositional {
 
             public void enterPartialDataset(JQLParser.PartialDatasetContext ctx) {
                 final Positioned<String> dataset = fieldResolver.resolveImhotepDataset(ctx.index);
-                final Optional<Positioned<String>> name;
-                if (ctx.name != null) {
-                    name = Optional.of(parseIdentifier(ctx.name));
-                } else {
-                    name = Optional.absent();
-                }
+                final Optional<Positioned<String>> name = Optional.ofNullable(ctx.name).map(Identifiers::parseIdentifier);
 
-                final ShardResolver.ShardResolutionResult resolutionResult = getShards(context, dataset.unwrap(), defaultStart, defaultEnd, name.transform(Positioned::unwrap));
+                final ShardResolver.ShardResolutionResult resolutionResult = getShards(context, dataset.unwrap(), defaultStart, defaultEnd, name.map(Positioned::unwrap));
 
-                final String resolvedDataset = fieldResolver.resolveDataset(name.or(dataset).unwrap());
+                final String resolvedDataset = fieldResolver.resolveDataset(name.orElse(dataset).unwrap());
                 final ScopedFieldResolver datasetFieldResolver = fieldResolver.forScope(Collections.singleton(resolvedDataset));
                 final Query.Context datasetContext = context.withFieldResolver(datasetFieldResolver);
 
@@ -194,9 +185,9 @@ public class Dataset extends AbstractPositional {
                     for (final JQLParser.DocFilterContext filterCtx : ctx.whereContents().docFilter()) {
                         filters.add(DocFilters.parseDocFilter(filterCtx, datasetContext));
                     }
-                    initializerFilter = Optional.of(new DocFilter.Qualified(Collections.singletonList(name.or(dataset).unwrap()), DocFilter.And.create(filters)));
+                    initializerFilter = Optional.of(new DocFilter.Qualified(Collections.singletonList(name.orElse(dataset).unwrap()), DocFilter.And.create(filters)));
                 } else {
-                    initializerFilter = Optional.absent();
+                    initializerFilter = Optional.empty();
                 }
 
                 checkRange(defaultStart, defaultEnd); // this should not fail as we already checked this range before, but just in case.
@@ -210,7 +201,7 @@ public class Dataset extends AbstractPositional {
             throw new UnsupportedOperationException("Unhandled partialDataset: " + datasetOptTimeContext.getText());
         }
 
-        return (Pair<Dataset, Optional<DocFilter>>) ref[0];
+        return ref[0];
     }
 
     private static Map<Positioned<String>, Positioned<String>> parseFieldAliases(JQLParser.AliasesContext aliases, final ScopedFieldResolver fieldResolver) {
@@ -351,8 +342,12 @@ public class Dataset extends AbstractPositional {
     public boolean equals(final Object o) {
         // fieldAliases deliberately left out due to it not affecting semantics, only prettyprint results
         // missingShardIntervals not used because it's only for diagnostics
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         final Dataset dataset1 = (Dataset) o;
         return Objects.equal(dataset, dataset1.dataset) &&
                 Objects.equal(startInclusive, dataset1.startInclusive) &&
