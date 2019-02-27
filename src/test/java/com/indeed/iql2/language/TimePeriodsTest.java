@@ -14,6 +14,7 @@
 
 package com.indeed.iql2.language;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.indeed.iql2.language.query.Queries;
 import com.indeed.util.core.Pair;
@@ -24,6 +25,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 
 @SuppressWarnings("unchecked")
 public class TimePeriodsTest {
@@ -46,11 +48,17 @@ public class TimePeriodsTest {
         }
 
     }
-    
-    private static List<TestDef> TEST_CASES = Arrays.asList(
+
+    // TODO: test relative time like 'today', 'yesterday', 'tomorrow' or '5days ago' somehow
+
+    private static final List<TestDef> BUCKETS = Arrays.asList(
             new TestDef("1 b", Pair.of(1, TimeUnit.BUCKETS)),
             new TestDef("1 bucket", Pair.of(1, TimeUnit.BUCKETS)),
             new TestDef("100 buckets", Pair.of(100, TimeUnit.BUCKETS)),
+            new TestDef("BUCKET", Pair.of(1, TimeUnit.BUCKETS))
+    );
+
+    private static final List<TestDef> TIME_INTERVAL = Arrays.asList(
             new TestDef("1 y", Pair.of(1, TimeUnit.YEAR)),
             new TestDef("1 year", Pair.of(1, TimeUnit.YEAR)),
             new TestDef("100 years", Pair.of(100, TimeUnit.YEAR)),
@@ -77,7 +85,6 @@ public class TimePeriodsTest {
             new TestDef("minute", Pair.of(1, TimeUnit.MINUTE)),
             new TestDef("HOUR", Pair.of(1, TimeUnit.HOUR)),
             new TestDef("d", Pair.of(1, TimeUnit.DAY)),
-            new TestDef("BUCKET", Pair.of(1, TimeUnit.BUCKETS)),
             new TestDef(
                     "y 3d",
                     Pair.of(1, TimeUnit.YEAR),
@@ -109,32 +116,52 @@ public class TimePeriodsTest {
     );
 
     @Test
-    public void testWithSpaces() throws Exception {
-        for (final TestDef testCase : TEST_CASES) {
-            verifyTestDef(testCase.expected, testCase.withSpaces, testCase.useLegacy);
+    public void testTimeBucket() throws Exception {
+        // bucket is real bucket or time interval
+        for (final TestDef testCase : Iterables.concat(BUCKETS, TIME_INTERVAL)) {
+            verifyTestDef(PARSE_TIME_BUCKET, testCase.expected, testCase.withSpaces, testCase.useLegacy);
+            verifyTestDef(PARSE_TIME_BUCKET, testCase.expected, testCase.withSpaces.replace(" ", ""), testCase.useLegacy);
         }
     }
 
     @Test
-    public void testWithoutSpaces() throws Exception {
-        for (final TestDef testCase : TEST_CASES) {
-            verifyTestDef(testCase.expected, testCase.withSpaces.replace(" ", ""), testCase.useLegacy);
+    public void testTimeInterval() throws Exception {
+        for (final TestDef testCase : TIME_INTERVAL) {
+            verifyTestDef(PARSE_TIME_INTERVAL, testCase.expected, testCase.withSpaces, testCase.useLegacy);
+            verifyTestDef(PARSE_TIME_INTERVAL, testCase.expected, testCase.withSpaces.replace(" ", ""), testCase.useLegacy);
         }
     }
 
-    private void verifyTestDef(List<Pair<Integer, TimeUnit>> expected, String withSpaces, Optional<Boolean> useLegacy) {
+    private void verifyTestDef(
+            final Function<Pair<String, Boolean>, List<Pair<Integer, TimeUnit>>> stringToUnits,
+            final List<Pair<Integer, TimeUnit>> expected,
+            final String timeStr,
+            final Optional<Boolean> useLegacy) {
         if (useLegacy.isPresent()) {
-            checkOrderInvariant(expected, parseTimePeriod(withSpaces, useLegacy.get()));
+            checkOrderInvariant(expected, stringToUnits.apply(Pair.of(timeStr, useLegacy.get())));
         } else {
-            checkOrderInvariant(expected, parseTimePeriod(withSpaces, true));
-            checkOrderInvariant(expected, parseTimePeriod(withSpaces, false));
+            checkOrderInvariant(expected, stringToUnits.apply(Pair.of(timeStr, true)));
+            checkOrderInvariant(expected, stringToUnits.apply(Pair.of(timeStr, false)));
         }
     }
 
-    private List<Pair<Integer, TimeUnit>> parseTimePeriod(final String input, final boolean useLegacy) {
-        final JQLParser.TimeBucketContext ctx = Queries.runParser(input, JQLParser::timeBucketTerminal).timeBucket();
-        return TimePeriods.parseTimeBuckets(ctx, useLegacy);
-    }
+    private static final Function<Pair<String, Boolean>, List<Pair<Integer, TimeUnit>>> PARSE_TIME_BUCKET =
+            pair -> {
+                final JQLParser.TimeBucketContext ctx = Queries.runParser(pair.getFirst(), JQLParser::timeBucketTerminal).timeBucket();
+                return TimePeriods.parseTimeBuckets(ctx, pair.getSecond());
+            };
+
+    private static final Function<Pair<String, Boolean>, List<Pair<Integer, TimeUnit>>> PARSE_TIME_INTERVAL =
+            pair -> {
+                final JQLParser.RelativeTimeTerminalContext ctx = Queries.runParser(pair.getFirst(), JQLParser::relativeTimeTerminal);
+                if (ctx.timeInterval() != null) {
+                    return TimePeriods.parseTimeIntervals(ctx.timeInterval().getText(), pair.getSecond());
+                }
+                if (ctx.relativeTime() != null) {
+                    return TimePeriods.parseTimeIntervals(ctx.relativeTime().getText(), pair.getSecond());
+                }
+                throw new IllegalStateException();
+            };
 
     private static <T> void checkOrderInvariant(List<T> expected, List<T> actual) {
         final Set<T> expectedSet = Sets.newHashSet(expected);
