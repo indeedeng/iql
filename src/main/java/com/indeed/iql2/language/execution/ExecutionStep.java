@@ -174,8 +174,8 @@ public interface ExecutionStep {
             } else {
                 filter = Optional.absent();
             }
-            final Optional<TopK> topK1 = this.topK.transform(x -> x.transformMetric(f));
-            return new ExplodeAndRegroup(field, filter, topK1, withDefault);
+            final Optional<TopK> topK = this.topK.transform(x -> x.transformMetric(f));
+            return new ExplodeAndRegroup(field, filter, topK, withDefault);
         }
     }
 
