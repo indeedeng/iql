@@ -211,7 +211,7 @@ public class SimpleIterate implements Command {
             final Session session,
             final ResultCollector out,
             final Set<QualifiedPush> allPushes,
-            final AggregateMetric topKMetricOrNull) {
+            final AggregateMetric topKMetricOrNull) throws ImhotepOutOfMemoryException {
         session.timer.push("prepare for iteration");
         final Map<String, List<List<String>>> sessionStats = new HashMap<>();
         final Map<QualifiedPush, AggregateStatTree> atomicStats = session.pushMetrics(allPushes, sessionStats);
