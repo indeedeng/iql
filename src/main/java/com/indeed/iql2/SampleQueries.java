@@ -20,15 +20,16 @@ public class SampleQueries {
     private SampleQueries() {
     }
 
-    private static final int NUM_QUERIES = 200;
-    private static final String FILE = "/home/xweng/indeed/data-infra/performance-benchmark/iqlquery_2019-01-01_2019-01-08.tsv";
-    private static final String OUT = "/home/xweng/indeed/data-infra/performance-benchmark/sampled.csv";
+    private static final int DEFAULT_NUM_QUERIES = 200;
 
-    public static void main(String[] args) throws IOException {
+    public static void main(final String[] args) throws IOException {
         long totalCount = 0L;
+        final String inFile = args[0];
+        final String outFile = args[1];
+        final int numQueries = (args.length > 2) ? Integer.parseInt(args[2]) : DEFAULT_NUM_QUERIES;
 
         final List<Query> queries = new ArrayList<>();
-        try (BufferedReader reader = new BufferedReader(new FileReader(FILE))) {
+        try (final BufferedReader reader = new BufferedReader(new FileReader(inFile))) {
             while (true) {
                 final String line = reader.readLine();
                 if (line == null) {
@@ -62,33 +63,32 @@ public class SampleQueries {
         final Random rng = new Random();
         final Set<String> selectedQueries = new HashSet<>();
 
-        try (final CSVWriter writer = new CSVWriter(new BufferedWriter(new FileWriter(OUT)), ',', '\"', '\\')) {
+        try (final CSVWriter writer = new CSVWriter(new BufferedWriter(new FileWriter(outFile)), ',', '\"', '\\')) {
             final String[] buf = new String[1];
             buf[0] = "query";
             writer.writeNext(buf);
-            for (int i = 0; i < NUM_QUERIES; i++) {
-                final long targetCount = (long) Math.floor(rng.nextDouble() * totalCount);
-                int index = Arrays.binarySearch(cumulativeCounts, targetCount);
-                if (index < 0) {
-                    index = -(index + 1);
-                }
-                if (index > cumulativeCounts.length) {
-                    i -= 1;
-                    continue;
-                }
-                final Query query = queries.get(index);
-                if (selectedQueries.contains(query.query)) {
-                    i -= 1;
-                    continue;
+            for (int i = 0; i < numQueries; i++) {
+                Query query;
+                while (true) {
+                    final long targetCount = (long) Math.floor(rng.nextDouble() * totalCount);
+                    int index = Arrays.binarySearch(cumulativeCounts, targetCount);
+                    if (index < 0) {
+                        index = -(index + 1);
+                    }
+                    if (index > cumulativeCounts.length) {
+                        continue;
+                    }
+                    query = queries.get(index);
+                    if (selectedQueries.contains(query.query)) {
+                        continue;
+                    }
+                    break;
                 }
                 selectedQueries.add(query.query);
                 buf[0] = URLEncoder.encode(query.query, "UTF-8");
                 writer.writeNext(buf);
             }
         }
-
-
-
     }
 
     private static class Query {
