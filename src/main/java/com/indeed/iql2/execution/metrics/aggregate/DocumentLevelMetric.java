@@ -62,11 +62,17 @@ public class DocumentLevelMetric implements AggregateMetric {
 
     @Override
     public double apply(final String term, final long[] stats, final int group) {
+        if (index >= stats.length) {
+            throw new IllegalStateException();
+        }
         return stats[index];
     }
 
     @Override
     public double apply(final long term, final long[] stats, final int group) {
+        if (index >= stats.length) {
+            throw new IllegalStateException();
+        }
         return stats[index];
     }
 

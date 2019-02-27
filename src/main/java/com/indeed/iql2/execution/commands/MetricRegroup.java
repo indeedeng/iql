@@ -74,12 +74,9 @@ public class MetricRegroup implements Command {
                 if (!perDatasetMetrics.containsKey(name)) {
                     return;
                 }
-                final List<String> pushes = new ArrayList<>(perDatasetMetrics.get(name));
-
-                Session.pushStatsWithTimer(session, pushes, timer);
 
                 timer.push("metricRegroup");
-                session.metricRegroup(0, min, max, interval, excludeGutters && !withDefaultBucket);
+                session.metricRegroup(perDatasetMetrics.get(name), min, max, interval, excludeGutters && !withDefaultBucket);
                 // do request to imhotep and update group count only if it make sense.
                 if (deleteEmptyGroups && (intermediateGroups[0] < maxIntermediateGroups)) {
                     final int groups = session.getNumGroups() - 1; // imhotep groups count is with zero group.
@@ -108,10 +105,6 @@ public class MetricRegroup implements Command {
                     session.regroup(fromGroups, toGroups, true);
                     timer.pop();
                 }
-
-                timer.push("popStat");
-                session.popStat();
-                timer.pop();
             }
         });
 

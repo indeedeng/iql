@@ -94,9 +94,7 @@ public class GetGroupStats implements Command {
             final IntList positions = entry.getValue();
             final ImhotepSessionHolder s = sessions.get(name);
             for (int i = 0; i < positions.size(); i++) {
-                s.pushStats(pushesForSession.get(i).pushes);
-                allStats[positions.get(i)] = s.getGroupStats(0);
-                s.popStat();
+                allStats[positions.get(i)] = s.getGroupStats(pushesForSession.get(i).pushes);
             }
         }
         session.timer.pop();

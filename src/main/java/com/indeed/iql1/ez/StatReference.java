@@ -13,11 +13,13 @@
  */
  package com.indeed.iql1.ez;
 
+import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
+
 /**
 * @author jwolfe
 */
 public interface StatReference {
-    public double[] getGroupStats();
+    public double[] getGroupStats() throws ImhotepOutOfMemoryException;
 
     public boolean isValid();
     public void invalidate();

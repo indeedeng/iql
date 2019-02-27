@@ -31,6 +31,7 @@ import org.apache.commons.lang.ArrayUtils;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -51,13 +52,14 @@ public class ExplodePerDocPercentile implements Command {
         session.checkGroupLimit(numBuckets * session.numGroups);
 
         session.timer.push("get counts");
+        final Map<String, List<List<String>>> sessionStats = new HashMap<>();
         final long[] counts = new long[session.numGroups + 1];
         for (final Session.ImhotepSessionInfo s : session.sessions.values()) {
-            s.session.pushStat("hasintfield " + field.datasetFieldName(s.displayName));
-            final long[] stats = s.session.getGroupStats(0);
+            final long[] stats = s.session.getGroupStats(Collections.singletonList("hasintfield " + field.datasetFieldName(s.displayName)));
             for (int i = 0; i < stats.length; i++) {
                 counts[i] += stats[i];
             }
+            sessionStats.put(s.displayName, Collections.singletonList(Collections.singletonList("count()")));
         }
         session.timer.pop();
 
@@ -70,7 +72,7 @@ public class ExplodePerDocPercentile implements Command {
             metricIndexes.put(k, new IntArrayList(new int[]{nextIndex}));
         }
         session.timer.push("compute cutoffs (iterateMultiInt)");
-        Session.iterateMultiInt(session.getSessionsMapRaw(), metricIndexes, Collections.<String, Integer>emptyMap(), field, new Session.IntIterateCallback() {
+        Session.iterateMultiInt(session.getSessionsMapRaw(), metricIndexes, Collections.<String, Integer>emptyMap(), field, sessionStats, new Session.IntIterateCallback() {
             @Override
             public void term(final long term, final long[] stats, final int group) {
                 for (final long stat : stats) {
@@ -143,7 +145,6 @@ public class ExplodePerDocPercentile implements Command {
         session.timer.pop();
 
         session.regroupWithSingleFieldRules(rulesBuilder, field, true, true, true);
-        session.popStat();
 
         session.assumeDense(DumbGroupKeySet.create(session.groupKeySet, groupParents.toIntArray(), nextGroupKeys));
     }

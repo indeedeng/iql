@@ -23,6 +23,8 @@ import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.util.logging.TracingTreeTimer;
 
+import java.util.List;
+
 /**
  *
  */
@@ -46,16 +48,9 @@ public class ExplodeRandom implements Command {
         session.process(new SessionCallback() {
             @Override
             public void handle(final TracingTreeTimer timer, final String name, final ImhotepSessionHolder session) throws ImhotepOutOfMemoryException {
-                timer.push("pushStats");
-                session.pushStats(randomDocMetric.getPushes(session.getDatasetName()));
-                timer.pop();
-
+                final List<String> stat = randomDocMetric.getPushes(session.getDatasetName());
                 timer.push("metricRegroup");
-                session.metricRegroup(0, 0, k + 1, 1, true);
-                timer.pop();
-
-                timer.push("popStat");
-                session.popStat();
+                session.metricRegroup(stat, 0, k + 1, 1, true);
                 timer.pop();
             }
         });

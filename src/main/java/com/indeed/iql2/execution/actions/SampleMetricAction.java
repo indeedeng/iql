@@ -57,16 +57,11 @@ public class SampleMetricAction implements Action {
                 if (!perDatasetMetric.containsKey(name)) {
                     return;
                 }
-                final List<String> pushes = Lists.newArrayList(perDatasetMetric.get(name).getPushes(name));
 
-                Session.pushStatsWithTimer(session, pushes, timer);
+                final List<String> stat = perDatasetMetric.get(name).getPushes(name);
 
                 timer.push("randomMetricRegroup");
-                session.randomMetricRegroup(0, seed, 1.0 - probability, targetGroup, negativeGroup, positiveGroup);
-                timer.pop();
-
-                timer.push("popStat");
-                session.popStat();
+                session.randomMetricRegroup(stat, seed, 1.0 - probability, targetGroup, negativeGroup, positiveGroup);
                 timer.pop();
             }
         });

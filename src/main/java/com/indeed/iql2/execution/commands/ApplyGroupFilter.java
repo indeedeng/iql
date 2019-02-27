@@ -14,6 +14,7 @@
 
 package com.indeed.iql2.execution.commands;
 
+import com.google.common.collect.Maps;
 import com.google.common.primitives.Booleans;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.AggregateFilter;
@@ -48,7 +49,8 @@ public class ApplyGroupFilter implements Command {
         final Set<QualifiedPush> requires = filter.requires();
         final Map<QualifiedPush, Integer> metricIndexes = new HashMap<>();
         final Map<String, IntList> sessionMetricIndexes = new HashMap<>();
-        session.pushMetrics(requires, metricIndexes, sessionMetricIndexes, true);
+        final Map<String, List<List<String>>> sessionStats = Maps.newHashMap();
+        session.pushMetrics(requires, metricIndexes, sessionMetricIndexes, sessionStats);
         filter.register(metricIndexes, session.groupKeySet);
         final long[][] stats = new long[metricIndexes.size()][];
         session.process(new SessionCallback() {
@@ -58,10 +60,7 @@ public class ApplyGroupFilter implements Command {
                     if (!entry.getKey().sessionName.equals(name)) {
                         continue;
                     }
-                    final List<String> pushes = entry.getKey().pushes;
-                    session.pushStats(pushes);
-                    final long[] groupStats = session.getGroupStats(0);
-                    session.popStat();
+                    final long[] groupStats = session.getGroupStats(entry.getKey().pushes);
                     synchronized (stats) {
                         stats[entry.getValue()] = groupStats;
                     }

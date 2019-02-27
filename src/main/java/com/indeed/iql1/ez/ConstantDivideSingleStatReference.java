@@ -14,6 +14,7 @@
 
 package com.indeed.iql1.ez;
 
+import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql.exceptions.IqlKnownException;
 
 /**
@@ -32,7 +33,7 @@ public class ConstantDivideSingleStatReference extends SingleStatReference {
     }
 
     @Override
-    public double[] getGroupStats() {
+    public double[] getGroupStats() throws ImhotepOutOfMemoryException {
         double[] results = super.getGroupStats();
         for(int i = 0; i < results.length; i++) {
             results[i] = results[i] / value;

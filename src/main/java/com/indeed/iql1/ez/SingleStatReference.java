@@ -13,6 +13,8 @@
  */
  package com.indeed.iql1.ez;
 
+import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
+
 /**
 * @author jwolfe
 */
@@ -38,7 +40,7 @@ public class SingleStatReference implements StatReference {
     }
 
     @Override
-    public double[] getGroupStats() {
+    public double[] getGroupStats() throws ImhotepOutOfMemoryException {
         Stats.requireValid(this);
         long[] values = session.getGroupStats(depth);
         double[] realValues = new double[values.length];

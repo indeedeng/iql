@@ -58,12 +58,10 @@ public class GetGroupPercentiles implements IterateHandlerable<long[][]>, Comman
         final long[] counts = new long[session.numGroups + 1];
         for (final String dataset : field.datasets()) {
             final ImhotepSessionHolder s = session.sessions.get(dataset).session;
-            s.pushStat("hasintfield " + field.datasetFieldName(dataset));
-            final long[] stats = s.getGroupStats(0);
+            final long[] stats = s.getGroupStats(Collections.singletonList("hasintfield " + field.datasetFieldName(dataset)));
             for (int i = 0; i < stats.length; i++) {
                 counts[i] += stats[i];
             }
-            s.popStat();
         }
         session.timer.pop();
 

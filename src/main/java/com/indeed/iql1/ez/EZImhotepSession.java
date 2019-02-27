@@ -20,6 +20,7 @@ import com.indeed.imhotep.QueryRemapRule;
 import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.GroupStatsIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
+import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.io.RequestTools;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
@@ -147,12 +148,12 @@ public class EZImhotepSession implements Closeable {
         return numGroups;
     }
 
-    public double[] getGroupStats(StatReference statReference) {
+    public double[] getGroupStats(StatReference statReference) throws ImhotepOutOfMemoryException {
         return statReference.getGroupStats();
     }
 
-    long[] getGroupStats(int depth) {
-        return session.getGroupStats(depth);
+    long[] getGroupStats(int depth) throws ImhotepOutOfMemoryException {
+        return session.getGroupStats(ImhotepSession.stackStat(depth));
     }
 
     public long[] getDistinct(final Field field) {
@@ -171,11 +172,11 @@ public class EZImhotepSession implements Closeable {
         return session.getTempFilesBytesWritten();
     }
 
-    public void ftgsIterate(final Field field, final FTGSCallback callback) {
+    public void ftgsIterate(final Field field, final FTGSCallback callback) throws ImhotepOutOfMemoryException {
         ftgsIterate(field, callback, 0);
     }
 
-    public void ftgsIterate(final Field field, final FTGSCallback callback, final int termLimit) {
+    public void ftgsIterate(final Field field, final FTGSCallback callback, final int termLimit) throws ImhotepOutOfMemoryException {
         final FTGSIterator ftgsIterator = getFtgsIterator(field, termLimit);
         performIteration(callback, ftgsIterator);
     }
@@ -210,14 +211,14 @@ public class EZImhotepSession implements Closeable {
         }
     }
 
-    public <E> Iterator<E> ftgsGetSubsetIterator(final Field field, final List<?> termsSubset, final FTGSIteratingCallback<E> callback) {
+    public <E> Iterator<E> ftgsGetSubsetIterator(final Field field, final List<?> termsSubset, final FTGSIteratingCallback<E> callback) throws ImhotepOutOfMemoryException {
         final FTGSIterator ftgsIterator = getFtgsSubsetIterator(field, termsSubset);
 
         // TODO: make sure ftgsIterator gets closed
         return new FTGSCallbackIterator<E>(callback, ftgsIterator);
     }
 
-    private FTGSIterator getFtgsSubsetIterator(final Field field, final List<?> terms) {
+    private FTGSIterator getFtgsSubsetIterator(final Field field, final List<?> terms) throws ImhotepOutOfMemoryException {
         final Map<FieldSet, long[]> intFields = Maps.newHashMap();
         final Map<FieldSet, String[]> stringFields = Maps.newHashMap();
         if (field.isIntField()) {
@@ -247,17 +248,17 @@ public class EZImhotepSession implements Closeable {
             stringFields.put(FieldSet.of(session.getDatasetName(), field.fieldName), stringTermsSubset);
         }
 
-        return session.getSubsetFTGSIterator(intFields, stringFields);
+        return session.getSubsetFTGSIterator(intFields, stringFields, null);
     }
 
-    public <E> Iterator<E> ftgsGetIterator(final Field field, final FTGSIteratingCallback<E> callback, final int termLimit) {
+    public <E> Iterator<E> ftgsGetIterator(final Field field, final FTGSIteratingCallback<E> callback, final int termLimit) throws ImhotepOutOfMemoryException {
         final FTGSIterator ftgsIterator = getFtgsIterator(field, termLimit);
 
         // TODO: make sure ftgsIterator gets closed
         return new FTGSCallbackIterator<E>(callback, ftgsIterator);
     }
 
-    private FTGSIterator getFtgsIterator(final Field field, int termLimit) {
+    private FTGSIterator getFtgsIterator(final Field field, int termLimit) throws ImhotepOutOfMemoryException {
         final List<String> intFields = Lists.newArrayList();
         final List<String> stringFields = Lists.newArrayList();
         if (field.isIntField()) {
@@ -273,7 +274,7 @@ public class EZImhotepSession implements Closeable {
         return session.getFTGSIterator(
                 intFields.toArray(new String[intFields.size()]),
                 stringFields.toArray(new String[stringFields.size()]),
-                termLimit
+                termLimit, null
         );
     }
 
@@ -317,7 +318,7 @@ public class EZImhotepSession implements Closeable {
             System.err.println("WARNING: performing a metric filter with more than one group. Consider filtering before regrouping.");
         }
         Stats.requireValid(stat);
-        session.metricFilter(stat.depth, min, max, false);
+        session.metricFilter(ImhotepSession.stackStat(stat.depth), min, max, false);
     }
 
     public void filterNegation(SingleStatReference stat, long min, long max) throws ImhotepOutOfMemoryException {
@@ -325,7 +326,7 @@ public class EZImhotepSession implements Closeable {
             System.err.println("WARNING: performing a metric filter with more than one group. Consider filtering before regrouping.");
         }
         Stats.requireValid(stat);
-        session.metricFilter(stat.depth, min, max, true);
+        session.metricFilter(ImhotepSession.stackStat(stat.depth), min, max, true);
     }
 
 
@@ -673,7 +674,7 @@ public class EZImhotepSession implements Closeable {
             }
         }
         final int newExpectedNumberOfGroups = (numGroups-1) * numBuckets;
-        session.metricRegroup(statRef.depth, min, max, intervalSize, noGutters);
+        session.metricRegroup(ImhotepSession.stackStat(statRef.depth), min, max, intervalSize, noGutters);
         numGroups = session.getNumGroups();
         // Delete the keys for trailing groups that don't exist on the server
         for (int group = numGroups; group <= newExpectedNumberOfGroups; group++) {
@@ -712,13 +713,13 @@ public class EZImhotepSession implements Closeable {
         }
     }
 
-    private Int2ObjectMap<List<String>> getStringGroupTerms(StringField field, int termLimit) {
+    private Int2ObjectMap<List<String>> getStringGroupTerms(StringField field, int termLimit) throws ImhotepOutOfMemoryException {
         final GetGroupTermsCallback callback = new GetGroupTermsCallback(stackDepth, limits);
         ftgsIterate(field, callback, termLimit);
         return callback.stringTermListsMap;
     }
 
-    private Int2ObjectMap<LongList> getIntGroupTerms(IntField field, int termLimit) {
+    private Int2ObjectMap<LongList> getIntGroupTerms(IntField field, int termLimit) throws ImhotepOutOfMemoryException {
         final GetGroupTermsCallback callback = new GetGroupTermsCallback(stackDepth, limits);
         ftgsIterate(field, callback, termLimit);
         return callback.intTermListsMap;

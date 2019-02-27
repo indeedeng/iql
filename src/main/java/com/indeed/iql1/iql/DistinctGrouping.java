@@ -127,7 +127,7 @@ public class DistinctGrouping extends Grouping {
         return distinctData;
     }
 
-    private Int2ObjectMap<double[]> getGroupStatsValues(EZImhotepSession session, List<StatReference> statRefs, int groupCount) {
+    private Int2ObjectMap<double[]> getGroupStatsValues(EZImhotepSession session, List<StatReference> statRefs, int groupCount) throws ImhotepOutOfMemoryException {
         final int statCount = statRefs.size();
         final double[][] statGroupValues = new double[statCount][];
         for (int i = 0; i < statCount; i++) {

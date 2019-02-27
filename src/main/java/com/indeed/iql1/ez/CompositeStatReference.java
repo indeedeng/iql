@@ -13,6 +13,8 @@
  */
  package com.indeed.iql1.ez;
 
+import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
+
 /**
  * @author vladimir
  */
@@ -47,7 +49,7 @@ public class CompositeStatReference implements StatReference {
     }
 
     @Override
-    public double[] getGroupStats() {
+    public double[] getGroupStats() throws ImhotepOutOfMemoryException {
         double[] stats1 = ref1.getGroupStats();
         double[] stats2 = ref2.getGroupStats();
 
