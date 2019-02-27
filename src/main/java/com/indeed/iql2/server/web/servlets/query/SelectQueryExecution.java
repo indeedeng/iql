@@ -15,7 +15,6 @@
 package com.indeed.iql2.server.web.servlets.query;
 
 import au.com.bytecode.opencsv.CSVParser;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
@@ -73,6 +72,7 @@ import com.indeed.iql2.language.query.shardresolution.ShardResolver;
 import com.indeed.iql2.language.util.FieldExtractor;
 import com.indeed.util.core.Pair;
 import com.indeed.util.core.io.Closeables2;
+import com.indeed.util.core.reference.SharedReference;
 import com.indeed.util.core.time.WallClock;
 import com.indeed.util.logging.TracingTreeTimer;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
@@ -106,14 +106,12 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class SelectQueryExecution {
     private static final Logger log = Logger.getLogger(SelectQueryExecution.class);
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     @VisibleForTesting
     public static final String METADATA_FILE_SUFFIX = ".meta";
 
@@ -387,23 +385,25 @@ public class SelectQueryExecution {
             throw new UserSessionCountLimitExceededException("User is creating more concurrent imhotep sessions than the limit: " + limits.concurrentImhotepSessionsLimit);
         }
         final StrictCloser strictCloser = new StrictCloser();
-        final SelectQuery selectQuery = new SelectQuery(queryInfo, runningQueriesManager, this.query, clientInfo, limits, new DateTime(queryInfo.queryStartTimestamp),
-                null, (byte) sessions, queryMetadata, strictCloser, progressCallback);
+
+        // SelectQuery can be closed after all cache has been uploaded
+        final SharedReference<SelectQuery> selectQuery = SharedReference.create(
+                new SelectQuery(queryInfo, runningQueriesManager, this.query, clientInfo, limits, new DateTime(queryInfo.queryStartTimestamp),
+                        null, (byte) sessions, queryMetadata, strictCloser, progressCallback)
+        );
 
         try {
             timer.push("Acquire concurrent query lock");
-            selectQuery.lock();
+            selectQuery.get().lock();
             timer.pop();
-            queryInfo.queryStartTimestamp = selectQuery.getQueryStartTimestamp().getMillis();
+            queryInfo.queryStartTimestamp = selectQuery.get().getQueryStartTimestamp().getMillis();
             return new ParsedQueryExecution(true, parseResult.inputStream, out, warnings, resultFormat, progressCallback,
                     query, limits.queryInMemoryRowsLimit, selectQuery, strictCloser).executeParsedQuery();
         } catch (final Exception e) {
-            selectQuery.checkCancelled();
+            selectQuery.get().checkCancelled();
             throw e;
         } finally {
-            if (!selectQuery.isAsynchronousRelease()) {
-                Closeables2.closeQuietly(selectQuery, log);
-            }
+            Closeables2.closeQuietly(selectQuery, log);
         }
     }
 
@@ -415,14 +415,12 @@ public class SelectQueryExecution {
         private final ResultFormat resultFormat;
 
         private final int groupLimit;
-        private final SelectQuery selectQuery;
+        private final SharedReference<SelectQuery> selectQuery;
         private final StrictCloser strictCloser;
 
         private final Query query;
 
         private final ProgressCallback progressCallback;
-
-        private final AtomicInteger cacheUploadingCounter = new AtomicInteger(0);
 
         private ParsedQueryExecution(
                 final boolean isTopLevelQuery,
@@ -433,7 +431,7 @@ public class SelectQueryExecution {
                 final ProgressCallback progressCallback,
                 final Query query,
                 final @Nullable Integer groupLimit,
-                final SelectQuery selectQuery,
+                final SharedReference<SelectQuery> selectQuery,
                 final StrictCloser strictCloser) {
             this.isTopLevelQuery = isTopLevelQuery;
             this.inputStream = inputStream;
@@ -646,8 +644,7 @@ public class SelectQueryExecution {
 
                     if (cacheEnabled) {
                         // Cache upload
-                        cacheUploadingCounter.incrementAndGet();
-
+                        final SharedReference<SelectQuery> selectQueryRef = selectQuery.copy(); // going to be closed asynchronously after cache is uploaded
                         cacheUploadExecutorService.submit(new Callable<Void>() {
                             @Override
                             public Void call() {
@@ -673,9 +670,7 @@ public class SelectQueryExecution {
                                         }
                                     }
                                 } finally {
-                                    if (cacheUploadingCounter.decrementAndGet() == 0) {
-                                        Closeables2.closeQuietly(selectQuery, log);
-                                    }
+                                    Closeables2.closeQuietly(selectQueryRef, log);
                                     if (!cacheFile.delete()) {
                                         log.warn("Failed to delete " + cacheFile);
                                     }
@@ -683,7 +678,6 @@ public class SelectQueryExecution {
                                 return null;
                             }
                         });
-                        selectQuery.markAsynchronousRelease(); // going to be closed asynchronously after cache is uploaded
                     }
 
                     return selectExecutionInformation;
