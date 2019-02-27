@@ -235,7 +235,11 @@ public class Queries {
         final String from = getText(queryInputStream, queryContext.fromContents(), seenComments).trim();
         final String where;
         if (queryContext.whereContents() != null) {
-            where = Joiner.on(' ').join(queryContext.whereContents().docFilter().stream().map(filter -> getText(queryInputStream, filter, seenComments)).iterator()).trim();
+            where = queryContext.whereContents().docFilter()
+                    .stream()
+                    .map(filter -> getText(queryInputStream, filter, seenComments))
+                    .collect(Collectors.joining(" "))
+                    .trim();
         } else {
             where = "";
         }
