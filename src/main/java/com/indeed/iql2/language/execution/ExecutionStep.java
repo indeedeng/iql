@@ -174,7 +174,7 @@ public interface ExecutionStep {
             } else {
                 filter = Optional.absent();
             }
-            final Optional<TopK> topK = this.topK.transform(x -> x.transformMetric(f));
+            final Optional<TopK> topK = this.topK.transform(x -> x.traverse1(f));
             return new ExplodeAndRegroup(field, filter, topK, withDefault);
         }
     }
@@ -378,7 +378,7 @@ public interface ExecutionStep {
             } else {
                 filter = Optional.absent();
             }
-            final Optional<TopK> topK = this.topK.transform(x -> x.transformMetric(f));
+            final Optional<TopK> topK = this.topK.transform(x -> x.traverse1(f));
             final List<AggregateMetric> stats = new ArrayList<>();
             for (final AggregateMetric stat : this.stats) {
                 stats.add(f.apply(stat));

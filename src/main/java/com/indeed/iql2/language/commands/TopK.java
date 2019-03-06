@@ -56,7 +56,7 @@ public class TopK {
             return new TopK(limit, Optional.of(metric.transform(f, g, h, i, groupBy)), sortOrder);
     }
 
-    public TopK transformMetric(Function<AggregateMetric, AggregateMetric> f) {
+    public TopK traverse1(Function<AggregateMetric, AggregateMetric> f) {
             return new TopK(limit, Optional.of(f.apply(metric)), sortOrder);
     }
 }

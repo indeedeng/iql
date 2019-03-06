@@ -501,7 +501,7 @@ public abstract class GroupBy extends AbstractPositional {
             } else {
                 filter = Optional.absent();
             }
-            Optional<TopK> topK = this.topK.transform(x -> x.transformMetric(f));
+            Optional<TopK> topK = this.topK.transform(x -> x.traverse1(f));
             return new GroupByField(field, filter, topK, withDefault)
                     .copyPosition(this);
         }
