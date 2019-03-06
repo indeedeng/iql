@@ -14,11 +14,17 @@
 
 package com.indeed.iql2.language.commands;
 
+import com.google.common.base.Preconditions;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
+import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
+import com.indeed.iql2.language.SortOrder;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
+import com.indeed.iql2.language.DocFilter;
+import com.indeed.iql2.language.DocMetric;
+import com.indeed.iql2.language.query.GroupBy;
 
 import java.util.Optional;
 import java.util.function.Function;
@@ -27,17 +33,31 @@ import java.util.function.Function;
 @ToString
 public class TopK {
     public final Optional<Long> limit;
-    public final Optional<AggregateMetric> metric;
+    public final AggregateMetric metric;
+    public final SortOrder sortOrder;
 
-    public TopK(final Optional<Long> limit, final Optional<AggregateMetric> metric) {
+    public TopK(Optional<Long> limit, Optional<AggregateMetric> metric, SortOrder sortOrder) {
+        Preconditions.checkArgument(limit.isPresent() || metric.isPresent(), "TopK should either have a limit or a metric");
+        final AggregateMetric newMetric = metric.orElse(new AggregateMetric.DocStats(new DocMetric.Count()));
+
         this.limit = limit;
-        this.metric = metric;
+        this.metric = newMetric;
+        this.sortOrder = sortOrder;
     }
 
     public com.indeed.iql2.execution.commands.misc.TopK toExecution(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
         return new com.indeed.iql2.execution.commands.misc.TopK(
                 limit.map(x -> (int)(long)x),
-                metric.map(x -> x.toExecutionMetric(namedMetricLookup, groupKeySet))
+                metric.toExecutionMetric(namedMetricLookup, groupKeySet),
+                sortOrder
         );
+    }
+
+    public TopK transformMetric(final Function<AggregateMetric, AggregateMetric> f, final Function<DocMetric, DocMetric> g, final Function<AggregateFilter, AggregateFilter> h, final Function<DocFilter, DocFilter> i, final Function<GroupBy, GroupBy> groupBy) {
+            return new TopK(limit, Optional.of(metric.transform(f, g, h, i, groupBy)), sortOrder);
+    }
+
+    public TopK traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return new TopK(limit, Optional.of(f.apply(metric)), sortOrder);
     }
 }

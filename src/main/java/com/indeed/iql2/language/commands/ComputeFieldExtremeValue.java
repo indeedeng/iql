@@ -18,6 +18,7 @@ import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
+import com.indeed.iql2.language.FieldExtremeType;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
@@ -35,11 +36,18 @@ public class ComputeFieldExtremeValue implements Command {
     private final FieldSet field;
     private final AggregateMetric metric;
     private final Optional<AggregateFilter> filter;
+    private final FieldExtremeType fieldExtremeType;
 
-    public ComputeFieldExtremeValue(final FieldSet field, final AggregateMetric metric, final Optional<AggregateFilter> filter) {
+    public ComputeFieldExtremeValue(
+        final FieldSet field,
+        final AggregateMetric metric,
+        final Optional<AggregateFilter> filter,
+        final FieldExtremeType fieldExtremeType
+    ) {
         this.field = field;
         this.metric = metric;
         this.filter = filter;
+        this.fieldExtremeType = fieldExtremeType;
     }
 
     @Override
@@ -60,7 +68,7 @@ public class ComputeFieldExtremeValue implements Command {
         return new com.indeed.iql2.execution.commands.ComputeFieldExtremeValue(
             field,
             metric.toExecutionMetric(namedMetricLookup, groupKeySet),
-            filter.map(f -> f.toExecutionFilter(namedMetricLookup, groupKeySet))
+            filter.map(f -> f.toExecutionFilter(namedMetricLookup, groupKeySet)), fieldExtremeType
         );
     }
 }

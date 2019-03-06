@@ -52,9 +52,8 @@ public class OptimizeLast {
                     newSteps.add(new ExecutionStep.IterateStats(
                             explodeAndRegroup.field,
                             explodeAndRegroup.filter,
-                            explodeAndRegroup.limit,
                             queryLimit,
-                            explodeAndRegroup.metric,
+                            explodeAndRegroup.topK,
                             Optional.empty(),
                             Optional.empty(),
                             fixForIteration(getGroupStats.stats),
@@ -84,7 +83,6 @@ public class OptimizeLast {
                     newSteps.addAll(steps.subList(0, steps.size() - 2));
                     newSteps.add(new ExecutionStep.IterateStats(
                             explodeFieldIn.field,
-                            Optional.empty(),
                             Optional.empty(),
                             queryLimit,
                             Optional.empty(),

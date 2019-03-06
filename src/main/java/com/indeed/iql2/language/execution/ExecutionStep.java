@@ -138,15 +138,13 @@ public interface ExecutionStep {
     class ExplodeAndRegroup implements ExecutionStep {
         public final FieldSet field;
         public final Optional<AggregateFilter> filter;
-        public final Optional<Long> limit;
-        public final Optional<AggregateMetric> metric;
+        public final Optional<TopK> topK;
         public final boolean withDefault;
 
-        public ExplodeAndRegroup(final FieldSet field, final Optional<AggregateFilter> filter, final Optional<Long> limit, final Optional<AggregateMetric> metric, final boolean withDefault) {
+        public ExplodeAndRegroup(final FieldSet field, final Optional<AggregateFilter> filter, final Optional<TopK> topK, final boolean withDefault) {
             this.field = field;
             this.filter = filter;
-            this.limit = limit;
-            this.metric = metric;
+            this.topK = topK;
             this.withDefault = withDefault;
         }
 
@@ -156,8 +154,8 @@ public interface ExecutionStep {
             if (filter.isPresent()) {
                 opts.filter = Optional.of(filter.get());
             }
-            if (limit.isPresent() || metric.isPresent()) {
-                opts.topK = Optional.of(new TopK(limit, metric));
+            if (topK.isPresent()) {
+                opts.topK = topK;
             }
             final Optional<String> withDefaultName;
             if (withDefault) {
@@ -177,13 +175,8 @@ public interface ExecutionStep {
             } else {
                 filter = Optional.empty();
             }
-            final Optional<AggregateMetric> metric;
-            if (this.metric.isPresent()) {
-                metric = Optional.of(f.apply(this.metric.get()));
-            } else {
-                metric = Optional.empty();
-            }
-            return new ExplodeAndRegroup(field, filter, limit, metric, withDefault);
+            final Optional<TopK> topK = this.topK.map(x -> x.traverse1(f));
+            return new ExplodeAndRegroup(field, filter, topK, withDefault);
         }
     }
 
@@ -344,9 +337,8 @@ public interface ExecutionStep {
     class IterateStats implements ExecutionStep {
         private final FieldSet field;
         private final Optional<AggregateFilter> filter;
-        private final Optional<Long> limit;
         private final Optional<Integer> queryLimit;
-        private final Optional<AggregateMetric> metric;
+        private final Optional<TopK> topK;
 
         private final Optional<Set<String>> stringTermSubset;
         private final Optional<Set<Long>> intTermSubset;
@@ -354,12 +346,11 @@ public interface ExecutionStep {
         private final List<AggregateMetric> stats;
         private final List<Optional<String>> formatStrings;
 
-        public IterateStats(final FieldSet field, final Optional<AggregateFilter> filter, final Optional<Long> limit, final Optional<Integer> queryLimit, final Optional<AggregateMetric> metric, final Optional<Set<String>> stringTermSubset, final Optional<Set<Long>> intTermSubset, final List<AggregateMetric> stats, final List<Optional<String>> formatStrings) {
+        public IterateStats(final FieldSet field, final Optional<AggregateFilter> filter, final Optional<Integer> queryLimit, final Optional<TopK> topK, final Optional<Set<String>> stringTermSubset, final Optional<Set<Long>> intTermSubset, final List<AggregateMetric> stats, final List<Optional<String>> formatStrings) {
             this.field = field;
             this.filter = filter;
-            this.limit = limit;
+            this.topK = topK;
             this.queryLimit = queryLimit;
-            this.metric = metric;
             this.stringTermSubset = stringTermSubset;
             this.intTermSubset = intTermSubset;
             this.stats = stats;
@@ -369,8 +360,8 @@ public interface ExecutionStep {
         @Override
         public List<Command> commands() {
             final FieldIterateOpts opts = new FieldIterateOpts();
-            if (limit.isPresent() || metric.isPresent()) {
-                opts.topK = Optional.of(new TopK(limit, metric));
+            if (topK.isPresent()) {
+                opts.topK = topK;
             }
             opts.limit = queryLimit;
             opts.filter = filter;
@@ -388,17 +379,12 @@ public interface ExecutionStep {
             } else {
                 filter = Optional.empty();
             }
-            final Optional<AggregateMetric> metric;
-            if (this.metric.isPresent()) {
-                metric = Optional.of(f.apply(this.metric.get()));
-            } else {
-                metric = Optional.empty();
-            }
+            final Optional<TopK> topK = this.topK.map(x -> x.traverse1(f));
             final List<AggregateMetric> stats = new ArrayList<>();
             for (final AggregateMetric stat : this.stats) {
                 stats.add(f.apply(stat));
             }
-            return new IterateStats(field, filter, limit, queryLimit, metric, stringTermSubset, intTermSubset, stats, formatStrings);
+            return new IterateStats(field, filter, queryLimit, topK, stringTermSubset, intTermSubset, stats, formatStrings);
         }
     }
 

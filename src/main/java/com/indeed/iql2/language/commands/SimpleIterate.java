@@ -50,10 +50,7 @@ public class SimpleIterate implements Command {
         Preconditions.checkState(validationHelper.datasets().equals(field.datasets()));
         ValidationUtil.validateField(field, validationHelper, errorCollector, this);
         if (opts.topK.isPresent()) {
-            final TopK topK = opts.topK.get();
-            if (topK.metric.isPresent()) {
-                topK.metric.get().validate(validationHelper.datasets(), validationHelper, errorCollector);
-            }
+            opts.topK.get().metric.validate(validationHelper.datasets(), validationHelper, errorCollector);
         }
 
         if (opts.filter.isPresent()) {

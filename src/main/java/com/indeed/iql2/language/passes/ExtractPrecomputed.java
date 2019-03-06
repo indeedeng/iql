@@ -22,6 +22,7 @@ import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocMetric;
+import com.indeed.iql2.language.FieldExtremeType;
 import com.indeed.iql2.language.GroupByEntry;
 import com.indeed.iql2.language.execution.ExecutionStep;
 import com.indeed.iql2.language.precomputed.Precomputed;
@@ -79,7 +80,7 @@ public class ExtractPrecomputed {
                     } else {
                         final GroupBy.GroupByField groupByField = (GroupBy.GroupByField) groupBy.groupBy;
                         final GroupBy.GroupByField newGroupByField = new GroupBy.GroupByField(
-                                groupByField.field, Optional.empty(), groupByField.limit, groupByField.metric,
+                                groupByField.field, Optional.empty(), groupByField.topK,
                                 groupByField.withDefault);
                         groupBys.add(new GroupByEntry(newGroupByField.traverse1(processor), newFilter, alias));
                     }
@@ -282,7 +283,7 @@ public class ExtractPrecomputed {
                         throw new IllegalArgumentException("SUM_OVER(BUCKET(), metric) with gutters is very likely not what you want. It will sum over all documents.");
                     }
                 }
-                if (sumAcross.groupBy instanceof GroupBy.GroupByField && !((GroupBy.GroupByField) sumAcross.groupBy).limit.isPresent()) {
+                if (sumAcross.groupBy instanceof GroupBy.GroupByField && !((GroupBy.GroupByField) sumAcross.groupBy).isLimitPresent()) {
                     final GroupBy.GroupByField groupBy = (GroupBy.GroupByField) sumAcross.groupBy;
                     return handlePrecomputed(new Precomputed.PrecomputedSumAcross(groupBy.field, apply(sumAcross.metric), groupBy.filter.map(x -> x.traverse1(this))));
                 } else if (sumAcross.groupBy.isTotal()) {
@@ -300,7 +301,8 @@ public class ExtractPrecomputed {
                     new Precomputed.PrecomputedFieldExtremeValue(
                         fieldMin.field,
                         apply(new AggregateMetric.Negate(getOrDefaultToAggregateAvg(fieldMin.metric, fieldMin.field))),
-                        fieldMin.filter.map(x -> x.traverse1(this))
+                        fieldMin.filter.map(x -> x.traverse1(this)),
+                        FieldExtremeType.FIELD_MIN
                     )
                 );
             } else if (input instanceof AggregateMetric.FieldMax) {
@@ -308,8 +310,9 @@ public class ExtractPrecomputed {
                 return handlePrecomputed(
                     new Precomputed.PrecomputedFieldExtremeValue(
                         fieldMax.field,
-                        apply(getOrDefaultToAggregateAvg(fieldMax.metric, fieldMax.field)),
-                        fieldMax.filter.map(x -> x.traverse1(this))
+                        apply(new AggregateMetric.Negate(getOrDefaultToAggregateAvg(fieldMax.metric, fieldMax.field))),
+                        fieldMax.filter.map(x -> x.traverse1(this)),
+                        FieldExtremeType.FIELD_MAX
                     )
                 );
             } else if (input instanceof AggregateMetric.DivideByCount) {

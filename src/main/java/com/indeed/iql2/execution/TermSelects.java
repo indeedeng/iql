@@ -76,7 +76,6 @@ public class TermSelects {
             } else {
                 r = o2.stringTerm.compareTo(o1.stringTerm);
             }
-
             return r;
         }
     };

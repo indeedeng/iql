@@ -719,7 +719,7 @@ public class SelectQueryExecution {
                                     } else {
                                         filter = null;
                                     }
-                                    return new GroupBy.GroupByField(fieldInQuery.field, Optional.ofNullable(filter), Optional.empty(), Optional.empty(), fieldInQuery.withDefault);
+                                    return new GroupBy.GroupByField(fieldInQuery.field, Optional.ofNullable(filter), Optional.empty(), fieldInQuery.withDefault);
                                 } else {
                                     // if not-negated then we do group by field in terms-set.
                                     final LongArrayList intTerms = (result.getFirst() == null) ?
