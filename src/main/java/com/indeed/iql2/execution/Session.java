@@ -190,12 +190,13 @@ public class Session {
 
         final boolean requestRust = optionsSet.contains(QueryOptions.USE_RUST_DAEMON);
         final boolean useAsync = optionsSet.contains(QueryOptions.Experimental.ASYNC);
+        final boolean useBatchMode = optionsSet.contains(QueryOptions.Experimental.BATCH_MODE);
 
         progressCallback.startSession(Optional.of(commands.size()));
         progressCallback.preSessionOpen(datasets);
 
         treeTimer.push("createSubSessions");
-        final long firstStartTimeMillis = createSubSessions(client, requestRust, useAsync, datasets,
+        final long firstStartTimeMillis = createSubSessions(client, requestRust, useAsync, useBatchMode, datasets,
                 strictCloser, sessions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, username, progressCallback);
         progressCallback.sessionsOpened(sessions);
         treeTimer.pop();
@@ -282,6 +283,7 @@ public class Session {
             final ImhotepClient client,
             final boolean requestRust,
             final boolean useAsync,
+            final boolean useBatchMode,
             final List<Queries.QueryDataset> sessionRequest,
             final StrictCloser strictCloser,
             final Map<String, ImhotepSessionInfo> sessions,
@@ -332,6 +334,10 @@ public class Session {
 
             if (useAsync) {
                 build = ((RemoteImhotepMultiSession) build).toAsync();
+            }
+
+            if (useBatchMode) {
+                build = ((RemoteImhotepMultiSession) build).toBatch();
             }
 
             // Just in case they have resources, registerOrClose the wrapped session as well.
