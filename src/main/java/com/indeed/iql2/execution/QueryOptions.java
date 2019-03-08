@@ -57,6 +57,8 @@ public class QueryOptions {
 
         public static final String ASYNC = "async";
 
+        public static final String P2P_CACHE = "p2pcache";
+
         private Experimental() {
         }
 
