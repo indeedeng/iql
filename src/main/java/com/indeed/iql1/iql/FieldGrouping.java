@@ -136,7 +136,11 @@ public final class FieldGrouping extends Grouping {
         return topK != 0;
     }
 
-    private boolean isTermSubset() {
+    public boolean isTermSubset() {
         return !termSubset.isEmpty();
+    }
+
+    public List<String> getTermSubset() {
+        return termSubset;
     }
 }

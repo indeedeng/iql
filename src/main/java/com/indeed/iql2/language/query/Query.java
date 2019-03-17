@@ -503,6 +503,16 @@ public class Query extends AbstractPositional {
                             groupBys.set(j, new GroupByEntry(groupByFieldIn, groupByEntry.filter, groupByEntry.alias));
                             foundRewriteGroupBy = true;
                         }
+                    } else if (groupBy instanceof GroupBy.GroupByFieldIn) {
+                        final GroupBy.GroupByFieldIn groupByFieldIn = (GroupBy.GroupByFieldIn) groupBy;
+                        Preconditions.checkState(groupByFieldIn.field.datasets().equals(expectedDatasets));
+                        final String fieldName = groupByFieldIn.field.getOnlyField();
+                        if (filterField.equals(fieldName)
+                                && (groupByFieldIn.stringTerms.size() == stringTerms.size())
+                                && groupByFieldIn.stringTerms.containsAll(stringTerms)) {
+                            // This filter does not affect visible result so it could be deleted.
+                            foundRewriteGroupBy = true;
+                        }
                     }
                 }
                 if (foundRewriteGroupBy) {
