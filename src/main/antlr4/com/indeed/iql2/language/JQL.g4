@@ -269,12 +269,10 @@ jqlSyntacticallyAtomicDocMetricAtom
     ;
 
 legacyDocMetricAtom
-    : field=identifier '=' (quotedTerm=STRING_LITERAL | idTerm=identifier) # LegacyDocMetricAtomHasString
+    : field=identifier '=' quotedTerm=STRING_LITERAL # LegacyDocMetricAtomHasString
     | HASSTR '(' field=identifier ',' (quotedTerm=STRING_LITERAL | idTerm=identifier  | numTerm=number) ')' # LegacyDocMetricAtomHasString
-    | field=identifier '!=' (quotedTerm=STRING_LITERAL | idTerm=identifier) # LegacyDocMetricAtomHasntString
-    | field=identifier '=' term=integer # LegacyDocMetricAtomHasInt
+    | field=identifier '!=' quotedTerm=STRING_LITERAL # LegacyDocMetricAtomHasntString
     | HASINT '(' field=identifier ',' term=integer ')' # LegacyDocMetricAtomHasInt
-    | field=identifier '!=' integer # LegacyDocMetricAtomHasntInt
     | HASSTR '(' STRING_LITERAL ')' # LegacyDocMetricAtomHasStringQuoted
     | HASINTFIELD '(' field=identifier ')' # LegacyDocMetricAtomHasIntField
     | HASSTRFIELD '(' field=identifier ')' # LegacyDocMetricAtomHasStringField
