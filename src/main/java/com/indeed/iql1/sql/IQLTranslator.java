@@ -58,6 +58,7 @@ import com.indeed.iql1.sql.ast2.IQL1SelectStatement;
 import com.indeed.iql1.sql.parser.ExpressionParser;
 import com.indeed.iql1.sql.parser.PeriodParser;
 import com.indeed.iql2.language.TimePeriods;
+import com.indeed.iql2.language.util.ErrorMessages;
 import com.indeed.util.serialization.LongStringifier;
 import com.indeed.util.serialization.Stringifier;
 import org.apache.commons.lang.StringUtils;
@@ -748,8 +749,11 @@ public final class IQLTranslator {
                     final String fieldName = nameExpression.name;
                     final Field field = getField(fieldName, datasetMetadata);
                     fieldNames.add(fieldName);
-                    final int numerator = Math.max(0, parseInt(input.get(1)));
-                    final int denominator = Math.max(1, Math.max(numerator, input.size() >= 3 ? parseInt(input.get(2)) : 100));
+                    final int numerator = parseInt(input.get(1));
+                    final int denominator = (input.size() >= 3) ? parseInt(input.get(2)) : 100;
+                    if ((numerator < 0) || (numerator > denominator)) {
+                        throw new IqlKnownException.ParseErrorException(ErrorMessages.incorrectSampleParams(numerator, denominator));
+                    }
                     final String salt;
                     if(input.size() >= 4) {
                         final String userSalt = Strings.nullToEmpty(getStr(input.get(3)));

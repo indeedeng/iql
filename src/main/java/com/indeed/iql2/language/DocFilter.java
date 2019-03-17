@@ -1217,6 +1217,9 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
+            if ((numerator < 0) || (numerator > denominator)) {
+                errorCollector.error(ErrorMessages.incorrectSampleParams(numerator, denominator));
+            }
             final String fieldName = field.datasetFieldName(dataset);
             if (!validationHelper.containsField(dataset, fieldName)) {
                 errorCollector.error(ErrorMessages.missingField(dataset, fieldName, this));
@@ -1278,6 +1281,9 @@ public abstract class DocFilter extends AbstractPositional {
         public void validate(final String dataset,
                              final ValidationHelper validationHelper,
                              final ErrorCollector errorCollector) {
+            if ((numerator < 0) || (numerator > denominator)) {
+                errorCollector.error(ErrorMessages.incorrectSampleParams(numerator, denominator));
+            }
             metric.validate(dataset, validationHelper, errorCollector);
         }
     }
