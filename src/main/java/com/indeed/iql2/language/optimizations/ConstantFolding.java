@@ -143,6 +143,9 @@ public class ConstantFolding {
                         return new DocMetric.Constant(0);
                     }
                 }
+                if ((metricEqual.m1 instanceof DocMetric.Field) && isConstant(metricEqual.m2)) {
+                    return new DocMetric.HasInt(((DocMetric.Field) metricEqual.m1).field, getConstant(metricEqual.m2));
+                }
             } else if (input instanceof DocMetric.MetricNotEqual) {
                 final DocMetric.MetricNotEqual metricNotEqual = (DocMetric.MetricNotEqual) input;
                 if (isConstant(metricNotEqual.m1) && isConstant(metricNotEqual.m2)) {
