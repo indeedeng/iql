@@ -49,4 +49,9 @@ public class ErrorMessages {
     public static String scopeMismatch(String scope1, String scope2) {
         return String.format("scope mismatches between equality fields [%s != %s]", scope1, scope2);
     }
+
+    public static String incorrectSampleParams(final long numerator, final long denominator) {
+        return "Wrong params for SAMPLE: expected 0 <= numerator <= denominator, given numerator = "
+                + numerator + ", denominator = " + denominator;
+    }
 }
