@@ -77,6 +77,7 @@ import org.joda.time.format.DateTimeFormatter;
 import javax.annotation.Nonnull;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -225,6 +226,7 @@ public final class IQLTranslator {
             }
             Field.StringField field = inCondition.getStringField();
             // see if this field is also used in GROUP BY
+            boolean deleteFilter = false;
             for(int j = 0; j < groupings.size(); j++) {
                 Grouping grouping = groupings.get(j);
                 if(!(grouping instanceof FieldGrouping)) {
@@ -234,12 +236,23 @@ public final class IQLTranslator {
                 if(!field.equals(fieldGrouping.getField()) || fieldGrouping.isTopK()) {
                     continue;
                 }
+                if (fieldGrouping.isTermSubset()) {
+                    // If term subset is the same as in filter, then filter could be deleted
+                    final Set<String> groupingSet = new HashSet<>(fieldGrouping.getTermSubset());
+                    final Set<String> filterSet = new HashSet<>(Arrays.asList(inCondition.getValues()));
+                    if (!groupingSet.equals(filterSet)) {
+                        continue;
+                    }
+                }
                 // got a match. convert this grouping to a FieldInGrouping and remove the condition
                 FieldGrouping fieldInGrouping = new FieldGrouping(field,
                         Lists.newArrayList(inCondition.getValues()), limits);
+                groupings.set(j, fieldInGrouping);
+                deleteFilter = true;
+            }
+            if (deleteFilter) {
                 conditions.remove(i);
                 i--;    // have to redo the current index as indexes were shifted
-                groupings.set(j, fieldInGrouping);
             }
         }
     }

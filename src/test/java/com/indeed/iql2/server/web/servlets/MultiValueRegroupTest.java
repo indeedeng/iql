@@ -119,4 +119,37 @@ public class MultiValueRegroupTest extends BasicTest {
                 ),
                 "from multiValue yesterday today where sf in (\"1\",\"2\") GROUP BY sf[10 by f + i] select f + i", true);
     }
+
+    @Test
+    public void testTermSubsetOptimization() throws Exception {
+        // test ordinary case (no terms subset or topK)
+        QueryServletTestUtils.testIQL1(
+                ImmutableList.of(
+                        ImmutableList.of("a", "50"),
+                        ImmutableList.of("b", "50")),
+                "from multiValue yesterday today where grp in (\"a\",\"b\") GROUP BY grp", true);
+        QueryServletTestUtils.testIQL2(
+                ImmutableList.of(
+                        ImmutableList.of("a", "50"),
+                        ImmutableList.of("b", "50"),
+                        ImmutableList.of("c", "36"),
+                        ImmutableList.of("d", "36")),
+                "from multiValue yesterday today where grp in (\"a\",\"b\") GROUP BY grp", true);
+
+        // group by subset where subset matches filtering subset
+        // optimization is still applied.
+        QueryServletTestUtils.testAll(
+                ImmutableList.of(
+                        ImmutableList.of("a", "50"),
+                        ImmutableList.of("b", "50")),
+                "from multiValue yesterday today where grp in (\"a\",\"b\") GROUP BY grp in (\"a\",\"b\")", true);
+
+        // group by subset where subset does not match filtering subset
+        // optimization is omitted: it is filtering + group by term subset
+        QueryServletTestUtils.testAll(
+                ImmutableList.of(
+                        ImmutableList.of("c", "36"),
+                        ImmutableList.of("d", "36")),
+                "from multiValue yesterday today where grp in (\"a\",\"b\") GROUP BY grp in (\"c\",\"d\")", true);
+    }
 }
