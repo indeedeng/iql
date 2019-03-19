@@ -17,6 +17,7 @@ package com.indeed.iql2.language.optimizations;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocFilter;
 import com.indeed.iql2.language.DocMetric;
+import com.indeed.iql2.language.DocMetrics;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.util.core.Pair;
 
@@ -154,6 +155,15 @@ public class ConstantFolding {
                     } else {
                         return new DocMetric.Constant(0);
                     }
+                }
+                if ((metricNotEqual.m1 instanceof DocMetric.Field) && isConstant(metricNotEqual.m2)) {
+                    // field != constant can be implemented in two ways
+                    // 1. pushStat("field', "constant", "!=")
+                    // 2. pushStat("1", "hasInt(field, constant)", "-")
+                    // Second seems to be better because will use less memory and could require only one term un-inversion
+                    return DocMetrics.negateMetric(
+                            new DocMetric.HasInt(((DocMetric.Field) metricNotEqual.m1).field,
+                                    getConstant(metricNotEqual.m2)));
                 }
             } else if (input instanceof DocMetric.MetricLt) {
                 final DocMetric.MetricLt metricLt = (DocMetric.MetricLt) input;
