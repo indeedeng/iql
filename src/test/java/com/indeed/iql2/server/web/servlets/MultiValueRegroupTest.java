@@ -122,7 +122,7 @@ public class MultiValueRegroupTest extends BasicTest {
 
     @Test
     public void testTermSubsetOptimization() throws Exception {
-        // test ordinal case (no terms subset or topK)
+        // test ordinary case (no terms subset or topK)
         QueryServletTestUtils.testIQL1(
                 ImmutableList.of(
                         ImmutableList.of("a", "50"),
