@@ -6,7 +6,8 @@ import org.junit.Test;
 import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testAll;
 
 /**
- * These are supposed to be executed
+ * These tests are to ensure that query hashes are different for queries that looks similar but different.
+ * These tests relying on the fact that we use {@link CollisionCheckingQueryCache}.
  */
 public class SimilarQueryTest {
     @Test
