@@ -60,4 +60,47 @@ public class DocMetricsTest extends BasicTest {
                 "from keywords yesterday today select hasstr(from, from), hasstr(where, where), hasstr(group, group), hasstr(by, by), hasstr(limit, limit)"
         );
     }
+
+    @Test
+    public void testIntTermsWithStringField() throws Exception {
+        // in DocFilter
+        QueryServletTestUtils.testAll(
+                ImmutableList.of(ImmutableList.of("", "10")),
+                "from stringAsInt1 yesterday today where leadingZeroes=0001"
+        );
+
+        // in DocFilter
+        QueryServletTestUtils.testAll(
+                ImmutableList.of(ImmutableList.of("", "90")),
+                "from stringAsInt1 yesterday today where leadingZeroes!=0001"
+        );
+
+        // lucene style in DocFilter, not supported in IQL2
+        QueryServletTestUtils.testIQL1(
+                ImmutableList.of(ImmutableList.of("", "10")),
+                "from stringAsInt1 yesterday today where leadingZeroes:0001"
+        );
+
+        // in terms list
+        QueryServletTestUtils.testAll(
+                ImmutableList.of(ImmutableList.of("", "30")),
+                "from stringAsInt1 yesterday today where leadingZeroes in (0001, 0003, 0005)"
+        );
+
+        // terms list in group by
+        QueryServletTestUtils.testAll(
+                ImmutableList.of(
+                        ImmutableList.of("0001", "10"),
+                        ImmutableList.of("0003", "10"),
+                        ImmutableList.of("0005", "10")),
+                "from stringAsInt1 yesterday today group by leadingZeroes in (0001, 0003, 0005)"
+        );
+
+        // terms list from subquery
+        QueryServletTestUtils.testIQL2(
+                ImmutableList.of(ImmutableList.of("", "30")),
+                "from stringAsInt1 yesterday today where leadingZeroes in (" +
+                        "from stringAsInt1 yesterday today group by leadingZeroes in (0001, 0003, 0005) )"
+        );
+    }
 }
