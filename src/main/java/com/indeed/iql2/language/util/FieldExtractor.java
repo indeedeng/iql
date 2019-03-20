@@ -256,13 +256,8 @@ public class FieldExtractor {
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocFilter.StringFieldIn stringFieldIn) {
-				return stringFieldIn.field.datasetFields();
-			}
-
-			@Override
-			public Set<DatasetField> visit(final DocFilter.IntFieldIn intFieldIn) {
-				return intFieldIn.field.datasetFields();
+			public Set<DatasetField> visit(final DocFilter.FieldInTermsSet fieldInTermsSet) throws RuntimeException {
+				return fieldInTermsSet.field.datasetFields();
 			}
 
 			@Override

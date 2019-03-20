@@ -14,6 +14,9 @@
 
 package com.indeed.iql2.language.util;
 
+import com.indeed.iql2.language.Term;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
+
 public class ErrorMessages {
     private ErrorMessages() {
     }
@@ -28,6 +31,14 @@ public class ErrorMessages {
 
     public static String stringFieldMismatch(String dataset, String field, Object context) {
         return "Field \"" + field + "\" in Dataset \"" + dataset + "\" is a string field but it is used as an int field in [" + context + "]";
+    }
+
+    public static String intFieldWithStringTerms(String dataset, String field, Object context) {
+        return "Field \"" + field + "\" in Dataset \"" + dataset + "\" is an int field but it is used with string terms in [" + context + "]";
+    }
+
+    public static String intFieldWithStringTerm(final FieldSet field, final Term term) {
+        return "Field \"" + field + "is an int field but it is used with string term [" + term.asString() + "]";
     }
 
     public static String missingField(String dataset, String field, Object context) {

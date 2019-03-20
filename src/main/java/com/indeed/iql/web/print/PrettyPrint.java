@@ -15,7 +15,6 @@
 package com.indeed.iql.web.print;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.AbstractPositional;
@@ -48,6 +47,7 @@ import org.joda.time.DateTime;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -339,15 +339,11 @@ public class PrettyPrint {
             }
 
             @Override
-            public Void visit(GroupBy.GroupByFieldIn groupByFieldIn) {
-                sb.append(getText(groupByFieldIn.field)).append(" IN (");
-                if (!groupByFieldIn.intTerms.isEmpty()) {
-                    Joiner.on(", ").appendTo(sb, groupByFieldIn.intTerms);
-                }
-                if (!groupByFieldIn.stringTerms.isEmpty()) {
-                    Joiner.on(", ").appendTo(sb, groupByFieldIn.stringTerms.stream().map(RENDER_STRING).iterator());
-                }
-                sb.append(")");
+            public Void visit(final GroupBy.GroupByFieldIn groupByFieldIn) {
+                sb.append(getText(groupByFieldIn.field));
+                sb.append(" IN (");
+                pp(groupByFieldIn.terms);
+                sb.append(')');
                 return null;
             }
 
@@ -1041,35 +1037,10 @@ public class PrettyPrint {
             }
 
             @Override
-            public Void visit(DocFilter.StringFieldIn stringFieldIn) {
-                sb.append(getText(stringFieldIn.field)).append(" IN (");
-                final List<String> sortedTerms = Lists.newArrayList(stringFieldIn.terms);
-                Collections.sort(sortedTerms);
-                boolean first = true;
-                for (final String term : sortedTerms) {
-                    if (!first) {
-                        sb.append(", ");
-                    }
-                    first = false;
-                    sb.append('"').append(stringEscape(term)).append('"');
-                }
-                sb.append(')');
-                return null;
-            }
-
-            @Override
-            public Void visit(DocFilter.IntFieldIn intFieldIn) {
-                sb.append(getText(intFieldIn.field)).append(" IN (");
-                final List<Long> sortedTerms = Lists.newArrayList(intFieldIn.terms);
-                Collections.sort(sortedTerms);
-                boolean first = true;
-                for (final long term : sortedTerms) {
-                    if (!first) {
-                        sb.append(", ");
-                    }
-                    first = false;
-                    sb.append(term);
-                }
+            public Void visit(final DocFilter.FieldInTermsSet fieldInTermsSet) throws RuntimeException {
+                sb.append(getText(fieldInTermsSet.field));
+                sb.append(" IN (");
+                pp(fieldInTermsSet.terms);
                 sb.append(')');
                 return null;
             }
@@ -1431,11 +1402,25 @@ public class PrettyPrint {
         return stringEscape(regex);
     }
 
-    private void pp(Term term) {
-        if (term.isIntTerm) {
+    private void pp(final Term term) {
+        if (term.isSafeAsInt()) {
             sb.append(term.intTerm);
         } else {
             sb.append('"').append(stringEscape(term.stringTerm)).append('"');
+        }
+    }
+
+    private void pp(final Collection<Term> terms) {
+        final List<Term> sortedTerms = Lists.newArrayList(terms);
+        sortedTerms.sort(Term.COMPARATOR);
+
+        boolean first = true;
+        for (final Term term : sortedTerms) {
+            if (!first) {
+                sb.append(", ");
+            }
+            first = false;
+            pp(term);
         }
     }
 }

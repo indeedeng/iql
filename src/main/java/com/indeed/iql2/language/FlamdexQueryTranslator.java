@@ -29,7 +29,7 @@ public class FlamdexQueryTranslator {
         switch (query.getQueryType()) {
             case TERM:
                 final Term term = query.getStartTerm();
-                return new DocFilter.FieldIs(fieldResolver.resolveContextless(term.getFieldName()), translate(term));
+                return DocFilter.FieldIs.create(fieldResolver.resolveContextless(term.getFieldName()), translate(term));
             case BOOLEAN:
                 final List<Query> operands = query.getOperands();
                 if (operands.isEmpty()) {

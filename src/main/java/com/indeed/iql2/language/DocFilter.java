@@ -81,8 +81,7 @@ public abstract class DocFilter extends AbstractPositional {
         T visit(SampleDocMetric sample) throws E;
         T visit(Always always) throws E;
         T visit(Never never) throws E;
-        T visit(StringFieldIn stringFieldIn) throws E;
-        T visit(IntFieldIn intFieldIn) throws E;
+        T visit(FieldInTermsSet fieldInTermsSet) throws E;
         T visit(ExplainFieldIn explainFieldIn) throws E;
         T visit(FieldEqual equal) throws E;
     }
@@ -126,8 +125,8 @@ public abstract class DocFilter extends AbstractPositional {
         @Override
         public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
             final String fieldName = field.datasetFieldName(dataset);
-            if (term.isIntTerm) {
-                ValidationUtil.validateIntField(ImmutableSet.of(dataset), fieldName, validationHelper, errorCollector, this);
+            if (term.isIntTerm()) {
+                ValidationUtil.validateField(ImmutableSet.of(dataset), fieldName, validationHelper, errorCollector, this);
             } else {
                 ValidationUtil.validateStringField(ImmutableSet.of(dataset), fieldName, validationHelper, errorCollector, this);
             }
@@ -136,8 +135,15 @@ public abstract class DocFilter extends AbstractPositional {
 
     @EqualsAndHashCode(callSuper = true)
     public static class FieldIs extends FieldTermEqual {
-        public FieldIs(FieldSet field, Term term) {
+        private FieldIs(FieldSet field, Term term) {
             super(field, term);
+        }
+
+        public static DocFilter create(final FieldSet field, final Term term) {
+            if (field.isIntField() && !term.isIntTerm()) {
+                return new DocFilter.Never();
+            }
+            return new FieldIs(field, term);
         }
 
         @Override
@@ -146,12 +152,9 @@ public abstract class DocFilter extends AbstractPositional {
         }
 
         @Override
-        public DocMetric asZeroOneMetric(String dataset) {
-            if (term.isIntTerm) {
-                return new DocMetric.HasInt(field, term.intTerm);
-            } else {
-                return new DocMetric.HasString(field, term.stringTerm, true);
-            }
+        public DocMetric asZeroOneMetric(final String dataset) {
+            // Will not throw if validate succeeded
+            return DocMetrics.hasTermOrThrow(field, term);
         }
 
         @Override
@@ -159,7 +162,7 @@ public abstract class DocFilter extends AbstractPositional {
             Preconditions.checkState(scope.keySet().equals(field.datasets()));
             final Map<String, Query> datasetToQuery = new HashMap<>();
             for (final String dataset : field.datasets()) {
-                final Query query = Query.newTermQuery(term.toFlamdex(field.datasetFieldName(dataset)));
+                final Query query = Query.newTermQuery(term.toFlamdex(field.datasetFieldName(dataset), field.isIntField()));
                 datasetToQuery.put(dataset, query);
             }
             return Collections.singletonList(new QueryAction(datasetToQuery, target, positive, negative));
@@ -181,8 +184,15 @@ public abstract class DocFilter extends AbstractPositional {
 
     @EqualsAndHashCode(callSuper = true)
     public static class FieldIsnt extends FieldTermEqual {
-        public FieldIsnt(FieldSet field, Term term) {
+        private FieldIsnt(FieldSet field, Term term) {
             super(field, term);
+        }
+
+        public static DocFilter create(final FieldSet field, final Term term) {
+            if (field.isIntField() && !term.isIntTerm()) {
+                return new Always();
+            }
+            return new FieldIsnt(field, term);
         }
 
         @Override
@@ -192,12 +202,12 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocMetric asZeroOneMetric(String dataset) {
-            return new Not(new FieldIs(field, term)).asZeroOneMetric(dataset);
+            return new Not(FieldIs.create(field, term)).asZeroOneMetric(dataset);
         }
 
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
-            return new Not(new FieldIs(field, term)).getExecutionActions(scope, target, positive, negative, groupSupplier);
+            return new Not(FieldIs.create(field, term)).getExecutionActions(scope, target, positive, negative, groupSupplier);
         }
 
         @Override
@@ -1374,99 +1384,101 @@ public abstract class DocFilter extends AbstractPositional {
 
     @EqualsAndHashCode(callSuper = false)
     @ToString
-    public static class StringFieldIn extends DocFilter {
+    public static class FieldInTermsSet extends DocFilter {
         public final FieldSet field;
-        public final ImmutableSet<String> terms;
+        public final ImmutableSet<Term> terms;
 
-        public StringFieldIn(final FieldSet field, final ImmutableSet<String> terms) {
+        private FieldInTermsSet(final FieldSet field, final ImmutableSet<Term> terms) {
             this.field = field;
             this.terms = terms;
         }
 
+        public static DocFilter create(final FieldSet field, final ImmutableSet<Term> terms) {
+            if (terms.isEmpty()) {
+                // TODO: propagate this to upper level
+                return new Never();
+            }
+            return new FieldInTermsSet(field, terms);
+        }
+
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(new StringFieldIn(field, terms)).copyPosition(this);
+            return i.apply(new FieldInTermsSet(field, terms)).copyPosition(this);
         }
 
         @Override
         public DocMetric asZeroOneMetric(final String dataset) {
             final List<DocFilter> filters =
                     terms.stream()
-                    .map(term -> new FieldIs(field, Term.term(term)))
-                    .collect(Collectors.toList());
+                            .map(term -> FieldIs.create(field, term))
+                            .collect(Collectors.toList());
             final DocFilter or = Or.create(filters);
             return or.asZeroOneMetric(dataset);
         }
 
         @Override
-        public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
+        public List<Action> getExecutionActions(
+                final Map<String, String> scope,
+                final int target,
+                final int positive,
+                final int negative,
+                final GroupSupplier groupSupplier) {
             Preconditions.checkState(scope.keySet().equals(field.datasets()));
-            // TODO: Should this care about the keyword analyzer fields?
-            return Collections.singletonList(new StringOrAction(field, terms, target, positive, negative));
+            if (field.isIntField()) {
+                final boolean allInts = terms.stream().allMatch(Term::isIntTerm);
+                if (allInts) {
+                    final ImmutableSet<Long> intTerms =
+                            ImmutableSet.<Long>builder().addAll(
+                                    terms.stream().map(x -> x.intTerm).iterator()
+                            ).build();
+                    return Collections.singletonList(new IntOrAction(field, intTerms, target, positive, negative));
+                } else {
+                    // Some of terms cannot be represented as int.
+                    // We did a warning about it in validate
+                    final ImmutableSet<Long> intTerms =
+                            ImmutableSet.<Long>builder().addAll(
+                                    terms.stream().filter(Term::isIntTerm).map(x -> x.intTerm).iterator()
+                            ).build();
+                    if (intTerms.isEmpty()) {
+                        return Collections.singletonList(new UnconditionalAction(ImmutableSet.copyOf(scope.keySet()), target, negative));
+                    } else {
+                        return Collections.singletonList(new IntOrAction(field, intTerms, target, positive, negative));
+                    }
+                }
+            } else {
+                final ImmutableSet<String> stringTerms =
+                        ImmutableSet.<String>builder().addAll(
+                                terms.stream().map(Term::asString).iterator()
+                        ).build();
+                // TODO: Should this care about the keyword analyzer fields?
+                // TODO 2: What does comment above mean?
+                return Collections.singletonList(new StringOrAction(field, stringTerms, target, positive, negative));
+            }
         }
 
         @Override
-        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+        public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
         }
 
         @Override
-        public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
+        public void validate(final String dataset, final ValidationHelper validationHelper, final ErrorCollector errorCollector) {
             if (terms.isEmpty()) {
                 errorCollector.error("Cannot have empty set of terms in [" + getTextOrToString() + "]");
             }
             final String fieldName = field.datasetFieldName(dataset);
-            if (!validationHelper.containsStringField(dataset, fieldName)) {
-                errorCollector.error(ErrorMessages.missingStringField(dataset, fieldName, this));
-            }
-        }
-    }
-
-    @EqualsAndHashCode(callSuper = false)
-    @ToString
-    public static class IntFieldIn extends DocFilter {
-        public final FieldSet field;
-        public final Set<Long> terms;
-
-        public IntFieldIn(final FieldSet field, final Set<Long> terms) {
-            this.field = field;
-            this.terms = terms;
-        }
-
-        @Override
-        public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(new IntFieldIn(field, terms)).copyPosition(this);
-        }
-
-        @Override
-        public DocMetric asZeroOneMetric(final String dataset) {
-            final List<DocFilter> filters =
-                    terms.stream()
-                    .map(term -> new FieldIs(field, Term.term(term)))
-                    .collect(Collectors.toList());
-            final DocFilter or = Or.create(filters);
-            return or.asZeroOneMetric(dataset);
-        }
-
-        @Override
-        public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
-            Preconditions.checkState(scope.keySet().equals(field.datasets()));
-            return Collections.singletonList(new IntOrAction(field, ImmutableSet.copyOf(terms), target, positive, negative));
-        }
-
-        @Override
-        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
-            return visitor.visit(this);
-        }
-
-        @Override
-        public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
-            if (terms.isEmpty()) {
-                errorCollector.error("Cannot have empty set of terms in [" + getTextOrToString() + "]");
-            }
-            final String fieldName = field.datasetFieldName(dataset);
-            if (!validationHelper.containsField(dataset, fieldName)) {
-                errorCollector.error(ErrorMessages.missingField(dataset, fieldName, this));
+            if (field.isIntField()) {
+                if (!validationHelper.containsIntField(dataset, fieldName)) {
+                    errorCollector.error(ErrorMessages.missingIntField(dataset, fieldName, this));
+                }
+                final boolean allInts = terms.stream().allMatch(Term::isIntTerm);
+                if (!allInts) {
+                    errorCollector.warn(ErrorMessages.intFieldWithStringTerms(dataset, fieldName, this));
+                }
+            } else {
+                if (!validationHelper.containsStringField(dataset, fieldName)) {
+                    errorCollector.error(ErrorMessages.missingStringField(dataset, fieldName, this));
+                }
             }
         }
     }

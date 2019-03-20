@@ -66,13 +66,10 @@ import com.indeed.iql2.language.query.shardresolution.CachingShardResolver;
 import com.indeed.iql2.language.query.shardresolution.ImhotepClientShardResolver;
 import com.indeed.iql2.language.query.shardresolution.ShardResolver;
 import com.indeed.iql2.language.util.FieldExtractor;
-import com.indeed.util.core.Pair;
 import com.indeed.util.core.io.Closeables2;
 import com.indeed.util.core.reference.SharedReference;
 import com.indeed.util.core.time.WallClock;
 import com.indeed.util.logging.TracingTreeTimer;
-import it.unimi.dsi.fastutil.longs.LongArrayList;
-import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import org.antlr.v4.runtime.CharStream;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
@@ -96,7 +93,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -446,7 +442,6 @@ public class SelectQueryExecution {
 
         private SelectExecutionInformation executeParsedQuery() throws IOException {
             final int[] totalBytesWritten = {0};
-            final Map<Query, Pair<Set<Long>, Set<String>>> queryToResults = new HashMap<>();
 
             final Set<String> conflictFieldsUsed = Sets.intersection(queryInfo.datasetFields, datasetsMetadata.getTypeConflictDatasetFieldNames());
             if (!conflictFieldsUsed.isEmpty()) {
@@ -584,6 +579,7 @@ public class SelectQueryExecution {
                     };
                 }
 
+                final Map<Query, Set<Term>> queryToResults = new HashMap<>();
                 final Query substitutedQuery = executeAndSubstituteSubQueries(query, totalBytesWritten, queryToResults);
 
                 if (query.options.contains(QueryOptions.PARANOID)) {
@@ -691,7 +687,7 @@ public class SelectQueryExecution {
             }
         }
 
-        private Query executeAndSubstituteSubQueries(final Query query, final int[] totalBytesWritten, final Map<Query, Pair<Set<Long>, Set<String>>> queryToResults) {
+        private Query executeAndSubstituteSubQueries(final Query query, final int[] totalBytesWritten, final Map<Query, Set<Term>> queryToResults) {
             timer.push("execute subqueries");
             final Query result = query.transform(
                     new Function<GroupBy, GroupBy>() {
@@ -702,33 +698,29 @@ public class SelectQueryExecution {
                                 final GroupBy.GroupByFieldInQuery fieldInQuery = (GroupBy.GroupByFieldInQuery) input;
                                 final Query q = fieldInQuery.query;
                                 if (!queryToResults.containsKey(q)) {
-                                    final Pair<Set<Long>, Set<String>> subqueryResult =
+                                    final Set<Term> subqueryResult =
                                             executeSubquery(q, totalBytesWritten);
                                     queryToResults.put(q, subqueryResult);
                                 }
-                                final Pair<Set<Long>, Set<String>> result = queryToResults.get(q);
+                                final Set<Term> terms = queryToResults.get(q);
                                 if (fieldInQuery.isNegated) {
                                     // if negated then we have to iterate all terms and filter out result of subquery.
-                                    final AggregateFilter filter;
-                                    if (result.getFirst() != null) {
-                                        final Iterator<Term> terms = result.getFirst().stream().map(Term::term).iterator();
-                                        filter = AggregateFilters.aggregateInHelper(terms, true);
-                                    } else if (result.getSecond() != null) {
-                                        final Iterator<Term> terms = result.getSecond().stream().map(Term::term).iterator();
-                                        filter = AggregateFilters.aggregateInHelper(terms, true);
+                                    final Optional<AggregateFilter> filter;
+                                    if (terms.isEmpty()) {
+                                        filter = Optional.empty();
                                     } else {
-                                        filter = null;
+                                        filter = Optional.of(AggregateFilters.aggregateInHelper(terms.iterator(), true));
                                     }
-                                    return new GroupBy.GroupByField(fieldInQuery.field, Optional.ofNullable(filter), Optional.empty(), fieldInQuery.withDefault);
+                                    return new GroupBy.GroupByField(fieldInQuery.field, filter, Optional.empty(), fieldInQuery.withDefault);
                                 } else {
                                     // if not-negated then we do group by field in terms-set.
-                                    final LongArrayList intTerms = (result.getFirst() == null) ?
-                                            new LongArrayList(0) : new LongArrayList(result.getFirst());
-                                    final List<String> stringTerms = (result.getSecond() == null) ?
-                                            new ArrayList<>(0) : new ArrayList<>(result.getSecond());
-                                    Arrays.sort(intTerms.elements());
-                                    stringTerms.sort(String::compareTo);
-                                    return new GroupBy.GroupByFieldIn(fieldInQuery.field, intTerms, stringTerms, fieldInQuery.withDefault);
+                                    if (terms.isEmpty()) {
+                                        // TODO: error here or warning?
+                                    }
+                                    final ImmutableSet<Term> immutableTerms = ImmutableSet.copyOf(terms);
+                                    // Once terms are converted to immutable, store it to cache to prevent convertion next time.
+                                    queryToResults.put(q, immutableTerms);
+                                    return new GroupBy.GroupByFieldIn(fieldInQuery.field, immutableTerms, fieldInQuery.withDefault);
                                 }
                             }
                             return input;
@@ -745,25 +737,19 @@ public class SelectQueryExecution {
                                 final DocFilter.FieldInQuery fieldInQuery = (DocFilter.FieldInQuery) input;
                                 final Query q = fieldInQuery.query;
                                 if (!queryToResults.containsKey(q)) {
-                                    final Pair<Set<Long>, Set<String>> subqueryResult =
+                                    final Set<Term> subqueryResult =
                                             executeSubquery(q, totalBytesWritten);
                                     queryToResults.put(q, subqueryResult);
                                 }
-                                final Pair<Set<Long>, Set<String>> result = queryToResults.get(q);
+                                final Set<Term> terms = queryToResults.get(q);
                                 final FieldSet field = fieldInQuery.field;
 
-                                final List<DocFilter> filters = new ArrayList<>();
-                                if (result.getSecond() != null) {
-                                    filters.add(new DocFilter.StringFieldIn(field, ImmutableSet.copyOf(result.getSecond())));
-                                } else if (result.getFirst() != null) {
-                                    filters.add(new DocFilter.IntFieldIn(field, result.getFirst()));
-                                }
-                                final DocFilter orred = DocFilter.Or.create(filters);
                                 final DocFilter maybeNegated;
+                                final DocFilter filter = DocFilter.FieldInTermsSet.create(field, ImmutableSet.copyOf(terms));
                                 if (fieldInQuery.isNegated) {
-                                    maybeNegated = new DocFilter.Not(orred);
+                                    maybeNegated = new DocFilter.Not(filter);
                                 } else {
-                                    maybeNegated = orred;
+                                    maybeNegated = filter;
                                 }
                                 return maybeNegated;
                             }
@@ -775,20 +761,18 @@ public class SelectQueryExecution {
             return result;
         }
 
-        private Pair<Set<Long>, Set<String>> executeSubquery(
+        private Set<Term> executeSubquery(
                 final Query q,
                 final int[] totalBytesWritten) {
-            final Set<Long> terms = new LongOpenHashSet();
-            final Set<String> stringTerms = new HashSet<>();
+            final Set<Term> stringTerms = new HashSet<>();
             timer.push("Execute sub-query", "Execute sub-query: \"" + q + "\"");
             try {
                 final CSVParser csvParser = new CSVParser();
                 // TODO: This use of ProgressCallbacks looks wrong.
                 final SelectExecutionInformation execInfo = new ParsedQueryExecution(false, inputStream, new Consumer<String>() {
-                    private boolean haveStringTerms = false;
                     @Override
-                    public void accept(String s) {
-                        if ((limits.queryInMemoryRowsLimit > 0) && ((terms.size() + stringTerms.size()) >= limits.queryInMemoryRowsLimit)) {
+                    public void accept(final String s) {
+                        if ((limits.queryInMemoryRowsLimit > 0) && (stringTerms.size() >= limits.queryInMemoryRowsLimit)) {
                             throw new IqlKnownException.GroupLimitExceededException("Sub query cannot have more than [" + limits.queryInMemoryRowsLimit + "] terms!");
                         }
                         final String term;
@@ -797,16 +781,7 @@ public class SelectQueryExecution {
                         } catch (final IOException e) {
                             throw Throwables.propagate(e);
                         }
-                        if (haveStringTerms) {
-                            stringTerms.add(term);
-                        } else {
-                            try {
-                                terms.add(Long.parseLong(term));
-                            } catch (final NumberFormatException e) {
-                                haveStringTerms = true;
-                                stringTerms.add(term);
-                            }
-                        }
+                        stringTerms.add(Term.term(term));
                     }
                 }, warnings, ResultFormat.CSV, new SessionOpenedOnlyProgressCallback(progressCallback), q, groupLimit, selectQuery, strictCloser).executeParsedQuery();
                 totalBytesWritten[0] += execInfo.imhotepTempBytesWritten;
@@ -814,22 +789,8 @@ public class SelectQueryExecution {
                 throw Throwables.propagate(e);
             }
 
-            final Pair<Set<Long>, Set<String>> result;
-            if (!stringTerms.isEmpty()) {
-                for (final long v : terms) {
-                    stringTerms.add(String.valueOf(v));
-                }
-                // string terms.
-                result = Pair.of(null, stringTerms);
-            } else if (!terms.isEmpty()) {
-                // int terms
-                result = Pair.of(terms, null);
-            } else {
-                // no terms found
-                result = Pair.of(null, null);
-            }
             timer.pop();
-            return result;
+            return stringTerms;
         }
 
         private void finalizeQueryExecution(CountingConsumer<String> countingExternalOutput, SelectExecutionInformation selectExecutionInformation) {
