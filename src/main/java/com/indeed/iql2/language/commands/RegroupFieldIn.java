@@ -19,6 +19,7 @@ import com.indeed.iql2.execution.commands.StringRegroupFieldIn;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
+import com.indeed.iql2.language.util.ToStringEscapingUtil;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
@@ -33,6 +34,7 @@ import java.util.function.Function;
 @ToString
 public class RegroupFieldIn implements Command {
     private final FieldSet field;
+    @ToString.Exclude // Include stringTermsEscaped instead
     private final List<String> stringTerms;
     private final LongList intTerms;
     private final boolean isIntField;
@@ -62,5 +64,10 @@ public class RegroupFieldIn implements Command {
         } else {
             return new StringRegroupFieldIn(field, stringTerms, withDefault);
         }
+    }
+
+    @ToString.Include
+    private String stringTermsEscaped() {
+        return ToStringEscapingUtil.escape(stringTerms);
     }
 }
