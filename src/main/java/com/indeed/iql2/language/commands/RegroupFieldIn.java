@@ -66,7 +66,7 @@ public class RegroupFieldIn implements Command {
         }
     }
 
-    @ToString.Include
+    @ToString.Include(name = "stringTerms")
     private String stringTermsEscaped() {
         return ToStringEscapingUtil.escape(stringTerms);
     }

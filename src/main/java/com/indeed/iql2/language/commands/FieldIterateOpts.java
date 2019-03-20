@@ -55,7 +55,7 @@ public class FieldIterateOpts {
         return result;
     }
 
-    @ToString.Include
+    @ToString.Include(name = "stringTermSubset")
     private String stringTermSubsetEscaped() {
         return stringTermSubset.map(ToStringEscapingUtil::escape).toString();
     }
