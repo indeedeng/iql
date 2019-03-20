@@ -40,7 +40,7 @@ public class ConstantFoldingTest {
     }
 
     private static DocMetric field(final String fieldName) {
-        return new Field(FieldSet.of("", fieldName));
+        return new Field(FieldSet.of("", fieldName, true));
     }
 
     private static void testFolding(final DocMetric expected, final DocMetric beforeFolding) {

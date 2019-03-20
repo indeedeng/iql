@@ -27,7 +27,6 @@ import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -461,7 +460,7 @@ public class DocFilters {
             final DocMetric.Qualified qualified = (DocMetric.Qualified) docMetric;
             final FieldSet innerResult = extractPlainField(qualified.metric);
             if (innerResult != null) {
-                return innerResult.subset(Collections.singleton(qualified.dataset));
+                return innerResult.subset(qualified.dataset);
             }
         }
         return null;

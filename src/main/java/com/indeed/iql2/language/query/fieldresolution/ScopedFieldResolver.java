@@ -106,7 +106,9 @@ public class ScopedFieldResolver {
                 builder.put(dataset, FieldResolver.FAILED_TO_RESOLVE_FIELD);
             }
         }
-        return new FieldSet(builder.build(), restricted, syntacticCtx);
+        final Map<String, String> datasetToField = builder.build();
+        final FieldType type = fieldType(datasetToField.keySet(), datasetToField::get);
+        return FieldSet.create(builder.build(), restricted, syntacticCtx, type == FieldType.Integer);
     }
 
     private FieldSet resolve(final JQLParser.IdentifierContext ctx, final boolean restricted, @Nullable final ParserRuleContext syntacticCtx) {
@@ -129,14 +131,18 @@ public class ScopedFieldResolver {
     }
 
     public FieldType fieldType(final FieldSet field) {
+        return fieldType(field.datasets(), field::datasetFieldName);
+    }
+
+    private FieldType fieldType(final Set<String> datasets, final Function<String, String> datasetToFieldName) {
         boolean anyString = false;
         boolean anyInt = false;
-        for (final String dataset : field.datasets()) {
+        for (final String dataset : datasets) {
             if (FieldResolver.FAILED_TO_RESOLVE_DATASET.equals(dataset)) {
                 continue;
             }
             final DatasetMetadata metadata = fieldResolver.datasets.get(dataset).datasetMetadata;
-            final String datasetFieldName = field.datasetFieldName(dataset);
+            final String datasetFieldName = datasetToFieldName.apply(dataset);
             if (FieldResolver.FAILED_TO_RESOLVE_FIELD.equals(datasetFieldName)) {
                 continue;
             }
