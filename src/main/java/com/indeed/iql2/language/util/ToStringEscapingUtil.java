@@ -12,7 +12,7 @@ public class ToStringEscapingUtil {
 
     public static String escape(final Collection<String> strings) {
         try (final StringWriter stringWriter = new StringWriter()) {
-            stringWriter.append('[');
+            stringWriter.append("[\"");
             boolean isFirst = true;
             for (final String str : strings) {
                 if (!isFirst) {
@@ -21,7 +21,7 @@ public class ToStringEscapingUtil {
                 isFirst = false;
                 StringEscapeUtils.escapeJava(stringWriter, str);
             }
-            stringWriter.append(']');
+            stringWriter.append("\"]");
             return stringWriter.toString();
         } catch (final IOException e) {
             throw new IllegalStateException("StringWriter shouldn't throw an IO Exception", e);
