@@ -56,11 +56,14 @@ public class Term {
         try {
             final long value = Long.parseLong(term);
             if (Long.toString(value).equals(term)) {
+                // 'usual' integer term
                 return new Term(null, value, true);
             } else {
+                // 'unusual' integer term
                 return new Term(term, value, true);
             }
         } catch (final NumberFormatException ignored) {
+            // string term
             return new Term(term, 0, false);
         }
     }

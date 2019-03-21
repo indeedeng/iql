@@ -23,8 +23,6 @@ import com.indeed.iql2.language.query.fieldresolution.ScopedFieldResolver;
 import com.indeed.iql2.language.util.ValidationUtil;
 
 import javax.annotation.Nullable;
-import java.util.List;
-import java.util.stream.Collectors;
 
 import static com.indeed.iql2.language.DocMetrics.extractPlainDimensionDocMetric;
 
@@ -69,7 +67,10 @@ public class DocFilters {
             public void enterLegacyDocFieldIn(final JQLParser.LegacyDocFieldInContext ctx) {
                 final FieldSet field = fieldResolver.resolve(ctx.field);
                 final boolean negate = ctx.not != null;
-                final List<Term> terms = ctx.terms.stream().map(Term::parseLegacyTerm).collect(Collectors.toList());
+                final ImmutableSet<Term> terms =
+                        ImmutableSet.<Term>builder()
+                                .addAll(ctx.terms.stream().map(Term::parseLegacyTerm).iterator())
+                                .build();
                 accept(docInHelper(field, negate, terms));
             }
 
@@ -236,8 +237,11 @@ public class DocFilters {
             public void enterDocFieldIn(final JQLParser.DocFieldInContext ctx) {
                 final FieldSet field = fieldResolver.resolve(ctx.singlyScopedField());
                 final boolean negate = ctx.not != null;
-                final List<Term> termsList = ctx.terms.stream().map(Term::parseJqlTerm).collect(Collectors.toList());
-                accept(field.wrap(docInHelper(field, negate, termsList)));
+                final ImmutableSet<Term> terms =
+                        ImmutableSet.<Term>builder()
+                                .addAll(ctx.terms.stream().map(Term::parseJqlTerm).iterator())
+                                .build();
+                accept(field.wrap(docInHelper(field, negate, terms)));
             }
 
             @Override
@@ -455,8 +459,7 @@ public class DocFilters {
     private static DocFilter docInHelper(
             final FieldSet field,
             final boolean negate,
-            final List<Term> termsList) {
-        final ImmutableSet<Term> terms = ImmutableSet.copyOf(termsList);
+            final ImmutableSet<Term> terms) {
         final DocFilter filter = DocFilter.FieldInTermsSet.create(field, terms);
         if (negate) {
             return new DocFilter.Not(filter);
