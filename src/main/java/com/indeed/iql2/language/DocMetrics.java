@@ -191,8 +191,6 @@ public class DocMetrics {
                 final String term;
                 if (ctx.quotedTerm != null) {
                     term = ParserCommon.unquote(ctx.quotedTerm.getText());
-                } else if (ctx.idTerm != null) {
-                    term = Identifiers.extractIdentifier(ctx.idTerm);
                 } else {
                     throw new IllegalStateException("Did not handle term value in: " + ctx.getText());
                 }
@@ -203,12 +201,6 @@ public class DocMetrics {
             public void enterLegacyDocMetricAtomHasInt(JQLParser.LegacyDocMetricAtomHasIntContext ctx) {
                 final long term = Long.parseLong(ctx.integer().getText());
                 accept(fieldResolver.resolveDocMetric(ctx.field, new ScopedFieldResolver.HasIntCallback(term)));
-            }
-
-            @Override
-            public void enterLegacyDocMetricAtomHasntInt(JQLParser.LegacyDocMetricAtomHasntIntContext ctx) {
-                final long term = Long.parseLong(ctx.integer().getText());
-                accept(fieldResolver.resolveDocMetric(ctx.field, new ScopedFieldResolver.HasIntCallback(term).map(DocMetrics::negateMetric)));
             }
 
             @Override
