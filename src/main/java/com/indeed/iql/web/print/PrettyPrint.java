@@ -559,13 +559,13 @@ public class PrettyPrint {
                 throw new UnsupportedOperationException("What even is this operation?: " + isDefaultGroup);
             }
 
-            private Void visit(final AggregateFilter.Multiple multiple, final String op) {
-                for (int i = 0; i < multiple.filters.size(); i++) {
+            private Void visit(final AggregateFilter.Multiary multiary, final String op) {
+                for (int i = 0; i < multiary.filters.size(); i++) {
                     if (i > 0) {
                         sb.append(' ').append(op).append(' ');
                     }
                     sb.append('(');
-                    pp(multiple.filters.get(i), consumer, clock);
+                    pp(multiary.filters.get(i), consumer, clock);
                     sb.append(')');
                 }
                 return null;
@@ -1074,12 +1074,12 @@ public class PrettyPrint {
                 return null;
             }
 
-            private Void visit(final DocFilter.Multiple multiple, final String op) {
-                for (int i = 0; i < multiple.filters.size(); i++) {
+            private Void visit(final DocFilter.Multiary multiary, final String op) {
+                for (int i = 0; i < multiary.filters.size(); i++) {
                     if (i > 0) {
                         sb.append(' ').append(op).append(' ');
                     }
-                    pp(multiple.filters.get(i), consumer, clock);
+                    pp(multiary.filters.get(i), consumer, clock);
                 }
                 return null;
             }

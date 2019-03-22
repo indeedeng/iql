@@ -393,10 +393,10 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    public abstract static class Multiple extends AggregateMetric {
+    public abstract static class Multiary extends AggregateMetric {
         public final List<AggregateMetric> metrics;
 
-        protected Multiple(final List<AggregateMetric> metrics) {
+        protected Multiary(final List<AggregateMetric> metrics) {
             this.metrics = metrics;
         }
 
@@ -423,7 +423,7 @@ public abstract class AggregateMetric extends AbstractPositional {
             if ((o == null) || (getClass() != o.getClass())) {
                 return false;
             }
-            final Multiple other = (Multiple) o;
+            final Multiary other = (Multiary) o;
             if (metrics.size() != other.metrics.size()) {
                 return false;
             }
@@ -459,7 +459,7 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    public static class Add extends Multiple {
+    public static class Add extends Multiary {
         private Add(final List<AggregateMetric> metrics) {
             super(metrics);
         }
@@ -470,7 +470,7 @@ public abstract class AggregateMetric extends AbstractPositional {
             final List<AggregateMetric> unwrapAdd = new ArrayList<>(original.size());
             for (final AggregateMetric metric : original) {
                 if (metric instanceof Add) {
-                    unwrapAdd.addAll(((Multiple) metric).metrics);
+                    unwrapAdd.addAll(((Multiary) metric).metrics);
                 } else {
                     unwrapAdd.add(metric);
                 }

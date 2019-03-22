@@ -657,10 +657,10 @@ public abstract class DocFilter extends AbstractPositional {
         }
     }
 
-    public abstract static class Multiple extends DocFilter {
+    public abstract static class Multiary extends DocFilter {
         public final List<DocFilter> filters;
 
-        protected Multiple(final List<DocFilter> filters) {
+        protected Multiary(final List<DocFilter> filters) {
             this.filters = filters;
         }
 
@@ -693,7 +693,7 @@ public abstract class DocFilter extends AbstractPositional {
             if (o == null || getClass() != o.getClass()) {
                 return false;
             }
-            final Multiple other = (Multiple) o;
+            final Multiary other = (Multiary) o;
             if (filters.size() != other.filters.size()) {
                 return false;
             }
@@ -729,7 +729,7 @@ public abstract class DocFilter extends AbstractPositional {
         }
     }
 
-    public static class And extends Multiple {
+    public static class And extends Multiary {
 
         private And(final List<DocFilter> filters) {
             super(filters);
@@ -831,7 +831,7 @@ public abstract class DocFilter extends AbstractPositional {
         }
     }
 
-    public static class Or extends Multiple {
+    public static class Or extends Multiary {
 
         private Or(final List<DocFilter> filters) {
             super(filters);

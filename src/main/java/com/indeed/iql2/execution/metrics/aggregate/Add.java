@@ -18,7 +18,7 @@ import com.indeed.imhotep.metrics.aggregate.AggregateStatTree;
 
 import java.util.List;
 
-public class Add extends AggregateMetric.Multiple {
+public class Add extends AggregateMetric.Multiary {
     private Add(final List<AggregateMetric> metrics) {
         super(metrics);
     }

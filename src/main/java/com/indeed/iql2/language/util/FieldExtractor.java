@@ -337,7 +337,7 @@ public class FieldExtractor {
 
 			@Override
 			public Set<DatasetField> visit(final DocMetric.Add add) {
-				return getDatasetFieldsForMetrics(add.metrics);
+				return getDatasetFieldsForMetrics(add);
 			}
 
 			@Override
@@ -362,12 +362,12 @@ public class FieldExtractor {
 
 			@Override
 			public Set<DatasetField> visit(final DocMetric.Min min) {
-				return getDatasetFieldsForMetrics(min.metrics);
+				return getDatasetFieldsForMetrics(min);
 			}
 
 			@Override
 			public Set<DatasetField> visit(final DocMetric.Max max) {
-				return getDatasetFieldsForMetrics(max.metrics);
+				return getDatasetFieldsForMetrics(max);
 			}
 
 			@Override
@@ -857,18 +857,18 @@ public class FieldExtractor {
 	}
 
 	@Nonnull
-	private static Set<DatasetField> getDatasetFields(final DocFilter.Multiple multiple) {
+	private static Set<DatasetField> getDatasetFields(final DocFilter.Multiary multiary) {
 		final Set<DatasetField> set = Sets.newHashSet();
-		for (final DocFilter filter : multiple.filters) {
+		for (final DocFilter filter : multiary.filters) {
 			set.addAll(getDatasetFields(filter));
 		}
 		return set;
 	}
 
 	@Nonnull
-	private static Set<DatasetField> getDatasetFieldsForMetrics(final Collection<DocMetric> docMetrics) {
+	private static Set<DatasetField> getDatasetFieldsForMetrics(final DocMetric.Multiary multiary) {
 		final Set<DatasetField> set = Sets.newHashSet();
-		for (final DocMetric metric : docMetrics) {
+		for (final DocMetric metric : multiary.metrics) {
 			set.addAll(getDatasetFields(metric));
 		}
 		return set;
@@ -884,9 +884,9 @@ public class FieldExtractor {
 	}
 
 	@Nonnull
-	private static Set<DatasetField> getDatasetFields(final AggregateFilter.Multiple multiple) {
+	private static Set<DatasetField> getDatasetFields(final AggregateFilter.Multiary multiary) {
 		final Set<DatasetField> set = Sets.newHashSet();
-		for (final AggregateFilter filter : multiple.filters) {
+		for (final AggregateFilter filter : multiary.filters) {
 			set.addAll(getDatasetFields(filter));
 		}
 		return set;
