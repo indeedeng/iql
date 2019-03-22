@@ -251,15 +251,16 @@ public class ValidationUtil {
         INT, STR, NULL
     }
 
-    public static Automaton compileRegex(String regex) {
+    public static Automaton compileRegex(final String regex) {
         try {
-            return new RegExp(regex).toAutomaton();
-        } catch (Exception e) {
+            return new RegExp(regex, RegExp.NONE).toAutomaton();
+        } catch (final Exception e) {
             Throwables.propagateIfInstanceOf(e, RegexTooComplexException.class);
             throw new IqlKnownException.ParseErrorException(
                     "The provided regex filter [" + regex + "] failed to parse."
                             + "\nError was: " + e.getMessage()
-                            + "\nThe supported regex syntax can be seen here: http://www.brics.dk/automaton/doc/index.html?dk/brics/automaton/RegExp.html"
+                            + "\nThe supported regex syntax can be seen here: http://www.brics.dk/automaton/doc/index.html?dk/brics/automaton/RegExp.html",
+                    e
             );
         }
     }
