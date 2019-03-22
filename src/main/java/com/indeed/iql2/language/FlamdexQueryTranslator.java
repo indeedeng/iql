@@ -16,6 +16,7 @@ package com.indeed.iql2.language;
 
 import com.indeed.flamdex.query.Query;
 import com.indeed.flamdex.query.Term;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.query.fieldresolution.ScopedFieldResolver;
 
 import java.util.List;
@@ -62,7 +63,8 @@ public class FlamdexQueryTranslator {
                 if (query.isMaxInclusive()) {
                     end = end + 1;
                 }
-                return new DocFilter.Between(fieldResolver.resolveContextless(field), start, end, false);
+                final FieldSet fieldSet = fieldResolver.resolveContextless(field);
+                return new DocFilter.Between(new DocMetric.Field(fieldSet), start, end, false);
         }
         throw new UnsupportedOperationException("Unhandled query: [" + query + "]");
     }

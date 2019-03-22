@@ -69,7 +69,8 @@ public class DocFilters {
             public void enterLegacyDocBetween(JQLParser.LegacyDocBetweenContext ctx) {
                 final long lowerBound = Long.parseLong(ctx.lowerBound.getText());
                 final long upperBound = Long.parseLong(ctx.upperBound.getText());
-                accept(fieldResolver.resolveDocFilter(ctx.field, new ScopedFieldResolver.BetweenCallback(lowerBound, upperBound, true)));
+                final DocMetric metric = DocMetrics.parseLegacyDocMetric(ctx.metric, fieldResolver, datasetsMetadata);
+                accept(new DocFilter.Between(metric, lowerBound, upperBound, true));
             }
 
             @Override
@@ -240,7 +241,8 @@ public class DocFilters {
             public void enterDocBetween(JQLParser.DocBetweenContext ctx) {
                 final long lowerBound = Long.parseLong(ctx.lowerBound.getText());
                 final long upperBound = Long.parseLong(ctx.upperBound.getText());
-                accept(fieldResolver.resolveDocFilter(ctx.singlyScopedField(), new ScopedFieldResolver.BetweenCallback(lowerBound, upperBound, false)));
+                final DocMetric metric = DocMetrics.parseJQLDocMetric(ctx.metric, context);
+                accept(new DocFilter.Between(metric, lowerBound, upperBound, false));
             }
 
             @Override
