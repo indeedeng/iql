@@ -26,6 +26,7 @@ import org.antlr.v4.runtime.Token;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class DocMetrics {
     private DocMetrics() {
@@ -135,12 +136,18 @@ public class DocMetrics {
 
             @Override
             public void enterLegacyDocMin(JQLParser.LegacyDocMinContext ctx) {
-                accept(new DocMetric.Min(parseLegacyDocMetric(ctx.arg1, fieldResolver, datasetsMetadata), parseLegacyDocMetric(ctx.arg2, fieldResolver, datasetsMetadata)));
+                final List<DocMetric> metrics = ctx.metrics.stream()
+                        .map(m -> parseLegacyDocMetric(m, fieldResolver, datasetsMetadata))
+                        .collect(Collectors.toList());
+                accept(DocMetric.Min.create(metrics));
             }
 
             @Override
             public void enterLegacyDocMax(JQLParser.LegacyDocMaxContext ctx) {
-                accept(new DocMetric.Max(parseLegacyDocMetric(ctx.arg1, fieldResolver, datasetsMetadata), parseLegacyDocMetric(ctx.arg2, fieldResolver, datasetsMetadata)));
+                final List<DocMetric> metrics = ctx.metrics.stream()
+                        .map(m -> parseLegacyDocMetric(m, fieldResolver, datasetsMetadata))
+                        .collect(Collectors.toList());
+                accept(DocMetric.Max.create(metrics));
             }
 
             public void enterLegacyDocAtom(JQLParser.LegacyDocAtomContext ctx) {
@@ -382,23 +389,19 @@ public class DocMetrics {
             }
 
             @Override
-            public void enterDocMin(JQLParser.DocMinContext ctx) {
-                DocMetric resultMetric = parseJQLDocMetric(ctx.metrics.get(0), context);
-                List<JQLParser.JqlDocMetricContext> metrics = ctx.metrics;
-                for (int i = 1; i < metrics.size(); i++) {
-                    resultMetric = new DocMetric.Min(resultMetric, parseJQLDocMetric(metrics.get(i), context));
-                }
-                accept(resultMetric);
+            public void enterDocMin(final JQLParser.DocMinContext ctx) {
+                final List<DocMetric> metrics = ctx.metrics.stream()
+                        .map(m -> parseJQLDocMetric(m, context))
+                        .collect(Collectors.toList());
+                accept(DocMetric.Min.create(metrics));
             }
 
             @Override
             public void enterDocMax(JQLParser.DocMaxContext ctx) {
-                DocMetric resultMetric = parseJQLDocMetric(ctx.metrics.get(0), context);
-                List<JQLParser.JqlDocMetricContext> metrics = ctx.metrics;
-                for (int i = 1; i < metrics.size(); i++) {
-                    resultMetric = new DocMetric.Max(resultMetric, parseJQLDocMetric(metrics.get(i), context));
-                }
-                accept(resultMetric);
+                final List<DocMetric> metrics = ctx.metrics.stream()
+                        .map(m -> parseJQLDocMetric(m, context))
+                        .collect(Collectors.toList());
+                accept(DocMetric.Max.create(metrics));
             }
 
             @Override

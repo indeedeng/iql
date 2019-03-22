@@ -362,12 +362,12 @@ public class FieldExtractor {
 
 			@Override
 			public Set<DatasetField> visit(final DocMetric.Min min) {
-				return getFieldsForBinop(min);
+				return getDatasetFieldsForMetrics(min.metrics);
 			}
 
 			@Override
 			public Set<DatasetField> visit(final DocMetric.Max max) {
-				return getFieldsForBinop(max);
+				return getDatasetFieldsForMetrics(max.metrics);
 			}
 
 			@Override
