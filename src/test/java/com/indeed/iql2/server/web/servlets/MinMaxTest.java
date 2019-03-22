@@ -35,4 +35,12 @@ public class MinMaxTest extends BasicTest {
         expected.add(ImmutableList.of("", "0", "-10" ,"1", "7", "2653", "306"));
         QueryServletTestUtils.testIQL2(expected, "from organic yesterday today select min(0,1), min(0,5,7,-10), max(0,1), max(0,5,7,-10), max(oji, ojc), min(oji, ojc)");
     }
+
+    @Test
+    public void testDocMetricMinMax() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("", "151", "0", "-1510" ,"151", "1057", "2653", "306", "2653", "306"));
+        QueryServletTestUtils.testIQL2(expected, "from organic yesterday today select count(), [min(0,1)], [min(0,5,7,-10)], [max(0,1)], [max(0,5,7,-10)], oji, ojc, [max(oji, ojc)], [min(oji, ojc)]");
+    }
+
 }

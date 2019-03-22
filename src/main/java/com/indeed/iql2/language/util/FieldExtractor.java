@@ -28,7 +28,6 @@ import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.Query;
 
 import javax.annotation.Nonnull;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -607,7 +606,7 @@ public class FieldExtractor {
 
 			@Override
 			public Set<DatasetField> visit(final AggregateMetric.Add add) {
-				return getDatasetFieldsForAggregateMetrics(add.metrics);
+				return getDatasetFieldsForAggregateMetrics(add);
 			}
 
 			@Override
@@ -760,12 +759,12 @@ public class FieldExtractor {
 
 			@Override
 			public Set<DatasetField> visit(final AggregateMetric.Min min) {
-				return getDatasetFieldsForAggregateMetrics(min.metrics);
+				return getDatasetFieldsForAggregateMetrics(min);
 			}
 
 			@Override
 			public Set<DatasetField> visit(final AggregateMetric.Max max) {
-				return getDatasetFieldsForAggregateMetrics(max.metrics);
+				return getDatasetFieldsForAggregateMetrics(max);
 			}
 
 			@Override
@@ -875,9 +874,9 @@ public class FieldExtractor {
 	}
 
 	@Nonnull
-	private static Set<DatasetField> getDatasetFieldsForAggregateMetrics(final Collection<AggregateMetric> metrics) {
+	private static Set<DatasetField> getDatasetFieldsForAggregateMetrics(final AggregateMetric.Multiary multiary) {
 		final Set<DatasetField> set = Sets.newHashSet();
-		for (final AggregateMetric metric : metrics) {
+		for (final AggregateMetric metric : multiary.metrics) {
 			set.addAll(getDatasetFields(metric));
 		}
 		return set;

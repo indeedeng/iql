@@ -15,7 +15,6 @@
 package com.indeed.iql2.language;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.DocumentLevelMetric;
@@ -400,6 +399,8 @@ public abstract class AggregateMetric extends AbstractPositional {
             this.metrics = metrics;
         }
 
+        public abstract AggregateMetric createMetric(final List<AggregateMetric> metrics);
+
         @Override
         public boolean isOrdered() {
             return metrics.stream().anyMatch(AggregateMetric::isOrdered);
@@ -413,6 +414,29 @@ public abstract class AggregateMetric extends AbstractPositional {
             for (final AggregateMetric metric : metrics) {
                 metric.validate(scope, validationHelper, errorCollector);
             }
+        }
+
+        @Override
+        public AggregateMetric transform(
+                final Function<AggregateMetric, AggregateMetric> f,
+                final Function<DocMetric, DocMetric> g,
+                final Function<AggregateFilter, AggregateFilter> h,
+                final Function<DocFilter, DocFilter> i,
+                final Function<GroupBy, GroupBy> groupByFunction) {
+            final List<AggregateMetric> transformed =
+                    metrics.stream()
+                            .map(m -> m.transform(f, g, h, i, groupByFunction))
+                            .collect(Collectors.toList());
+            return f.apply(createMetric(transformed)).copyPosition(this);
+        }
+
+        @Override
+        public AggregateMetric traverse1(final Function<AggregateMetric, AggregateMetric> f) {
+            final List<AggregateMetric> traversed =
+                    metrics.stream()
+                            .map(m -> f.apply(m).copyPosition(m))
+                            .collect(Collectors.toList());
+            return createMetric(traversed).copyPosition(this);
         }
 
         @Override
@@ -459,9 +483,15 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
+    @EqualsAndHashCode(callSuper = true)
     public static class Add extends Multiary {
         private Add(final List<AggregateMetric> metrics) {
             super(metrics);
+        }
+
+        @Override
+        public AggregateMetric createMetric(final List<AggregateMetric> metrics) {
+            return create(metrics);
         }
 
         // create filter that is equivalent to '+' of all metrics and simplify it.
@@ -504,29 +534,6 @@ public abstract class AggregateMetric extends AbstractPositional {
         @Override
         public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
-        }
-
-        @Override
-        public AggregateMetric transform(
-                final Function<AggregateMetric, AggregateMetric> f,
-                final Function<DocMetric, DocMetric> g,
-                final Function<AggregateFilter, AggregateFilter> h,
-                final Function<DocFilter, DocFilter> i,
-                final Function<GroupBy, GroupBy> groupByFunction) {
-            final List<AggregateMetric> transformed =
-                    metrics.stream()
-                    .map(m -> m.transform(f, g, h, i, groupByFunction))
-                    .collect(Collectors.toList());
-            return f.apply(create(transformed)).copyPosition(this);
-        }
-
-        @Override
-        public AggregateMetric traverse1(final Function<AggregateMetric, AggregateMetric> f) {
-            final List<AggregateMetric> traversed =
-                    metrics.stream()
-                    .map(m -> f.apply(m).copyPosition(m))
-                    .collect(Collectors.toList());
-            return create(traversed).copyPosition(this);
         }
 
         @Override
@@ -1578,14 +1585,52 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    @EqualsAndHashCode(callSuper = false)
-    @ToString
-    public static class Min extends AggregateMetric {
-        public final List<AggregateMetric> metrics;
+    @EqualsAndHashCode(callSuper = true)
+    public static class Min extends Multiary {
 
-        public Min(final List<AggregateMetric> metrics) {
-            this.metrics = metrics;
+        private Min(final List<AggregateMetric> metrics) {
+            super(metrics);
         }
+
+        @Override
+        public AggregateMetric createMetric(final List<AggregateMetric> metrics) {
+            return create(metrics);
+        }
+
+        // create filter that is equivalent to 'min' of all metrics and simplify it.
+        public static AggregateMetric create(final List<AggregateMetric> original) {
+            // unwrapping another Min if present.
+            final List<AggregateMetric> unwraped = new ArrayList<>(original.size());
+            for (final AggregateMetric metric : original) {
+                if (metric instanceof Min) {
+                    unwraped.addAll(((Multiary) metric).metrics);
+                } else {
+                    unwraped.add(metric);
+                }
+            }
+            final List<AggregateMetric> metrics = new ArrayList<>(unwraped.size());
+            // iterating throw metrics and replace all constants with min value.
+            Double min = null;
+            for (final AggregateMetric metric : unwraped) {
+                if (metric instanceof Constant) {
+                    final double value =((Constant) metric).value;
+                    min = (min == null) ? value : Math.min(min, value);
+                } else {
+                    metrics.add(metric);
+                }
+            }
+            if (min != null) {
+                metrics.add(new Constant(min));
+            }
+            if (metrics.isEmpty()) {
+                throw new IllegalStateException("Should not be here!");
+            }
+            if (metrics.size() == 1) {
+                return metrics.get(0);
+            }
+            return new Min(metrics);
+        }
+
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -1593,41 +1638,12 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            final List<AggregateMetric> newMetrics = Lists.newArrayListWithCapacity(metrics.size());
-            for (final AggregateMetric metric : metrics) {
-                newMetrics.add(metric.transform(f, g, h, i, groupByFunction));
-            }
-            return f.apply(new Min(newMetrics)).copyPosition(this);
-        }
-
-        @Override
-        public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
-            final List<AggregateMetric> newMetrics = Lists.newArrayListWithCapacity(metrics.size());
-            for (final AggregateMetric metric : metrics) {
-                newMetrics.add(f.apply(metric).copyPosition(metric));
-            }
-            return new Min(newMetrics).copyPosition(this);
-        }
-
-        @Override
         public void validate(Set<String> scope, ValidationHelper validationHelper, ErrorCollector errorCollector) {
-            for (final AggregateMetric metric : metrics) {
-                metric.validate(scope, validationHelper, errorCollector);
-            }
+            super.validate(scope, validationHelper, errorCollector);
 
             if (metrics.size() < 2) {
                 errorCollector.error("MIN requires at least 2 arguments. Did you mean FIELD_MIN()?");
             }
-        }
-
-        @Override
-        public boolean isOrdered() {
-            boolean isOrdered = false;
-            for (final AggregateMetric metric : metrics) {
-                isOrdered |= metric.isOrdered();
-            }
-            return isOrdered;
         }
 
         @Override
@@ -1641,14 +1657,52 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
     }
 
-    @EqualsAndHashCode(callSuper = false)
-    @ToString
-    public static class Max extends AggregateMetric {
-        public final List<AggregateMetric> metrics;
+    @EqualsAndHashCode(callSuper = true)
+    public static class Max extends Multiary {
 
-        public Max(final List<AggregateMetric> metrics) {
-            this.metrics = metrics;
+        private Max(final List<AggregateMetric> metrics) {
+            super(metrics);
         }
+
+        @Override
+        public AggregateMetric createMetric(final List<AggregateMetric> metrics) {
+            return create(metrics);
+        }
+
+        // create filter that is equivalent to 'max' of all metrics and simplify it.
+        public static AggregateMetric create(final List<AggregateMetric> original) {
+            // unwrapping another Max if present.
+            final List<AggregateMetric> unwraped = new ArrayList<>(original.size());
+            for (final AggregateMetric metric : original) {
+                if (metric instanceof Max) {
+                    unwraped.addAll(((Multiary) metric).metrics);
+                } else {
+                    unwraped.add(metric);
+                }
+            }
+            final List<AggregateMetric> metrics = new ArrayList<>(unwraped.size());
+            // iterating throw metrics and replace all constants with max value.
+            Double max = null;
+            for (final AggregateMetric metric : unwraped) {
+                if (metric instanceof Constant) {
+                    final double value =((Constant) metric).value;
+                    max = (max == null) ? value : Math.max(max, value);
+                } else {
+                    metrics.add(metric);
+                }
+            }
+            if (max != null) {
+                metrics.add(new Constant(max));
+            }
+            if (metrics.isEmpty()) {
+                throw new IllegalStateException("Should not be here!");
+            }
+            if (metrics.size() == 1) {
+                return metrics.get(0);
+            }
+            return new Max(metrics);
+        }
+
 
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
@@ -1656,41 +1710,12 @@ public abstract class AggregateMetric extends AbstractPositional {
         }
 
         @Override
-        public AggregateMetric transform(Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i, Function<GroupBy, GroupBy> groupByFunction) {
-            final List<AggregateMetric> newMetrics = Lists.newArrayListWithCapacity(metrics.size());
-            for (final AggregateMetric metric : metrics) {
-                newMetrics.add(metric.transform(f, g, h, i, groupByFunction));
-            }
-            return f.apply(new Max(newMetrics)).copyPosition(this);
-        }
-
-        @Override
-        public AggregateMetric traverse1(Function<AggregateMetric, AggregateMetric> f) {
-            final List<AggregateMetric> newMetrics = Lists.newArrayListWithCapacity(metrics.size());
-            for (final AggregateMetric metric : metrics) {
-                newMetrics.add(f.apply(metric).copyPosition(metric));
-            }
-            return new Max(newMetrics).copyPosition(this);
-        }
-
-        @Override
         public void validate(Set<String> scope, ValidationHelper validationHelper, ErrorCollector errorCollector) {
-            for (final AggregateMetric metric : metrics) {
-                metric.validate(scope, validationHelper, errorCollector);
-            }
+            super.validate(scope, validationHelper, errorCollector);
 
             if (metrics.size() < 2) {
                 errorCollector.error("MAX requires at least 2 arguments. Did you mean FIELD_MAX()?");
             }
-        }
-
-        @Override
-        public boolean isOrdered() {
-            boolean isOrdered = false;
-            for (final AggregateMetric metric : metrics) {
-                isOrdered |= metric.isOrdered();
-            }
-            return isOrdered;
         }
 
         @Override
