@@ -917,7 +917,8 @@ public class PrettyPrint {
                 sb.append(", ")
                         .append(between.lowerBound).append(", ")
                         .append(between.upperBound)
-                        .append(between.isUpperInclusive ? ']' : ')');
+                        .append(between.isUpperInclusive ? "/*upper inclusive*/" : "/*upper exclusive*/")
+                        .append(')');
                 return null;
             }
 

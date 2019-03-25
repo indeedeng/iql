@@ -274,7 +274,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(new Between(metric, lowerBound, upperBound, isUpperInclusive)).copyPosition(this);
+            return i.apply(new Between(metric.transform(g, i), lowerBound, upperBound, isUpperInclusive)).copyPosition(this);
         }
 
         @Override

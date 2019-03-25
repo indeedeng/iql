@@ -44,8 +44,10 @@ public class PrettyPrintTest {
         Assert.assertEquals("FROM jobsearch yesterday today\nWHERE \nGROUP BY country HAVING term()=\"us\"\nSELECT count()", PrettyPrint.prettyPrint("from jobsearch yesterday today group by country having term()=\"us\" select count()", false, DATASETS_METADATA));
         Assert.assertEquals("FROM jobsearch yesterday today\nWHERE \nGROUP BY country HAVING term()=~\"u.*\"\nSELECT count()", PrettyPrint.prettyPrint("from jobsearch yesterday today group by country having term()=~\"u.*\" select count()", false, DATASETS_METADATA));
         // between differs in Iql1 and Iql2
-        Assert.assertEquals("FROM jobsearch yesterday today\nWHERE (between(oji, 3, 17])\nGROUP BY \nSELECT counts", PrettyPrint.prettyPrint("from jobsearch yesterday today WHERE between(oji, 3, 17) SELECT counts", true, DATASETS_METADATA));
+        Assert.assertEquals("FROM jobsearch yesterday today\nWHERE (between(oji, 3, 17/*upper inclusive*/))\nGROUP BY \nSELECT counts", PrettyPrint.prettyPrint("from jobsearch yesterday today WHERE between(oji, 3, 17) SELECT counts", true, DATASETS_METADATA));
+        Assert.assertEquals("FROM jobsearch yesterday today\nWHERE (between(oji + ojc, 3, 17/*upper inclusive*/))\nGROUP BY \nSELECT counts", PrettyPrint.prettyPrint("from jobsearch yesterday today WHERE between(oji + ojc, 3, 17) SELECT counts", true, DATASETS_METADATA));
         Assert.assertEquals("FROM jobsearch yesterday today\nWHERE between(oji, 3, 17)\nGROUP BY \nSELECT counts", PrettyPrint.prettyPrint("from jobsearch yesterday today WHERE between(oji, 3, 17) SELECT counts", false, DATASETS_METADATA));
+        Assert.assertEquals("FROM jobsearch yesterday today\nWHERE between(oji + ojc, 3, 17)\nGROUP BY \nSELECT counts", PrettyPrint.prettyPrint("from jobsearch yesterday today WHERE between(oji + ojc, 3, 17) SELECT counts", false, DATASETS_METADATA));
     }
 
     @Test
