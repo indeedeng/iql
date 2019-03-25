@@ -18,6 +18,7 @@ import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class FieldInTermsTest extends BasicTest {
@@ -70,5 +71,30 @@ public class FieldInTermsTest extends BasicTest {
         expected.add(ImmutableList.of("a", "4"));
         expected.add(ImmutableList.of("b", "2"));
         QueryServletTestUtils.testAll(expected, "from organic yesterday today group by tk in ('a', \"b\") select count()");
+    }
+
+    @Test
+    public void testGroupByEmptySubset() throws Exception {
+        final String query = "from organic yesterday today group by tk in () select count()";
+        QueryServletTestUtils.testOriginalIQL1(Collections.emptyList(), query);
+
+        // IQL-744
+        QueryServletTestUtils.expectException(
+                query,
+                QueryServletTestUtils.LanguageVersion.IQL1_LEGACY_MODE,
+                s -> s.contains("IqlKnownException$ParseErrorException"));
+        QueryServletTestUtils.expectException(
+                query,
+                QueryServletTestUtils.LanguageVersion.IQL2,
+                s -> s.contains("IqlKnownException$ParseErrorException"));
+    }
+
+    @Test
+    public void testFilterByEmptySubset() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("", "0"));
+        QueryServletTestUtils.testAll(expected, "from organic yesterday today where tk in () select count()");
+
+        QueryServletTestUtils.testAll(Collections.emptyList(), "from organic yesterday today where tk in () group by oji select count()", true);
     }
 }
