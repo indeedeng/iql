@@ -410,8 +410,8 @@ docFilterEof [boolean useLegacy]
     ;
 
 legacyDocFilter
-    : field=identifier '=~' STRING_LITERAL # LegacyDocRegex
-    | field=identifier '!=~' STRING_LITERAL # LegacyDocNotRegex
+    : field=identifier '=~' legacyTermVal # LegacyDocRegex
+    | field=identifier '!=~' legacyTermVal # LegacyDocNotRegex
     | field=identifier '=' legacyTermVal # LegacyDocFieldIs
     | (negate='-')? field=identifier ':' legacyTermVal # LegacyDocLuceneFieldIs
     | field=identifier '!=' legacyTermVal # LegacyDocFieldIsnt

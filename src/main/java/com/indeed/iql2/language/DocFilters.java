@@ -116,8 +116,9 @@ public class DocFilters {
             }
 
             @Override
-            public void enterLegacyDocRegex(JQLParser.LegacyDocRegexContext ctx) {
-                accept(new DocFilter.Regex(fieldResolver.resolve(ctx.field), ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
+            public void enterLegacyDocRegex(final JQLParser.LegacyDocRegexContext ctx) {
+                // TODO: use DocMetrics.hasTermOrThrow after IQL-874 is merged
+                accept(new DocFilter.Regex(fieldResolver.resolve(ctx.field), ParserCommon.unquote(ctx.legacyTermVal().getText())));
             }
 
             @Override
@@ -198,8 +199,9 @@ public class DocFilters {
             }
 
             @Override
-            public void enterLegacyDocNotRegex(JQLParser.LegacyDocNotRegexContext ctx) {
-                accept(new DocFilter.NotRegex(fieldResolver.resolve(ctx.field), ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
+            public void enterLegacyDocNotRegex(final JQLParser.LegacyDocNotRegexContext ctx) {
+                // TODO: use DocMetrics.hasTermOrThrow after IQL-874 is merged
+                accept(new DocFilter.NotRegex(fieldResolver.resolve(ctx.field), ParserCommon.unquote(ctx.legacyTermVal().getText())));
             }
 
             @Override
