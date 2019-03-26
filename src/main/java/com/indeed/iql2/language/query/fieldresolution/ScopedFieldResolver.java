@@ -109,7 +109,7 @@ public class ScopedFieldResolver {
         }
         final Map<String, String> datasetToField = builder.build();
         final FieldType type = fieldType(datasetToField.keySet(), datasetToField::get);
-        return FieldSet.create(builder.build(), restricted, syntacticCtx, type == FieldType.Integer);
+        return FieldSet.create(datasetToField, restricted, syntacticCtx, type == FieldType.Integer);
     }
 
     private FieldSet resolve(final JQLParser.IdentifierContext ctx, final boolean restricted, @Nullable final ParserRuleContext syntacticCtx) {
@@ -199,6 +199,7 @@ public class ScopedFieldResolver {
                 }
 
                 @Override
+                @Nullable
                 public T metric(final DocMetric metric) {
                     final T originalResult = original.metric(metric);
                     if (originalResult == null) {
@@ -379,10 +380,12 @@ public class ScopedFieldResolver {
     }
 
     public static final MetricResolverCallback<DocMetric> PLAIN_DOC_METRIC_CALLBACK = new MetricResolverCallback<DocMetric>() {
+        @Override
         public DocMetric plainFields(final FieldSet fieldSet) {
             return new DocMetric.Field(fieldSet);
         }
 
+        @Override
         public DocMetric metric(final DocMetric metric) {
             return metric;
         }
@@ -395,10 +398,13 @@ public class ScopedFieldResolver {
             this.term = term;
         }
 
+        @Override
         public DocMetric plainFields(final FieldSet fieldSet) {
             return DocMetrics.hasTermOrThrow(fieldSet, term);
         }
 
+        @Override
+        @Nullable
         public DocMetric metric(final DocMetric metric) {
             if (!term.isIntTerm()) {
                 return null;
@@ -418,10 +424,12 @@ public class ScopedFieldResolver {
             this.isUpperIncluded = isUpperIncluded;
         }
 
+        @Override
         public DocFilter plainFields(final FieldSet fieldSet) {
             return new DocFilter.Between(fieldSet, lowerBound, upperBound, isUpperIncluded);
         }
 
+        @Override
         public DocFilter metric(final DocMetric metric) {
             return DocFilter.Between.forMetric(metric, lowerBound, upperBound, isUpperIncluded);
         }
@@ -434,10 +442,13 @@ public class ScopedFieldResolver {
             this.term = term;
         }
 
+        @Override
         public DocFilter plainFields(final FieldSet fieldSet) {
             return DocFilter.FieldIs.create(fieldSet, term);
         }
 
+        @Override
+        @Nullable
         public DocFilter metric(final DocMetric metric) {
             if (!term.isIntTerm()) {
                 return null;
@@ -453,10 +464,13 @@ public class ScopedFieldResolver {
             this.term = term;
         }
 
+        @Override
         public DocFilter plainFields(final FieldSet fieldSet) {
             return DocFilter.FieldIsnt.create(fieldSet, term);
         }
 
+        @Override
+        @Nullable
         public DocFilter metric(final DocMetric metric) {
             if (!term.isIntTerm()) {
                 return null;

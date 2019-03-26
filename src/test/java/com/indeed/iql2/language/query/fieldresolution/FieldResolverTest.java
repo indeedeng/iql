@@ -16,6 +16,7 @@ import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import org.junit.Assert;
 import org.junit.Test;
 
+import javax.annotation.Nullable;
 import java.util.Collections;
 
 import static com.indeed.iql2.language.query.fieldresolution.FieldResolver.FAILED_TO_RESOLVE_DATASET;
@@ -183,9 +184,10 @@ public class FieldResolverTest {
             }
 
             @Override
+            @Nullable
             public DocFilter metric(final DocMetric metric) {
                 Assert.fail("Should not find metric");
-                return failure;
+                return null;
             }
         }));
 
