@@ -14,10 +14,9 @@
 
 package com.indeed.iql2.language.execution.passes;
 
-import com.google.common.collect.Sets;
 import com.indeed.iql2.language.AggregateMetric;
+import com.indeed.iql2.language.Term;
 import com.indeed.iql2.language.execution.ExecutionStep;
-import it.unimi.dsi.fastutil.longs.LongAVLTreeSet;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -25,7 +24,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
-
+import java.util.stream.Collectors;
 
 public class OptimizeLast {
     private OptimizeLast() {
@@ -66,17 +65,13 @@ public class OptimizeLast {
                 final ExecutionStep.GetGroupStats getGroupStats = (ExecutionStep.GetGroupStats) last;
                 if (!explodeFieldIn.withDefault) {
                     final Optional<Set<Long>> intTermSubset;
-                    if (!explodeFieldIn.intTerms.isEmpty()) {
-                        intTermSubset = Optional.of(new LongAVLTreeSet(explodeFieldIn.intTerms));
+                    final Optional<Set<String>> stringTermSubset;
+                    if (explodeFieldIn.field.isIntField()) {
+                        intTermSubset = Optional.of(explodeFieldIn.terms.stream().filter(Term::isIntTerm).map(t -> t.intTerm).collect(Collectors.toSet()));
+                        stringTermSubset = Optional.empty();
                     } else {
                         intTermSubset = Optional.empty();
-                    }
-
-                    final Optional<Set<String>> stringTermSubset;
-                    if (!explodeFieldIn.stringTerms.isEmpty()) {
-                        stringTermSubset = Optional.of(Sets.newTreeSet(explodeFieldIn.stringTerms));
-                    } else {
-                        stringTermSubset = Optional.empty();
+                        stringTermSubset = Optional.of(explodeFieldIn.terms.stream().map(Term::asString).collect(Collectors.toSet()));
                     }
 
                     final List<ExecutionStep> newSteps = new ArrayList<>();

@@ -16,7 +16,6 @@ package com.indeed.iql2.language.query;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.AbstractPositional;
@@ -30,8 +29,6 @@ import com.indeed.iql2.language.TimePeriods;
 import com.indeed.iql2.language.commands.TopK;
 import com.indeed.iql2.language.execution.ExecutionStep;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
-import it.unimi.dsi.fastutil.longs.LongArrayList;
-import it.unimi.dsi.fastutil.longs.LongList;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
@@ -40,7 +37,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public abstract class GroupBy extends AbstractPositional {
     public interface Visitor<T, E extends Throwable> {
@@ -371,14 +367,7 @@ public abstract class GroupBy extends AbstractPositional {
 
         @Override
         public ExecutionStep executionStep(final List<Dataset> datasets) {
-            if (field.isIntField()) {
-                final LongList intTerms = new LongArrayList();
-                terms.stream().filter(Term::isIntTerm).forEach(term -> intTerms.add(term.intTerm));
-                return ExecutionStep.ExplodeFieldIn.intExplode(field, intTerms, withDefault);
-            } else {
-                final List<String> stringTerms = terms.stream().map(Term::asString).collect(Collectors.toList());
-                return ExecutionStep.ExplodeFieldIn.stringExplode(field, stringTerms, withDefault);
-            }
+            return new ExecutionStep.ExplodeFieldIn(field, terms, withDefault);
         }
 
         @Override
