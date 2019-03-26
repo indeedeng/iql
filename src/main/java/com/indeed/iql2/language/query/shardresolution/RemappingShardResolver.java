@@ -10,6 +10,7 @@ import org.joda.time.DateTime;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.PriorityQueue;
@@ -38,22 +39,23 @@ public class RemappingShardResolver implements ShardResolver {
                 remappedShards = remapShardsByNumDocs(initialResults.shards, hostsFromOption);
                 break;
 
-            case MODULO_MAPPING:
+            case SHUFFLE_MAPPING:
             default:
-                remappedShards = remapShardsByModulo(initialResults.shards, hostsFromOption);
+                remappedShards = remapShardsByShuffle(initialResults.shards, hostsFromOption);
                 break;
         }
 
         return new ShardResolutionResult(remappedShards, initialResults.missingShardTimeIntervals);
     }
 
-    private static List<Shard> remapShardsByModulo(final List<Shard> shards, final List<Host> hosts) {
+    private static List<Shard> remapShardsByShuffle(final List<Shard> shards, final List<Host> hosts) {
         Preconditions.checkArgument(!hosts.isEmpty());
 
-        return shards.stream()
-                .map(shard -> {
-                    final int hostIndex = Math.abs(shard.hashCode()) % hosts.size();
-                    return shard.withHost(hosts.get(hostIndex));
+        Collections.shuffle(shards);
+        return IntStream.range(0, shards.size())
+                .mapToObj(shardIndex -> {
+                    final Shard shard = shards.get(shardIndex);
+                    return shard.withHost(hosts.get(shardIndex % hosts.size()));
                 })
                 .collect(Collectors.toList());
     }
