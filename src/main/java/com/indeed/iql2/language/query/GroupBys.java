@@ -41,7 +41,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 public class GroupBys {
     private GroupBys() {
@@ -136,10 +135,7 @@ public class GroupBys {
                     final AggregateFilter filter = AggregateFilters.aggregateInHelper(terms, true);
                     accept(new GroupBy.GroupByField(fieldResolver.resolve(ctx.field), Optional.of(filter), Optional.empty(), ctx.withDefault != null));
                 } else {
-                    final ImmutableSet<Term> terms =
-                            ImmutableSet.<Term>builder()
-                                    .addAll(ctx.terms.stream().map(Term::parseTerm).iterator())
-                                    .build();
+                    final ImmutableSet<Term> terms = ImmutableSet.copyOf(ctx.terms.stream().map(Term::parseTerm).iterator());
                     final boolean withDefault = ctx.withDefault != null;
                     accept(new GroupBy.GroupByFieldIn(fieldResolver.resolve(ctx.field), terms, withDefault));
                 }

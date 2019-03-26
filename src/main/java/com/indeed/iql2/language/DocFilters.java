@@ -68,9 +68,7 @@ public class DocFilters {
                 final FieldSet field = fieldResolver.resolve(ctx.field);
                 final boolean negate = ctx.not != null;
                 final ImmutableSet<Term> terms =
-                        ImmutableSet.<Term>builder()
-                                .addAll(ctx.terms.stream().map(Term::parseLegacyTerm).iterator())
-                                .build();
+                        ImmutableSet.copyOf(ctx.terms.stream().map(Term::parseLegacyTerm).iterator());
                 accept(docInHelper(field, negate, terms));
             }
 
@@ -237,10 +235,7 @@ public class DocFilters {
             public void enterDocFieldIn(final JQLParser.DocFieldInContext ctx) {
                 final FieldSet field = fieldResolver.resolve(ctx.singlyScopedField());
                 final boolean negate = ctx.not != null;
-                final ImmutableSet<Term> terms =
-                        ImmutableSet.<Term>builder()
-                                .addAll(ctx.terms.stream().map(Term::parseJqlTerm).iterator())
-                                .build();
+                final ImmutableSet<Term> terms = ImmutableSet.copyOf(ctx.terms.stream().map(Term::parseJqlTerm).iterator());
                 accept(field.wrap(docInHelper(field, negate, terms)));
             }
 

@@ -400,7 +400,7 @@ public class ScopedFieldResolver {
 
         @Override
         public DocMetric plainFields(final FieldSet fieldSet) {
-            return DocMetrics.hasTermOrThrow(fieldSet, term);
+            return DocMetrics.hasTermMetricOrThrow(fieldSet, term);
         }
 
         @Override

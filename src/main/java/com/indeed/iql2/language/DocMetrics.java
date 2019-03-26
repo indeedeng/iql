@@ -184,7 +184,7 @@ public class DocMetrics {
                 } else {
                     throw new IllegalStateException("Did not handle term value in: " + ctx.getText());
                 }
-                accept(hasTermOrThrow(fieldResolver.resolve(ctx.field), Term.term(term)));
+                accept(hasTermMetricOrThrow(fieldResolver.resolve(ctx.field), Term.term(term)));
             }
 
             @Override
@@ -197,7 +197,7 @@ public class DocMetrics {
                 } else {
                     throw new IllegalStateException("Did not handle term value in: " + ctx.getText());
                 }
-                accept(negateMetric(hasTermOrThrow(fieldResolver.resolve(ctx.field), Term.term(term))));
+                accept(negateMetric(hasTermMetricOrThrow(fieldResolver.resolve(ctx.field), Term.term(term))));
             }
 
             @Override
@@ -216,7 +216,7 @@ public class DocMetrics {
             public void enterLegacyDocMetricAtomHasStringQuoted(JQLParser.LegacyDocMetricAtomHasStringQuotedContext ctx) {
                 final HasTermQuote hasTermQuote = HasTermQuote.create(ctx.STRING_LITERAL().getText());
                 final FieldSet field = fieldResolver.resolveContextless(hasTermQuote.getField());
-                accept(hasTermOrThrow(field, Term.term(hasTermQuote.getTerm())));
+                accept(hasTermMetricOrThrow(field, Term.term(hasTermQuote.getTerm())));
             }
 
             @Override
@@ -460,13 +460,13 @@ public class DocMetrics {
             @Override
             public void enterDocMetricAtomHasntString(JQLParser.DocMetricAtomHasntStringContext ctx) {
                 final FieldSet field = fieldResolver.resolve(ctx.singlyScopedField());
-                accept(field.wrap(negateMetric(hasTermOrThrow(field, Term.term(ParserCommon.unquote(ctx.term.getText()))))));
+                accept(field.wrap(negateMetric(hasTermMetricOrThrow(field, Term.term(ParserCommon.unquote(ctx.term.getText()))))));
             }
 
             @Override
             public void enterDocMetricAtomHasString(JQLParser.DocMetricAtomHasStringContext ctx) {
                 final FieldSet field = fieldResolver.resolve(ctx.singlyScopedField());
-                accept(field.wrap(hasTermOrThrow(field, Term.term(ParserCommon.unquote(ctx.term.getText())))));
+                accept(field.wrap(hasTermMetricOrThrow(field, Term.term(ParserCommon.unquote(ctx.term.getText())))));
             }
 
             @Override
@@ -685,7 +685,7 @@ public class DocMetrics {
         }
     }
 
-    public static DocMetric hasTermOrThrow(final FieldSet field, final Term term) {
+    public static DocMetric hasTermMetricOrThrow(final FieldSet field, final Term term) {
         if (field.isIntField()) {
             if (term.isIntTerm()) {
                 return new DocMetric.HasInt(field, term.intTerm);

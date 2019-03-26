@@ -154,7 +154,7 @@ public abstract class DocFilter extends AbstractPositional {
         @Override
         public DocMetric asZeroOneMetric(final String dataset) {
             // Will not throw if validate succeeded
-            return DocMetrics.hasTermOrThrow(field, term);
+            return DocMetrics.hasTermMetricOrThrow(field, term);
         }
 
         @Override
@@ -1425,31 +1425,17 @@ public abstract class DocFilter extends AbstractPositional {
                 final GroupSupplier groupSupplier) {
             Preconditions.checkState(scope.keySet().equals(field.datasets()));
             if (field.isIntField()) {
-                final boolean allInts = terms.stream().allMatch(Term::isIntTerm);
-                if (allInts) {
-                    final ImmutableSet<Long> intTerms =
-                            ImmutableSet.<Long>builder().addAll(
-                                    terms.stream().map(x -> x.intTerm).iterator()
-                            ).build();
-                    return Collections.singletonList(new IntOrAction(field, intTerms, target, positive, negative));
+                // Some of terms cannot be represented as int.
+                // We did a warning about it in validate
+                final ImmutableSet<Long> intTerms =
+                        ImmutableSet.copyOf(terms.stream().filter(Term::isIntTerm).map(x -> x.intTerm).iterator());
+                if (intTerms.isEmpty()) {
+                    return Collections.singletonList(new UnconditionalAction(ImmutableSet.copyOf(scope.keySet()), target, negative));
                 } else {
-                    // Some of terms cannot be represented as int.
-                    // We did a warning about it in validate
-                    final ImmutableSet<Long> intTerms =
-                            ImmutableSet.<Long>builder().addAll(
-                                    terms.stream().filter(Term::isIntTerm).map(x -> x.intTerm).iterator()
-                            ).build();
-                    if (intTerms.isEmpty()) {
-                        return Collections.singletonList(new UnconditionalAction(ImmutableSet.copyOf(scope.keySet()), target, negative));
-                    } else {
-                        return Collections.singletonList(new IntOrAction(field, intTerms, target, positive, negative));
-                    }
+                    return Collections.singletonList(new IntOrAction(field, intTerms, target, positive, negative));
                 }
             } else {
-                final ImmutableSet<String> stringTerms =
-                        ImmutableSet.<String>builder().addAll(
-                                terms.stream().map(Term::asString).iterator()
-                        ).build();
+                final ImmutableSet<String> stringTerms = ImmutableSet.copyOf(terms.stream().map(Term::asString).iterator());
                 // TODO: Should this care about the keyword analyzer fields?
                 // TODO 2: What does comment above mean?
                 return Collections.singletonList(new StringOrAction(field, stringTerms, target, positive, negative));

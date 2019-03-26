@@ -87,7 +87,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -764,7 +763,7 @@ public class SelectQueryExecution {
         private Set<Term> executeSubquery(
                 final Query q,
                 final int[] totalBytesWritten) {
-            final Set<Term> stringTerms = new HashSet<>();
+            final Set<Term> terms = new HashSet<>();
             timer.push("Execute sub-query", "Execute sub-query: \"" + q + "\"");
             try {
                 final CSVParser csvParser = new CSVParser();
@@ -772,7 +771,7 @@ public class SelectQueryExecution {
                 final SelectExecutionInformation execInfo = new ParsedQueryExecution(false, inputStream, new Consumer<String>() {
                     @Override
                     public void accept(final String s) {
-                        if ((limits.queryInMemoryRowsLimit > 0) && (stringTerms.size() >= limits.queryInMemoryRowsLimit)) {
+                        if ((limits.queryInMemoryRowsLimit > 0) && (terms.size() >= limits.queryInMemoryRowsLimit)) {
                             throw new IqlKnownException.GroupLimitExceededException("Sub query cannot have more than [" + limits.queryInMemoryRowsLimit + "] terms!");
                         }
                         final String term;
@@ -781,7 +780,7 @@ public class SelectQueryExecution {
                         } catch (final IOException e) {
                             throw Throwables.propagate(e);
                         }
-                        stringTerms.add(Term.term(term));
+                        terms.add(Term.term(term));
                     }
                 }, warnings, ResultFormat.CSV, new SessionOpenedOnlyProgressCallback(progressCallback), q, groupLimit, selectQuery, strictCloser).executeParsedQuery();
                 totalBytesWritten[0] += execInfo.imhotepTempBytesWritten;
@@ -790,7 +789,7 @@ public class SelectQueryExecution {
             }
 
             timer.pop();
-            return stringTerms;
+            return terms;
         }
 
         private void finalizeQueryExecution(CountingConsumer<String> countingExternalOutput, SelectExecutionInformation selectExecutionInformation) {
