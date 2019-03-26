@@ -17,6 +17,7 @@ package com.indeed.iql2.language.actions;
 import com.google.common.collect.ImmutableSet;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ErrorMessages;
+import com.indeed.iql2.language.util.ToStringEscapingUtil;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 import lombok.EqualsAndHashCode;
@@ -26,6 +27,7 @@ import lombok.ToString;
 @ToString
 public class StringOrAction implements Action {
     public final FieldSet field;
+    @ToString.Exclude // include termsEscaped instead
     public final ImmutableSet<String> terms;
 
     public final int targetGroup;
@@ -41,7 +43,7 @@ public class StringOrAction implements Action {
     }
 
     @Override
-    public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {
+    public void validate(final ValidationHelper validationHelper, final ErrorCollector errorCollector) {
         for (final String dataset : field.datasets()) {
             final String fieldName = field.datasetFieldName(dataset);
             if (!validationHelper.containsStringField(dataset, fieldName)) {
@@ -59,5 +61,10 @@ public class StringOrAction implements Action {
                 positiveGroup,
                 negativeGroup
         );
+    }
+
+    @ToString.Include(name = "terms")
+    private String termsEscaped() {
+        return ToStringEscapingUtil.escape(terms);
     }
 }
