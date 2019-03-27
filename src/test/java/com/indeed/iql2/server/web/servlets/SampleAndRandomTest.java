@@ -300,4 +300,16 @@ public class SampleAndRandomTest extends BasicTest {
 
         testIQL2(expected, "from countries yesterday today group by random(country, 2000, \"seed\"), country", Options.create(true));
     }
+
+    @Test
+    public void testRandomLimitRejection() throws Exception {
+        runQuery("from countries yesterday today group by random(country, 100000)", LanguageVersion.IQL2, ResultFormat.EVENT_STREAM, Options.create(false), Collections.emptySet());
+        expectException("from countries yesterday today group by random(country, 100001)", LanguageVersion.IQL2, x -> x.contains("Max bucket count for RANDOM() regroup is 100K"));
+    }
+
+    @Test
+    public void testRandomMetricLimitRejection() throws Exception {
+        runQuery("from countries yesterday today group by random(random+5, 100000)", LanguageVersion.IQL2, ResultFormat.EVENT_STREAM, Options.create(false), Collections.emptySet());
+        expectException("from countries yesterday today group by random(random+5, 100001)", LanguageVersion.IQL2, x -> x.contains("Max bucket count for RANDOM() regroup is 100K"));
+    }
 }
