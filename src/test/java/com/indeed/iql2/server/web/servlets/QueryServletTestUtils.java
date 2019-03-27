@@ -89,7 +89,7 @@ public class QueryServletTestUtils extends BasicTest {
                     ImmutableSet.of(QueryOptions.PARANOID),
                     ImmutableSet.of(QueryOptions.Experimental.ASYNC),
                     ImmutableSet.of(QueryOptions.Experimental.ASYNC, QueryOptions.PARANOID),
-                    ImmutableSet.of(QueryOptions.Experimental.BATCH_MODE)
+                    ImmutableSet.of(QueryOptions.Experimental.BATCH)
             );
         }
     }

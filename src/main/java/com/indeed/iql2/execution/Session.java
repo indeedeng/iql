@@ -190,7 +190,7 @@ public class Session {
 
         final boolean requestRust = optionsSet.contains(QueryOptions.USE_RUST_DAEMON);
         final boolean useAsync = optionsSet.contains(QueryOptions.Experimental.ASYNC);
-        final boolean useBatchMode = optionsSet.contains(QueryOptions.Experimental.BATCH_MODE);
+        final boolean useBatchMode = optionsSet.contains(QueryOptions.Experimental.BATCH);
 
         progressCallback.startSession(Optional.of(commands.size()));
         progressCallback.preSessionOpen(datasets);
@@ -331,6 +331,10 @@ public class Session {
             treeTimer.push("build session builder", "build session builder (" + chosenShards.size() + " shards)");
             ImhotepSession build = strictCloser.registerOrClose(sessionBuilder.build());
             treeTimer.pop();
+
+            if (useAsync && useBatchMode) {
+                throw new IllegalStateException("BATCH with ASYNC not supported yet.");
+            }
 
             if (useAsync) {
                 build = ((RemoteImhotepMultiSession) build).toAsync();

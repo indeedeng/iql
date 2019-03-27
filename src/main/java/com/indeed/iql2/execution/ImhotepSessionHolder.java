@@ -253,7 +253,7 @@ public class ImhotepSessionHolder implements Closeable {
         } else if (session instanceof BatchRemoteImhotepSession) {
             return ((BatchRemoteImhotepSession) session).regroupWithRuleSender(sender, errorOnCollisions);
         }
-        throw new IllegalStateException("Must have RemoteImhotepMultiSession or AsynchronousRemoteImhotepMultiSession");
+        throw new IllegalStateException("Must have RemoteImhotepMultiSession or AsynchronousRemoteImhotepMultiSession or BatchRemoteImhotepMultiSession");
     }
 
     public AggregateStatTree aggregateStat(final int index) {
