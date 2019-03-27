@@ -912,12 +912,14 @@ public class PrettyPrint {
 
             @Override
             public Void visit(final DocFilter.Between between) {
+                final long upperBound =
+                        (between.isUpperInclusive && (between.upperBound < Long.MAX_VALUE)) ?
+                        (between.upperBound + 1) : between.upperBound;
                 sb.append("between(");
                 pp(between.metric, consumer, clock);
                 sb.append(", ")
                         .append(between.lowerBound).append(", ")
-                        .append(between.upperBound)
-                        .append(between.isUpperInclusive ? "/*upper inclusive*/" : "/*upper exclusive*/")
+                        .append(upperBound)
                         .append(')');
                 return null;
             }
