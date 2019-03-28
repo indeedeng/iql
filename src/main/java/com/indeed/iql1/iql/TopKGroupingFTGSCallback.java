@@ -80,11 +80,14 @@ public final class TopKGroupingFTGSCallback extends EZImhotepSession.FTGSCallbac
             }
         } else {
             final double headCount = topTerms.peek().getScore();
-            if ((!isBottom && count > headCount) ||
-                    (isBottom && count < headCount) ||
+            final ScoredObject<GroupStats> headObject = topTerms.peek();
+            final ScoredObject<GroupStats> newObjct = getStats(count, group, term);
+            if ((!isBottom && count > headCount ) ||
+                    (isBottom && count < headCount ) ||
+                    (count == headCount && comparator.compare(headObject, newObjct)<0 ) ||
                     (Double.isNaN(headCount) && !Double.isNaN(count))) {
                 topTerms.remove();
-                topTerms.add(getStats(count, group, term));
+                topTerms.add(newObjct);
             }
         }
     }

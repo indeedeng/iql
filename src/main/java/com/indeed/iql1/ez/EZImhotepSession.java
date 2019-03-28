@@ -756,10 +756,13 @@ public class EZImhotepSession implements Closeable {
                 terms.add(new ScoredLong(count, term));
             } else {
                 final double headCount = terms.peek().getScore();
-                if ((!isBottom && count > headCount) ||
-                        (isBottom && count < headCount)) {
+                final ScoredLong headObject = terms.peek();
+                final ScoredLong newObjct = new ScoredLong(count, term);
+                if ((!isBottom && count > headCount ) ||
+                        (isBottom && count < headCount ) ||
+                        ( count == headCount && scoredLongComparator.compare(headObject, newObjct)<0) )  {
                     terms.remove();
-                    terms.add(new ScoredLong(count, term));
+                    terms.add(newObjct);
                 }
             }
         }
@@ -775,10 +778,13 @@ public class EZImhotepSession implements Closeable {
                 terms.add(new ScoredObject<>(count, term));
             } else {
                 final double headCount = terms.peek().getScore();
-                if ((!isBottom && count > headCount) ||
-                        (isBottom && count < headCount)) {
+                final ScoredObject headObject = terms.peek();
+                final ScoredObject newObjct = new ScoredObject<>(count, term);
+                if ((!isBottom && count > headCount ) ||
+                        (isBottom && count < headCount ) ||
+                        ( count == headCount && scoredObjectComparator.compare(headObject, newObjct)<0) ) {
                     terms.remove();
-                    terms.add(new ScoredObject<>(count, term));
+                    terms.add(newObjct);
                 }
             }
         }
