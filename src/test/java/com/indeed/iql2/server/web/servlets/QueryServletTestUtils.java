@@ -86,6 +86,7 @@ public class QueryServletTestUtils extends BasicTest {
             OPTIONS_TO_TEST = ImmutableList.of(ImmutableSet.of());
         } else {
             OPTIONS_TO_TEST = ImmutableList.of(
+                    ImmutableSet.of(),
                     ImmutableSet.of(QueryOptions.PARANOID),
                     ImmutableSet.of(QueryOptions.Experimental.ASYNC),
                     ImmutableSet.of(QueryOptions.Experimental.ASYNC, QueryOptions.PARANOID),
