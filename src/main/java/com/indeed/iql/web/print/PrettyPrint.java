@@ -912,7 +912,15 @@ public class PrettyPrint {
 
             @Override
             public Void visit(final DocFilter.Between between) {
-                pp(between.forMetric(new DocMetric.Field(between.field)), consumer, clock);
+                final long upperBound =
+                        (between.isUpperInclusive && (between.upperBound < Long.MAX_VALUE)) ?
+                        (between.upperBound + 1) : between.upperBound;
+                sb.append("between(");
+                pp(between.metric, consumer, clock);
+                sb.append(", ")
+                        .append(between.lowerBound).append(", ")
+                        .append(upperBound)
+                        .append(')');
                 return null;
             }
 

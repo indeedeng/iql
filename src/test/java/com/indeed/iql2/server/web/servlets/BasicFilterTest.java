@@ -47,7 +47,9 @@ public class BasicFilterTest extends BasicTest {
     public void testBetweenFilters() throws Exception {
         // 'between(...)' is different in Iql1 (upper bound is included) and Iql2 (upper is excluded), so two tests here.
         QueryServletTestUtils.testIQL1(ImmutableList.of(ImmutableList.of("", "134")), "from organic yesterday today where between(oji, 5, 10) SELECT counts");
+        QueryServletTestUtils.testIQL1(ImmutableList.of(ImmutableList.of("", "134")), "from organic yesterday today where between(oji + oji, 10, 20) SELECT counts");
         QueryServletTestUtils.testIQL2(ImmutableList.of(ImmutableList.of("", "5")), "from organic yesterday today where between(oji, 5, 10) SELECT counts");
+        QueryServletTestUtils.testIQL2(ImmutableList.of(ImmutableList.of("", "5")), "from organic yesterday today where between(oji + oji, 10, 20) SELECT counts");
     }
 
     @Test

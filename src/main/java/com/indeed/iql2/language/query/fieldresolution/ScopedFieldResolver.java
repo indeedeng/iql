@@ -388,26 +388,6 @@ public class ScopedFieldResolver {
         }
     }
 
-    public static class BetweenCallback implements MetricResolverCallback<DocFilter> {
-        private final long lowerBound;
-        private final long upperBound;
-        private final boolean isUpperIncluded;
-
-        public BetweenCallback(final long lowerBound, final long upperBound, final boolean isUpperIncluded) {
-            this.lowerBound = lowerBound;
-            this.upperBound = upperBound;
-            this.isUpperIncluded = isUpperIncluded;
-        }
-
-        public DocFilter plainFields(final FieldSet fieldSet) {
-            return new DocFilter.Between(fieldSet, lowerBound, upperBound, isUpperIncluded);
-        }
-
-        public DocFilter metric(final DocMetric metric) {
-            return DocFilter.Between.forMetric(metric, lowerBound, upperBound, isUpperIncluded);
-        }
-    }
-
     public static class FieldIsCallback implements MetricResolverCallback<DocFilter> {
         private final Term term;
 

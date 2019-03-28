@@ -260,62 +260,63 @@ public abstract class DocFilter extends AbstractPositional {
     @EqualsAndHashCode(callSuper = false)
     @ToString
     public static class Between extends DocFilter {
-        public final FieldSet field;
+        public final DocMetric metric;
         public final long lowerBound;
         public final long upperBound;
         public final boolean isUpperInclusive;
 
-        public Between(final FieldSet field, final long lowerBound, final long upperBound, final boolean isUpperInclusive) {
-            this.field = field;
+        public Between(final DocMetric metric, final long lowerBound, final long upperBound, final boolean isUpperInclusive) {
+            this.metric = metric;
             this.lowerBound = lowerBound;
             this.upperBound = upperBound;
             this.isUpperInclusive = isUpperInclusive;
         }
 
-        public DocFilter forMetric(final DocMetric metric) {
-            return forMetric(metric, lowerBound, upperBound, isUpperInclusive);
-        }
-
-        public static DocFilter forMetric(
-                final DocMetric metric,
-                final long lower,
-                final long upper,
-                final boolean includeUpper) {
-            final DocFilter lowerCondition = new MetricGte(metric, new DocMetric.Constant(lower));
-            final DocFilter upperCondition = includeUpper ?
-                    new MetricLte(metric, new DocMetric.Constant(upper)) :
-                    new MetricLt(metric, new DocMetric.Constant(upper));
-            return And.create(lowerCondition, upperCondition);
-        }
-
         @Override
         public DocFilter transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return i.apply(new Between(field, lowerBound, upperBound, isUpperInclusive)).copyPosition(this);
+            return i.apply(new Between(metric.transform(g, i), lowerBound, upperBound, isUpperInclusive)).copyPosition(this);
         }
 
         @Override
         public DocMetric asZeroOneMetric(final String dataset) {
-            return forMetric(new DocMetric.Field(field)).asZeroOneMetric(dataset);
+            final DocFilter lowerCondition = new MetricGte(metric, new DocMetric.Constant(lowerBound));
+            final DocFilter upperCondition = isUpperInclusive ?
+                    new MetricLte(metric, new DocMetric.Constant(upperBound)) :
+                    new MetricLt(metric, new DocMetric.Constant(upperBound));
+            final DocFilter between = And.create(lowerCondition, upperCondition);
+
+            return between.asZeroOneMetric(dataset);
         }
 
         @Override
-        public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
-            Preconditions.checkState(scope.keySet().equals(field.datasets()));
-            final Map<String, Query> datasetToQuery = new HashMap<>();
-            for (final String dataset : field.datasets()) {
-                datasetToQuery.put(dataset, Query.newRangeQuery(field.datasetFieldName(dataset), lowerBound, upperBound, isUpperInclusive));
+        public List<Action> getExecutionActions(
+                final Map<String, String> scope,
+                final int target,
+                final int positive,
+                final int negative,
+                final GroupSupplier groupSupplier) {
+            if (metric instanceof DocMetric.Field) {
+                // Quite frequent case. And it's possible to process it more optimal than metricFilter
+                final FieldSet field = ((DocMetric.Field) metric).field;
+                Preconditions.checkState(scope.keySet().equals(field.datasets()));
+                final Map<String, Query> datasetToQuery = new HashMap<>();
+                for (final String dataset : field.datasets()) {
+                    datasetToQuery.put(dataset, Query.newRangeQuery(field.datasetFieldName(dataset), lowerBound, upperBound, isUpperInclusive));
+                }
+                return Collections.singletonList(new QueryAction(datasetToQuery, target, positive, negative));
+            } else {
+                return Collections.singletonList(new MetricAction(ImmutableSet.copyOf(scope.keySet()), this, target, positive, negative));
             }
-            return Collections.singletonList(new QueryAction(datasetToQuery, target, positive, negative));
         }
 
         @Override
-        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+        public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
         }
 
         @Override
-        public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
-            ValidationUtil.validateIntField(ImmutableSet.of(dataset), field.datasetFieldName(dataset), validationHelper, errorCollector, this);
+        public void validate(final String dataset, final ValidationHelper validationHelper, final ErrorCollector errorCollector) {
+            metric.validate(dataset, validationHelper, errorCollector);
         }
     }
 

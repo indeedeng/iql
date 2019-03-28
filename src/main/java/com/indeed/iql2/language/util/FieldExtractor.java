@@ -169,7 +169,7 @@ public class FieldExtractor {
 
 			@Override
 			public Set<DatasetField> visit(final DocFilter.Between between) {
-				return between.field.datasetFields();
+				return getDatasetFields(between.metric);
 			}
 
 			@Override
