@@ -538,7 +538,7 @@ public class Session {
         return Ordering.natural().min(sessions.values().stream().map(s -> s.startTime.getMillis()).iterator());
     }
 
-    public int performTimeRegroup(
+    public long performTimeRegroup(
             final long start,
             final long end,
             final long unitSize,
@@ -548,7 +548,7 @@ public class Session {
         timer.push("performTimeRegroup");
         final int oldNumGroups = numGroups;
         // TODO: Parallelize
-        final int maxPossibleGroups = (int) (oldNumGroups * Math.ceil(((double) end - start) / unitSize));
+        final long maxPossibleGroups = (long) (oldNumGroups * Math.ceil(((double) end - start) / unitSize));
         int newNumGroups = 0;
         for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
             timer.push("session", "session:" + sessionInfo.displayName);
@@ -683,17 +683,18 @@ public class Session {
         return new PerGroupConstant(stats);
     }
 
-    public void checkGroupLimitWithoutLog(int numGroups) {
-        if (groupLimit > 0 && numGroups > groupLimit) {
+    public void checkGroupLimitWithoutLog(final long numGroups) {
+        if ((groupLimit > 0) && (numGroups > groupLimit)) {
             throw new IqlKnownException.GroupLimitExceededException("Number of groups [" + numGroups + "] exceeds the group limit [" + groupLimit + "]");
         }
     }
 
-    public void checkGroupLimit(int numGroups) {
-        if (groupLimit > 0 && numGroups > groupLimit) {
+    public int checkGroupLimit(final long numGroups) {
+        if ((groupLimit > 0) && (numGroups > groupLimit)) {
             throw new IqlKnownException.GroupLimitExceededException("Number of groups [" + numGroups + "] exceeds the group limit [" + groupLimit + "]");
         }
         log.debug("checkGroupLimit(" + numGroups + ")");
+        return (int) numGroups;
     }
 
     public SingleFieldRegroupTools.SingleFieldRulesBuilder createRuleBuilder(
