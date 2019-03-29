@@ -64,12 +64,12 @@ public class ConstantFoldingTest {
                                                 new Count()
                                         )
                                 ),
-                                new Max( // 1
-                                        new Min( // 1
+                                Max.create( // 1
+                                        Min.create( // 1
                                                 constant(1),
                                                 constant(2)
                                         ),
-                                        new Min(// 0
+                                        Min.create(// 0
                                                 constant(0),
                                                 constant(3)
                                         )
@@ -215,14 +215,14 @@ public class ConstantFoldingTest {
     public void testMinMax() {
         testFolding(
                 constant(1),
-                new Min(
+                Min.create(
                         constant(10),
                         constant(1)
                 )
         );
         testFolding(
                 constant(10),
-                new Max(
+                Max.create(
                         constant(10),
                         constant(1)
                 )

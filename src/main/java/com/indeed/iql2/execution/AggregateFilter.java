@@ -154,10 +154,10 @@ public interface AggregateFilter extends Pushable {
     }
 
     // Base class for operations on multiple AggregateFilters
-    abstract class Multiple implements AggregateFilter {
+    abstract class Multiary implements AggregateFilter {
         protected final List<AggregateFilter> filters;
 
-        protected Multiple(final List<AggregateFilter> filters) {
+        protected Multiary(final List<AggregateFilter> filters) {
             if (filters.size() < 2) {
                 throw new IllegalArgumentException("2 or more filters expected");
             }
@@ -539,7 +539,7 @@ public interface AggregateFilter extends Pushable {
         }
     }
 
-    class And extends Multiple {
+    class And extends Multiary {
         private And(final List<AggregateFilter> filters) {
             super(filters);
         }
@@ -559,7 +559,7 @@ public interface AggregateFilter extends Pushable {
         }
     }
 
-    class Or extends Multiple {
+    class Or extends Multiary {
         private Or(final List<AggregateFilter> filters) {
             super(filters);
         }

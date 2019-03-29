@@ -351,8 +351,8 @@ legacyDocMetric
     | SIGNUM '(' legacyDocMetric ')' # LegacyDocSignum
     | LOG '(' legacyDocMetric (',' scaleFactor = integer)? ')' # LegacyDocLog
     | EXP '(' legacyDocMetric (',' scaleFactor = integer)? ')' # LegacyDocExp
-    | MIN '(' arg1=legacyDocMetric ',' arg2=legacyDocMetric ')' # LegacyDocMin
-    | MAX '(' arg1=legacyDocMetric ',' arg2=legacyDocMetric ')' # LegacyDocMax
+    | MIN '(' metrics+=legacyDocMetric (',' metrics += legacyDocMetric)* ')' # LegacyDocMin
+    | MAX '(' metrics+=legacyDocMetric (',' metrics += legacyDocMetric)* ')' # LegacyDocMax
     | '-' legacyDocMetric # LegacyDocNegate
     | legacyDocMetric (multiply='*'|divide='\\'|modulus='%') legacyDocMetric # LegacyDocMultOrDivideOrModulus
     | legacyDocMetric (plus='+'|minus='-') legacyDocMetric # LegacyDocPlusOrMinus

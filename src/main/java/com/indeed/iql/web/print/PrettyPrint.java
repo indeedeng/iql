@@ -559,13 +559,13 @@ public class PrettyPrint {
                 throw new UnsupportedOperationException("What even is this operation?: " + isDefaultGroup);
             }
 
-            private Void visit(final AggregateFilter.Multiple multiple, final String op) {
-                for (int i = 0; i < multiple.filters.size(); i++) {
+            private Void visit(final AggregateFilter.Multiary multiary, final String op) {
+                for (int i = 0; i < multiary.filters.size(); i++) {
                     if (i > 0) {
                         sb.append(' ').append(op).append(' ');
                     }
                     sb.append('(');
-                    pp(multiple.filters.get(i), consumer, clock);
+                    pp(multiary.filters.get(i), consumer, clock);
                     sb.append(')');
                 }
                 return null;
@@ -1082,12 +1082,12 @@ public class PrettyPrint {
                 return null;
             }
 
-            private Void visit(final DocFilter.Multiple multiple, final String op) {
-                for (int i = 0; i < multiple.filters.size(); i++) {
+            private Void visit(final DocFilter.Multiary multiary, final String op) {
+                for (int i = 0; i < multiary.filters.size(); i++) {
                     if (i > 0) {
                         sb.append(' ').append(op).append(' ');
                     }
-                    pp(multiple.filters.get(i), consumer, clock);
+                    pp(multiary.filters.get(i), consumer, clock);
                 }
                 return null;
             }
@@ -1184,12 +1184,7 @@ public class PrettyPrint {
             @Override
             public Void visit(final DocMetric.Add add) {
                 sb.append('(');
-                for (int i = 0; i < add.metrics.size(); i++) {
-                    if (i > 0) {
-                        sb.append(" + ");
-                    }
-                    pp(add.metrics.get(i), consumer, clock);
-                }
+                pp(add.metrics, " + ", consumer, clock);
                 sb.append(')');
                 return null;
             }
@@ -1217,9 +1212,7 @@ public class PrettyPrint {
             @Override
             public Void visit(DocMetric.Min min) {
                 sb.append("min(");
-                pp(min.m1, consumer, clock);
-                sb.append(", ");
-                pp(min.m2, consumer, clock);
+                pp(min.metrics, ", ", consumer, clock);
                 sb.append(")");
                 return null;
             }
@@ -1227,9 +1220,7 @@ public class PrettyPrint {
             @Override
             public Void visit(DocMetric.Max max) {
                 sb.append("max(");
-                pp(max.m1, consumer, clock);
-                sb.append(", ");
-                pp(max.m2, consumer, clock);
+                pp(max.metrics, ", ", consumer, clock);
                 sb.append(")");
                 return null;
             }
@@ -1444,6 +1435,15 @@ public class PrettyPrint {
             sb.append(term.intTerm);
         } else {
             sb.append('"').append(stringEscape(term.stringTerm)).append('"');
+        }
+    }
+
+    private void pp(final List<DocMetric> metrics, final String delimiter, Consumer<String> consumer, WallClock clock) {
+        for (int i = 0; i < metrics.size(); i++) {
+            if (i > 0) {
+                sb.append(delimiter);
+            }
+            pp(metrics.get(i), consumer, clock);
         }
     }
 }

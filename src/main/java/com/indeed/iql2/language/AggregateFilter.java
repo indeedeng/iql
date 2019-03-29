@@ -493,10 +493,10 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
     }
 
-    public abstract static class Multiple extends AggregateFilter {
+    public abstract static class Multiary extends AggregateFilter {
         public final List<AggregateFilter> filters;
 
-        protected Multiple(final List<AggregateFilter> filters) {
+        protected Multiary(final List<AggregateFilter> filters) {
             this.filters = filters;
         }
 
@@ -550,7 +550,7 @@ public abstract class AggregateFilter extends AbstractPositional {
             if (o == null || getClass() != o.getClass()) {
                 return false;
             }
-            final Multiple other = (Multiple) o;
+            final Multiary other = (Multiary) o;
             if (filters.size() != other.filters.size()) {
                 return false;
             }
@@ -586,7 +586,7 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
     }
 
-    public static class And extends Multiple {
+    public static class And extends Multiary {
         private And(final List<AggregateFilter> filters) {
             super(filters);
         }
@@ -645,7 +645,7 @@ public abstract class AggregateFilter extends AbstractPositional {
         }
     }
 
-    public static class Or extends Multiple {
+    public static class Or extends Multiary {
 
         private Or(final List<AggregateFilter> filters) {
             super(filters);
