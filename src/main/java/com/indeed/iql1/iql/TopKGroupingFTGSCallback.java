@@ -79,15 +79,13 @@ public final class TopKGroupingFTGSCallback extends EZImhotepSession.FTGSCallbac
                         ". Please simplify the query.");
             }
         } else {
-            final double headCount = topTerms.peek().getScore();
             final ScoredObject<GroupStats> headObject = topTerms.peek();
-            final ScoredObject<GroupStats> newObjct = getStats(count, group, term);
-            if ((!isBottom && count > headCount ) ||
-                    (isBottom && count < headCount ) ||
-                    (count == headCount && comparator.compare(headObject, newObjct)<0 ) ||
-                    (Double.isNaN(headCount) && !Double.isNaN(count))) {
+            final double headCount = headObject.getScore();
+            if ((!isBottom && ( count > headCount || ( count == headCount && term.compareTo(headObject.getObject().getGroupKey().getLastInserted()) < 0  ) ) ||
+                    (isBottom && ( count < headCount || (count == headCount && term.compareTo(headObject.getObject().getGroupKey().getLastInserted()) > 0 ) ) ) )  ||
+                    (Double.isNaN(headCount) && !Double.isNaN(count)) ) {
                 topTerms.remove();
-                topTerms.add(newObjct);
+                topTerms.add(getStats(count, group, term));
             }
         }
     }

@@ -755,14 +755,12 @@ public class EZImhotepSession implements Closeable {
             if (terms.size() < k) {
                 terms.add(new ScoredLong(count, term));
             } else {
-                final double headCount = terms.peek().getScore();
                 final ScoredLong headObject = terms.peek();
-                final ScoredLong newObjct = new ScoredLong(count, term);
-                if ((!isBottom && count > headCount ) ||
-                        (isBottom && count < headCount ) ||
-                        ( count == headCount && scoredLongComparator.compare(headObject, newObjct)<0) )  {
+                final double headCount = headObject.getScore();
+                if ((!isBottom && ( count > headCount || ( count == headCount && Long.compare(term, headObject.getValue()) < 0 ) ) ) ||
+                        (isBottom && ( count < headCount || ( count == headCount && Long.compare(headObject.getValue(), term) < 0 ) ) ) ) {
                     terms.remove();
-                    terms.add(newObjct);
+                    terms.add(new ScoredLong(count, term));
                 }
             }
         }
@@ -779,12 +777,10 @@ public class EZImhotepSession implements Closeable {
             } else {
                 final double headCount = terms.peek().getScore();
                 final ScoredObject headObject = terms.peek();
-                final ScoredObject newObjct = new ScoredObject<>(count, term);
-                if ((!isBottom && count > headCount ) ||
-                        (isBottom && count < headCount ) ||
-                        ( count == headCount && scoredObjectComparator.compare(headObject, newObjct)<0) ) {
+                if ((!isBottom && ( count > headCount || ( count == headCount && Comparator.<String>reverseOrder().compare((String)headObject.getObject(), term) < 0 ) ) ) ||
+                        (isBottom && ( count < headCount || ( count == headCount && -Comparator.<String>reverseOrder().compare((String)headObject.getObject(), term) < 0 ) ) ) ) {
                     terms.remove();
-                    terms.add(newObjct);
+                    terms.add(new ScoredObject<>(count, term));
                 }
             }
         }
