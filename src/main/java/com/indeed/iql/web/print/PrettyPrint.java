@@ -1404,9 +1404,9 @@ public class PrettyPrint {
 
     private void pp(final Term term) {
         if (term.isSafeAsInt()) {
-            sb.append(term.intTerm);
+            sb.append(term.getIntTerm());
         } else {
-            sb.append('"').append(stringEscape(term.stringTerm)).append('"');
+            sb.append('"').append(stringEscape(term.asString())).append('"');
         }
     }
 

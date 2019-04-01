@@ -67,7 +67,7 @@ public class OptimizeLast {
                     final Optional<Set<Long>> intTermSubset;
                     final Optional<Set<String>> stringTermSubset;
                     if (explodeFieldIn.field.isIntField()) {
-                        intTermSubset = Optional.of(explodeFieldIn.terms.stream().filter(Term::isIntTerm).map(t -> t.intTerm).collect(Collectors.toSet()));
+                        intTermSubset = Optional.of(explodeFieldIn.terms.stream().filter(Term::isIntTerm).map(Term::getIntTerm).collect(Collectors.toSet()));
                         stringTermSubset = Optional.empty();
                     } else {
                         intTermSubset = Optional.empty();

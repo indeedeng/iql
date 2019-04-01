@@ -688,7 +688,7 @@ public class DocMetrics {
     public static DocMetric hasTermMetricOrThrow(final FieldSet field, final Term term) {
         if (field.isIntField()) {
             if (term.isIntTerm()) {
-                return new DocMetric.HasInt(field, term.intTerm);
+                return new DocMetric.HasInt(field, term.getIntTerm());
             } else {
                 throw new IqlKnownException.ParseErrorException(ErrorMessages.intFieldWithStringTerm(field, term));
             }

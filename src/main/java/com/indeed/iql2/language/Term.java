@@ -42,8 +42,8 @@ import java.util.Comparator;
 @EqualsAndHashCode
 @ToString
 public class Term {
-    public final String stringTerm;
-    public final long intTerm;
+    private final String stringTerm;
+    private final long intTerm;
     private final boolean isIntTerm;
 
     private Term(final String stringTerm, final long intTerm, final boolean isIntTerm) {
@@ -78,6 +78,10 @@ public class Term {
 
     public boolean isIntTerm() {
         return isIntTerm;
+    }
+
+    public long getIntTerm() {
+        return intTerm;
     }
 
     public boolean isSafeAsInt() {

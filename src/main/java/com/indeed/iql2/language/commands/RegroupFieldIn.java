@@ -67,7 +67,7 @@ public class RegroupFieldIn implements Command {
             final List<String> options) {
         if (field.isIntField()) {
             final LongList intTerms = new LongArrayList(
-                    terms.stream().filter(Term::isIntTerm).map(t -> t.intTerm).iterator());
+                    terms.stream().filter(Term::isIntTerm).map(Term::getIntTerm).iterator());
             return new IntRegroupFieldIn(field, intTerms, withDefault);
         } else {
             final List<String> stringTerms = terms.stream().map(Term::asString).collect(Collectors.toList());

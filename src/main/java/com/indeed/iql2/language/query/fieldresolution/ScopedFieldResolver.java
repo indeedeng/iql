@@ -409,7 +409,7 @@ public class ScopedFieldResolver {
             if (!term.isIntTerm()) {
                 return null;
             }
-            return new DocMetric.MetricEqual(metric, new DocMetric.Constant(term.intTerm));
+            return new DocMetric.MetricEqual(metric, new DocMetric.Constant(term.getIntTerm()));
         }
     }
 
@@ -453,7 +453,7 @@ public class ScopedFieldResolver {
             if (!term.isIntTerm()) {
                 return null;
             }
-            return new DocFilter.MetricEqual(metric, new DocMetric.Constant(term.intTerm));
+            return new DocFilter.MetricEqual(metric, new DocMetric.Constant(term.getIntTerm()));
         }
     }
 
@@ -475,7 +475,7 @@ public class ScopedFieldResolver {
             if (!term.isIntTerm()) {
                 return null;
             }
-            return new DocFilter.MetricNotEqual(metric, new DocMetric.Constant(term.intTerm));
+            return new DocFilter.MetricNotEqual(metric, new DocMetric.Constant(term.getIntTerm()));
         }
     }
 }

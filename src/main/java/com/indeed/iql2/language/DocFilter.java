@@ -1428,7 +1428,7 @@ public abstract class DocFilter extends AbstractPositional {
                 // Some of terms cannot be represented as int.
                 // We did a warning about it in validate
                 final ImmutableSet<Long> intTerms =
-                        ImmutableSet.copyOf(terms.stream().filter(Term::isIntTerm).map(x -> x.intTerm).iterator());
+                        ImmutableSet.copyOf(terms.stream().filter(Term::isIntTerm).map(Term::getIntTerm).iterator());
                 if (intTerms.isEmpty()) {
                     return Collections.singletonList(new UnconditionalAction(ImmutableSet.copyOf(scope.keySet()), target, negative));
                 } else {
