@@ -43,7 +43,6 @@ import com.indeed.imhotep.io.RequestTools;
 import com.indeed.imhotep.io.SingleFieldRegroupTools;
 import com.indeed.imhotep.metrics.aggregate.AggregateStatTree;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
-import com.indeed.imhotep.StrictCloser;
 import com.indeed.imhotep.protobuf.StatsSortOrder;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetMetadata;
@@ -869,30 +868,23 @@ public class Session {
         timer.pop();
     }
 
-    public long[] getSimpleDistinct(final String field, final String scope) {
+    public long[] getSimpleDistinct(final FieldSet.SingleField field) {
         final long[] result = new long[numGroups+1];
-        if (!sessions.containsKey(scope)) {
+        final String dataset = field.getOnlyDataset();
+        if (!sessions.containsKey(dataset)) {
             return result; // or error?
         }
 
-        final ImhotepSessionInfo info = sessions.get(scope);
+        final ImhotepSessionInfo info = sessions.get(dataset);
         final ImhotepSessionHolder session = info.session;
-        final boolean isIntField;
-        if (info.intFields.contains(field)) {
-            isIntField = true;
-        } else if (info.stringFields.contains(field)) {
-            isIntField = false;
-        } else {
-            return result; // or error?
-        }
         timer.push("getSimpleDistinct", "getSimpleDistinct session:" + info.displayName);
-        try (final GroupStatsIterator iterator = session.getDistinct(field, isIntField)) {
+        try (final GroupStatsIterator iterator = session.getDistinct(field.getOnlyField(), field.isIntField())) {
             timer.pop();
             final int size = Math.min(iterator.getNumGroups(), result.length);
             for (int i = 0; i < size; i++) {
                 result[i] += iterator.nextLong();
             }
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw Throwables.propagate(e);
         }
         return result;

@@ -4,7 +4,6 @@ import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 import com.indeed.iql2.language.AbstractPositional;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocFilter;
@@ -23,46 +22,72 @@ import java.util.stream.Collectors;
  */
 public class FieldSet extends AbstractPositional {
     private final Map<String, String> datasetToField;
+    private final boolean isIntField;
 
     // Whether this fieldset was parsed from something that explicitly restricted it further to
     // a (potentially) smaller scope.
     // Only affects wrap() calls. Does not affect equality. Internal state kind of thing.
     private final boolean restricted;
 
-    public FieldSet(
+    private FieldSet(
             final Map<String, String> datasetToField,
             final boolean restricted,
-            @Nullable final ParserRuleContext ctx
+            @Nullable final ParserRuleContext ctx,
+            final boolean isIntField
     ) {
         this.datasetToField = ImmutableMap.copyOf(datasetToField);
         this.restricted = restricted;
         if (ctx != null) {
             copyPosition(ctx);
         }
+        this.isIntField = isIntField;
     }
 
-    public static FieldSet of(final String dataset, final String field) {
-        return new FieldSet(ImmutableMap.of(dataset, field), false, null);
+    public static FieldSet create(
+            final Map<String, String> datasetToField,
+            final boolean restricted,
+            @Nullable final ParserRuleContext ctx,
+            final boolean isIntField
+    ) {
+        if (datasetToField.size() == 1) {
+            final String onlyDataset = Iterables.getOnlyElement(datasetToField.keySet());
+            return new SingleField(onlyDataset, datasetToField.get(onlyDataset), restricted, ctx, isIntField);
+        }
+        return new FieldSet(datasetToField, restricted, ctx, isIntField);
     }
 
-    public static FieldSet of(final String ds1, final String f1, final String ds2, final String f2) {
-        return new FieldSet(
+    public static FieldSet of(final String dataset, final String field, final boolean isIntField) {
+        return create(ImmutableMap.of(dataset, field), false, null, isIntField);
+    }
+
+    public static FieldSet of(final String ds1, final String f1, final String ds2, final String f2, final boolean isIntField) {
+        return create(
                 ImmutableMap.of(ds1, f1, ds2, f2),
                 false,
-                null
+                null,
+                isIntField
         );
     }
 
-    public static FieldSet of(final String ds1, final String f1, final String ds2, final String f2, final String ds3, final String f3) {
-        return new FieldSet(
+    public static FieldSet of(final String ds1, final String f1, final String ds2, final String f2, final String ds3, final String f3, final boolean isIntField) {
+        return create(
                 ImmutableMap.of(ds1, f1, ds2, f2, ds3, f3),
                 false,
-                null
+                null,
+                isIntField
         );
+    }
+
+    public boolean isIntField() {
+        return isIntField;
     }
 
     public Set<String> datasets() {
         return datasetToField.keySet();
+    }
+
+    public String getOnlyDataset() {
+        return Iterables.getOnlyElement(datasetToField.keySet());
     }
 
     public String getOnlyField() {
@@ -81,9 +106,9 @@ public class FieldSet extends AbstractPositional {
         return field;
     }
 
-    public FieldSet subset(final Set<String> newDatasets) {
-        Preconditions.checkArgument(datasetToField.keySet().containsAll(newDatasets));
-        return new FieldSet(Maps.filterKeys(datasetToField, newDatasets::contains), true, null);
+    public SingleField subset(final String newDataset) {
+        Preconditions.checkArgument(datasetToField.keySet().contains(newDataset));
+        return new SingleField(newDataset, datasetToField.get(newDataset), true, null, isIntField);
     }
 
     public Set<FieldExtractor.DatasetField> datasetFields() {
@@ -129,16 +154,32 @@ public class FieldSet extends AbstractPositional {
             return false;
         }
         final FieldSet fieldSet = (FieldSet) o;
-        return Objects.equal(datasetToField, fieldSet.datasetToField);
+        return Objects.equal(datasetToField, fieldSet.datasetToField) && (isIntField == fieldSet.isIntField);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(datasetToField);
+        return Objects.hashCode(datasetToField, isIntField);
     }
 
     @Override
     public String toString() {
-        return datasetToField.toString();
+        return "FieldSet{" +
+                "datasetToField=" + datasetToField +
+                ", isIntField=" + isIntField +
+                '}';
+    }
+
+    // Special case for one dataset, one field name.
+    // It's ok to subclass FieldSet since it's immutable.
+    public static class SingleField extends FieldSet {
+        public SingleField(
+                final String dataset,
+                final String field,
+                final boolean restricted,
+                @Nullable final ParserRuleContext ctx,
+                final boolean isIntField) {
+            super(ImmutableMap.of(dataset, field), restricted, ctx, isIntField);
+        }
     }
 }

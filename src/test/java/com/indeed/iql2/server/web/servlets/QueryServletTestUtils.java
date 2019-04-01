@@ -333,8 +333,8 @@ public class QueryServletTestUtils extends BasicTest {
     static void testWarning(List<String> expectedWarnings, String query, LanguageVersion version, final Options options) throws Exception {
         final ImhotepClient client = options.dataset.getNormalClient();
         final JsonNode header = getQueryHeader(client, query, version, options);
-        if (expectedWarnings.isEmpty()) {
-            Assert.assertNull(header.get("IQL-Warning"));
+        if (header.get("IQL-Warning") == null) {
+            Assert.assertTrue(expectedWarnings.isEmpty());
         } else {
             expectedWarnings = expectedWarnings.stream().map(s -> "[\"" + s + "\"]").collect(Collectors.toList());
             Assert.assertArrayEquals(expectedWarnings.toArray(new String[expectedWarnings.size()]), header.get("IQL-Warning").textValue().split("\n"));

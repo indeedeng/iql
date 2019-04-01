@@ -129,7 +129,7 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
                 namedFilters.put(computation.getSecond(), new FilterInfo(filter, 1));
             } else if (command instanceof GetSimpleGroupDistincts) {
                 final GetSimpleGroupDistincts distinct = (GetSimpleGroupDistincts) command;
-                fields.add(FieldSet.of(distinct.scope, distinct.field));
+                fields.add(distinct.field);
                 namedFilters.put(computation.getSecond(), new FilterInfo(new AggregateFilter.Constant(true), 1));
             } else if (command instanceof GetGroupDistinctsWindowed) {
                 final GetGroupDistinctsWindowed distinct = (GetGroupDistinctsWindowed) command;

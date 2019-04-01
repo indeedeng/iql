@@ -14,6 +14,7 @@
 
 package com.indeed.iql2.language;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -1151,18 +1152,16 @@ public abstract class DocMetric extends AbstractPositional {
     public static class HasString extends DocMetric {
         public final FieldSet field;
         public final String term;
-        // In legacy mode it's legal to have 'hasstr(intField, "string")' so we need validate it differently
-        private final boolean strictValidate;
 
-        public HasString(final FieldSet field, final String term, final boolean strictValidate) {
+        public HasString(final FieldSet field, final String term) {
+            Preconditions.checkState(!field.isIntField());
             this.field = field;
             this.term = term;
-            this.strictValidate = strictValidate;
         }
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return g.apply(new HasString(field, term, strictValidate)).copyPosition(this);
+            return g.apply(new HasString(field, term)).copyPosition(this);
         }
 
         @Override
@@ -1178,10 +1177,7 @@ public abstract class DocMetric extends AbstractPositional {
         @Override
         public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
             final String fieldName = field.datasetFieldName(dataset);
-            final boolean missingField =
-                    !validationHelper.containsField(dataset, fieldName) ||
-                    (strictValidate && !validationHelper.containsStringField(dataset, fieldName));
-            if (missingField) {
+            if (!validationHelper.containsStringField(dataset, fieldName)) {
                 errorCollector.error(ErrorMessages.missingStringField(dataset, fieldName, this));
             }
         }

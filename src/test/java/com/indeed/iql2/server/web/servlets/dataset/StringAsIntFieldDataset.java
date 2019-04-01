@@ -18,6 +18,7 @@ public class StringAsIntFieldDataset {
                             .addIntTerm("id", i)
                             .addStringTerm("page", ((i % 2) == 0) ? "0" : "1")
                             .addStringTerm("vp", ((i % 2) == 0) ? "0" : "1")
+                            .addStringTerm("leadingZeroes", "000" + (i % 10))
                             .build()
             );
         }

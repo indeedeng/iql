@@ -305,7 +305,7 @@ public interface AggregateFilter extends Pushable {
         private final String rawRegex;
 
         public TermEqualsRegex(final Term value) {
-            rawRegex = value.isIntTerm ? String.valueOf(value.intTerm) : value.stringTerm;
+            rawRegex = value.asString();
             automaton = ValidationUtil.compileRegex(rawRegex);
         }
 
@@ -357,9 +357,11 @@ public interface AggregateFilter extends Pushable {
 
     class TermEquals implements AggregateFilter {
         private final Term value;
+        private final String stringValue;
 
         public TermEquals(final Term value) {
             this.value = value;
+            stringValue = value.asString();
         }
 
         @Override
@@ -379,17 +381,17 @@ public interface AggregateFilter extends Pushable {
 
         @Override
         public boolean allow(final String term, final long[] stats, final int group) {
-            return term.equals(value.stringTerm);
+            return term.equals(stringValue);
         }
 
         @Override
         public boolean allow(final long term, final long[] stats, final int group) {
-            return term == value.intTerm;
+            return value.isIntTerm && (term == value.intTerm);
         }
 
         @Override
         public AggregateStatTree toImhotep(final Map<QualifiedPush, AggregateStatTree> atomicStats) {
-            if (value.isIntTerm) {
+            if (value.isSafeAsInt()) {
                 return AggregateStatTree.termEquals(value.intTerm);
             } else {
                 return AggregateStatTree.termEquals(value.stringTerm);
