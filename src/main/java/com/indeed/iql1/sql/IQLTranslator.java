@@ -59,6 +59,7 @@ import com.indeed.iql1.sql.parser.ExpressionParser;
 import com.indeed.iql1.sql.parser.PeriodParser;
 import com.indeed.iql2.language.TimePeriods;
 import com.indeed.iql2.language.util.ErrorMessages;
+import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.util.serialization.LongStringifier;
 import com.indeed.util.serialization.Stringifier;
 import org.apache.commons.lang.StringUtils;
@@ -856,17 +857,9 @@ public final class IQLTranslator {
                         throw new IqlKnownException.UnknownFieldException("Unknown field: " + fieldName);
                     }
                     fieldNames.add(fieldName);
-                    String regexp = getStr(right);
+                    final String regexp = getStr(right);
                     // validate the provided regex
-                    try {
-                        new RegExp(regexp).toAutomaton();
-                    } catch (Exception e) {
-                        Throwables.propagateIfInstanceOf(e, RegexTooComplexException.class);
-
-                        throw new IqlKnownException.ParseErrorException("The provided regex filter '" + regexp + "' failed to parse. " +
-                                "\nError was: " + e.getMessage() +
-                                "\nThe supported regex syntax can be seen here: http://www.brics.dk/automaton/doc/index.html?dk/brics/automaton/RegExp.html", e);
-                    }
+                    ValidationUtil.compileRegex(regexp);
                     return Collections.singletonList(new RegexCondition(Field.stringField(fieldName), regexp,
                         usingNegation));
                 case AND:
