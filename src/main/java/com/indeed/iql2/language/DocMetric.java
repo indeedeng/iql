@@ -44,6 +44,9 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
+import static com.indeed.iql2.language.DocMetrics.hasTermMetricOrThrow;
+import static com.indeed.iql2.language.DocMetrics.negateMetric;
+
 public abstract class DocMetric extends AbstractPositional {
     public interface Visitor<T, E extends Throwable> {
         T visit(Log log) throws E;
@@ -789,8 +792,19 @@ public abstract class DocMetric extends AbstractPositional {
 
     @EqualsAndHashCode(callSuper = true)
     public static class MetricEqual extends Binop {
-        public MetricEqual(DocMetric m1, DocMetric m2) {
+        private MetricEqual(DocMetric m1, DocMetric m2) {
             super(m1, m2);
+        }
+
+        public static DocMetric create(final DocMetric left, final DocMetric right) {
+            final FieldSet field = DocFilters.extractPlainField(left);
+            if ((field != null) && (right instanceof DocMetric.Constant)) {
+                final String rawInput = right.getRawInput();
+                final Term term = (rawInput != null) ? Term.term(rawInput) : Term.term(((Constant) right).value);
+                return hasTermMetricOrThrow(field, term);
+            } else {
+                return new DocMetric.MetricEqual(left, right);
+            }
         }
 
         @Override
@@ -811,8 +825,19 @@ public abstract class DocMetric extends AbstractPositional {
 
     @EqualsAndHashCode(callSuper = true)
     public static class MetricNotEqual extends Binop {
-        public MetricNotEqual(DocMetric m1, DocMetric m2) {
+        private MetricNotEqual(DocMetric m1, DocMetric m2) {
             super(m1, m2);
+        }
+
+        public static DocMetric create(final DocMetric left, final DocMetric right) {
+            final FieldSet field = DocFilters.extractPlainField(left);
+            if ((field != null) && (right instanceof DocMetric.Constant)) {
+                final String rawInput = right.getRawInput();
+                final Term term = (rawInput != null) ? Term.term(rawInput) : Term.term(((Constant) right).value);
+                return negateMetric(hasTermMetricOrThrow(field, term));
+            } else {
+                return new DocMetric.MetricNotEqual(left, right);
+            }
         }
 
         @Override

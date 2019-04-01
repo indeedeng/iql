@@ -94,12 +94,12 @@ public class ScopedFieldResolver {
                 builder.put(dataset, FieldResolver.FAILED_TO_RESOLVE_FIELD);
                 continue;
             }
+            if (FieldResolver.FAILED_TO_RESOLVE_DATASET.equals(dataset)) {
+                fieldResolver.addError(new IqlKnownException.UnknownFieldException("Cannot resolve field for unresolved dataset: \"" + typedField + "\""));
+                builder.put(dataset, FieldResolver.FAILED_TO_RESOLVE_FIELD);
+                continue;
+            }
             try {
-                if (FieldResolver.FAILED_TO_RESOLVE_DATASET.equals(dataset)) {
-                    fieldResolver.addError(new IqlKnownException.UnknownFieldException("Cannot resolve field for unresolved dataset: \"" + typedField + "\""));
-                    builder.put(dataset, FieldResolver.FAILED_TO_RESOLVE_FIELD);
-                    continue;
-                }
                 final String resolved = fieldResolver.datasets.get(dataset).resolveFieldName(typedField);
                 builder.put(dataset, resolved);
             } catch (IqlKnownException e) {
@@ -409,7 +409,7 @@ public class ScopedFieldResolver {
             if (!term.isIntTerm()) {
                 return null;
             }
-            return new DocMetric.MetricEqual(metric, new DocMetric.Constant(term.getIntTerm()));
+            return DocMetric.MetricEqual.create(metric, new DocMetric.Constant(term.getIntTerm()));
         }
     }
 

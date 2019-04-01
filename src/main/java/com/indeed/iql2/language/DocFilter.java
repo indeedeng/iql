@@ -374,8 +374,8 @@ public abstract class DocFilter extends AbstractPositional {
         }
 
         @Override
-        public DocMetric asZeroOneMetric(String dataset) {
-            return new DocMetric.MetricEqual(m1, m2);
+        public DocMetric asZeroOneMetric(final String dataset) {
+            return DocMetric.MetricEqual.create(m1, m2);
         }
 
 //        @Override
@@ -423,8 +423,8 @@ public abstract class DocFilter extends AbstractPositional {
         }
 
         @Override
-        public DocMetric asZeroOneMetric(String dataset) {
-            return new DocMetric.MetricNotEqual(m1, m2);
+        public DocMetric asZeroOneMetric(final String dataset) {
+            return DocMetric.MetricNotEqual.create(m1, m2);
         }
 
 //        @Override
@@ -804,7 +804,7 @@ public abstract class DocFilter extends AbstractPositional {
                     filters.stream()
                     .map(f -> f.asZeroOneMetric(dataset))
                     .collect(Collectors.toList());
-            return new DocMetric.MetricEqual(DocMetric.Add.create(metrics), new DocMetric.Constant(metrics.size()));
+            return DocMetric.MetricEqual.create(DocMetric.Add.create(metrics), new DocMetric.Constant(metrics.size()));
         }
 
         @Override
@@ -1206,10 +1206,10 @@ public abstract class DocFilter extends AbstractPositional {
         }
 
         @Override
-        public DocMetric asZeroOneMetric(String dataset) {
+        public DocMetric asZeroOneMetric(final String dataset) {
             // Sample() returns 0 for no term, 1 for below p, and 2 for above p.
             // We do (1 - p) to keep the same half of the divide as SAMPLE does.
-            return new DocMetric.MetricEqual(
+            return DocMetric.MetricEqual.create(
                     new DocMetric.Sample(field, isIntField, (denominator - numerator), denominator, seed),
                     new DocMetric.Constant(2)
             );
@@ -1264,7 +1264,7 @@ public abstract class DocFilter extends AbstractPositional {
         public DocMetric asZeroOneMetric(final String dataset) {
             // SampleMetric() returns 0 for no term, 1 for below p, and 2 for above p.
             // We do (1 - p) to keep the same half of the divide as SAMPLE does.
-            return new DocMetric.MetricEqual(
+            return DocMetric.MetricEqual.create(
                     new DocMetric.SampleMetric(metric, denominator - numerator, denominator, seed),
                     new DocMetric.Constant(2)
             );

@@ -234,8 +234,8 @@ public class ConstantFoldingTest {
         final long[] constants = {0, 1, 2};
         final List<Pair<BiFunction<DocMetric, DocMetric, DocMetric>, BiFunction<Long, Long, Boolean>>> metrics =
                 ImmutableList.of(
-                        Pair.of(MetricEqual::new, Long::equals),
-                        Pair.of(MetricNotEqual::new, (x, y) -> !x.equals(y)),
+                        Pair.of(MetricEqual::create, Long::equals),
+                        Pair.of(MetricNotEqual::create, (x, y) -> !x.equals(y)),
                         Pair.of(MetricGt::new, (x, y) -> x > y),
                         Pair.of(MetricGte::new, (x, y) -> x >= y),
                         Pair.of(MetricLt::new, (x, y) -> x < y),
