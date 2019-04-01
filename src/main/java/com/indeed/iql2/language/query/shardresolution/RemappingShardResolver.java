@@ -14,10 +14,12 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.PriorityQueue;
+import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class RemappingShardResolver implements ShardResolver {
+    private final static Random RANDOM = new Random(Long.MAX_VALUE);
     private final QueryOptions.HostsMappingMethod method;
     private final ShardResolver wrapped;
     private final List<Host> hostsFromOption;
@@ -51,7 +53,7 @@ public class RemappingShardResolver implements ShardResolver {
     private static List<Shard> remapShardsByShuffle(final List<Shard> shards, final List<Host> hosts) {
         Preconditions.checkArgument(!hosts.isEmpty());
 
-        Collections.shuffle(shards);
+        Collections.shuffle(shards, RANDOM);
         return IntStream.range(0, shards.size())
                 .mapToObj(shardIndex -> {
                     final Shard shard = shards.get(shardIndex);
