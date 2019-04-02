@@ -19,7 +19,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class RemappingShardResolver implements ShardResolver {
-    private final static Random RANDOM = new Random(Long.MAX_VALUE);
     private final QueryOptions.HostsMappingMethod method;
     private final ShardResolver wrapped;
     private final List<Host> hostsFromOption;
@@ -53,7 +52,7 @@ public class RemappingShardResolver implements ShardResolver {
     private static List<Shard> remapShardsByShuffle(final List<Shard> shards, final List<Host> hosts) {
         Preconditions.checkArgument(!hosts.isEmpty());
 
-        Collections.shuffle(shards, RANDOM);
+        Collections.shuffle(shards, new Random(Long.MAX_VALUE));
         return IntStream.range(0, shards.size())
                 .mapToObj(shardIndex -> {
                     final Shard shard = shards.get(shardIndex);
