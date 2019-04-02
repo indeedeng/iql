@@ -14,60 +14,64 @@
 
 package com.indeed.iql2.language.commands;
 
+import com.google.common.collect.ImmutableSet;
 import com.indeed.iql2.execution.commands.IntRegroupFieldIn;
 import com.indeed.iql2.execution.commands.StringRegroupFieldIn;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
+import com.indeed.iql2.language.Term;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
-import com.indeed.iql2.language.util.ToStringEscapingUtil;
+import com.indeed.iql2.language.util.ErrorMessages;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
+import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongList;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @EqualsAndHashCode
 @ToString
 public class RegroupFieldIn implements Command {
     private final FieldSet field;
-    @ToString.Exclude // Include stringTermsEscaped instead
-    private final List<String> stringTerms;
-    private final LongList intTerms;
-    private final boolean isIntField;
+    private final ImmutableSet<Term> terms;
     private final boolean withDefault;
 
-    public RegroupFieldIn(final FieldSet field, final List<String> stringTerms, final LongList intTerms, final boolean isIntField, final boolean withDefault) {
+    public RegroupFieldIn(final FieldSet field, final ImmutableSet<Term> terms, final boolean withDefault) {
         this.field = field;
-        this.stringTerms = stringTerms;
-        this.intTerms = intTerms;
-        this.isIntField = isIntField;
+        this.terms = terms;
         this.withDefault = withDefault;
     }
 
     @Override
-    public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {
-        if (isIntField) {
+    public void validate(final ValidationHelper validationHelper, final ErrorCollector errorCollector) {
+        if (field.isIntField()) {
             ValidationUtil.validateIntField(field, validationHelper, errorCollector, this);
+            final List<Term> stringTerms = terms.stream().filter(term -> !term.isIntTerm()).collect(Collectors.toList());
+            if (!stringTerms.isEmpty()) {
+                errorCollector.warn(ErrorMessages.intFieldWithStringTerms(field, stringTerms));
+            }
         } else {
             ValidationUtil.validateStringField(field, validationHelper, errorCollector, this);
         }
     }
 
     @Override
-    public com.indeed.iql2.execution.commands.Command toExecutionCommand(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet, List<String> options) {
-        if (isIntField) {
+    public com.indeed.iql2.execution.commands.Command toExecutionCommand(
+            final Function<String, PerGroupConstant> namedMetricLookup,
+            final GroupKeySet groupKeySet,
+            final List<String> options) {
+        if (field.isIntField()) {
+            final LongList intTerms = new LongArrayList(
+                    terms.stream().filter(Term::isIntTerm).map(Term::getIntTerm).iterator());
             return new IntRegroupFieldIn(field, intTerms, withDefault);
         } else {
+            final List<String> stringTerms = terms.stream().map(Term::asString).collect(Collectors.toList());
             return new StringRegroupFieldIn(field, stringTerms, withDefault);
         }
-    }
-
-    @ToString.Include(name = "stringTerms")
-    private String stringTermsEscaped() {
-        return ToStringEscapingUtil.escape(stringTerms);
     }
 }

@@ -24,9 +24,10 @@ import org.joda.time.DateTime;
 import java.util.Optional;
 
 public class ExplodeDayOfWeek implements Command {
-    public static final String[] DAY_KEYS = { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
+    public static final String[] DAY_KEYS = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"};
 
     public static final DayOfWeekGroupKey[] DAY_GROUP_KEYS = new DayOfWeekGroupKey[DAY_KEYS.length];
+
     static {
         for (int i = 0; i < DAY_GROUP_KEYS.length; i++) {
             DAY_GROUP_KEYS[i] = new DayOfWeekGroupKey(i);
@@ -35,13 +36,13 @@ public class ExplodeDayOfWeek implements Command {
 
     @Override
     public void execute(final Session session) throws ImhotepOutOfMemoryException {
-        session.checkGroupLimit(session.numGroups * 7);
+        session.checkGroupLimit(session.numGroups * 7L);
 
         final long start = new DateTime(session.getEarliestStart()).withTimeAtStartOfDay().getMillis();
         final long end = new DateTime(session.getLatestEnd()).plusDays(1).withTimeAtStartOfDay().getMillis();
         session.timer.push("daily regroup");
-        final int numGroups = session.performTimeRegroup(start, end, TimeUnit.DAY.millis, Optional.empty(), false, false);
-        session.checkGroupLimit(numGroups);
+        final long numGroupsLong = session.performTimeRegroup(start, end, TimeUnit.DAY.millis, Optional.empty(), false, false);
+        final int numGroups = session.checkGroupLimit(numGroupsLong);
         session.timer.pop();
 
         session.timer.push("compute remapping");

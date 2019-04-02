@@ -15,16 +15,15 @@
 package com.indeed.iql2.execution.commands;
 
 import com.indeed.iql2.execution.Session;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 
 /**
  * Corner case of distinct calculation for one dataset without filter
  */
 public class GetSimpleGroupDistincts implements Command {
-    public final String scope;
-    public final String field;
+    public final FieldSet.SingleField field;
 
-    public GetSimpleGroupDistincts(final String scope, final String field) {
-        this.scope = scope;
+    public GetSimpleGroupDistincts(final FieldSet.SingleField field) {
         this.field = field;
     }
 
@@ -35,14 +34,13 @@ public class GetSimpleGroupDistincts implements Command {
     }
 
     public long[] evaluate(final Session session) {
-        return session.getSimpleDistinct(field, scope);
+        return session.getSimpleDistinct(field);
     }
 
     @Override
     public String toString() {
         return "GetSimpleGroupDistincts{" +
-                "scope=" + scope +
-                ", field='" + field + '\'' +
+                "field='" + field + '\'' +
                 '}';
     }
 }

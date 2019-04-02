@@ -22,9 +22,17 @@ public class Term {
     public final String stringTerm;
     public final long intTerm;
 
-    public Term(boolean isIntTerm, String stringTerm, long intTerm) {
+    public Term(final boolean isIntTerm, final String stringTerm, final long intTerm) {
         this.isIntTerm = isIntTerm;
         this.stringTerm = stringTerm;
         this.intTerm = intTerm;
+    }
+
+    public String asString() {
+        return (stringTerm != null) ? stringTerm : Long.toString(intTerm);
+    }
+
+    public boolean isSafeAsInt() {
+        return stringTerm == null;
     }
 }

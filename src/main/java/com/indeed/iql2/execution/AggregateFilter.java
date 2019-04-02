@@ -154,10 +154,10 @@ public interface AggregateFilter extends Pushable {
     }
 
     // Base class for operations on multiple AggregateFilters
-    abstract class Multiple implements AggregateFilter {
+    abstract class Multiary implements AggregateFilter {
         protected final List<AggregateFilter> filters;
 
-        protected Multiple(final List<AggregateFilter> filters) {
+        protected Multiary(final List<AggregateFilter> filters) {
             if (filters.size() < 2) {
                 throw new IllegalArgumentException("2 or more filters expected");
             }
@@ -305,7 +305,7 @@ public interface AggregateFilter extends Pushable {
         private final String rawRegex;
 
         public TermEqualsRegex(final Term value) {
-            rawRegex = value.isIntTerm ? String.valueOf(value.intTerm) : value.stringTerm;
+            rawRegex = value.asString();
             automaton = ValidationUtil.compileRegex(rawRegex);
         }
 
@@ -357,9 +357,11 @@ public interface AggregateFilter extends Pushable {
 
     class TermEquals implements AggregateFilter {
         private final Term value;
+        private final String stringValue;
 
         public TermEquals(final Term value) {
             this.value = value;
+            stringValue = value.asString();
         }
 
         @Override
@@ -379,17 +381,17 @@ public interface AggregateFilter extends Pushable {
 
         @Override
         public boolean allow(final String term, final long[] stats, final int group) {
-            return term.equals(value.stringTerm);
+            return term.equals(stringValue);
         }
 
         @Override
         public boolean allow(final long term, final long[] stats, final int group) {
-            return term == value.intTerm;
+            return value.isIntTerm && (term == value.intTerm);
         }
 
         @Override
         public AggregateStatTree toImhotep(final Map<QualifiedPush, AggregateStatTree> atomicStats) {
-            if (value.isIntTerm) {
+            if (value.isSafeAsInt()) {
                 return AggregateStatTree.termEquals(value.intTerm);
             } else {
                 return AggregateStatTree.termEquals(value.stringTerm);
@@ -539,7 +541,7 @@ public interface AggregateFilter extends Pushable {
         }
     }
 
-    class And extends Multiple {
+    class And extends Multiary {
         private And(final List<AggregateFilter> filters) {
             super(filters);
         }
@@ -559,7 +561,7 @@ public interface AggregateFilter extends Pushable {
         }
     }
 
-    class Or extends Multiple {
+    class Or extends Multiary {
         private Or(final List<AggregateFilter> filters) {
             super(filters);
         }

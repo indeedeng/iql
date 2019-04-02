@@ -21,11 +21,13 @@ import com.indeed.iql2.language.query.Queries;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.query.fieldresolution.ScopedFieldResolver;
+import com.indeed.iql2.language.util.ErrorMessages;
 import com.indeed.iql2.language.util.ValidationUtil;
 import org.antlr.v4.runtime.Token;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class DocMetrics {
     private DocMetrics() {
@@ -135,12 +137,18 @@ public class DocMetrics {
 
             @Override
             public void enterLegacyDocMin(JQLParser.LegacyDocMinContext ctx) {
-                accept(new DocMetric.Min(parseLegacyDocMetric(ctx.arg1, fieldResolver, datasetsMetadata), parseLegacyDocMetric(ctx.arg2, fieldResolver, datasetsMetadata)));
+                final List<DocMetric> metrics = ctx.metrics.stream()
+                        .map(m -> parseLegacyDocMetric(m, fieldResolver, datasetsMetadata))
+                        .collect(Collectors.toList());
+                accept(DocMetric.Min.create(metrics));
             }
 
             @Override
             public void enterLegacyDocMax(JQLParser.LegacyDocMaxContext ctx) {
-                accept(new DocMetric.Max(parseLegacyDocMetric(ctx.arg1, fieldResolver, datasetsMetadata), parseLegacyDocMetric(ctx.arg2, fieldResolver, datasetsMetadata)));
+                final List<DocMetric> metrics = ctx.metrics.stream()
+                        .map(m -> parseLegacyDocMetric(m, fieldResolver, datasetsMetadata))
+                        .collect(Collectors.toList());
+                accept(DocMetric.Max.create(metrics));
             }
 
             public void enterLegacyDocAtom(JQLParser.LegacyDocAtomContext ctx) {
@@ -183,7 +191,7 @@ public class DocMetrics {
                 } else {
                     throw new IllegalStateException("Did not handle term value in: " + ctx.getText());
                 }
-                accept(new DocMetric.HasString(fieldResolver.resolve(ctx.field), term, false));
+                accept(hasTermMetricOrThrow(fieldResolver.resolve(ctx.field), Term.term(term)));
             }
 
             @Override
@@ -194,27 +202,27 @@ public class DocMetrics {
                 } else {
                     throw new IllegalStateException("Did not handle term value in: " + ctx.getText());
                 }
-                accept(negateMetric(new DocMetric.HasString(fieldResolver.resolve(ctx.field), term, false)));
+                accept(negateMetric(hasTermMetricOrThrow(fieldResolver.resolve(ctx.field), Term.term(term))));
             }
 
             @Override
-            public void enterLegacyDocMetricAtomHasInt(JQLParser.LegacyDocMetricAtomHasIntContext ctx) {
-                final long term = Long.parseLong(ctx.integer().getText());
-                accept(fieldResolver.resolveDocMetric(ctx.field, new ScopedFieldResolver.HasIntCallback(term)));
+            public void enterLegacyDocMetricAtomHasInt(final JQLParser.LegacyDocMetricAtomHasIntContext ctx) {
+                final Term term = Term.term(ctx.integer().getText());
+                accept(fieldResolver.resolveDocMetric(ctx.field, new ScopedFieldResolver.HasTermCallback(term)));
             }
 
             @Override
             public void enterLegacyDocMetricAtomHasStringQuoted(JQLParser.LegacyDocMetricAtomHasStringQuotedContext ctx) {
                 final HasTermQuote hasTermQuote = HasTermQuote.create(ctx.STRING_LITERAL().getText());
                 final FieldSet field = fieldResolver.resolveContextless(hasTermQuote.getField());
-                accept(new DocMetric.HasString(field, hasTermQuote.getTerm(), false));
+                accept(hasTermMetricOrThrow(field, Term.term(hasTermQuote.getTerm())));
             }
 
             @Override
             public void enterLegacyDocMetricAtomHasIntQuoted(JQLParser.LegacyDocMetricAtomHasIntQuotedContext ctx) {
                 final HasTermQuote hasTermQuote = HasTermQuote.create(ctx.STRING_LITERAL().getText());
-                final long termInt = Long.parseLong(hasTermQuote.getTerm());
-                accept(fieldResolver.resolveDocMetric(Queries.runParser(hasTermQuote.getField(), JQLParser::identifierTerminal).identifier(), new ScopedFieldResolver.HasIntCallback(termInt)));
+                final Term termInt = Term.term(hasTermQuote.getTerm());
+                accept(fieldResolver.resolveDocMetric(Queries.runParser(hasTermQuote.getField(), JQLParser::identifierTerminal).identifier(), new ScopedFieldResolver.HasTermCallback(termInt)));
             }
 
             @Override
@@ -382,23 +390,19 @@ public class DocMetrics {
             }
 
             @Override
-            public void enterDocMin(JQLParser.DocMinContext ctx) {
-                DocMetric resultMetric = parseJQLDocMetric(ctx.metrics.get(0), context);
-                List<JQLParser.JqlDocMetricContext> metrics = ctx.metrics;
-                for (int i = 1; i < metrics.size(); i++) {
-                    resultMetric = new DocMetric.Min(resultMetric, parseJQLDocMetric(metrics.get(i), context));
-                }
-                accept(resultMetric);
+            public void enterDocMin(final JQLParser.DocMinContext ctx) {
+                final List<DocMetric> metrics = ctx.metrics.stream()
+                        .map(m -> parseJQLDocMetric(m, context))
+                        .collect(Collectors.toList());
+                accept(DocMetric.Min.create(metrics));
             }
 
             @Override
             public void enterDocMax(JQLParser.DocMaxContext ctx) {
-                DocMetric resultMetric = parseJQLDocMetric(ctx.metrics.get(0), context);
-                List<JQLParser.JqlDocMetricContext> metrics = ctx.metrics;
-                for (int i = 1; i < metrics.size(); i++) {
-                    resultMetric = new DocMetric.Max(resultMetric, parseJQLDocMetric(metrics.get(i), context));
-                }
-                accept(resultMetric);
+                final List<DocMetric> metrics = ctx.metrics.stream()
+                        .map(m -> parseJQLDocMetric(m, context))
+                        .collect(Collectors.toList());
+                accept(DocMetric.Max.create(metrics));
             }
 
             @Override
@@ -444,26 +448,26 @@ public class DocMetrics {
 
             @Override
             public void enterDocMetricAtomHasntInt(JQLParser.DocMetricAtomHasntIntContext ctx) {
-                final long term = Long.parseLong(ctx.integer().getText());
-                accept(fieldResolver.resolveDocMetric(ctx.singlyScopedField(), new ScopedFieldResolver.HasIntCallback(term).map(DocMetrics::negateMetric)));
+                final Term term = Term.term(ctx.integer().getText());
+                accept(fieldResolver.resolveDocMetric(ctx.singlyScopedField(), new ScopedFieldResolver.HasTermCallback(term).map(DocMetrics::negateMetric)));
             }
 
             @Override
             public void enterDocMetricAtomHasntString(JQLParser.DocMetricAtomHasntStringContext ctx) {
                 final FieldSet field = fieldResolver.resolve(ctx.singlyScopedField());
-                accept(field.wrap(negateMetric(new DocMetric.HasString(field, ParserCommon.unquote(ctx.term.getText()), true))));
+                accept(field.wrap(negateMetric(hasTermMetricOrThrow(field, Term.term(ParserCommon.unquote(ctx.term.getText()))))));
             }
 
             @Override
             public void enterDocMetricAtomHasString(JQLParser.DocMetricAtomHasStringContext ctx) {
                 final FieldSet field = fieldResolver.resolve(ctx.singlyScopedField());
-                accept(field.wrap(new DocMetric.HasString(field, ParserCommon.unquote(ctx.term.getText()), true)));
+                accept(field.wrap(hasTermMetricOrThrow(field, Term.term(ParserCommon.unquote(ctx.term.getText())))));
             }
 
             @Override
             public void enterDocMetricAtomHasInt(JQLParser.DocMetricAtomHasIntContext ctx) {
-                final long term = Long.parseLong(ctx.integer().getText());
-                accept(fieldResolver.resolveDocMetric(ctx.singlyScopedField(), new ScopedFieldResolver.HasIntCallback(term)));
+                final Term term = Term.term(ctx.integer().getText());
+                accept(fieldResolver.resolveDocMetric(ctx.singlyScopedField(), new ScopedFieldResolver.HasTermCallback(term)));
             }
 
             @Override
@@ -673,6 +677,18 @@ public class DocMetrics {
 
         public String getTerm() {
             return term;
+        }
+    }
+
+    public static DocMetric hasTermMetricOrThrow(final FieldSet field, final Term term) {
+        if (field.isIntField()) {
+            if (term.isIntTerm()) {
+                return new DocMetric.HasInt(field, term.getIntTerm());
+            } else {
+                throw new IqlKnownException.ParseErrorException(ErrorMessages.intFieldWithStringTerm(field, term));
+            }
+        } else {
+            return new DocMetric.HasString(field, term.asString());
         }
     }
 }

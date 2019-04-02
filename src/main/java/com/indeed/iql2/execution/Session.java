@@ -43,7 +43,6 @@ import com.indeed.imhotep.io.RequestTools;
 import com.indeed.imhotep.io.SingleFieldRegroupTools;
 import com.indeed.imhotep.metrics.aggregate.AggregateStatTree;
 import com.indeed.imhotep.protobuf.GroupMultiRemapMessage;
-import com.indeed.imhotep.StrictCloser;
 import com.indeed.imhotep.protobuf.StatsSortOrder;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetMetadata;
@@ -538,7 +537,7 @@ public class Session {
         return Ordering.natural().min(sessions.values().stream().map(s -> s.startTime.getMillis()).iterator());
     }
 
-    public int performTimeRegroup(
+    public long performTimeRegroup(
             final long start,
             final long end,
             final long unitSize,
@@ -548,7 +547,7 @@ public class Session {
         timer.push("performTimeRegroup");
         final int oldNumGroups = numGroups;
         // TODO: Parallelize
-        final int maxPossibleGroups = (int) (oldNumGroups * Math.ceil(((double) end - start) / unitSize));
+        final long maxPossibleGroups = (long) (oldNumGroups * Math.ceil(((double) end - start) / unitSize));
         int newNumGroups = 0;
         for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
             timer.push("session", "session:" + sessionInfo.displayName);
@@ -683,17 +682,18 @@ public class Session {
         return new PerGroupConstant(stats);
     }
 
-    public void checkGroupLimitWithoutLog(int numGroups) {
-        if (groupLimit > 0 && numGroups > groupLimit) {
+    public void checkGroupLimitWithoutLog(final long numGroups) {
+        if ((groupLimit > 0) && (numGroups > groupLimit)) {
             throw new IqlKnownException.GroupLimitExceededException("Number of groups [" + numGroups + "] exceeds the group limit [" + groupLimit + "]");
         }
     }
 
-    public void checkGroupLimit(int numGroups) {
-        if (groupLimit > 0 && numGroups > groupLimit) {
+    public int checkGroupLimit(final long numGroups) {
+        if ((groupLimit > 0) && (numGroups > groupLimit)) {
             throw new IqlKnownException.GroupLimitExceededException("Number of groups [" + numGroups + "] exceeds the group limit [" + groupLimit + "]");
         }
         log.debug("checkGroupLimit(" + numGroups + ")");
+        return (int) numGroups;
     }
 
     public SingleFieldRegroupTools.SingleFieldRulesBuilder createRuleBuilder(
@@ -869,30 +869,23 @@ public class Session {
         timer.pop();
     }
 
-    public long[] getSimpleDistinct(final String field, final String scope) {
+    public long[] getSimpleDistinct(final FieldSet.SingleField field) {
         final long[] result = new long[numGroups+1];
-        if (!sessions.containsKey(scope)) {
+        final String dataset = field.getOnlyDataset();
+        if (!sessions.containsKey(dataset)) {
             return result; // or error?
         }
 
-        final ImhotepSessionInfo info = sessions.get(scope);
+        final ImhotepSessionInfo info = sessions.get(dataset);
         final ImhotepSessionHolder session = info.session;
-        final boolean isIntField;
-        if (info.intFields.contains(field)) {
-            isIntField = true;
-        } else if (info.stringFields.contains(field)) {
-            isIntField = false;
-        } else {
-            return result; // or error?
-        }
         timer.push("getSimpleDistinct", "getSimpleDistinct session:" + info.displayName);
-        try (final GroupStatsIterator iterator = session.getDistinct(field, isIntField)) {
+        try (final GroupStatsIterator iterator = session.getDistinct(field.getOnlyField(), field.isIntField())) {
             timer.pop();
             final int size = Math.min(iterator.getNumGroups(), result.length);
             for (int i = 0; i < size; i++) {
                 result[i] += iterator.nextLong();
             }
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw Throwables.propagate(e);
         }
         return result;

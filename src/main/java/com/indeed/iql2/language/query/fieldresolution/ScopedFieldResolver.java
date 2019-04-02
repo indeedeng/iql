@@ -14,6 +14,7 @@ import com.indeed.iql2.language.AbstractPositional;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocFilter;
 import com.indeed.iql2.language.DocMetric;
+import com.indeed.iql2.language.DocMetrics;
 import com.indeed.iql2.language.Identifiers;
 import com.indeed.iql2.language.JQLParser;
 import com.indeed.iql2.language.Positioned;
@@ -106,7 +107,9 @@ public class ScopedFieldResolver {
                 builder.put(dataset, FieldResolver.FAILED_TO_RESOLVE_FIELD);
             }
         }
-        return new FieldSet(builder.build(), restricted, syntacticCtx);
+        final Map<String, String> datasetToField = builder.build();
+        final FieldType type = fieldType(datasetToField.keySet(), datasetToField::get);
+        return FieldSet.create(datasetToField, restricted, syntacticCtx, type == FieldType.Integer);
     }
 
     private FieldSet resolve(final JQLParser.IdentifierContext ctx, final boolean restricted, @Nullable final ParserRuleContext syntacticCtx) {
@@ -129,14 +132,18 @@ public class ScopedFieldResolver {
     }
 
     public FieldType fieldType(final FieldSet field) {
+        return fieldType(field.datasets(), field::datasetFieldName);
+    }
+
+    private FieldType fieldType(final Set<String> datasets, final Function<String, String> datasetToFieldName) {
         boolean anyString = false;
         boolean anyInt = false;
-        for (final String dataset : field.datasets()) {
+        for (final String dataset : datasets) {
             if (FieldResolver.FAILED_TO_RESOLVE_DATASET.equals(dataset)) {
                 continue;
             }
             final DatasetMetadata metadata = fieldResolver.datasets.get(dataset).datasetMetadata;
-            final String datasetFieldName = field.datasetFieldName(dataset);
+            final String datasetFieldName = datasetToFieldName.apply(dataset);
             if (FieldResolver.FAILED_TO_RESOLVE_FIELD.equals(datasetFieldName)) {
                 continue;
             }
@@ -178,7 +185,9 @@ public class ScopedFieldResolver {
 
         /**
          * Found at least one dimensions metric.
+         * returns null if operation does not work with dimension metric
          */
+        @Nullable
         T metric(final DocMetric metric);
 
         default MetricResolverCallback<T> map(final Function<? super T, ? extends T> function) {
@@ -190,8 +199,13 @@ public class ScopedFieldResolver {
                 }
 
                 @Override
+                @Nullable
                 public T metric(final DocMetric metric) {
-                    return function.apply(original.metric(metric));
+                    final T originalResult = original.metric(metric);
+                    if (originalResult == null) {
+                        return null;
+                    }
+                    return function.apply(originalResult);
                 }
             };
         }
@@ -248,6 +262,9 @@ public class ScopedFieldResolver {
                 result = callback.metric(Iterables.getOnlyElement(datasetToMetric.values()));
             } else {
                 result = callback.metric(new DocMetric.PerDatasetDocMetric(ImmutableMap.copyOf(datasetToMetric)));
+            }
+            if (result == null) {
+                throw new IqlKnownException.ParseErrorException("Operation cannot be applied to dimension metric '" + identifier + "'");
             }
         } else {
             result = callback.plainFields(resolve(ctx));
@@ -363,48 +380,36 @@ public class ScopedFieldResolver {
     }
 
     public static final MetricResolverCallback<DocMetric> PLAIN_DOC_METRIC_CALLBACK = new MetricResolverCallback<DocMetric>() {
+        @Override
         public DocMetric plainFields(final FieldSet fieldSet) {
             return new DocMetric.Field(fieldSet);
         }
 
+        @Override
         public DocMetric metric(final DocMetric metric) {
             return metric;
         }
     };
 
-    public static class HasIntCallback implements MetricResolverCallback<DocMetric> {
-        private final long term;
+    public static class HasTermCallback implements MetricResolverCallback<DocMetric> {
+        private final Term term;
 
-        public HasIntCallback(final long term) {
+        public HasTermCallback(final Term term) {
             this.term = term;
         }
 
+        @Override
         public DocMetric plainFields(final FieldSet fieldSet) {
-            return new DocMetric.HasInt(fieldSet, term);
+            return DocMetrics.hasTermMetricOrThrow(fieldSet, term);
         }
 
+        @Override
+        @Nullable
         public DocMetric metric(final DocMetric metric) {
-            return new DocMetric.MetricEqual(metric, new DocMetric.Constant(term));
-        }
-    }
-
-    public static class BetweenCallback implements MetricResolverCallback<DocFilter> {
-        private final long lowerBound;
-        private final long upperBound;
-        private final boolean isUpperIncluded;
-
-        public BetweenCallback(final long lowerBound, final long upperBound, final boolean isUpperIncluded) {
-            this.lowerBound = lowerBound;
-            this.upperBound = upperBound;
-            this.isUpperIncluded = isUpperIncluded;
-        }
-
-        public DocFilter plainFields(final FieldSet fieldSet) {
-            return new DocFilter.Between(fieldSet, lowerBound, upperBound, isUpperIncluded);
-        }
-
-        public DocFilter metric(final DocMetric metric) {
-            return DocFilter.Between.forMetric(metric, lowerBound, upperBound, isUpperIncluded);
+            if (!term.isIntTerm()) {
+                return null;
+            }
+            return new DocMetric.MetricEqual(metric, new DocMetric.Constant(term.getIntTerm()));
         }
     }
 
@@ -415,12 +420,18 @@ public class ScopedFieldResolver {
             this.term = term;
         }
 
+        @Override
         public DocFilter plainFields(final FieldSet fieldSet) {
-            return new DocFilter.FieldIs(fieldSet, term);
+            return DocFilter.FieldIs.create(fieldSet, term);
         }
 
+        @Override
+        @Nullable
         public DocFilter metric(final DocMetric metric) {
-            return new DocFilter.MetricEqual(metric, new DocMetric.Constant(term.intTerm));
+            if (!term.isIntTerm()) {
+                return null;
+            }
+            return new DocFilter.MetricEqual(metric, new DocMetric.Constant(term.getIntTerm()));
         }
     }
 
@@ -431,12 +442,18 @@ public class ScopedFieldResolver {
             this.term = term;
         }
 
+        @Override
         public DocFilter plainFields(final FieldSet fieldSet) {
-            return new DocFilter.FieldIsnt(fieldSet, term);
+            return DocFilter.FieldIsnt.create(fieldSet, term);
         }
 
+        @Override
+        @Nullable
         public DocFilter metric(final DocMetric metric) {
-            return new DocFilter.MetricNotEqual(metric, new DocMetric.Constant(term.intTerm));
+            if (!term.isIntTerm()) {
+                return null;
+            }
+            return new DocFilter.MetricNotEqual(metric, new DocMetric.Constant(term.getIntTerm()));
         }
     }
 }

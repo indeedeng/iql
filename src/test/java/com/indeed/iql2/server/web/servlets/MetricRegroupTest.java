@@ -108,6 +108,7 @@ public class MetricRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("0", "3", "15"));
         expected.add(ImmutableList.of("1", "148", "291"));
         QueryServletTestUtils.testIQL2(expected, "from organic yesterday today group by between(ojc, 1, 11) select count(), ojc");
+        QueryServletTestUtils.testIQL2(expected, "from organic yesterday today group by between(ojc + 100, 101, 111) select count(), ojc");
     }
 
     @Test
