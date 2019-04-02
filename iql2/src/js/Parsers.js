@@ -328,13 +328,13 @@ class Parser {
             if ((value > 2010) && (value < 2050)) {
                 return successIfValid(moment().year(value).month(1).day(1).startOf('day'));
             }
-            return successIfValid(moment(value));
+            return successIfValid(moment(value * 1000 /*seconds to milliseconds*/));
         } else {
             // quoted dateTime or quoted relativeTime or relativeTime
             if (rawDate.startsWith("\"") || rawDate.startsWith("'")) {
                 // unquote and try to parse as dateTime
                 rawDate = unquote(rawDate);
-                const result = iqlDateToMomentDate(rawDate);
+                const result = this.iqlDateToMomentDate(rawDate);
                 if ("success" in result) {
                     return result;
                 }
@@ -343,7 +343,7 @@ class Parser {
             rawDate = rawDate.trim();
 
             if (rawDate.toUpperCase().endsWith(" AGO")) {
-                rawDate = rawDate.substring(0, rawDate.length() - 4).trim();
+                rawDate = rawDate.substring(0, rawDate.length - 4).trim();
             }
             const res = timeAtStartOfDay;
 
