@@ -307,74 +307,86 @@ class Parser {
                 return failure('invalid date', 'a valid date');
             }
         }
-        if (rawDate.startsWith("\"")) {
-            rawDate = unquote(rawDate);
-        }
-        const parseResult = runParser('dateTime', rawDate);
+        const parseResult = runParser('dateTimeTerminal', rawDate);
         if (parseResult.errors) {
             return parseResult;
         }
-        const parsed = parseResult.success;
+        const parsed = parseResult.success.dateTime();
         const getText = makeGetText(parsed);
         const timeAtStartOfDay = moment().utcOffset(DEFAULT_UTC_OFFSET).startOf('day');
-        if (((this.isLegacy || rawDate.length > 3) && 'TODAY'.startsWith(rawDate.toUpperCase()))
-            || ('AGO' === rawDate.toUpperCase())){
+        if (rawDate.length >= 3 && 'TODAY'.startsWith(rawDate.toUpperCase())) {
             return successIfValid(timeAtStartOfDay);
         } else if (rawDate.length >= 3 && 'TOMORROW'.startsWith(rawDate.toUpperCase())) {
             return successIfValid(timeAtStartOfDay.add(1, 'days'));
-        } else if (rawDate.length > 1 && 'YESTERDAY'.startsWith(rawDate.toUpperCase())) {
+        } else if (rawDate.length >= 1 && 'YESTERDAY'.startsWith(rawDate.toUpperCase())) {
             return successIfValid(timeAtStartOfDay.subtract(1, 'days'));
-        } else if (parsed.timePeriod() !== null) {
-            const timePeriod = parsed.timePeriod();
+        } else if (parsed.DATETIME_TOKEN() !== null) {
+            return successIfValid(moment(rawDate));
+        } else if (parsed.NAT() !== null) {
+            // year or timestamp
+            const value = Number(rawDate);
+            if ((value > 2010) && (value < 2050)) {
+                return successIfValid(moment().year(value).month(1).day(1).startOf('day'));
+            }
+            return successIfValid(moment(value));
+        } else {
+            // quoted dateTime or quoted relativeTime or relativeTime
+            if (rawDate.startsWith("\"") || rawDate.startsWith("'")) {
+                // unquote and try to parse as dateTime
+                rawDate = unquote(rawDate);
+                const result = iqlDateToMomentDate(rawDate);
+                if ("success" in result) {
+                    return result;
+                }
+            }
+            // it's relative time
+            rawDate = rawDate.trim();
+
+            if (rawDate.toUpperCase().endsWith(" AGO")) {
+                rawDate = rawDate.substring(0, rawDate.length() - 4).trim();
+            }
             const res = timeAtStartOfDay;
-            for (let i = 0; i < timePeriod.timeunits.length; i++) {
-                const timeUnit = timePeriod.timeunits[i];
-                const coeff = timeUnit.coeff ? getText(timeUnit.coeff) : 1;
-                let unit = getText(timeUnit.unit);
+
+            let current = 0;
+            const raw = rawDate;
+            while (current < raw.length) {
+                // skipping spaces
+                while (current < raw.length && raw.charAt(current) === ' ') {
+                    current++;
+                }
+
+                // parsing number
+                const numberStart = current;
+                while (current < raw.length && raw.charAt(current).match(/[0-9]/)) {
+                    current++;
+                }
+                const numberEndExcl = current;
+                const coeff = numberEndExcl > numberStart ? Number(raw.substring(numberStart, numberEndExcl)) : Number(1);
+
+                // skipping spaces
+                while (raw.charAt(current) === ' ') {
+                    current++;
+                }
+
+                // parsing unit
+                const periodStart = current;
+                while (current < raw.length && raw.charAt(current).match(/[a-zA-Z]/)) {
+                    current++;
+                }
+                const periodEndExcl = current;
+
+                let unit = raw.substring(periodStart, periodEndExcl);
                 if (unit.toUpperCase() === 'MO') {
                     unit = 'MONTH';
                 }
+
                 if (typeof res.get(unit) !== 'number') {
                     return failure('invalid unit: ' + unit, 'a valid unit');
                 }
                 res.subtract(coeff, unit);
             }
 
-            for (let i = 0; i < timePeriod.atoms.length; i++) {
-                let start = 0;
-                const raw = getText(timePeriod.atoms[i]);
-                while (start < raw.length) {
-                    const numberStart = start;
-                    let current = start;
-                    while (raw.charAt(current).match(/[0-9]/)) {
-                        current++;
-                    }
-                    const numberEndExcl = current;
-
-                    const periodStart = current;
-                    while (current < raw.length && raw.charAt(current).match(/[a-zA-Z]/)) {
-                        current++;
-                    }
-                    const periodEndExcl = current;
-
-                    const coeff = Number(raw.substring(numberStart, numberEndExcl));
-                    let unit = raw.substring(periodStart, periodEndExcl);
-                    if (unit.toUpperCase === 'MO') {
-                        unit = 'MONTH';
-                    }
-
-                    if (typeof res.get(unit) !== 'number') {
-                        return failure('invalid unit: ' + unit, 'a valid unit');
-                    }
-                    res.subtract(coeff, unit);
-
-                    start = current;
-                }
-            }
-
             return success(res);
-        } else {
-            return successIfValid(moment(rawDate));
         }
     }
 
