@@ -16,11 +16,11 @@ package com.indeed.iql1.sql.ast;
 
 /**
  * A string literal.
- * 
+ *
  * @author Ben Yu
  */
 public final class StringExpression extends ValueObject implements Expression {
-  private final String string;
+  public final String string;
 
   public StringExpression(String string) {
     this.string = string;
