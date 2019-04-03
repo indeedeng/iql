@@ -11,8 +11,10 @@
  * express or implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
- package com.indeed.iql1.sql.ast2;
+package com.indeed.iql1.sql.ast2;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.indeed.iql1.sql.ast.ValueObject;
 import org.joda.time.DateTime;
 
@@ -22,7 +24,7 @@ import java.util.Objects;
 /**
  * @author vladimir
  */
-
+@JsonSerialize
 public class FromClause extends ValueObject implements Serializable {
     private final String dataset;
     private final DateTime start;
@@ -42,22 +44,27 @@ public class FromClause extends ValueObject implements Serializable {
         this.endRawString = endRawString;
     }
 
+    @JsonProperty
     public String getDataset() {
         return dataset;
     }
 
+    @JsonProperty
     public DateTime getStart() {
         return start;
     }
 
+    @JsonProperty
     public DateTime getEnd() {
         return end;
     }
 
+    @JsonProperty
     public String getStartRawString() {
         return startRawString;
     }
 
+    @JsonProperty
     public String getEndRawString() {
         return endRawString;
     }
