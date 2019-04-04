@@ -36,7 +36,6 @@ import com.indeed.iql2.language.JQLParser;
 import com.indeed.iql2.language.ParserCommon;
 import com.indeed.iql2.language.Positional;
 import com.indeed.iql2.language.Positioned;
-import com.indeed.iql2.language.Term;
 import com.indeed.iql2.language.cachekeys.CacheKey;
 import com.indeed.iql2.language.commands.Command;
 import com.indeed.iql2.language.query.fieldresolution.FieldResolver;
@@ -186,7 +185,8 @@ public class Query extends AbstractPositional {
             final boolean useLegacy,
             final boolean isTopLevelQuery
     ) {
-        final FieldResolver fieldResolver = FieldResolver.build(queryCtx, partialContext.fromContext, partialContext.datasetsMetadata);
+        final FieldResolver fieldResolver = FieldResolver.build(queryCtx, partialContext.fromContext,
+                partialContext.datasetsMetadata, useLegacy);
         final Context context = partialContext.fullContext(fieldResolver.universalScope());
 
         final List<Pair<Dataset, Optional<DocFilter>>> datasetsWithFilters = Dataset.parseDatasets(context);

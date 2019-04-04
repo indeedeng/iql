@@ -31,8 +31,10 @@ import static org.junit.Assert.assertTrue;
  */
 public class FieldResolverTest {
     public static FieldResolver fromQuery(final String query) {
-        final JQLParser.QueryContext parseResult = Queries.parseQueryContext(query, false);
-        final FieldResolver resolver = FieldResolver.build(parseResult, parseResult.fromContents(), AllData.DATASET.getDatasetsMetadata());
+        final boolean useLegacy = false;
+        final JQLParser.QueryContext parseResult = Queries.parseQueryContext(query, useLegacy);
+        final FieldResolver resolver = FieldResolver.build(parseResult, parseResult.fromContents(),
+                AllData.DATASET.getDatasetsMetadata(), useLegacy);
         resolver.setErrorMode(FieldResolver.ErrorMode.IMMEDIATE);
         return resolver;
     }
@@ -144,9 +146,11 @@ public class FieldResolverTest {
 
     // same as fromQuery, but uses the dimensions data
     private static FieldResolver fromQueryDimensions(final String query) {
-        final JQLParser.QueryContext parseResult = Queries.parseQueryContext(query, false);
+        final boolean useLegacy = false;
+        final JQLParser.QueryContext parseResult = Queries.parseQueryContext(query, useLegacy);
         final DatasetsMetadata datasetsMetadata = DIMENSIONS_METADATA.get();
-        final FieldResolver resolver = FieldResolver.build(parseResult, parseResult.fromContents(), datasetsMetadata);
+        final FieldResolver resolver = FieldResolver.build(parseResult, parseResult.fromContents(),
+                datasetsMetadata, useLegacy);
         resolver.setErrorMode(FieldResolver.ErrorMode.IMMEDIATE);
         return resolver;
     }

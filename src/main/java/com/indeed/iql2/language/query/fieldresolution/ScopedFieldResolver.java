@@ -158,6 +158,10 @@ public class ScopedFieldResolver {
             }
         }
 
+        if (anyInt && anyString) {
+            return fieldResolver.conflictedFieldType;
+        }
+
         if (anyInt) {
             return FieldType.Integer;
         }
