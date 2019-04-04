@@ -5,18 +5,9 @@ import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.indeed.iql.metadata.ImhotepMetadataCache;
 import com.indeed.iql.web.FieldFrequencyCache;
-import com.indeed.iql1.sql.ast.BinaryExpression;
-import com.indeed.iql1.sql.ast.FunctionExpression;
-import com.indeed.iql1.sql.ast.NameExpression;
-import com.indeed.iql1.sql.ast.Op;
-import com.indeed.iql1.sql.ast.StringExpression;
-import com.indeed.iql1.sql.ast2.FromClause;
-import com.indeed.iql1.sql.ast2.GroupByClause;
-import com.indeed.iql1.sql.ast2.IQL1SelectStatement;
-import com.indeed.iql1.sql.ast2.SelectClause;
-import com.indeed.iql1.sql.ast2.WhereClause;
 import com.indeed.iql1.web.ParseController;
 import com.indeed.iql2.IQL2Options;
 import com.indeed.iql2.server.web.servlets.ParseServlet;
@@ -33,6 +24,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
 import java.io.IOException;
+import java.util.Map;
 
 public class TestParseController {
     private static final DateTime NOW = DateTime.now().withZone(DateTimeZone.forOffsetHours(-6));
@@ -43,8 +35,7 @@ public class TestParseController {
             .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, true)
             .configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true)
             .configure(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY, true)
-            .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, true)
-            ;
+            .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, true);
 
     private static ParseController parseController;
 
@@ -61,7 +52,7 @@ public class TestParseController {
         parseController = new ParseController(cache, new ParseServlet(cache, new IQL2Options()), NOW_CLOCK);
     }
 
-    private void testIQL1(final IQL1SelectStatement expected, final String query) throws IOException {
+    private void testIQL1(final Map<String, Object> expected, final String query) throws IOException {
         final MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("Accept", "application/json");
         QueryServletTestUtils.LanguageVersion.ORIGINAL_IQL1.addRequestParameters(request);
@@ -73,24 +64,54 @@ public class TestParseController {
 
     @Test
     public void testBasic() throws IOException {
-        testIQL1(
-                new IQL1SelectStatement(
-                        new SelectClause(ImmutableList.of(
-                                new FunctionExpression("count", ImmutableList.of()),
-                                new FunctionExpression("distinct", ImmutableList.of(new NameExpression("jobid")))
-                        )),
-                        new FromClause("jobsearch", TODAY.minusDays(10), TODAY, "10d", "today"),
-                        new WhereClause(
-                                new BinaryExpression(
-                                        new BinaryExpression(new NameExpression("rcv"), Op.EQ, new NameExpression("jsv")),
-                                        Op.AND,
-                                        new BinaryExpression(new NameExpression("group"), Op.NOT_EQ, new StringExpression("spider"))
+        final Map<String, Object> expected = ImmutableMap.of(
+                "from", ImmutableMap.of(
+                        "dataset", "jobsearch",
+                        "start", TODAY.minusDays(10),
+                        "end", TODAY,
+                        "startRawString", "10d",
+                        "endRawString", "today"
+                ),
+                "where", ImmutableMap.of(
+                        "expression", ImmutableMap.of(
+                                "operator", "AND",
+                                "left", ImmutableMap.of(
+                                        "operator", "EQ",
+                                        "left", ImmutableMap.of("name", "rcv"),
+                                        "right", ImmutableMap.of("name", "jsv")
+                                ),
+                                "right", ImmutableMap.of(
+                                        "operator", "NOT_EQ",
+                                        "left", ImmutableMap.of("name", "grp"),
+                                        "right", ImmutableMap.of("string", "spider")
                                 )
-                        ),
-                        new GroupByClause(ImmutableList.of(new FunctionExpression("time", ImmutableList.of(new StringExpression("1d"))))),
-                        Integer.MAX_VALUE - 1
+                        )
+                ),
+                "groupBy", ImmutableMap.of(
+                        "groupings", ImmutableList.of(
+                                ImmutableMap.of(
+                                        "function", "time",
+                                        "args", ImmutableList.of(ImmutableMap.of("string", "1d")))
+                        )
+                ),
+                "limit", Integer.MAX_VALUE - 1,
+                "select", ImmutableMap.of(
+                        "projections", ImmutableList.of(
+                                ImmutableMap.of(
+                                        "function", "count",
+                                        "args", ImmutableList.of()
+                                ),
+                                ImmutableMap.of(
+                                        "function", "distinct",
+                                        "args", ImmutableList.of(ImmutableMap.of("name", "jobid"))
+                                )
+                        )
                 )
-                , "from jobsearch 10d today where rcv=jsv group!='spider' group by time(1d) select count(), distinct(jobid)"
+        );
+
+        testIQL1(
+                expected
+                , "from jobsearch 10d today where rcv=jsv grp!='spider' group by time(1d) select count(), distinct(jobid)"
         );
     }
 }
