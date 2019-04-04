@@ -1503,6 +1503,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public void validate(final String dataset, final ValidationHelper validationHelper, final ErrorCollector errorCollector) {
+            validationHelper.validateSampleParams(numerator, denominator, errorCollector);
             final String fieldName = field.datasetFieldName(dataset);
             if (isIntField) {
                 if (!validationHelper.containsIntField(dataset, fieldName)) {
@@ -1601,9 +1602,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public void validate(final String dataset, final ValidationHelper validationHelper, final ErrorCollector errorCollector) {
-            if ((numerator < 0) || (numerator > denominator)) {
-                errorCollector.error(ErrorMessages.incorrectSampleParams(numerator, denominator));
-            }
+            validationHelper.validateSampleParams(numerator, denominator, errorCollector);
             metric.validate(dataset, validationHelper, errorCollector);
         }
     }
