@@ -190,17 +190,12 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
         }
     }
 
-    // TODO: merge!
-    // IQL1 metadata cache
+    // IQL metadata cache
     @Bean
-    public ImhotepMetadataCache metadataCacheIQL1() {
-        return new ImhotepMetadataCache(imsClientIQL1(), imhotepClient(), env.getProperty("disabled.fields"), fieldFrequencyCache(), false);
+    public ImhotepMetadataCache metadataCacheIQL() {
+        return new ImhotepMetadataCache(imsClientIQL1(), imhotepClient(), env.getProperty("disabled.fields"), fieldFrequencyCache());
     }
-    // IQL2 metadata cache
-    @Bean
-    public ImhotepMetadataCache metadataCacheIQL2() {
-        return new ImhotepMetadataCache(imsClientIQL2(), imhotepClient(), env.getProperty("disabled.fields"), fieldFrequencyCache(), true);
-    }
+
     @Bean
     public TopTermsCache topTermsCache() {
         final boolean topTermsCacheEnabled = env.getProperty("topterms.cache.enabled", Boolean.class, true);

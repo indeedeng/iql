@@ -39,7 +39,7 @@ public class HashQueries {
         try (final ImhotepClient client = new ImhotepClient(zkNodes, zkPath, true)) {
             final ImhotepMetadataCache metadataCache;
             final ImsClientInterface imsClient = ImsClient.build(iqlUrl);
-            metadataCache = new ImhotepMetadataCache(imsClient, client, "", new FieldFrequencyCache(null), true);
+            metadataCache = new ImhotepMetadataCache(imsClient, client, "", new FieldFrequencyCache(null));
             metadataCache.updateDatasets();
             datasetsMetadata = metadataCache.get();
         }

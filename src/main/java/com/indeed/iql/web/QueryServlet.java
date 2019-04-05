@@ -428,7 +428,7 @@ public class QueryServlet {
         queryInfo.numShards = iqlQuery.getShards().size();
         queryInfo.datasetFields = iqlQuery.getDatasetFields();
         queryInfo.datasetFieldsNoDescription = iqlQuery.getFields().stream()
-                .filter((field) -> !metadataCacheIQL1.get().fieldHasDescription(iqlQuery.getDataset(), field))
+                .filter((field) -> !metadataCacheIQL1.get().fieldHasDescription(iqlQuery.getDataset(), field, true))
                 .map((field) -> iqlQuery.getDataset() + "." + field)
                 .collect(Collectors.toSet());
         final Set<String> hostHashSet = Sets.newHashSet();
@@ -733,7 +733,7 @@ public class QueryServlet {
         final String dataset = parsedQuery.dataset;
         final String fieldName = parsedQuery.field;
         final List<String> topTerms = topTermsCache.getTopTerms(dataset, fieldName);
-        FieldMetadata field = metadataCacheIQL1.getDataset(dataset).getField(fieldName);
+        FieldMetadata field = metadataCacheIQL1.getDataset(dataset).getField(fieldName, true);
         final boolean hadDescription;
         if(field == null) {
             field = new FieldMetadata("notfound", FieldType.String);

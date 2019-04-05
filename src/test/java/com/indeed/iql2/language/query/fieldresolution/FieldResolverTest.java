@@ -139,7 +139,7 @@ public class FieldResolverTest {
         }
     }
 
-    private static final ImhotepMetadataCache DIMENSIONS_METADATA = new ImhotepMetadataCache(new DimensionUtils.ImsClient(), AllData.DATASET.getNormalClient(), "", new FieldFrequencyCache(null), true);
+    private static final ImhotepMetadataCache DIMENSIONS_METADATA = new ImhotepMetadataCache(new DimensionUtils.ImsClient(), AllData.DATASET.getNormalClient(), "", new FieldFrequencyCache(null));
     static {
         DIMENSIONS_METADATA.updateDatasets();
     }

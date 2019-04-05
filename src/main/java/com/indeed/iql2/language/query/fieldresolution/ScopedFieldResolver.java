@@ -147,14 +147,15 @@ public class ScopedFieldResolver {
             if (FieldResolver.FAILED_TO_RESOLVE_FIELD.equals(datasetFieldName)) {
                 continue;
             }
-            final FieldMetadata fieldMetadata = metadata.getField(datasetFieldName);
-            switch (fieldMetadata.getType()) {
-                case String:
-                    anyString = true;
-                    break;
-                case Integer:
-                    anyInt = true;
-                    break;
+            for (final FieldMetadata fieldMetadata : metadata.getFieldAllTypes(datasetFieldName)) {
+                switch (fieldMetadata.getType()) {
+                    case String:
+                        anyString = true;
+                        break;
+                    case Integer:
+                        anyInt = true;
+                        break;
+                }
             }
         }
 
