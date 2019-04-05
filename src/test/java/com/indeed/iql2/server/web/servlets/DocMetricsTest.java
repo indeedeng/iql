@@ -46,6 +46,21 @@ public class DocMetricsTest extends BasicTest {
     }
 
     @Test
+    public void testMetricsIntTermsWithStringField() throws Exception {
+        QueryServletTestUtils.testAll(
+                ImmutableList.of(ImmutableList.of("", "10", "10", "0", "90")),
+                "from stringAsInt1 yesterday today select leadingZeroes = \"0001\", leadingZeroes=0001, leadingZeroes=1, leadingZeroes != 0002"
+        );
+
+        QueryServletTestUtils.testIQL2(
+                ImmutableList.of(ImmutableList.of("", "10", "10", "0", "90")),
+                "from stringAsInt1 yesterday today select stringAsInt1.leadingZeroes = \"0001\", " +
+                        "stringAsInt1.leadingZeroes=0001, stringAsInt1.leadingZeroes=1, " +
+                        "stringAsInt1.leadingZeroes != 0002"
+        );
+    }
+
+    @Test
     public void testHasStr() throws Exception {
         QueryServletTestUtils.testIQL1(
                 ImmutableList.of(ImmutableList.of("", "151", "151", "0")),
@@ -90,7 +105,7 @@ public class DocMetricsTest extends BasicTest {
     }
 
     @Test
-    public void testIntTermsWithStringField() throws Exception {
+    public void testFiltersIntTermsWithStringField() throws Exception {
         // in DocFilter
         QueryServletTestUtils.testAll(
                 ImmutableList.of(ImmutableList.of("", "10")),

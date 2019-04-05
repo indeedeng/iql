@@ -105,7 +105,7 @@ public class DocMetrics {
             }
 
             @Override
-            public void enterLegacyDocInequality(JQLParser.LegacyDocInequalityContext ctx) {
+            public void enterLegacyDocInequality(final JQLParser.LegacyDocInequalityContext ctx) {
                 final DocMetric left = parseLegacyDocMetric(ctx.legacyDocMetric(0), fieldResolver, datasetsMetadata);
                 final DocMetric right = parseLegacyDocMetric(ctx.legacyDocMetric(1), fieldResolver, datasetsMetadata);
                 if (ctx.gte != null) {
@@ -117,9 +117,9 @@ public class DocMetrics {
                 } else if (ctx.lt != null) {
                     accept(new DocMetric.MetricLt(left, right));
                 } else if (ctx.eq != null) {
-                    accept(new DocMetric.MetricEqual(left, right));
+                    accept(DocMetric.MetricEqual.create(left, right));
                 } else if (ctx.neq != null) {
-                    accept(new DocMetric.MetricNotEqual(left, right));
+                    accept(DocMetric.MetricNotEqual.create(left, right));
                 }
             }
 
@@ -336,7 +336,7 @@ public class DocMetrics {
             }
 
             @Override
-            public void enterDocInequality(JQLParser.DocInequalityContext ctx) {
+            public void enterDocInequality(final JQLParser.DocInequalityContext ctx) {
                 final DocMetric left = parseJQLDocMetric(ctx.jqlDocMetric(0), context);
                 final DocMetric right = parseJQLDocMetric(ctx.jqlDocMetric(1), context);
                 if (ctx.gte != null) {
@@ -348,9 +348,9 @@ public class DocMetrics {
                 } else if (ctx.lt != null) {
                     accept(new DocMetric.MetricLt(left, right));
                 } else if (ctx.eq != null) {
-                    accept(new DocMetric.MetricEqual(left, right));
+                    accept(DocMetric.MetricEqual.create(left, right));
                 } else if (ctx.neq != null) {
-                    accept(new DocMetric.MetricNotEqual(left, right));
+                    accept(DocMetric.MetricNotEqual.create(left, right));
                 }
             }
 
@@ -572,7 +572,7 @@ public class DocMetrics {
                     result = plainField1.wrap(new DocMetric.FieldEqualMetric(plainField1, plainField2));
                 } else {
                     ValidationUtil.validateSameQualifieds(ctx, metric1, metric2);
-                    result = new DocMetric.MetricEqual(metric1, metric2);
+                    result = DocMetric.MetricEqual.create(metric1, metric2);
                 }
 
                 accept(result);
@@ -592,7 +592,7 @@ public class DocMetrics {
                     result = plainField1.wrap(negateMetric(new DocMetric.FieldEqualMetric(plainField1, plainField2)));
                 } else {
                     ValidationUtil.validateSameQualifieds(ctx, metric1, metric2);
-                    result = new DocMetric.MetricNotEqual(metric1, metric2);
+                    result = DocMetric.MetricNotEqual.create(metric1, metric2);
                 }
 
                 accept(result);
