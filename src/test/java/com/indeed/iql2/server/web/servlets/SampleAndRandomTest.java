@@ -6,8 +6,16 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Predicate;
 
-import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.*;
+import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.LanguageVersion;
+import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.Options;
+import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.ResultFormat;
+import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.expectException;
+import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.expectExceptionAll;
+import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.runQuery;
+import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testAll;
+import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testIQL2;
 
 /**
  * Golden dataset testing to ensure that we don't CHANGE the results of
@@ -228,6 +236,20 @@ public class SampleAndRandomTest extends BasicTest {
         expected.add(ImmutableList.of("sampled", "2", "31", "31", "2"));
 
         testIQL2(expected, query, Options.create(true));
+    }
+
+    @Test
+    public void testSampleParamCheck() throws Exception {
+        // check that query fails during verification
+        final Predicate<String> wrongSampleParams =
+                s -> s.contains("Wrong params for SAMPLE: expected 0 <= numerator <= denominator");
+
+        // doc filter
+        expectExceptionAll("from organic yesterday today where sample(oji, 10, 1)", wrongSampleParams);
+        // doc metric
+        expectException("from organic yesterday today where sample(oji + ojc, 10, 1)", LanguageVersion.IQL2, wrongSampleParams);
+        // group by filter
+        expectException("from organic yesterday today group by sample(oji, 10, 1)", LanguageVersion.IQL2, wrongSampleParams);
     }
 
     @Test

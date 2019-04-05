@@ -1206,7 +1206,7 @@ public abstract class DocFilter extends AbstractPositional {
         }
 
         @Override
-        public DocMetric asZeroOneMetric(String dataset) {
+        public DocMetric asZeroOneMetric(final String dataset) {
             // Sample() returns 0 for no term, 1 for below p, and 2 for above p.
             // We do (1 - p) to keep the same half of the divide as SAMPLE does.
             return new DocMetric.MetricEqual(
@@ -1218,7 +1218,7 @@ public abstract class DocFilter extends AbstractPositional {
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             Preconditions.checkState(scope.keySet().equals(field.datasets()));
-            return Collections.singletonList(new SampleAction(field, (double) numerator / denominator, seed, target, positive, negative));
+            return Collections.singletonList(new SampleAction(field, numerator, denominator, seed, target, positive, negative));
         }
 
         @Override
@@ -1227,10 +1227,11 @@ public abstract class DocFilter extends AbstractPositional {
         }
 
         @Override
-        public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
-            if ((numerator < 0) || (numerator > denominator)) {
-                errorCollector.error(ErrorMessages.incorrectSampleParams(numerator, denominator));
-            }
+        public void validate(
+                final String dataset,
+                final ValidationHelper validationHelper,
+                final ErrorCollector errorCollector) {
+            validationHelper.validateSampleParams(numerator, denominator, errorCollector);
             final String fieldName = field.datasetFieldName(dataset);
             if (!validationHelper.containsField(dataset, fieldName)) {
                 errorCollector.error(ErrorMessages.missingField(dataset, fieldName, this));
@@ -1280,7 +1281,7 @@ public abstract class DocFilter extends AbstractPositional {
             for (final String dataset : scope.keySet()) {
                 perDatasetMetrics.put(dataset, metric);
             }
-            return Collections.singletonList(new SampleMetricAction(perDatasetMetrics.build(), (double) numerator / denominator, seed, target, positive, negative));
+            return Collections.singletonList(new SampleMetricAction(perDatasetMetrics.build(), numerator, denominator, seed, target, positive, negative));
         }
 
         @Override
@@ -1292,9 +1293,7 @@ public abstract class DocFilter extends AbstractPositional {
         public void validate(final String dataset,
                              final ValidationHelper validationHelper,
                              final ErrorCollector errorCollector) {
-            if ((numerator < 0) || (numerator > denominator)) {
-                errorCollector.error(ErrorMessages.incorrectSampleParams(numerator, denominator));
-            }
+            validationHelper.validateSampleParams(numerator, denominator, errorCollector);
             metric.validate(dataset, validationHelper, errorCollector);
         }
     }
