@@ -51,6 +51,13 @@ public class DocMetricsTest extends BasicTest {
                 ImmutableList.of(ImmutableList.of("", "10", "10", "0", "90")),
                 "from stringAsInt1 yesterday today select leadingZeroes = \"0001\", leadingZeroes=0001, leadingZeroes=1, leadingZeroes != 0002"
         );
+
+        QueryServletTestUtils.testIQL2(
+                ImmutableList.of(ImmutableList.of("", "10", "10", "0", "90")),
+                "from stringAsInt1 yesterday today select stringAsInt1.leadingZeroes = \"0001\", " +
+                        "stringAsInt1.leadingZeroes=0001, stringAsInt1.leadingZeroes=1, " +
+                        "stringAsInt1.leadingZeroes != 0002"
+        );
     }
 
     @Test
