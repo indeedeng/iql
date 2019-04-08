@@ -21,6 +21,8 @@ import com.indeed.flamdex.query.Query;
 import com.indeed.imhotep.automaton.Automaton;
 import com.indeed.imhotep.automaton.RegExp;
 import com.indeed.imhotep.automaton.RegexTooComplexException;
+import com.indeed.imhotep.matcher.StringTermMatcher;
+import com.indeed.imhotep.matcher.StringTermMatchers;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.JQLParser;
@@ -251,9 +253,9 @@ public class ValidationUtil {
         INT, STR, NULL
     }
 
-    public static Automaton compileRegex(final String regex) {
+    public static StringTermMatcher compileRegex(final String regex) {
         try {
-            return new RegExp(regex, RegExp.NONE).toAutomaton();
+            return StringTermMatchers.forRegex(regex);
         } catch (final Exception e) {
             Throwables.propagateIfInstanceOf(e, RegexTooComplexException.class);
             throw new IqlKnownException.ParseErrorException(
