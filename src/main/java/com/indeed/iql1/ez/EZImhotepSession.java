@@ -757,8 +757,8 @@ public class EZImhotepSession implements Closeable {
             } else {
                 final ScoredLong headObject = terms.peek();
                 final double headCount = headObject.getScore();
-                if ((!isBottom && ( count > headCount || ( count == headCount && Long.compare(term, headObject.getValue()) < 0 ) ) ) ||
-                        (isBottom && ( count < headCount || ( count == headCount && Long.compare(headObject.getValue(), term) < 0 ) ) ) ) {
+                if ((!isBottom && ( count > headCount || ( count == headCount && term < headObject.getValue() ) ) ) ||
+                        (isBottom && ( count < headCount || ( count == headCount && term > headObject.getValue() ) ) ) ) {
                     terms.remove();
                     terms.add(new ScoredLong(count, term));
                 }
@@ -777,8 +777,8 @@ public class EZImhotepSession implements Closeable {
             } else {
                 final double headCount = terms.peek().getScore();
                 final ScoredObject headObject = terms.peek();
-                if ((!isBottom && ( count > headCount || ( count == headCount && Comparator.<String>reverseOrder().compare((String)headObject.getObject(), term) < 0 ) ) ) ||
-                        (isBottom && ( count < headCount || ( count == headCount && -Comparator.<String>reverseOrder().compare((String)headObject.getObject(), term) < 0 ) ) ) ) {
+                if ((!isBottom && ( count > headCount || ( count == headCount && term.compareTo((String)headObject.getObject()) < 0  ) ) ) ||
+                        (isBottom && ( count < headCount || ( count == headCount && term.compareTo((String)headObject.getObject()) > 0  ) ) ) ) {
                     terms.remove();
                     terms.add(new ScoredObject<>(count, term));
                 }
