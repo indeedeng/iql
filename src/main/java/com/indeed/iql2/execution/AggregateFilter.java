@@ -15,7 +15,7 @@
 package com.indeed.iql2.execution;
 
 import com.google.common.collect.Sets;
-import com.indeed.imhotep.automaton.Automaton;
+import com.indeed.imhotep.matcher.StringTermMatcher;
 import com.indeed.imhotep.metrics.aggregate.AggregateStatTree;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.AggregateMetric;
@@ -34,15 +34,18 @@ public interface AggregateFilter extends Pushable {
     boolean[] getGroupStats(long[][] stats, int numGroups);
 
     boolean allow(String term, long[] stats, int group);
+
     boolean allow(long term, long[] stats, int group);
 
     AggregateStatTree toImhotep(final Map<QualifiedPush, AggregateStatTree> atomicStats);
 
     // return true if terms are expected in sorted order
     boolean needSorted();
+
     // if needGroup() returns false then group value is ignored inside allow(...) methods
     // and it's valid to pass any value as group
     boolean needGroup();
+
     // if needStats() returns false then stats value is ignored inside allow(...) methods
     // and it's valid to pass any array or null as stats
     boolean needStats();
@@ -50,6 +53,7 @@ public interface AggregateFilter extends Pushable {
     // Base class for unary operation on AggregateFilter
     abstract class Unary implements AggregateFilter {
         protected final AggregateFilter operand;
+
         Unary(final AggregateFilter operand) {
             this.operand = operand;
         }
@@ -91,6 +95,7 @@ public interface AggregateFilter extends Pushable {
     abstract class Binary implements AggregateFilter {
         private final AggregateFilter left;
         private final AggregateFilter right;
+
         public Binary(final AggregateFilter left, final AggregateFilter right) {
             this.left = left;
             this.right = right;
@@ -238,6 +243,7 @@ public interface AggregateFilter extends Pushable {
     abstract class BinaryMetric implements AggregateFilter {
         private final AggregateMetric left;
         private final AggregateMetric right;
+
         public BinaryMetric(final AggregateMetric left, final AggregateMetric right) {
             this.left = left;
             this.right = right;
@@ -301,12 +307,12 @@ public interface AggregateFilter extends Pushable {
     }
 
     class TermEqualsRegex implements AggregateFilter {
-        private final Automaton automaton;
+        private final StringTermMatcher stringTermMatcher;
         private final String rawRegex;
 
         public TermEqualsRegex(final Term value) {
             rawRegex = value.asString();
-            automaton = ValidationUtil.compileRegex(rawRegex);
+            stringTermMatcher = ValidationUtil.compileRegex(rawRegex);
         }
 
         @Override
@@ -326,12 +332,12 @@ public interface AggregateFilter extends Pushable {
 
         @Override
         public boolean allow(final String term, final long[] stats, final int group) {
-            return automaton.run(term);
+            return stringTermMatcher.matches(term);
         }
 
         @Override
         public boolean allow(final long term, final long[] stats, final int group) {
-            return automaton.run(String.valueOf(term));
+            return stringTermMatcher.matches(String.valueOf(term));
         }
 
         @Override
@@ -583,11 +589,11 @@ public interface AggregateFilter extends Pushable {
 
     class RegexFilter implements AggregateFilter {
         private final String regex;
-        private final Automaton automaton;
+        private final StringTermMatcher stringTermMatcher;
 
         public RegexFilter(final String regex) {
             this.regex = regex;
-            automaton = ValidationUtil.compileRegex(this.regex);
+            stringTermMatcher = ValidationUtil.compileRegex(this.regex);
         }
 
         @Override
@@ -607,12 +613,12 @@ public interface AggregateFilter extends Pushable {
 
         @Override
         public boolean allow(final String term, final long[] stats, final int group) {
-            return automaton.run(term);
+            return stringTermMatcher.matches(term);
         }
 
         @Override
         public boolean allow(final long term, final long[] stats, final int group) {
-            return automaton.run(String.valueOf(term));
+            return stringTermMatcher.matches(String.valueOf(term));
         }
 
         @Override
