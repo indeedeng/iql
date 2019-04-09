@@ -333,7 +333,7 @@ public class Session {
             treeTimer.pop();
 
             if (useAsync && useBatchMode) {
-                throw new IllegalStateException("BATCH with ASYNC not supported yet.");
+                throw new IllegalArgumentException("BATCH with ASYNC not supported yet.");
             }
 
             if (useAsync) {
