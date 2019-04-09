@@ -137,8 +137,7 @@ public class QueryServlet {
     @Nullable
     private final File tmpDir;
     private final ImhotepClient imhotepClient;
-    private final ImhotepMetadataCache metadataCacheIQL1;
-    private final ImhotepMetadataCache metadataCacheIQL2;
+    private final ImhotepMetadataCache metadataCache;
     private final TopTermsCache topTermsCache;
     private final QueryCache queryCache;
     private final RunningQueriesManager runningQueriesManager;
@@ -156,8 +155,7 @@ public class QueryServlet {
     @Autowired
     public QueryServlet(@Nullable final File tmpDir,
                         final ImhotepClient imhotepClient,
-                        final ImhotepMetadataCache metadataCacheIQL1,
-                        final ImhotepMetadataCache metadataCacheIQL2,
+                        final ImhotepMetadataCache metadataCache,
                         final TopTermsCache topTermsCache,
                         final QueryCache queryCache,
                         final RunningQueriesManager runningQueriesManager,
@@ -171,8 +169,7 @@ public class QueryServlet {
                         final IQLEnv iqlEnv) {
         this.tmpDir = tmpDir;
         this.imhotepClient = imhotepClient;
-        this.metadataCacheIQL1 = metadataCacheIQL1;
-        this.metadataCacheIQL2 = metadataCacheIQL2;
+        this.metadataCache = metadataCache;
         this.topTermsCache = topTermsCache;
         this.queryCache = queryCache;
         this.runningQueriesManager = runningQueriesManager;
@@ -372,7 +369,7 @@ public class QueryServlet {
 
                 final SelectQueryExecution selectQueryExecution = new SelectQueryExecution(
                         tmpDir, queryCache, limits, maxCachedQuerySizeLimitBytes, imhotepClient,
-                        metadataCacheIQL2.get(), resp.getWriter(), queryInfo, clientInfo, timer, query,
+                        metadataCache.get(), resp.getWriter(), queryInfo, clientInfo, timer, query,
 
                         queryRequestParams.headOnly,
                         queryRequestParams.version, queryRequestParams.isEventStream, queryRequestParams.returnNewestShardVersion, queryRequestParams.skipValidation, queryRequestParams.getTotals,
@@ -382,7 +379,7 @@ public class QueryServlet {
                 selectQueryExecution.processSelect(runningQueriesManager);
             } else {
                 // IQL1
-                final IQL1SelectStatement iql1SelectStatement = SelectStatementParser.parseSelectStatement(query, new DateTime(clock.currentTimeMillis()), metadataCacheIQL1);
+                final IQL1SelectStatement iql1SelectStatement = SelectStatementParser.parseSelectStatement(query, new DateTime(clock.currentTimeMillis()), metadataCache);
                 setQueryInfoFromSelectStatement(iql1SelectStatement, queryInfo, clientInfo);
 
                 final PrintWriter writer = resp.getWriter();
@@ -423,12 +420,12 @@ public class QueryServlet {
         final String queryForHashing = parsedQuery.toHashKeyString();
 
         final IQLQuery iqlQuery = IQLTranslator.translate(parsedQuery, imhotepClient,
-                args.imhotepUserName, metadataCacheIQL1, selectQuery.get().limits, queryInfo, strictCloser);
+                args.imhotepUserName, metadataCache, selectQuery.get().limits, queryInfo, strictCloser);
 
         queryInfo.numShards = iqlQuery.getShards().size();
         queryInfo.datasetFields = iqlQuery.getDatasetFields();
         queryInfo.datasetFieldsNoDescription = iqlQuery.getFields().stream()
-                .filter((field) -> !metadataCacheIQL1.get().fieldHasDescription(iqlQuery.getDataset(), field, true))
+                .filter((field) -> !metadataCache.get().fieldHasDescription(iqlQuery.getDataset(), field, true))
                 .map((field) -> iqlQuery.getDataset() + "." + field)
                 .collect(Collectors.toSet());
         final Set<String> hostHashSet = Sets.newHashSet();
@@ -465,7 +462,7 @@ public class QueryServlet {
         final List<Interval> timeIntervalsMissingShards= iqlQuery.getTimeIntervalsMissingShards();
         warningList.addAll(missingShardsToWarnings(dataset, startTime, endTime, timeIntervalsMissingShards));
 
-        final Set<String> conflictFieldsUsed = Sets.intersection(iqlQuery.getDatasetFields(), metadataCacheIQL1.get().getTypeConflictDatasetFieldNames());
+        final Set<String> conflictFieldsUsed = Sets.intersection(iqlQuery.getDatasetFields(), metadataCache.get().getTypeConflictDatasetFieldNames());
         if (!conflictFieldsUsed.isEmpty()) {
             final String conflictWarning = "Fields with type conflicts used in query: " + String.join(", ", conflictFieldsUsed);
             warningList.add(conflictWarning);
@@ -713,7 +710,7 @@ public class QueryServlet {
             resp.setHeader("Content-Type", "application/json");
         }
         final ExplainQueryExecution explainQueryExecution = new ExplainQueryExecution(
-                metadataCacheIQL2.get(), resp.getWriter(), explainStatement.selectQuery, queryRequestParams.version, queryRequestParams.json, clock, defaultIQL2Options);
+                metadataCache.get(), resp.getWriter(), explainStatement.selectQuery, queryRequestParams.version, queryRequestParams.json, clock, defaultIQL2Options);
         explainQueryExecution.processExplain();
     }
 
@@ -733,7 +730,7 @@ public class QueryServlet {
         final String dataset = parsedQuery.dataset;
         final String fieldName = parsedQuery.field;
         final List<String> topTerms = topTermsCache.getTopTerms(dataset, fieldName);
-        FieldMetadata field = metadataCacheIQL1.getDataset(dataset).getField(fieldName, true);
+        FieldMetadata field = metadataCache.getDataset(dataset).getField(fieldName, true);
         final boolean hadDescription;
         if(field == null) {
             field = new FieldMetadata("notfound", FieldType.String);
@@ -766,7 +763,7 @@ public class QueryServlet {
     private void handleDescribeDataset(DescribeStatement describeStatement, QueryRequestParams queryRequestParams, HttpServletResponse resp) throws IOException {
         final PrintWriter outputStream = resp.getWriter();
         final String dataset = describeStatement.dataset;
-        final DatasetMetadata datasetMetadata = metadataCacheIQL1.getDataset(dataset);
+        final DatasetMetadata datasetMetadata = metadataCache.getDataset(dataset);
         if (queryRequestParams.json) {
             resp.setContentType(MediaType.APPLICATION_JSON_UTF8_VALUE);
             final ObjectNode jsonRoot = OBJECT_MAPPER.createObjectNode();
@@ -792,7 +789,7 @@ public class QueryServlet {
             final ObjectNode jsonRoot = OBJECT_MAPPER.createObjectNode();
             final ArrayNode array = OBJECT_MAPPER.createArrayNode();
             jsonRoot.set("datasets", array);
-            for (DatasetMetadata dataset : metadataCacheIQL1.get().getDatasetToMetadata().values()) {
+            for (DatasetMetadata dataset : metadataCache.get().getDatasetToMetadata().values()) {
                 if (!accessControl.userCanAccessDataset(username, dataset.name)) {
                     continue;
                 }
@@ -802,7 +799,7 @@ public class QueryServlet {
             }
             OBJECT_MAPPER.writerWithDefaultPrettyPrinter().writeValue(outputStream, jsonRoot);
         } else {
-            for (DatasetMetadata dataset : metadataCacheIQL1.get().getDatasetToMetadata().values()) {
+            for (DatasetMetadata dataset : metadataCache.get().getDatasetToMetadata().values()) {
                 if (!accessControl.userCanAccessDataset(username, dataset.name)) {
                     continue;
                 }

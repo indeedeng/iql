@@ -103,7 +103,6 @@ public class QueryServletTestUtils extends BasicTest {
                 options.tmpDir,
                 client,
                 metadataCache,
-                metadataCache,
                 new TopTermsCache(client, "", true, false),
                 options.queryCache,
                 runningQueriesManager,

@@ -192,8 +192,8 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
 
     // IQL metadata cache
     @Bean
-    public ImhotepMetadataCache metadataCacheIQL() {
-        return new ImhotepMetadataCache(imsClientIQL1(), imhotepClient(), env.getProperty("disabled.fields"), fieldFrequencyCache());
+    public ImhotepMetadataCache metadataCache() {
+        return new ImhotepMetadataCache(imsClient(), imhotepClient(), env.getProperty("disabled.fields"), fieldFrequencyCache());
     }
 
     @Bean
@@ -211,14 +211,8 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
         return IQLEnv.fromSpring(env);
     }
 
-    // We need 2 instances to be able to use them concurrently
-    @Bean(name = "imsClientIQL1")
-    public ImsClientInterface imsClientIQL1() {
-        return createIMSClient();
-    }
-
-    @Bean(name = "imsClientIQL2")
-    public ImsClientInterface imsClientIQL2() {
+    @Bean
+    public ImsClientInterface imsClient() {
         return createIMSClient();
     }
 
