@@ -27,9 +27,11 @@ import org.apache.log4j.Logger;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -41,7 +43,6 @@ public class DatasetMetadata {
     private static final Logger log = Logger.getLogger(DatasetMetadata.class);
 
     public static final String TIME_FIELD_NAME = "unixtime";
-    private final boolean iql2mode;
     public final String name;
     @Nullable public String description;
     @Nullable public String owner;
@@ -63,17 +64,28 @@ public class DatasetMetadata {
     // used by the preprocessor
     @Nonnull Map<String, String> iql1ExpressionAliases = Maps.newHashMap();
 
-    public DatasetMetadata(boolean iql2mode, String name) {
-        this(iql2mode, name, null, null, null, false);
+    public DatasetMetadata(final String name) {
+        this(name, null, null, null, false);
     }
 
-    public DatasetMetadata(boolean iql2mode, String name, String description, String owner, String project, boolean deprecated) {
-        this(iql2mode, name, description, owner, project, deprecated, Collections.emptySet(), Collections.emptySet(), Collections.emptyMap());
+    public DatasetMetadata(
+            final String name,
+            final String description,
+            final String owner,
+            final String project,
+            final boolean deprecated) {
+        this(name, description, owner, project, deprecated, Collections.emptySet(), Collections.emptySet(), Collections.emptyMap());
     }
 
-    public DatasetMetadata(final boolean iql2mode, final String name, final String description, String owner, String project, boolean deprecated, final Set<FieldMetadata> intFields, final Set<FieldMetadata> stringFields,
-                           final Map<String, MetricMetadata> fieldToDimension) {
-        this.iql2mode = iql2mode;
+    public DatasetMetadata(
+            final String name,
+            final String description,
+            final String owner,
+            final String project,
+            final boolean deprecated,
+            final Set<FieldMetadata> intFields,
+            final Set<FieldMetadata> stringFields,
+            final Map<String, MetricMetadata> fieldToDimension) {
         this.name = name;
         this.owner = owner;
         this.project = project;
@@ -117,16 +129,16 @@ public class DatasetMetadata {
                 .collect(Collectors.toSet());
     }
 
-    public String getFieldDescription(final String field) {
-        final FieldMetadata fieldMetadata = getField(field);
+    public String getFieldDescription(final String field, final boolean useLegacy) {
+        final FieldMetadata fieldMetadata = getField(field, useLegacy);
         return fieldMetadata == null ? null : Strings.nullToEmpty(fieldMetadata.getDescription());
     }
 
     @Nullable
-    public FieldMetadata getField(String field) {
+    public FieldMetadata getField(final String field, final boolean useLegacy) {
         final FieldMetadata fakeFieldMetadata = new FieldMetadata(field, FieldType.Integer);
         // TODO: unify default type between iql1 and iql2
-        if(iql2mode) {
+        if(!useLegacy) {
             final FieldMetadata intField = getIntField(fakeFieldMetadata);
             if (intField == null) {
                 return getStringField(fakeFieldMetadata);
@@ -141,6 +153,21 @@ public class DatasetMetadata {
                 return stringField;
             }
         }
+    }
+
+    // returns metadata for both field types
+    public List<FieldMetadata> getFieldAllTypes(final String field) {
+        final List<FieldMetadata> fields = new ArrayList<>(1);
+        final FieldMetadata fakeFieldMetadata = new FieldMetadata(field, FieldType.Integer);
+        final FieldMetadata intField = getIntField(fakeFieldMetadata);
+        if (intField != null) {
+            fields.add(intField);
+        }
+        final FieldMetadata stringField = getStringField(fakeFieldMetadata);
+        if (stringField != null) {
+            fields.add(stringField);
+        }
+        return fields;
     }
 
     private FieldMetadata getIntField(FieldMetadata fakeFieldMetadata) {

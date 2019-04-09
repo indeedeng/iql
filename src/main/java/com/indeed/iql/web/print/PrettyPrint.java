@@ -78,7 +78,7 @@ public class PrettyPrint {
     }
 
     private static String prettyPrint(JQLParser.QueryContext queryContext, Query query, DatasetsMetadata datasetsMetadata, Consumer<String> consumer, WallClock clock) {
-        final FieldResolver fieldResolver = FieldResolver.build(queryContext, queryContext.fromContents(), datasetsMetadata);
+        final FieldResolver fieldResolver = FieldResolver.build(queryContext, queryContext.fromContents(), datasetsMetadata, query.useLegacy);
         final PrettyPrint prettyPrint = new PrettyPrint(queryContext, datasetsMetadata, fieldResolver.universalScope());
         prettyPrint.pp(query, consumer, clock);
         while (prettyPrint.sb.charAt(prettyPrint.sb.length() - 1) == '\n') {

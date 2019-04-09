@@ -367,7 +367,7 @@ public class SelectQueryExecution {
                 }
                 if (field != null) {
                     queryInfo.datasetFields.add(datasetField.dataset + "." + field);
-                    if (!datasetsMetadata.fieldHasDescription(datasetField.dataset, field)) {
+                    if (!datasetsMetadata.fieldHasDescription(datasetField.dataset, field, useLegacy)) {
                         queryInfo.datasetFieldsNoDescription.add(datasetField.dataset + "." + field);
                     }
                 }
