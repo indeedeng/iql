@@ -23,7 +23,7 @@ public class MetadataCacheTest {
 
     @Test
     public void testParseDataset() {
-        final ImhotepMetadataCache metadataCache = new ImhotepMetadataCache(null, null, "", new FieldFrequencyCache(null), true);
+        final ImhotepMetadataCache metadataCache = new ImhotepMetadataCache(null, null, "", new FieldFrequencyCache(null));
         final MetricsYaml calcMetric = new MetricsYaml();
         calcMetric.setName("complex");
         calcMetric.setExpr("(a1+a2)*10");

@@ -43,7 +43,7 @@ public class GroupByHavingDataset {
             doc.addIntTerm("val", 0);
             flamdex.addDocument(doc);
         }
-        result.add(new Dataset.DatasetShard("test", "index20150101.02", flamdex));
+        result.add(new Dataset.DatasetShard("test", "index20150101", flamdex));
         return new Dataset(result);
     }
 }

@@ -45,8 +45,7 @@ public class TestParseController {
                 null,
                 AllData.DATASET.getNormalClient(),
                 "",
-                new FieldFrequencyCache(null),
-                true
+                new FieldFrequencyCache(null)
         );
         cache.updateDatasets();
         parseController = new ParseController(cache, new ParseServlet(cache, new IQL2Options()), NOW_CLOCK);

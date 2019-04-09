@@ -34,8 +34,8 @@ public class VersionUpgradeServlet {
     private final ImhotepMetadataCache metadataCache;
 
     @Autowired
-    public VersionUpgradeServlet(ImhotepMetadataCache metadataCacheIQL2) {
-        this.metadataCache = metadataCacheIQL2;
+    public VersionUpgradeServlet(final ImhotepMetadataCache metadataCache) {
+        this.metadataCache = metadataCache;
     }
 
     @RequestMapping("upgrade")

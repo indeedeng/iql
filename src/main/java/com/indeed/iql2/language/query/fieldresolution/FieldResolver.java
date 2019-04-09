@@ -6,6 +6,7 @@ import com.google.common.collect.Sets;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql.metadata.DatasetsMetadata;
+import com.indeed.iql.metadata.FieldType;
 import com.indeed.iql2.language.Identifiers;
 import com.indeed.iql2.language.JQLBaseVisitor;
 import com.indeed.iql2.language.JQLParser;
@@ -38,6 +39,7 @@ public class FieldResolver {
     private final Map<String, Set<String>> metricAliasEquivalenceSets;
     final Map<String, ResolvedDataset> datasets;
     final DatasetsMetadata datasetsMetadata;
+    final FieldType conflictedFieldType;
 
     // In case errorMode is ErrorMode.DEFERRED, this field will contain any
     // exceptions that have been added to the FieldResolver with addError calls.
@@ -58,7 +60,8 @@ public class FieldResolver {
     public FieldResolver(
             final Set<String> metricAliases,
             final Map<String, ResolvedDataset> datasets,
-            final DatasetsMetadata datasetsMetadata) {
+            final DatasetsMetadata datasetsMetadata,
+            final FieldType conflictedFieldType) {
         metricAliasEquivalenceSets = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         for (final String metricAlias : metricAliases) {
             metricAliasEquivalenceSets
@@ -67,6 +70,7 @@ public class FieldResolver {
         }
         this.datasets = datasets;
         this.datasetsMetadata = datasetsMetadata;
+        this.conflictedFieldType = conflictedFieldType;
     }
 
     @Nullable
@@ -145,7 +149,11 @@ public class FieldResolver {
         return new ScopedFieldResolver(this, scope);
     }
 
-    public static FieldResolver build(final ParseTree queryCtx, final ParseTree fromCtx, final DatasetsMetadata datasetsMetadata) {
+    public static FieldResolver build(
+            final ParseTree queryCtx,
+            final ParseTree fromCtx,
+            final DatasetsMetadata datasetsMetadata,
+            final boolean useLegacy) {
         final Map<String, ResolvedDataset> datasets = new HashMap<>();
 
         // Visitor for finding all relevant datasets and their information
@@ -180,7 +188,7 @@ public class FieldResolver {
                 final String imhotepName = datasetsMetadata.resolveDatasetName(typedName);
                 final DatasetMetadata metadata = datasetsMetadata
                         .getMetadata(imhotepName)
-                        .orElseGet(() -> new DatasetMetadata(true, imhotepName));
+                        .orElseGet(() -> new DatasetMetadata(imhotepName));
                 final String chosenName = (name != null) ? Identifiers.extractIdentifier(name) : imhotepName;
 
                 final Map<String, String> dimensionsAliases = datasetsMetadata.getDatasetToDimensionAliasFields().getOrDefault(imhotepName, Collections.emptyMap());
@@ -222,6 +230,6 @@ public class FieldResolver {
         };
         queryVisitor.visit(queryCtx);
 
-        return new FieldResolver(aliasesFound, datasets, datasetsMetadata);
+        return new FieldResolver(aliasesFound, datasets, datasetsMetadata, useLegacy ? FieldType.String : FieldType.Integer);
     }
 }

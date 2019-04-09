@@ -47,13 +47,13 @@ public class ParseController {
     private final WallClock wallClock;
 
     @Autowired
-    public ParseController(final ImhotepMetadataCache metadataCacheIQL1, final ParseServlet parseServletV2) {
-        this(metadataCacheIQL1, parseServletV2, new DefaultWallClock());
+    public ParseController(final ImhotepMetadataCache metadataCache, final ParseServlet parseServletV2) {
+        this(metadataCache, parseServletV2, new DefaultWallClock());
     }
 
     @VisibleForTesting
-    public ParseController(final ImhotepMetadataCache metadataCacheIQL1, final ParseServlet parseServletV2, final WallClock wallClock) {
-        this.metadata = metadataCacheIQL1;
+    public ParseController(final ImhotepMetadataCache metadataCache, final ParseServlet parseServletV2, final WallClock wallClock) {
+        this.metadata = metadataCache;
         this.parseServletV2 = parseServletV2;
         this.wallClock = wallClock;
     }

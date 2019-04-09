@@ -20,16 +20,25 @@ import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 
 public class SampleAction implements Action {
     public final FieldSet field;
-    public final double probability;
+    public final long numerator;
+    public final long denominator;
     public final String seed;
 
     public final int targetGroup;
     public final int positiveGroup;
     public final int negativeGroup;
 
-    public SampleAction(FieldSet field, double probability, String seed, int targetGroup, int positiveGroup, int negativeGroup) {
+    public SampleAction(
+            final FieldSet field,
+            final long numerator,
+            final long denominator,
+            final String seed,
+            final int targetGroup,
+            final int positiveGroup,
+            final int negativeGroup) {
         this.field = field;
-        this.probability = probability;
+        this.numerator = numerator;
+        this.denominator = denominator;
         this.seed = seed;
         this.targetGroup = targetGroup;
         this.positiveGroup = positiveGroup;
@@ -37,7 +46,7 @@ public class SampleAction implements Action {
     }
 
     @Override
-    public void apply(Session session) throws ImhotepOutOfMemoryException {
+    public void apply(final Session session) throws ImhotepOutOfMemoryException {
         final boolean isIntField;
         if (session.isIntField(field)) {
             isIntField = true;
@@ -46,6 +55,7 @@ public class SampleAction implements Action {
         } else {
             throw new IllegalArgumentException("field is not valid: " + field);
         }
+        final double probability = ((double)numerator) / denominator;
         session.randomRegroup(field, isIntField, seed, 1.0 - probability, targetGroup, positiveGroup, negativeGroup);
     }
 
@@ -53,7 +63,8 @@ public class SampleAction implements Action {
     public String toString() {
         return "SampleAction{" +
                 "field=" + field +
-                ", probability=" + probability +
+                ", numerator=" + numerator +
+                ", denominator=" + denominator +
                 ", seed='" + seed + '\'' +
                 ", targetGroup=" + targetGroup +
                 ", positiveGroup=" + positiveGroup +

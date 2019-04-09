@@ -95,14 +95,13 @@ public class QueryServletTestUtils extends BasicTest {
     }
 
     public static QueryServlet create(ImhotepClient client, final LanguageVersion version, Options options, final IQL2Options defaultOptions) {
-        final ImhotepMetadataCache metadataCache = new ImhotepMetadataCache(options.imsClient, client, "", new FieldFrequencyCache(null), LanguageVersion.IQL2.equals(version));
+        final ImhotepMetadataCache metadataCache = new ImhotepMetadataCache(options.imsClient, client, "", new FieldFrequencyCache(null));
         metadataCache.updateDatasets();
         final RunningQueriesManager runningQueriesManager = new RunningQueriesManager(null, Integer.MAX_VALUE);
 
         return new QueryServlet(
                 options.tmpDir,
                 client,
-                metadataCache,
                 metadataCache,
                 new TopTermsCache(client, "", true, false),
                 options.queryCache,

@@ -42,10 +42,10 @@ public class ParseServlet {
 
     @Autowired
     public ParseServlet(
-            final ImhotepMetadataCache metadataCacheIQL2,
+            final ImhotepMetadataCache metadataCache,
             final IQL2Options defaultIQL2Options
     ) {
-        this.metadataCache = metadataCacheIQL2;
+        this.metadataCache = metadataCache;
         this.defaultIQL2Options = defaultIQL2Options;
     }
 
