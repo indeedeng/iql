@@ -7,7 +7,7 @@ public enum SortOrder {
     DESCENDING(StatsSortOrder.DESCENDING);
     private StatsSortOrder statsSortOrder;
 
-    SortOrder(StatsSortOrder statsSortOrder) {
+    SortOrder(final StatsSortOrder statsSortOrder) {
         this.statsSortOrder = statsSortOrder;
     }
 

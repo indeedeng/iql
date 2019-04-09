@@ -154,9 +154,7 @@ public interface ExecutionStep {
             if (filter.isPresent()) {
                 opts.filter = Optional.of(filter.get());
             }
-            if (topK.isPresent()) {
-                opts.topK = topK;
-            }
+            opts.topK = topK;
             final Optional<String> withDefaultName;
             if (withDefault) {
                 withDefaultName = Optional.of("DEFAULT");
