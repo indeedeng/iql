@@ -13,6 +13,8 @@
  */
  package com.indeed.iql1.sql.ast2;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.indeed.iql1.sql.ast.Expression;
 import com.indeed.iql1.sql.ast.ValueObject;
 
@@ -21,7 +23,7 @@ import java.io.Serializable;
 /**
  * @author vladimir
  */
-
+@JsonSerialize
 public class WhereClause extends ValueObject implements Serializable {
     private final Expression expression;
 
@@ -29,6 +31,7 @@ public class WhereClause extends ValueObject implements Serializable {
         this.expression = expression;
     }
 
+    @JsonProperty
     public Expression getExpression() {
         return expression;
     }
