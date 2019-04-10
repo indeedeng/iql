@@ -378,13 +378,6 @@ public class SelectQueryExecution {
         if (sessions > limits.concurrentImhotepSessionsLimit) {
             throw new UserSessionCountLimitExceededException("User is creating more concurrent imhotep sessions than the limit: " + limits.concurrentImhotepSessionsLimit);
         }
-        final StrictCloser strictCloser = new StrictCloser();
-
-        // SelectQuery can be closed after all cache has been uploaded
-        final SharedReference<SelectQuery> selectQuery = SharedReference.create(
-                new SelectQuery(queryInfo, runningQueriesManager, this.query, clientInfo, limits, new DateTime(queryInfo.queryStartTimestamp),
-                        null, (byte) sessions, queryMetadata, strictCloser, progressCallback)
-        );
 
         final Set<String> conflictFieldsUsed = Sets.intersection(queryInfo.datasetFields, datasetsMetadata.getTypeConflictDatasetFieldNames());
         if (!conflictFieldsUsed.isEmpty()) {
@@ -408,22 +401,27 @@ public class SelectQueryExecution {
             queryMetadata.addItem("IQL-Missing-Shards", missingIntervalsString, true);
         }
 
-        timer.push("compute hash");
-        final CacheKey cacheKey = CacheKey.computeCacheKey(query, resultFormat);
+        timer.push("compute hashes");
         queryInfo.cacheHashes = query.allCacheKeys(resultFormat);
         timer.pop();
 
-        final ParsedQueryExecution pqe = new ParsedQueryExecution(
-                true, parseResult.inputStream, out, warnings, resultFormat, progressCallback,
-                query, limits.queryInMemoryRowsLimit, selectQuery, strictCloser
+        final StrictCloser strictCloser = new StrictCloser();
+        // SelectQuery can be closed after all cache has been uploaded
+        final SharedReference<SelectQuery> selectQuery = SharedReference.create(
+                new SelectQuery(queryInfo, runningQueriesManager, this.query, clientInfo, limits, new DateTime(queryInfo.queryStartTimestamp),
+                        null, (byte) sessions, queryMetadata, strictCloser, progressCallback)
         );
-
-        final SelectExecutionInformation cacheReadResult = pqe.tryHeadAndCacheRead();
-        if (cacheReadResult != null) {
-            return cacheReadResult;
-        }
-
         try {
+            final ParsedQueryExecution pqe = new ParsedQueryExecution(
+                    true, parseResult.inputStream, out, warnings, resultFormat, progressCallback,
+                    query, limits.queryInMemoryRowsLimit, selectQuery, strictCloser
+            );
+
+            final SelectExecutionInformation cacheReadResult = pqe.tryHeadAndCacheRead();
+            if (cacheReadResult != null) {
+                return cacheReadResult;
+            }
+
             timer.push("Acquire concurrent query lock");
             selectQuery.get().lock();
             timer.pop();
