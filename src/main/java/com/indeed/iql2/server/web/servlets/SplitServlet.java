@@ -35,8 +35,8 @@ public class SplitServlet {
     private final ImhotepMetadataCache metadataCache;
 
     @Autowired
-    public SplitServlet(final ImhotepMetadataCache metadataCacheIQL2) {
-        this.metadataCache = metadataCacheIQL2;
+    public SplitServlet(final ImhotepMetadataCache metadataCache) {
+        this.metadataCache = metadataCache;
     }
 
     //    @RequestMapping("split")

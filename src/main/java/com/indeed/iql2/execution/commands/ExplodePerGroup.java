@@ -50,8 +50,7 @@ public class ExplodePerGroup implements Command {
 
     @Override
     public void execute(final Session session) throws ImhotepOutOfMemoryException {
-        final int resultingGroups = getGroupsCount();
-        session.checkGroupLimit(resultingGroups);
+        final int resultingGroups = session.checkGroupLimit(getGroupsCount());
 
         session.timer.push("form rules");
         final SingleFieldRegroupTools.SingleFieldRulesBuilder ruleBuilder = session.createRuleBuilder(field, isIntType, false);
@@ -117,8 +116,8 @@ public class ExplodePerGroup implements Command {
         session.assumeDense(newKeySet);
     }
 
-    private int getGroupsCount() {
-        int numGroups = 0;
+    private long getGroupsCount() {
+        long numGroups = 0;
         if (isIntType) {
             for (final LongArrayList terms : intTerms) {
                 if (terms != null) {

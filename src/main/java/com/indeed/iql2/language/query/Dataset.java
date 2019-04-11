@@ -15,6 +15,7 @@
 package com.indeed.iql2.language.query;
 
 import com.google.common.base.Objects;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.indeed.imhotep.Shard;
@@ -28,6 +29,7 @@ import com.indeed.iql2.language.JQLParser;
 import com.indeed.iql2.language.ParserCommon;
 import com.indeed.iql2.language.Positioned;
 import com.indeed.iql2.language.TimePeriods;
+import com.indeed.iql2.language.TimeUnit;
 import com.indeed.iql2.language.query.fieldresolution.ScopedFieldResolver;
 import com.indeed.iql2.language.query.shardresolution.ShardResolver;
 import com.indeed.util.core.Pair;
@@ -222,43 +224,72 @@ public class Dataset extends AbstractPositional {
         return Positioned.from(innerParseDateTime(dateTimeContext, useLegacy, clock), dateTimeContext);
     }
 
-    private static DateTime innerParseDateTime(final JQLParser.DateTimeContext dateTimeContext, final boolean useLegacy, final WallClock clock) {
-        final String textValue = dateTimeContext.getText();
-        final DateTime wordDate = parseWordDate(textValue, useLegacy, clock);
-        if (wordDate != null) {
-            return wordDate;
-        } else {
-            if (dateTimeContext.DATETIME_TOKEN() != null) {
-                return createDateTime(dateTimeContext.DATETIME_TOKEN().getText().replaceAll(" ", "T"));
-            } else if (dateTimeContext.DATE_TOKEN() != null) {
-                return createDateTime(dateTimeContext.DATE_TOKEN().getText());
-            } else if (dateTimeContext.STRING_LITERAL() != null) {
-                final String unquoted = ParserCommon.unquote(dateTimeContext.STRING_LITERAL().getText());
-                if (unquoted.trim().equalsIgnoreCase("y")) {
-                    return parseWordDate(unquoted, useLegacy, clock);
-                }
-                try {
-                    // Don't use createDataTime method here since error will be caught and processed.
-                    return new DateTime(unquoted.replaceAll(" ", "T"));
-                } catch (IllegalArgumentException e) {
-                    final JQLParser jqlParser = Queries.parserForString(unquoted);
-                    final JQLParser.TimePeriodContext timePeriod = jqlParser.timePeriod();
-                    if (jqlParser.getNumberOfSyntaxErrors() > 0) {
-                        final DateTime dt = parseWordDate(unquoted, useLegacy, clock);
-                        if (dt != null) {
-                            return dt;
-                        }
-                        throw new IqlKnownException.ParseErrorException("Failed to parse string as either DateTime or time period: " + unquoted);
-                    }
-                    return TimePeriods.timePeriodDateTime(timePeriod, clock, useLegacy);
-                }
-            } else if (dateTimeContext.timePeriod() != null) {
-                return TimePeriods.timePeriodDateTime(dateTimeContext.timePeriod(), clock, useLegacy);
-            } else if (dateTimeContext.NAT() != null) {
-                return parseUnixTimestamp(dateTimeContext.NAT().getText());
+    private static DateTime innerParseDateTime(
+            final JQLParser.DateTimeContext dateTimeContext,
+            final boolean useLegacy,
+            final WallClock clock) {
+        if (dateTimeContext.DATETIME_TOKEN() != null) {
+            return createDateTime(dateTimeContext.DATETIME_TOKEN().getText().replaceAll(" ", "T"));
+        } else if (dateTimeContext.STRING_LITERAL() != null) {
+            final String unquoted = ParserCommon.unquote(dateTimeContext.STRING_LITERAL().getText());
+
+            // unquoted literal must be parseable by dateTimeTerminal or relativeTimeTerminal
+
+            final JQLParser.DateTimeTerminalContext dateTimeTerminal = Queries.tryRunParser(unquoted, JQLParser::dateTimeTerminal);
+            if (dateTimeTerminal != null) {
+                return innerParseDateTime(dateTimeTerminal.dateTime(), useLegacy, clock);
             }
+
+            final JQLParser.RelativeTimeTerminalContext relativeTimeTerminal = Queries.tryRunParser(unquoted, JQLParser::relativeTimeTerminal);
+
+            if (relativeTimeTerminal != null) {
+                Preconditions.checkState(relativeTimeTerminal.relativeTime() == null,
+                        "Relative time parsed by relativeTimeTerminal should have been successfully parsed by dateTimeTerminal");
+
+                if (relativeTimeTerminal.timeInterval() != null) {
+                    final List<Pair<Integer, TimeUnit>> intervals = TimePeriods.parseTimeIntervals(relativeTimeTerminal.timeInterval().getText(), useLegacy);
+                    return TimePeriods.subtract(clock, intervals);
+                }
+            }
+
+            throw new IqlKnownException.ParseErrorException("Failed to parse string as either DateTime or time period: " + unquoted);
+        } else if (dateTimeContext.relativeTime() != null) {
+            return relativeTime(dateTimeContext.relativeTime(), clock, useLegacy);
+        } else if (dateTimeContext.NAT() != null) {
+            final long timestamp = Long.parseLong(dateTimeContext.NAT().getText());
+            // 4 digit number is parsed as NAT but not as DATETIME_TOKEN
+            // if it looks like a year, then return year
+            if ((timestamp > 2010) && (timestamp < 2050)) {
+                return new DateTime((int)timestamp, 1, 1, 0, 0 );
+            }
+            return parseUnixTimestamp(dateTimeContext.NAT().getText());
         }
         throw new IqlKnownException.ParseErrorException("Unhandled dateTime: " + dateTimeContext.getText());
+    }
+
+    public static DateTime relativeTime(
+            final JQLParser.RelativeTimeContext context,
+            final WallClock clock,
+            final boolean useLegacy) {
+
+        if (context.TODAYS() != null) {
+            return today(clock);
+        }
+
+        if (context.TOMORROWS() != null) {
+            return today(clock).plusDays(1);
+        }
+
+        if ((context.YESTERDAYS() != null) || (context.Y() != null)) {
+            return today(clock).minusDays(1);
+        }
+
+        if (context.timeIntervalOneWord() != null) {
+            final List<Pair<Integer, TimeUnit>> intervals = TimePeriods.parseTimeIntervals(context.timeIntervalOneWord().getText(), useLegacy);
+            return TimePeriods.subtract(clock, intervals);
+        }
+
+        throw new IqlKnownException.ParseErrorException("Failed to parse string as either DateTime or time period: " + context.getText());
     }
 
     private static DateTime parseUnixTimestamp(String value) {
@@ -269,16 +300,8 @@ public class Dataset extends AbstractPositional {
         return createDateTime(timestamp);
     }
 
-    private static DateTime parseWordDate(String textValue, boolean useLegacy, WallClock clock) {
-        final String lowerCasedValue = textValue.toLowerCase();
-        if ("yesterday".startsWith(lowerCasedValue)) {
-            return createDateTime(clock.currentTimeMillis()).withTimeAtStartOfDay().minusDays(1);
-        } else if ("ago".equals(lowerCasedValue) || ((useLegacy || (textValue.length() >= 3)) && "today".startsWith(lowerCasedValue))) {
-            return createDateTime(clock.currentTimeMillis()).withTimeAtStartOfDay();
-        } else if (textValue.length() >= 3 && "tomorrow".startsWith(lowerCasedValue)) {
-            return createDateTime(clock.currentTimeMillis()).withTimeAtStartOfDay().plusDays(1);
-        }
-        return null;
+    private static DateTime today(final WallClock clock) {
+        return createDateTime(clock.currentTimeMillis()).withTimeAtStartOfDay();
     }
 
     private static DateTime createDateTime(final long time) {

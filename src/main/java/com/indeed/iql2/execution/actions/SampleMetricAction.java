@@ -15,7 +15,6 @@
 package com.indeed.iql2.execution.actions;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.Session;
@@ -28,7 +27,8 @@ import java.util.Map;
 
 public class SampleMetricAction implements Action {
     public final ImmutableMap<String, DocMetric> perDatasetMetric;
-    public final double probability;
+    public final long numerator;
+    public final long denominator;
     public final String seed;
 
     public final int targetGroup;
@@ -36,13 +36,15 @@ public class SampleMetricAction implements Action {
     public final int negativeGroup;
 
     public SampleMetricAction(final Map<String, DocMetric> perDatasetMetric,
-                              final double probability,
+                              final long numerator,
+                              final long denominator,
                               final String seed,
                               final int targetGroup,
                               final int positiveGroup,
                               final int negativeGroup) {
         this.perDatasetMetric = ImmutableMap.copyOf(perDatasetMetric);
-        this.probability = probability;
+        this.numerator = numerator;
+        this.denominator = denominator;
         this.seed = seed;
         this.targetGroup = targetGroup;
         this.positiveGroup = positiveGroup;
@@ -61,6 +63,7 @@ public class SampleMetricAction implements Action {
                 final List<String> stat = perDatasetMetric.get(name).getPushes(name);
 
                 timer.push("randomMetricRegroup");
+                final double probability = ((double)numerator) / denominator;
                 session.randomMetricRegroup(stat, seed, 1.0 - probability, targetGroup, negativeGroup, positiveGroup);
                 timer.pop();
             }
@@ -71,7 +74,8 @@ public class SampleMetricAction implements Action {
     public String toString() {
         return "SampleMetricAction{" +
                 "perDatasetMetric=" + perDatasetMetric +
-                ", probability=" + probability +
+                ", numerator=" + numerator +
+                ", denominator=" + denominator +
                 ", seed='" + seed + '\'' +
                 ", targetGroup=" + targetGroup +
                 ", positiveGroup=" + positiveGroup +

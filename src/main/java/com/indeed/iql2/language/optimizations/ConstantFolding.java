@@ -17,6 +17,7 @@ package com.indeed.iql2.language.optimizations;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocFilter;
 import com.indeed.iql2.language.DocMetric;
+import com.indeed.iql2.language.DocMetrics;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.util.core.Pair;
 
@@ -124,16 +125,6 @@ public class ConstantFolding {
                     double result = Math.exp(x);
                     return new DocMetric.Constant((long) (result * exp.scaleFactor));
                 }
-            } else if (input instanceof DocMetric.Max) {
-                final DocMetric.Max max = (DocMetric.Max) input;
-                if (isConstant(max.m1) && isConstant(max.m2)) {
-                    return new DocMetric.Constant(Math.max(getConstant(max.m1), getConstant(max.m2)));
-                }
-            } else if (input instanceof DocMetric.Min) {
-                final DocMetric.Min min = (DocMetric.Min) input;
-                if (isConstant(min.m1) && isConstant(min.m2)) {
-                    return new DocMetric.Constant(Math.min(getConstant(min.m1), getConstant(min.m2)));
-                }
             } else if (input instanceof DocMetric.MetricEqual) {
                 final DocMetric.MetricEqual metricEqual = (DocMetric.MetricEqual) input;
                 if (isConstant(metricEqual.m1) && isConstant(metricEqual.m2)) {
@@ -143,6 +134,9 @@ public class ConstantFolding {
                         return new DocMetric.Constant(0);
                     }
                 }
+                if ((metricEqual.m1 instanceof DocMetric.Field) && isConstant(metricEqual.m2)) {
+                    return new DocMetric.HasInt(((DocMetric.Field) metricEqual.m1).field, getConstant(metricEqual.m2));
+                }
             } else if (input instanceof DocMetric.MetricNotEqual) {
                 final DocMetric.MetricNotEqual metricNotEqual = (DocMetric.MetricNotEqual) input;
                 if (isConstant(metricNotEqual.m1) && isConstant(metricNotEqual.m2)) {
@@ -151,6 +145,15 @@ public class ConstantFolding {
                     } else {
                         return new DocMetric.Constant(0);
                     }
+                }
+                if ((metricNotEqual.m1 instanceof DocMetric.Field) && isConstant(metricNotEqual.m2)) {
+                    // field != constant can be implemented in two ways
+                    // 1. pushStat("field', "constant", "!=")
+                    // 2. pushStat("1", "hasInt(field, constant)", "-")
+                    // Second seems to be better because will use less memory and could require only one term un-inversion
+                    return DocMetrics.negateMetric(
+                            new DocMetric.HasInt(((DocMetric.Field) metricNotEqual.m1).field,
+                                    getConstant(metricNotEqual.m2)));
                 }
             } else if (input instanceof DocMetric.MetricLt) {
                 final DocMetric.MetricLt metricLt = (DocMetric.MetricLt) input;

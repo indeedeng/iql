@@ -14,15 +14,12 @@
  package com.indeed.iql1.sql;
 
 import com.google.common.base.Strings;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.indeed.flamdex.lucene.LuceneQueryTranslator;
 import com.indeed.imhotep.StrictCloser;
-import com.indeed.imhotep.automaton.RegExp;
 import com.indeed.imhotep.client.ImhotepClient;
-import com.indeed.imhotep.exceptions.RegexTooComplexException;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql.metadata.FieldMetadata;
@@ -58,6 +55,8 @@ import com.indeed.iql1.sql.ast2.IQL1SelectStatement;
 import com.indeed.iql1.sql.parser.ExpressionParser;
 import com.indeed.iql1.sql.parser.PeriodParser;
 import com.indeed.iql2.language.TimePeriods;
+import com.indeed.iql2.language.util.ErrorMessages;
+import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.util.serialization.LongStringifier;
 import com.indeed.util.serialization.Stringifier;
 import org.apache.commons.lang.StringUtils;
@@ -76,6 +75,7 @@ import org.joda.time.format.DateTimeFormatter;
 import javax.annotation.Nonnull;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -224,6 +224,7 @@ public final class IQLTranslator {
             }
             Field.StringField field = inCondition.getStringField();
             // see if this field is also used in GROUP BY
+            boolean deleteFilter = false;
             for(int j = 0; j < groupings.size(); j++) {
                 Grouping grouping = groupings.get(j);
                 if(!(grouping instanceof FieldGrouping)) {
@@ -233,12 +234,23 @@ public final class IQLTranslator {
                 if(!field.equals(fieldGrouping.getField()) || fieldGrouping.isTopK()) {
                     continue;
                 }
+                if (fieldGrouping.isTermSubset()) {
+                    // If term subset is the same as in filter, then filter could be deleted
+                    final Set<String> groupingSet = new HashSet<>(fieldGrouping.getTermSubset());
+                    final Set<String> filterSet = new HashSet<>(Arrays.asList(inCondition.getValues()));
+                    if (!groupingSet.equals(filterSet)) {
+                        continue;
+                    }
+                }
                 // got a match. convert this grouping to a FieldInGrouping and remove the condition
                 FieldGrouping fieldInGrouping = new FieldGrouping(field,
                         Lists.newArrayList(inCondition.getValues()), limits);
+                groupings.set(j, fieldInGrouping);
+                deleteFilter = true;
+            }
+            if (deleteFilter) {
                 conditions.remove(i);
                 i--;    // have to redo the current index as indexes were shifted
-                groupings.set(j, fieldInGrouping);
             }
         }
     }
@@ -352,7 +364,7 @@ public final class IQLTranslator {
      */
     @Nonnull
     private static Field getField(String name, DatasetMetadata datasetMetadata) {
-        final FieldMetadata fieldMetadata = datasetMetadata.getField(name);
+        final FieldMetadata fieldMetadata = datasetMetadata.getField(name, true);
         if(fieldMetadata == null) {
             throw new IqlKnownException.UnknownFieldException("Unknown field: " + name);
         }
@@ -614,7 +626,7 @@ public final class IQLTranslator {
                             right instanceof StringExpression)) {
                         // probably a has[str/int] operation
                         final String fieldName = ((NameExpression) left).name;
-                        final FieldMetadata field = datasetMetadata.getField(fieldName);
+                        final FieldMetadata field = datasetMetadata.getField(fieldName, true);
                         if(field == null) {
                             throw new IqlKnownException.UnknownFieldException("Field not found: " + fieldName);
                         }
@@ -748,8 +760,11 @@ public final class IQLTranslator {
                     final String fieldName = nameExpression.name;
                     final Field field = getField(fieldName, datasetMetadata);
                     fieldNames.add(fieldName);
-                    final int numerator = Math.max(0, parseInt(input.get(1)));
-                    final int denominator = Math.max(1, Math.max(numerator, input.size() >= 3 ? parseInt(input.get(2)) : 100));
+                    final int numerator = parseInt(input.get(1));
+                    final int denominator = (input.size() >= 3) ? parseInt(input.get(2)) : 100;
+                    if ((numerator < 0) || (numerator > denominator)) {
+                        throw new IqlKnownException.ParseErrorException(ErrorMessages.incorrectSampleParams(numerator, denominator));
+                    }
                     final String salt;
                     if(input.size() >= 4) {
                         final String userSalt = Strings.nullToEmpty(getStr(input.get(3)));
@@ -839,17 +854,9 @@ public final class IQLTranslator {
                         throw new IqlKnownException.UnknownFieldException("Unknown field: " + fieldName);
                     }
                     fieldNames.add(fieldName);
-                    String regexp = getStr(right);
+                    final String regexp = getStr(right);
                     // validate the provided regex
-                    try {
-                        new RegExp(regexp).toAutomaton();
-                    } catch (Exception e) {
-                        Throwables.propagateIfInstanceOf(e, RegexTooComplexException.class);
-
-                        throw new IqlKnownException.ParseErrorException("The provided regex filter '" + regexp + "' failed to parse. " +
-                                "\nError was: " + e.getMessage() +
-                                "\nThe supported regex syntax can be seen here: http://www.brics.dk/automaton/doc/index.html?dk/brics/automaton/RegExp.html", e);
-                    }
+                    ValidationUtil.compileRegex(regexp);
                     return Collections.singletonList(new RegexCondition(Field.stringField(fieldName), regexp,
                         usingNegation));
                 case AND:

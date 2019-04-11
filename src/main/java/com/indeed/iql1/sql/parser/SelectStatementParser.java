@@ -146,8 +146,8 @@ public class SelectStatementParser {
             @Override
             public FromClause map(List<String> parts) {
                 String dataset = parts.get(0);
-                String start = "";
-                String end = "";
+                final String start;
+                final String end;
                 if(parts.size() == 3) {
                     start = parts.get(1);
                     end = parts.get(2);
@@ -164,6 +164,8 @@ public class SelectStatementParser {
                         start = parts.get(1) + " " + parts.get(2);
                         end = parts.get(3);
                     }
+                } else {
+                    throw new IqlKnownException.ParseErrorException("Cannot parse from clause: " + text);
                 }
 
                 DateTime startTime;

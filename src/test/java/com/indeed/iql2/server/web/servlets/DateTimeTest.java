@@ -26,13 +26,13 @@ import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testIQL2
 public class DateTimeTest extends BasicTest {
     @Test
     public void testWordDate() throws Exception {
-        testIQL1(ImmutableList.of(ImmutableList.of("", "151", "2653", "306")), "from organic y today select count(), oji, ojc");
-        testAll(ImmutableList.of(ImmutableList.of("", "153", "2655", "308")), "from organic 3days ago select count(), oji, ojc");
-        testAll(ImmutableList.of(ImmutableList.of("", "1", "23", "1")), "from organic 60minute ago select count(), oji, ojc");
-        testAll(ImmutableList.of(ImmutableList.of("", "151", "2653", "306")), "from organic d ago select count(), oji, ojc");
-        testAll(ImmutableList.of(ImmutableList.of("", "1", "23", "1")), "from organic 60minute ago select count(), oji, ojc");
-        testIQL1(ImmutableList.of(ImmutableList.of("", "1", "23", "1")), "from organic 60M ago select count(), oji, ojc");
-        testIQL2(ImmutableList.of(ImmutableList.of("", "182", "2684", "337")), "from organic 60M ago select count(), oji, ojc");
+        testAll(ImmutableList.of(ImmutableList.of("", "151", "2653", "306")), "from organic y today select count(), oji, ojc");
+        testAll(ImmutableList.of(ImmutableList.of("", "153", "2655", "308")), "from organic 3days ago today select count(), oji, ojc");
+        testAll(ImmutableList.of(ImmutableList.of("", "1", "23", "1")), "from organic 60minute ago today select count(), oji, ojc");
+        testAll(ImmutableList.of(ImmutableList.of("", "151", "2653", "306")), "from organic d ago today select count(), oji, ojc");
+        testAll(ImmutableList.of(ImmutableList.of("", "1", "23", "1")), "from organic 60minute ago today select count(), oji, ojc");
+        testIQL1(ImmutableList.of(ImmutableList.of("", "1", "23", "1")), "from organic 60M ago today select count(), oji, ojc");
+        testIQL2(ImmutableList.of(ImmutableList.of("", "182", "2684", "337")), "from organic 60M ago today select count(), oji, ojc");
     }
 
     @Test
@@ -57,5 +57,14 @@ public class DateTimeTest extends BasicTest {
         testAll(expected, "from organic yesterday today select count()");
         testAll(expected, "from organic 1420092000000 1420178400000 select count()");
         testAll(expected, "from organic 1420092000 1420178400 select count()");
+    }
+
+    @Test
+    public void testDateToken() throws Exception {
+        // some queries to test corner cases
+        testAll(ImmutableList.of(ImmutableList.of("", "182", "2684", "337")), "from organic 2014-1 today select count(), oji, ojc");
+        testAll(ImmutableList.of(ImmutableList.of("", "182", "2684", "337")), "from organic 2014 today select count(), oji, ojc");
+        testAll(ImmutableList.of(ImmutableList.of("[2014-12-28 00:00:00, 2014-12-29 00:00:00)", "1", "1", "1")),
+                "from organic \"5 days ago\" \"4 days\" group by time(\"1b\") select count(), oji, ojc");
     }
 }

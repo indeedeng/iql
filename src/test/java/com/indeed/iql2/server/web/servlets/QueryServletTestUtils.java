@@ -96,14 +96,13 @@ public class QueryServletTestUtils extends BasicTest {
     }
 
     public static QueryServlet create(ImhotepClient client, final LanguageVersion version, Options options, final IQL2Options defaultOptions) {
-        final ImhotepMetadataCache metadataCache = new ImhotepMetadataCache(options.imsClient, client, "", new FieldFrequencyCache(null), LanguageVersion.IQL2.equals(version));
+        final ImhotepMetadataCache metadataCache = new ImhotepMetadataCache(options.imsClient, client, "", new FieldFrequencyCache(null));
         metadataCache.updateDatasets();
         final RunningQueriesManager runningQueriesManager = new RunningQueriesManager(null, Integer.MAX_VALUE);
 
         return new QueryServlet(
                 options.tmpDir,
                 client,
-                metadataCache,
                 metadataCache,
                 new TopTermsCache(client, "", true, false),
                 options.queryCache,
@@ -334,8 +333,8 @@ public class QueryServletTestUtils extends BasicTest {
     static void testWarning(List<String> expectedWarnings, String query, LanguageVersion version, final Options options) throws Exception {
         final ImhotepClient client = options.dataset.getNormalClient();
         final JsonNode header = getQueryHeader(client, query, version, options);
-        if (expectedWarnings.isEmpty()) {
-            Assert.assertNull(header.get("IQL-Warning"));
+        if (header.get("IQL-Warning") == null) {
+            Assert.assertTrue(expectedWarnings.isEmpty());
         } else {
             expectedWarnings = expectedWarnings.stream().map(s -> "[\"" + s + "\"]").collect(Collectors.toList());
             Assert.assertArrayEquals(expectedWarnings.toArray(new String[expectedWarnings.size()]), header.get("IQL-Warning").textValue().split("\n"));

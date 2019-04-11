@@ -104,6 +104,15 @@ public class ValidationHelper {
         return containsIntField(dataset, field) || containsStringField(dataset, field) || containsAliasMetricField(dataset, field);
     }
 
+    public void validateSampleParams(
+            final long numerator,
+            final long denominator,
+            final ErrorCollector errorCollector) {
+        if ((numerator < 0) || (numerator > denominator)) {
+            errorCollector.error(ErrorMessages.incorrectSampleParams(numerator, denominator));
+        }
+    }
+
     private Optional<MetricMetadata> getDimension(String dataset, String field) {
         if (datasetsMetadata.getMetadata(dataset).isPresent() &&
                 datasetsMetadata.getMetadata(dataset).get().fieldToDimension.containsKey(field)) {

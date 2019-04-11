@@ -36,12 +36,8 @@ import com.indeed.iql2.language.commands.TopK;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.query.fieldresolution.ScopedFieldResolver;
 import com.indeed.util.core.Pair;
-import it.unimi.dsi.fastutil.longs.LongArrayList;
-import it.unimi.dsi.fastutil.longs.LongList;
-import it.unimi.dsi.fastutil.longs.LongLists;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
@@ -133,36 +129,15 @@ public class GroupBys {
             }
 
             @Override
-            public void enterGroupByFieldIn(JQLParser.GroupByFieldInContext ctx) {
+            public void enterGroupByFieldIn(final JQLParser.GroupByFieldInContext ctx) {
                 if (ctx.not != null) {
                     final Iterator<Term> terms = ctx.terms.stream().map(Term::parseTerm).iterator();
                     final AggregateFilter filter = AggregateFilters.aggregateInHelper(terms, true);
                     accept(new GroupBy.GroupByField(fieldResolver.resolve(ctx.field), Optional.of(filter), Optional.empty(), ctx.withDefault != null));
                 } else {
-                    final List<Term> terms = new ArrayList<>();
-                    boolean anyString = false;
-                    for (final JQLParser.TermValContext term : ctx.terms) {
-                        final Term t = Term.parseTerm(term);
-                        anyString |= !t.isIntTerm;
-                        terms.add(t);
-                    }
-                    final List<String> strings;
-                    final LongList ints;
-                    if (anyString) {
-                        strings = new ArrayList<>();
-                        for (final Term term : terms) {
-                            strings.add(term.isIntTerm ? String.valueOf(term.intTerm) : term.stringTerm);
-                        }
-                        ints = LongLists.EMPTY_LIST;
-                    } else {
-                        ints = new LongArrayList();
-                        for (final Term term : terms) {
-                            ints.add(term.intTerm);
-                        }
-                        strings = Collections.emptyList();
-                    }
+                    final ImmutableSet<Term> terms = ImmutableSet.copyOf(ctx.terms.stream().map(Term::parseTerm).iterator());
                     final boolean withDefault = ctx.withDefault != null;
-                    accept(new GroupBy.GroupByFieldIn(fieldResolver.resolve(ctx.field), ints, strings, withDefault));
+                    accept(new GroupBy.GroupByFieldIn(fieldResolver.resolve(ctx.field), terms, withDefault));
                 }
             }
 
@@ -207,10 +182,10 @@ public class GroupBys {
             }
 
             @Override
-            public void enterTimeGroupBy(JQLParser.TimeGroupByContext ctx) {
+            public void enterTimeGroupBy(final JQLParser.TimeGroupByContext ctx) {
                 final boolean isRelative = ctx.groupByTime().isRelative != null;
 
-                if (ctx.groupByTime().timePeriod() == null) {
+                if (ctx.groupByTime().timeBucket() == null) {
                     accept(new GroupBy.GroupByInferredTime(isRelative));
                     return;
                 }
@@ -236,7 +211,7 @@ public class GroupBys {
                     timeFormat = Optional.empty();
                 }
 
-                final List<Pair<Integer, TimeUnit>> pairs = TimePeriods.parseTimePeriod(ctx.groupByTime().timePeriod(), ctx.useLegacy);
+                final List<Pair<Integer, TimeUnit>> pairs = TimePeriods.parseTimeBuckets(ctx.groupByTime().timeBucket(), ctx.useLegacy);
                 long millisSum = 0L;
                 for (final Pair<Integer, TimeUnit> pair : pairs) {
                     final int coeff = pair.getFirst();

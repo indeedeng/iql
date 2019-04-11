@@ -14,6 +14,7 @@
 
 package com.indeed.iql2.language;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -42,6 +43,9 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+
+import static com.indeed.iql2.language.DocMetrics.hasTermMetricOrThrow;
+import static com.indeed.iql2.language.DocMetrics.negateMetric;
 
 public abstract class DocMetric extends AbstractPositional {
     public interface Visitor<T, E extends Throwable> {
@@ -468,13 +472,74 @@ public abstract class DocMetric extends AbstractPositional {
         }
     }
 
-    @ToString
     @EqualsAndHashCode(callSuper = false)
-    public static class Add extends DocMetric {
+    public abstract static class Multiary extends DocMetric {
         public final List<DocMetric> metrics;
+        public final String combinePush;
+
+        private Multiary(final List<DocMetric> metrics, final String combinePush) {
+            this.metrics = metrics;
+            this.combinePush = combinePush;
+        }
+
+        public abstract DocMetric createMetric(final List<DocMetric> metrics);
+
+        @Override
+        public DocMetric transform(
+                final Function<DocMetric, DocMetric> g,
+                final Function<DocFilter, DocFilter> i) {
+            final List<DocMetric> transformed = new ArrayList<>(metrics.size());
+            for (final DocMetric metric : metrics) {
+                transformed.add(metric.transform(g, i));
+            }
+            return g.apply(createMetric(transformed)).copyPosition(this);
+        }
+
+        @Override
+        public List<String> getPushes(final String dataset) {
+            final List<String> result = new ArrayList<>();
+            for (int i = 0; i < metrics.size(); i++) {
+                result.addAll(metrics.get(i).getPushes(dataset));
+                if (i > 0) {
+                    result.add(combinePush);
+                }
+            }
+            return result;
+        }
+
+        @Override
+        public void validate(
+                final String dataset,
+                final ValidationHelper validationHelper,
+                final ErrorCollector errorCollector) {
+            metrics.forEach(m -> m.validate(dataset, validationHelper, errorCollector));
+        }
+
+        @Override
+        public final String toString() {
+            final StringBuilder sb = new StringBuilder();
+            sb.append(getClass().getSimpleName()).append('{');
+            for (int i = 0; i < metrics.size(); i++) {
+                if (i > 0) {
+                    sb.append(", ");
+                }
+                sb.append('m').append(i+1).append('=').append(metrics.get(i));
+            }
+            sb.append('}');
+            return sb.toString();
+        }
+    }
+
+    @EqualsAndHashCode(callSuper = true)
+    public static class Add extends Multiary {
 
         private Add(final List<DocMetric> metrics) {
-            this.metrics = metrics;
+            super(metrics, "+");
+        }
+
+        @Override
+        public DocMetric createMetric(final List<DocMetric> metrics) {
+            return create(metrics);
         }
 
         // create filter that is equivalent to '+' of all metrics and simplify it.
@@ -483,7 +548,7 @@ public abstract class DocMetric extends AbstractPositional {
             final List<DocMetric> unwraped = new ArrayList<>(original.size());
             for (final DocMetric metric : original) {
                 if (metric instanceof Add) {
-                    unwraped.addAll(((Add)metric).metrics);
+                    unwraped.addAll(((Multiary) metric).metrics);
                 } else {
                     unwraped.add(metric);
                 }
@@ -517,39 +582,8 @@ public abstract class DocMetric extends AbstractPositional {
         }
 
         @Override
-        public DocMetric transform(
-                final Function<DocMetric, DocMetric> g,
-                final Function<DocFilter, DocFilter> i) {
-            final List<DocMetric> transformed = new ArrayList<>(metrics.size());
-            for (final DocMetric metric : metrics) {
-                transformed.add(metric.transform(g, i));
-            }
-            return g.apply(create(transformed)).copyPosition(this);
-        }
-
-        @Override
-        public List<String> getPushes(final String dataset) {
-            final List<String> result = new ArrayList<>();
-            for (int i = 0; i < metrics.size(); i++) {
-                result.addAll(metrics.get(i).getPushes(dataset));
-                if (i > 0) {
-                    result.add("+");
-                }
-            }
-            return result;
-        }
-
-        @Override
         public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
-        }
-
-        @Override
-        public void validate(
-                final String dataset,
-                final ValidationHelper validationHelper,
-                final ErrorCollector errorCollector) {
-            metrics.forEach(m -> m.validate(dataset, validationHelper, errorCollector));
         }
     }
 
@@ -643,53 +677,134 @@ public abstract class DocMetric extends AbstractPositional {
     }
 
     @EqualsAndHashCode(callSuper = true)
-    public static class Min extends Binop {
-        public Min(DocMetric m1, DocMetric m2) {
-            super(m1, m2);
+    public static class Min extends Multiary {
+        private Min(final List<DocMetric> metrics) {
+            super(metrics, "min()");
         }
 
         @Override
-        public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return g.apply(new Min(m1.transform(g, i), m2.transform(g, i))).copyPosition(this);
+        public DocMetric createMetric(final List<DocMetric> metrics) {
+            return create(metrics);
+        }
+
+        // create filter that is equivalent to 'min' of all metrics and simplify it.
+        public static DocMetric create(final List<DocMetric> original) {
+            // unwrapping another Min if present.
+            final List<DocMetric> unwraped = new ArrayList<>(original.size());
+            for (final DocMetric metric : original) {
+                if (metric instanceof Min) {
+                    unwraped.addAll(((Multiary) metric).metrics);
+                } else {
+                    unwraped.add(metric);
+                }
+            }
+            final List<DocMetric> metrics = new ArrayList<>(unwraped.size());
+            // iterating throw metrics and replace all constants with min value.
+            Long min = null;
+            for (final DocMetric metric : unwraped) {
+                if (metric instanceof Constant) {
+                    final long value =((Constant)metric).value;
+                    min = (min == null) ? value : Math.min(min, value);
+                } else if (metric instanceof Count) {
+                    min = (min == null) ? 1 : Math.min(min, 1);
+                } else {
+                    metrics.add(metric);
+                }
+            }
+            if (min != null) {
+                metrics.add(new Constant(min));
+            }
+            if (metrics.isEmpty()) {
+                throw new IllegalStateException("Should not be here!");
+            }
+            if (metrics.size() == 1) {
+                return metrics.get(0);
+            }
+            return new Min(metrics);
+        }
+
+        public static DocMetric create(final DocMetric m1, final DocMetric m2) {
+            return create(ImmutableList.of(m1, m2));
         }
 
         @Override
-        public List<String> getPushes(String dataset) {
-            return binop(dataset, "min()");
-        }
-
-        @Override
-        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+        public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
         }
     }
 
     @EqualsAndHashCode(callSuper = true)
-    public static class Max extends Binop {
-        public Max(DocMetric m1, DocMetric m2) {
-            super(m1, m2);
+    public static class Max extends Multiary {
+        private Max(final List<DocMetric> metrics) {
+            super(metrics, "max()");
         }
 
         @Override
-        public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return g.apply(new Max(m1.transform(g, i), m2.transform(g, i))).copyPosition(this);
+        public DocMetric createMetric(final List<DocMetric> metrics) {
+            return create(metrics);
+        }
+
+        // create filter that is equivalent to 'max' of all metrics and simplify it.
+        public static DocMetric create(final List<DocMetric> original) {
+            // unwrapping another Max if present.
+            final List<DocMetric> unwraped = new ArrayList<>(original.size());
+            for (final DocMetric metric : original) {
+                if (metric instanceof Max) {
+                    unwraped.addAll(((Multiary) metric).metrics);
+                } else {
+                    unwraped.add(metric);
+                }
+            }
+            final List<DocMetric> metrics = new ArrayList<>(unwraped.size());
+            // iterating throw metrics and replace all constants with max value.
+            Long max = null;
+            for (final DocMetric metric : unwraped) {
+                if (metric instanceof Constant) {
+                    final long value =((Constant)metric).value;
+                    max = (max == null) ? value : Math.max(max, value);
+                } else if (metric instanceof Count) {
+                    max = (max == null) ? 1 : Math.max(max, 1);
+                } else {
+                    metrics.add(metric);
+                }
+            }
+            if (max != null) {
+                metrics.add(new Constant(max));
+            }
+            if (metrics.isEmpty()) {
+                throw new IllegalStateException("Should not be here!");
+            }
+            if (metrics.size() == 1) {
+                return metrics.get(0);
+            }
+            return new Max(metrics);
+        }
+
+        public static DocMetric create(final DocMetric m1, final DocMetric m2) {
+            return create(ImmutableList.of(m1, m2));
         }
 
         @Override
-        public List<String> getPushes(String dataset) {
-            return binop(dataset, "max()");
-        }
-
-        @Override
-        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+        public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
         }
     }
 
     @EqualsAndHashCode(callSuper = true)
     public static class MetricEqual extends Binop {
-        public MetricEqual(DocMetric m1, DocMetric m2) {
+        private MetricEqual(DocMetric m1, DocMetric m2) {
             super(m1, m2);
+        }
+
+        public static DocMetric create(final DocMetric left, final DocMetric right) {
+            final FieldSet field = DocFilters.extractPlainField(left);
+            if ((field != null) && (right instanceof DocMetric.Constant)) {
+                final String rawInput = right.getRawInput();
+                final Term term = (rawInput != null) ? Term.term(rawInput) : Term.term(((Constant) right).value);
+                return hasTermMetricOrThrow(field, term);
+            } else {
+                return new DocMetric.MetricEqual(left, right);
+            }
         }
 
         @Override
@@ -710,8 +825,19 @@ public abstract class DocMetric extends AbstractPositional {
 
     @EqualsAndHashCode(callSuper = true)
     public static class MetricNotEqual extends Binop {
-        public MetricNotEqual(DocMetric m1, DocMetric m2) {
+        private MetricNotEqual(DocMetric m1, DocMetric m2) {
             super(m1, m2);
+        }
+
+        public static DocMetric create(final DocMetric left, final DocMetric right) {
+            final FieldSet field = DocFilters.extractPlainField(left);
+            if ((field != null) && (right instanceof DocMetric.Constant)) {
+                final String rawInput = right.getRawInput();
+                final Term term = (rawInput != null) ? Term.term(rawInput) : Term.term(((Constant) right).value);
+                return negateMetric(hasTermMetricOrThrow(field, term));
+            } else {
+                return new DocMetric.MetricNotEqual(left, right);
+            }
         }
 
         @Override
@@ -1051,18 +1177,16 @@ public abstract class DocMetric extends AbstractPositional {
     public static class HasString extends DocMetric {
         public final FieldSet field;
         public final String term;
-        // In legacy mode it's legal to have 'hasstr(intField, "string")' so we need validate it differently
-        private final boolean strictValidate;
 
-        public HasString(final FieldSet field, final String term, final boolean strictValidate) {
+        public HasString(final FieldSet field, final String term) {
+            Preconditions.checkState(!field.isIntField());
             this.field = field;
             this.term = term;
-            this.strictValidate = strictValidate;
         }
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return g.apply(new HasString(field, term, strictValidate)).copyPosition(this);
+            return g.apply(new HasString(field, term)).copyPosition(this);
         }
 
         @Override
@@ -1078,10 +1202,7 @@ public abstract class DocMetric extends AbstractPositional {
         @Override
         public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
             final String fieldName = field.datasetFieldName(dataset);
-            final boolean missingField =
-                    !validationHelper.containsField(dataset, fieldName) ||
-                    (strictValidate && !validationHelper.containsStringField(dataset, fieldName));
-            if (missingField) {
+            if (!validationHelper.containsStringField(dataset, fieldName)) {
                 errorCollector.error(ErrorMessages.missingStringField(dataset, fieldName, this));
             }
         }
@@ -1407,6 +1528,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public void validate(final String dataset, final ValidationHelper validationHelper, final ErrorCollector errorCollector) {
+            validationHelper.validateSampleParams(numerator, denominator, errorCollector);
             final String fieldName = field.datasetFieldName(dataset);
             if (isIntField) {
                 if (!validationHelper.containsIntField(dataset, fieldName)) {
@@ -1505,6 +1627,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public void validate(final String dataset, final ValidationHelper validationHelper, final ErrorCollector errorCollector) {
+            validationHelper.validateSampleParams(numerator, denominator, errorCollector);
             metric.validate(dataset, validationHelper, errorCollector);
         }
     }

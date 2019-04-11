@@ -18,6 +18,7 @@ import com.google.common.primitives.Longs;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.AggregateFilter;
+import com.indeed.iql2.language.util.ToStringEscapingUtil;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
@@ -33,6 +34,7 @@ public class FieldIterateOpts {
     public Optional<TopK> topK = Optional.empty();
     public Optional<AggregateFilter> filter = Optional.empty();
     public Optional<Set<Long>> intTermSubset = Optional.empty();
+    @ToString.Exclude // Include stringTermSubsetEscaped instead
     public Optional<Set<String>> stringTermSubset = Optional.empty();
 
     public com.indeed.iql2.execution.commands.misc.FieldIterateOpts toExecution(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
@@ -51,5 +53,10 @@ public class FieldIterateOpts {
         });
         result.topK = topK.map(x -> x.toExecution(namedMetricLookup, groupKeySet));
         return result;
+    }
+
+    @ToString.Include(name = "stringTermSubset")
+    private String stringTermSubsetEscaped() {
+        return stringTermSubset.map(ToStringEscapingUtil::escape).toString();
     }
 }

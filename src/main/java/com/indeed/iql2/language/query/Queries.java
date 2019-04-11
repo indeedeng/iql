@@ -380,7 +380,22 @@ public class Queries {
         return text;
     }
 
-    public static <T> T runParser(String input, Function<JQLParser, T> applyParser) {
+    // Parse string
+    // throw error if cannot parse
+    public static <T> T runParser(final String input, final Function<JQLParser, T> applyParser) {
+        return runParser(input, applyParser, true);
+    }
+
+    // Try parse string
+    // return null if cannot parse
+    public static <T> T tryRunParser(final String input, final Function<JQLParser, T> applyParser) {
+        return runParser(input, applyParser, false);
+    }
+
+    private static <T> T runParser(
+            final String input,
+            final Function<JQLParser, T> applyParser,
+            final boolean throwOnError) {
         final IqlKnownException.ParseErrorException error;
         try {
             final JQLParser parser = parserForString(input);
@@ -395,6 +410,10 @@ public class Queries {
             final T result = applyParser.apply(parser);
             if (parser.getNumberOfSyntaxErrors() == 0) {
                 return result;
+            }
+
+            if (!throwOnError) {
+                return null;
             }
 
             final String extra;

@@ -77,7 +77,7 @@ public class AggregateMetricsTest {
 
 
     private static AggregateMetric aggField(String field) {
-        return new AggregateMetric.DocStats(new DocMetric.Field(FieldSet.of("synthetic", field)));
+        return new AggregateMetric.DocStats(new DocMetric.Field(FieldSet.of("synthetic", field, true)));
     }
 
     @Test

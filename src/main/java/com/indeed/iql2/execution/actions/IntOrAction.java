@@ -53,7 +53,7 @@ public class IntOrAction implements Action {
                 final String fieldName = field.datasetFieldName(dataset);
                 final Session.ImhotepSessionInfo sessionInfo = e.getValue();
                 if (!sessionInfo.intFields.contains(fieldName)) {
-                    new StringOrAction(field.subset(Collections.singleton(dataset)), stringifiedTerms(), targetGroup, positiveGroup, negativeGroup).apply(session);
+                    new StringOrAction(field.subset(dataset), stringifiedTerms(), targetGroup, positiveGroup, negativeGroup).apply(session);
                 } else {
                     session.timer.push("sort terms");
                     final long[] terms = new long[this.terms.size()];
