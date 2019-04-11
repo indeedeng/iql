@@ -57,6 +57,8 @@ public class QueryOptions {
 
         public static final String ASYNC = "async";
 
+        public static final String BATCH = "batch";
+
         private Experimental() {
         }
 
