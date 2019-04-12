@@ -101,6 +101,19 @@ public class AggregateFilterRegexTest {
     }
 
     @Test
+    public void testDistinctWindow() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("0", "2"));
+        expected.add(ImmutableList.of("1", "2"));
+        expected.add(ImmutableList.of("2", "3"));
+        expected.add(ImmutableList.of("3", "1"));
+        expected.add(ImmutableList.of("5", "1"));
+        expected.add(ImmutableList.of("10", "2"));
+        expected.add(ImmutableList.of("15", "2"));
+        QueryServletTestUtils.testIQL2(expected, "from organic yesterday today group by ojc select distinct_window(2, tk having tk =~ '[a-c]')", true);
+    }
+
+    @Test
     public void testSumOver() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("0", "2"));
@@ -111,6 +124,19 @@ public class AggregateFilterRegexTest {
         expected.add(ImmutableList.of("10", "1"));
         expected.add(ImmutableList.of("15", "1"));
         QueryServletTestUtils.testIQL2(expected, "from organic yesterday today group by ojc select sum_over(tk having tk =~ '[a-c]', 1)", true);
+    }
+
+    @Test
+    public void testAvgOver() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("0", "1"));
+        expected.add(ImmutableList.of("1", "1"));
+        expected.add(ImmutableList.of("2", "1"));
+        expected.add(ImmutableList.of("3", "NaN"));
+        expected.add(ImmutableList.of("5", "1"));
+        expected.add(ImmutableList.of("10", "1"));
+        expected.add(ImmutableList.of("15", "1"));
+        QueryServletTestUtils.testIQL2(expected, "from organic yesterday today group by ojc select avg_over(tk having tk =~ '[a-c]', 1)", true);
     }
 
     @Test
@@ -152,7 +178,17 @@ public class AggregateFilterRegexTest {
         );
         QueryServletTestUtils.testWarning(
                 expected,
+                "from organic yesterday today select distinct_window(2, tk having tk =~ '.*')",
+                QueryServletTestUtils.LanguageVersion.IQL2
+        );
+        QueryServletTestUtils.testWarning(
+                expected,
                 "from organic yesterday today select sum_over(tk having tk =~ '.*', 1)",
+                QueryServletTestUtils.LanguageVersion.IQL2
+        );
+        QueryServletTestUtils.testWarning(
+                expected,
+                "from organic yesterday today select avg_over(tk having tk =~ '.*', 1)",
                 QueryServletTestUtils.LanguageVersion.IQL2
         );
     }
@@ -188,7 +224,19 @@ public class AggregateFilterRegexTest {
                 exceptionMatcher
         );
         QueryServletTestUtils.expectException(
+                "from organic yesterday today select distinct_window(2, tk having oji =~ '.*')",
+                QueryServletTestUtils.LanguageVersion.IQL2,
+                QueryServletTestUtils.Options.create(),
+                exceptionMatcher
+        );
+        QueryServletTestUtils.expectException(
                 "from organic yesterday today select sum_over(tk having oji =~ '.*', 1)",
+                QueryServletTestUtils.LanguageVersion.IQL2,
+                QueryServletTestUtils.Options.create(),
+                exceptionMatcher
+        );
+        QueryServletTestUtils.expectException(
+                "from organic yesterday today select avg_over(tk having oji =~ '.*', 1)",
                 QueryServletTestUtils.LanguageVersion.IQL2,
                 QueryServletTestUtils.Options.create(),
                 exceptionMatcher
