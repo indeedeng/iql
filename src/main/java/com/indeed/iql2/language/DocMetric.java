@@ -36,6 +36,7 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.apache.commons.codec.binary.Base64;
 
+import javax.annotation.Nullable;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -114,6 +115,16 @@ public abstract class DocMetric extends AbstractPositional {
     public DocMetric copyPosition(Positional positional) {
         super.copyPosition(positional);
         return this;
+    }
+
+    // Metric that result only 0 or 1, so it could be converted to filter
+    public interface ZeroOneMetric {
+        // convert to a corresponding filter
+        DocFilter convertToFilter();
+
+        // invert if possible
+        @Nullable
+        DocMetric invert();
     }
 
     @EqualsAndHashCode(callSuper = false)
@@ -791,7 +802,7 @@ public abstract class DocMetric extends AbstractPositional {
     }
 
     @EqualsAndHashCode(callSuper = true)
-    public static class MetricEqual extends Binop {
+    public static class MetricEqual extends Binop implements ZeroOneMetric {
         private MetricEqual(DocMetric m1, DocMetric m2) {
             super(m1, m2);
         }
@@ -821,10 +832,20 @@ public abstract class DocMetric extends AbstractPositional {
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
         }
+
+        @Override
+        public DocFilter convertToFilter() {
+            return new DocFilter.MetricEqual(m1, m2);
+        }
+
+        @Override
+        public DocMetric invert() {
+            return MetricNotEqual.create(m1, m2);
+        }
     }
 
     @EqualsAndHashCode(callSuper = true)
-    public static class MetricNotEqual extends Binop {
+    public static class MetricNotEqual extends Binop implements ZeroOneMetric {
         private MetricNotEqual(DocMetric m1, DocMetric m2) {
             super(m1, m2);
         }
@@ -854,10 +875,20 @@ public abstract class DocMetric extends AbstractPositional {
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
         }
+
+        @Override
+        public DocFilter convertToFilter() {
+            return new DocFilter.MetricNotEqual(m1, m2);
+        }
+
+        @Override
+        public DocMetric invert() {
+            return MetricEqual.create(m1, m2);
+        }
     }
 
     @EqualsAndHashCode(callSuper = true)
-    public static class MetricLt extends Binop {
+    public static class MetricLt extends Binop implements ZeroOneMetric {
         public MetricLt(DocMetric m1, DocMetric m2) {
             super(m1, m2);
         }
@@ -876,10 +907,20 @@ public abstract class DocMetric extends AbstractPositional {
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
         }
+
+        @Override
+        public DocFilter convertToFilter() {
+            return new DocFilter.MetricLt(m1, m2);
+        }
+
+        @Override
+        public DocMetric invert() {
+            return new MetricGte(m1, m2);
+        }
     }
 
     @EqualsAndHashCode(callSuper = true)
-    public static class MetricLte extends Binop {
+    public static class MetricLte extends Binop implements ZeroOneMetric {
         public MetricLte(DocMetric m1, DocMetric m2) {
             super(m1, m2);
         }
@@ -898,10 +939,20 @@ public abstract class DocMetric extends AbstractPositional {
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
         }
+
+        @Override
+        public DocFilter convertToFilter() {
+            return new DocFilter.MetricLte(m1, m2);
+        }
+
+        @Override
+        public DocMetric invert() {
+            return new MetricGt(m1, m2);
+        }
     }
 
     @EqualsAndHashCode(callSuper = true)
-    public static class MetricGt extends Binop {
+    public static class MetricGt extends Binop implements ZeroOneMetric {
         public MetricGt(DocMetric m1, DocMetric m2) {
             super(m1, m2);
         }
@@ -920,10 +971,20 @@ public abstract class DocMetric extends AbstractPositional {
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
         }
+
+        @Override
+        public DocFilter convertToFilter() {
+            return new DocFilter.MetricGt(m1, m2);
+        }
+
+        @Override
+        public DocMetric invert() {
+            return new MetricLte(m1, m2);
+        }
     }
 
     @EqualsAndHashCode(callSuper = true)
-    public static class MetricGte extends Binop {
+    public static class MetricGte extends Binop implements ZeroOneMetric {
         public MetricGte(DocMetric m1, DocMetric m2) {
             super(m1, m2);
         }
@@ -941,6 +1002,16 @@ public abstract class DocMetric extends AbstractPositional {
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
+        }
+
+        @Override
+        public DocFilter convertToFilter() {
+            return new DocFilter.MetricGte(m1, m2);
+        }
+
+        @Override
+        public DocMetric invert() {
+            return new MetricLt(m1, m2);
         }
     }
 
@@ -982,7 +1053,7 @@ public abstract class DocMetric extends AbstractPositional {
 
     @EqualsAndHashCode(callSuper = false)
     @ToString
-    public static class FieldEqualMetric extends DocMetric {
+    public static class FieldEqualMetric extends DocMetric implements ZeroOneMetric {
         public final FieldSet field1;
         public final FieldSet field2;
 
@@ -1009,6 +1080,16 @@ public abstract class DocMetric extends AbstractPositional {
         @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
+        }
+
+        @Override
+        public DocFilter convertToFilter() {
+            return new DocFilter.FieldEqual(field1, field2);
+        }
+
+        @Override
+        public DocMetric invert() {
+            return null;
         }
     }
 
@@ -1141,7 +1222,7 @@ public abstract class DocMetric extends AbstractPositional {
 
     @EqualsAndHashCode(callSuper = false)
     @ToString
-    public static class HasInt extends DocMetric {
+    public static class HasInt extends DocMetric implements ZeroOneMetric {
         public final FieldSet field;
         public final long term;
 
@@ -1170,11 +1251,22 @@ public abstract class DocMetric extends AbstractPositional {
             final String fieldName = field.datasetFieldName(dataset);
             validationHelper.validateIntField(dataset, fieldName, errorCollector, this);
         }
+
+        @Override
+        public DocFilter convertToFilter() {
+            return DocFilter.FieldIs.create(field, Term.term(term));
+        }
+
+        @Nullable
+        @Override
+        public DocMetric invert() {
+            return null;
+        }
     }
 
     @EqualsAndHashCode(callSuper = false)
     @ToString
-    public static class HasString extends DocMetric {
+    public static class HasString extends DocMetric implements ZeroOneMetric {
         public final FieldSet field;
         public final String term;
 
@@ -1205,6 +1297,17 @@ public abstract class DocMetric extends AbstractPositional {
             if (!validationHelper.containsStringField(dataset, fieldName)) {
                 errorCollector.error(ErrorMessages.missingStringField(dataset, fieldName, this));
             }
+        }
+
+        @Override
+        public DocFilter convertToFilter() {
+            return DocFilter.FieldIs.create(field, Term.term(term));
+        }
+
+        @Nullable
+        @Override
+        public DocMetric invert() {
+            return null;
         }
     }
 
@@ -1671,7 +1774,7 @@ public abstract class DocMetric extends AbstractPositional {
 
     @EqualsAndHashCode(callSuper = false)
     @ToString
-    public static class FieldInQueryPlaceholderMetric extends DocMetric {
+    public static class FieldInQueryPlaceholderMetric extends DocMetric implements ZeroOneMetric {
         public final com.indeed.iql2.language.query.Query query;
         public final FieldSet field;
         public final boolean isNegated; // true if <field> NOT IN <query>
@@ -1708,6 +1811,17 @@ public abstract class DocMetric extends AbstractPositional {
                 errorCollector.error(ErrorMessages.missingField(dataset, fieldName, this));
             }
             CommandValidator.validate(query, datasetsMetadata, errorCollector);
+        }
+
+        @Override
+        public DocFilter convertToFilter() {
+            return new DocFilter.FieldInQuery(query, field, isNegated, datasetsMetadata);
+        }
+
+        @Nullable
+        @Override
+        public DocMetric invert() {
+            return null;
         }
     }
 
