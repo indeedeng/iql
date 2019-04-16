@@ -25,6 +25,18 @@ public class MultiValueDataset {
                 doc.addIntTerm("f", 3);
                 doc.addStringTerm("sf", "3");
             }
+            if ((i & 1) == 1) {
+                doc.addStringTerm("grp", "a");
+            }
+            if ((i & 2) == 2) {
+                doc.addStringTerm("grp", "b");
+            }
+            if ((i & 4) == 4) {
+                doc.addStringTerm("grp", "c");
+            }
+            if ((i & 8) == 8) {
+                doc.addStringTerm("grp", "d");
+            }
             doc.addIntTerm("i", i % 2);
             flamdex.addDocument(doc);
         }

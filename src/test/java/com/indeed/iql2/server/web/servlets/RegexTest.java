@@ -71,4 +71,21 @@ public class RegexTest {
                 "from organic yesterday today where tk =~ \".*ios.*|.*software.*|.*web.*|.*java.*|.*hadoop.*|.*spark.*|.*nlp.*|.*algorithm.*|.*python.*|.*matlab.*|.*swift.*|.*android.*\" select count()",
                 ex -> ex.contains("RegexTooComplexException"));
     }
+
+    @Test
+    public void testWithoutQuotes() throws Exception {
+        final String[] filters = new String[] {"tk =~ a", "tk !=~ a", "tk =~ 10", "tk !=~ 10"};
+        final long[] counts = new long[] {4, 147, 0, 151};
+        for (int i = 0; i < filters.length; i++) {
+            final String query = "from organic yesterday today where " + filters[i] + " select count()";
+            final List<List<String>> expected = new ArrayList<>();
+            expected.add(ImmutableList.of("", Long.toString(counts[i])));
+            QueryServletTestUtils.testIQL1(expected, query);
+
+            QueryServletTestUtils.expectException(
+                    query,
+                    QueryServletTestUtils.LanguageVersion.IQL2,
+                    s -> s.contains("IqlKnownException$ParseErrorException"));
+        }
+    }
 }

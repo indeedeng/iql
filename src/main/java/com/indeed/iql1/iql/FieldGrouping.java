@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 
 import static com.indeed.iql1.ez.Stats.Stat;
 
@@ -44,30 +45,30 @@ public final class FieldGrouping extends Grouping {
     private final int topK;
     private final Stat sortStat;
     private final boolean isBottom;
-    private final ArrayList<String> termSubset;
+    private final Optional<ArrayList<String>> termSubset;
     private final Limits limits;
     private final int rowLimit;
 
     public FieldGrouping(final Field field, int rowLimit, Limits limits) {
-        this(field, 0, DEFAULT_SORT_STAT, false, Collections.emptyList(), rowLimit, limits);
+        this(field, 0, DEFAULT_SORT_STAT, false, Optional.empty(), rowLimit, limits);
     }
 
     public FieldGrouping(final Field field, List<String> termSubset, Limits limits) {
-        this(field, 0, DEFAULT_SORT_STAT, false, termSubset, 0, limits);
+        this(field, 0, DEFAULT_SORT_STAT, false, Optional.of(termSubset), 0, limits);
     }
 
     public FieldGrouping(final Field field, int topK, Stat sortStat, boolean isBottom, Limits limits) {
-        this(field, topK, sortStat, isBottom, Collections.emptyList(), 0, limits);
+        this(field, topK, sortStat, isBottom, Optional.empty(), 0, limits);
     }
 
-    private FieldGrouping(final Field field, int topK, Stat sortStat, boolean isBottom, List<String> termSubset, int rowLimit, Limits limits) {
+    private FieldGrouping(final Field field, int topK, Stat sortStat, boolean isBottom, Optional<List<String>> termSubset, int rowLimit, Limits limits) {
         this.field = field;
         this.topK = topK;
         this.sortStat = sortStat;
         this.isBottom = isBottom;
         this.rowLimit = rowLimit;
         // remove duplicated terms as it makes Imhotep complain
-        this.termSubset = Lists.newArrayList(Sets.newLinkedHashSet(termSubset));
+        this.termSubset = termSubset.map(terms -> Lists.newArrayList(Sets.newLinkedHashSet(terms)));
         this.limits = limits;
         // validation
         if(!limits.satisfiesQueryInMemoryRowsLimit(topK)) {
@@ -86,20 +87,21 @@ public final class FieldGrouping extends Grouping {
         if (isTopK()) {
             return Preconditions.checkNotNull(session.splitAllTopK(field, groupKeys, topK, sortStat, isBottom));
         } else if(isTermSubset()) {
+            final List<String> terms = getTermSubset();
             if(field.isIntField()) {
                 Field.IntField intField = (Field.IntField) field;
-                long[] termsArray = new long[termSubset.size()];
-                for(int i = 0; i < termSubset.size(); i++) {
+                long[] termsArray = new long[terms.size()];
+                for(int i = 0; i < terms.size(); i++) {
                     try {
-                        termsArray[i] = Long.valueOf(termSubset.get(i));
+                        termsArray[i] = Long.valueOf(terms.get(i));
                     } catch (NumberFormatException e) {
                         throw new IqlKnownException.ParseErrorException("IN grouping for int field " + intField.getFieldName() +
-                                " has a non integer argument: " + termSubset.get(i));
+                                " has a non integer argument: " + terms.get(i));
                     }
                 }
                 return Preconditions.checkNotNull(session.explodeEachGroup(intField, termsArray, groupKeys));
             } else {
-                String[] termsArray = termSubset.toArray(new String[termSubset.size()]);
+                String[] termsArray = terms.toArray(new String[terms.size()]);
                 return Preconditions.checkNotNull(session.explodeEachGroup((Field.StringField) field, termsArray, groupKeys));
             }
         } else {
@@ -123,7 +125,7 @@ public final class FieldGrouping extends Grouping {
             if(!isTermSubset()) {
                 return session.ftgsGetIterator(field, callback, rowLimit);
             } else {
-                return session.ftgsGetSubsetIterator(field, termSubset, callback);
+                return session.ftgsGetSubsetIterator(field, getTermSubset(), callback);
             }
         }
     }
@@ -136,7 +138,11 @@ public final class FieldGrouping extends Grouping {
         return topK != 0;
     }
 
-    private boolean isTermSubset() {
-        return !termSubset.isEmpty();
+    public boolean isTermSubset() {
+        return termSubset.isPresent();
+    }
+
+    public List<String> getTermSubset() {
+        return termSubset.get();
     }
 }

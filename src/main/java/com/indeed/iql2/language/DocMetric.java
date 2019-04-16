@@ -1505,6 +1505,9 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public void validate(final String dataset, final ValidationHelper validationHelper, final ErrorCollector errorCollector) {
+            if ((numerator < 0) || (numerator > denominator)) {
+                errorCollector.error(ErrorMessages.incorrectSampleParams(numerator, denominator));
+            }
             metric.validate(dataset, validationHelper, errorCollector);
         }
     }

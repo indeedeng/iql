@@ -60,4 +60,32 @@ public class DocMetricsTest extends BasicTest {
                 "from keywords yesterday today select hasstr(from, from), hasstr(where, where), hasstr(group, group), hasstr(by, by), hasstr(limit, limit)"
         );
     }
+
+    @Test
+    public void testOperatorPrecedence() throws Exception {
+        QueryServletTestUtils.testIQL1(
+                ImmutableList.of(ImmutableList.of("", "129", "306", "3", "3", "435")),
+                // checking that 'ojc + oji = 10' is treated as '(ojc + oji) = 10' not as 'ojc + (oji = 10)'
+                "from organic yesterday today select oji = 10, ojc, ojc + oji = 10, (ojc + oji) = 10, ojc + (oji = 10)"
+        );
+
+        QueryServletTestUtils.testIQL1(
+                ImmutableList.of(ImmutableList.of("", "22", "306", "148", "148", "328")),
+                // same check for '!='
+                "from organic yesterday today select oji != 10, ojc, ojc + oji != 10, (ojc + oji) != 10, ojc + (oji != 10)"
+        );
+
+        QueryServletTestUtils.testIQL2(
+                ImmutableList.of(ImmutableList.of("", "129", "306", "435", "0", "435")),
+                // In IQL2 'ojc + oji = 10' is treated as 'ojc + (oji = 10)', maybe error with operator precedence, ticket IQL-868
+                // and '(ojc + oji) = 10' cannot be parsed as AggregateMetric at all, so change to M() for no reason
+                "from organic yesterday today select oji = 10, ojc, ojc + oji = 10, M((ojc + oji) = 10), ojc + (oji = 10)"
+        );
+
+        QueryServletTestUtils.testIQL2(
+                ImmutableList.of(ImmutableList.of("", "22", "306", "328", "1", "328")),
+                // same check for '!='
+                "from organic yesterday today select oji != 10, ojc, ojc + oji != 10, M((ojc + oji) != 10), ojc + (oji != 10)"
+        );
+    }
 }

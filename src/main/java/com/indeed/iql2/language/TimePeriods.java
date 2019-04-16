@@ -19,7 +19,6 @@ import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql2.language.query.Queries;
 import com.indeed.util.core.Pair;
 import com.indeed.util.core.time.WallClock;
-import org.antlr.v4.runtime.Token;
 import org.joda.time.DateTime;
 
 import java.util.ArrayList;
@@ -33,62 +32,86 @@ public class TimePeriods {
     private static final int MAX_RECOMMENDED_BUCKETS = 1000;
     private static final List<TimeUnit> inferenceBucketSizeOptions = ImmutableList.of(TimeUnit.SECOND, TimeUnit.MINUTE, TimeUnit.HOUR, TimeUnit.DAY, TimeUnit.WEEK);
 
-    public static List<Pair<Integer, TimeUnit>> parseTimePeriod(JQLParser.TimePeriodContext timePeriodContext, boolean useLegacy) {
-        if (timePeriodContext == null) {
-            return Collections.singletonList(Pair.of(1, TimeUnit.HOUR));
-        } else if (timePeriodContext instanceof JQLParser.TimePeriodParseableContext) {
-            final JQLParser.TimePeriodParseableContext periodContext = (JQLParser.TimePeriodParseableContext) timePeriodContext;
-            final List<Pair<Integer, TimeUnit>> result = new ArrayList<>();
-            for (JQLParser.TimeUnitContext timeunit : periodContext.timeunits) {
-                final int coeff = (timeunit.coeff == null) ? 1 : Integer.parseInt(timeunit.coeff.getText());
-                final TimeUnit unit = TimeUnit.fromString(timeunit.unit.getText(), useLegacy);
-                result.add(Pair.of(coeff, unit));
+    public static List<Pair<Integer, TimeUnit>> parseTimeBuckets(final JQLParser.TimeBucketContext timeBucketContext, final boolean useLegacy) {
+        if (timeBucketContext.STRING_LITERAL() != null) {
+            final String unquoted = ParserCommon.unquote(timeBucketContext.STRING_LITERAL().getText());
+            final JQLParser.TimeBucketTerminalContext bucketTerminal = Queries.tryRunParser(unquoted, JQLParser::timeBucketTerminal);
+            if (bucketTerminal == null) {
+                throw new IqlKnownException.ParseErrorException("Syntax errors encountered parsing bucket: [" + unquoted + "]");
             }
-            for (final Token atom : periodContext.atoms) {
-                int start = 0;
-                final String raw = atom.getText();
-                while (start < raw.length()) {
-                    final int numberStart = start;
-                    int current = start;
-                    while (Character.isDigit(raw.charAt(current))) {
-                        current++;
-                    }
-                    final int numberEndExcl = current;
-
-                    final int periodStart = current;
-                    while (current < raw.length() && Character.isAlphabetic(raw.charAt(current))) {
-                        current++;
-                    }
-                    final int periodEndExcl = current;
-
-                    final String coeffString = raw.substring(numberStart, numberEndExcl);
-                    final int coeff = coeffString.isEmpty() ? 1 : Integer.parseInt(coeffString);
-                    final TimeUnit unit = TimeUnit.fromString(raw.substring(periodStart, periodEndExcl), useLegacy);
-                    result.add(Pair.of(coeff, unit));
-
-                    start = current;
-                }
-            }
-            return result;
-        } else if (timePeriodContext instanceof JQLParser.TimePeriodStringLiteralContext) {
-            final String unquoted = ParserCommon.unquote(((JQLParser.TimePeriodStringLiteralContext) timePeriodContext).STRING_LITERAL().getText());
-            final JQLParser parser = Queries.parserForString(unquoted);
-            final List<Pair<Integer, TimeUnit>> result = parseTimePeriod(parser.timePeriod(), useLegacy);
-            if (parser.getNumberOfSyntaxErrors() > 0) {
-                throw new IqlKnownException.ParseErrorException("Syntax errors encountered parsing quoted time period: [" + unquoted + "]");
-            }
-            return result;
-        } else {
-            throw new IqlKnownException.ParseErrorException("Failed to handle time period context: [" + timePeriodContext.getText() + "]");
+            // recursive call after unquoting
+            return parseTimeBuckets(bucketTerminal.timeBucket(), useLegacy);
         }
 
+        if (timeBucketContext.timeInterval() != null) {
+            return parseTimeIntervals(timeBucketContext.timeInterval().getText(), useLegacy);
+        }
+
+        if (timeBucketContext.bucket() != null) {
+            final JQLParser.BucketContext bucket = timeBucketContext.bucket();
+            final int coeff;
+            if (bucket.BUCKET_ATOM() != null) {
+                final String raw = bucket.BUCKET_ATOM().getText();
+                int current = 0;
+                while (Character.isDigit(raw.charAt(current))) {
+                    current++;
+                }
+
+                final String coeffString = raw.substring(0, current);
+                coeff = coeffString.isEmpty() ? 1 : Integer.parseInt(coeffString);
+            } else {
+                coeff = (bucket.NAT() == null) ? 1 : Integer.parseInt(bucket.NAT().getText());
+            }
+            return Collections.singletonList(Pair.of(coeff, TimeUnit.BUCKETS));
+        }
+
+        throw new IqlKnownException.ParseErrorException("Syntax errors encountered parsing bucket: [" + timeBucketContext.getText() + "]");
     }
 
-    public static DateTime timePeriodDateTime(JQLParser.TimePeriodContext timePeriodContext, WallClock clock, boolean useLegacy) {
-        final List<Pair<Integer, TimeUnit>> pairs = parseTimePeriod(timePeriodContext, useLegacy);
+    // parse time interval string.
+    public static List<Pair<Integer, TimeUnit>> parseTimeIntervals(
+            final String interval,
+            final boolean useLegacy) {
+        final List<Pair<Integer, TimeUnit>> result = new ArrayList<>();
+        int current = 0;
+        while (current < interval.length()) {
+
+            // skip spaces
+            while (current < interval.length() && Character.isWhitespace(interval.charAt(current))) {
+                current++;
+            }
+
+            // find coeff
+            final int numberStart = current;
+            while (Character.isDigit(interval.charAt(current))) {
+                current++;
+            }
+            final int numberEndExcl = current;
+
+            // skip spaces
+            while (current < interval.length() && Character.isWhitespace(interval.charAt(current))) {
+                current++;
+            }
+
+            // find TimeUnit
+            final int periodStart = current;
+            while (current < interval.length() && Character.isAlphabetic(interval.charAt(current))) {
+                current++;
+            }
+            final int periodEndExcl = current;
+
+            final String coeffString = interval.substring(numberStart, numberEndExcl);
+            final int coeff = coeffString.isEmpty() ? 1 : Integer.parseInt(coeffString);
+            final TimeUnit unit = TimeUnit.fromString(interval.substring(periodStart, periodEndExcl), useLegacy);
+            result.add(Pair.of(coeff, unit));
+        }
+        return result;
+    }
+
+    public static DateTime subtract(final WallClock clock, final List<Pair<Integer, TimeUnit>> intervals) {
         DateTime dt = new DateTime(clock.currentTimeMillis()).withTimeAtStartOfDay();
-        for (final Pair<Integer, TimeUnit> pair : pairs) {
-            dt = TimeUnit.subtract(dt, pair.getFirst(), pair.getSecond());
+        for (final Pair<Integer, TimeUnit> interval : intervals) {
+            dt = TimeUnit.subtract(dt, interval.getFirst(), interval.getSecond());
         }
         return dt;
     }
