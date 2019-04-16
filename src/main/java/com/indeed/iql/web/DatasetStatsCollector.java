@@ -46,7 +46,9 @@ public class DatasetStatsCollector {
     private static final long LOWEST_LEGAL_TIMESTAMP_DATE = 10000000000L;
 
 
-    public static List<DatasetStats> computeStats(ImhotepClient client, ImhotepMetadataCache metadataCacheIQL2) {
+    public static List<DatasetStats> computeStats(
+            final ImhotepClient client,
+            final ImhotepMetadataCache metadataCache) {
         final List<DatasetStats> statsList = Lists.newArrayList();
         Map<String, DatasetInfo> datasetToDatasetInfo = client.getDatasetToDatasetInfo();
         Map<String, Collection<ShardInfo>> datasetToShardList = client.queryDatasetToFullShardList();
@@ -134,7 +136,7 @@ public class DatasetStatsCollector {
             }
 
             // add metadata related info from metadata cache
-            final DatasetMetadata datasetMetadata = metadataCacheIQL2.getDataset(datasetInfo.getDataset());
+            final DatasetMetadata datasetMetadata = metadataCache.getDataset(datasetInfo.getDataset());
             stats.deprecated = datasetMetadata.deprecated;
             stats.owner = datasetMetadata.owner;
             stats.project = datasetMetadata.project;

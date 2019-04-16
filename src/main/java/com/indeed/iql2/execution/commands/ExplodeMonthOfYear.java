@@ -57,17 +57,17 @@ public class ExplodeMonthOfYear implements Command {
 
         final int oldNumGroups = session.numGroups;
 
-        final int numBuckets = (int)Math.ceil(((double)realEnd - realStart) / unitSize);
+        final int numBuckets = (int) Math.ceil(((double) realEnd - realStart) / unitSize);
         final DateTime startMonth = new DateTime(realStart, IMHOTEP_TIME).withDayOfMonth(1).withTimeAtStartOfDay();
         final DateTime endMonthExclusive = new DateTime(realEnd, IMHOTEP_TIME).minusDays(1).withDayOfMonth(1).withTimeAtStartOfDay().plusMonths(1);
         final int numMonths = Months.monthsBetween(
                 startMonth,
                 endMonthExclusive
         ).getMonths();
-        session.checkGroupLimit(numMonths * session.numGroups);
+        session.checkGroupLimit((long) (numMonths) * session.numGroups);
 
-        final int numGroups = session.performTimeRegroup(realStart, realEnd, unitSize, timeField, false, false);
-        session.checkGroupLimit(numGroups);
+        final long numGroupsLong = session.performTimeRegroup(realStart, realEnd, unitSize, timeField, false, false);
+        session.checkGroupLimit(numGroupsLong);
 
         session.timer.push("compute month remapping");
         final int[] fromGroups = new int[oldNumGroups * numBuckets];

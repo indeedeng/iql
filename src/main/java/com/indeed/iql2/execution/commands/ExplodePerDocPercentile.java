@@ -49,7 +49,7 @@ public class ExplodePerDocPercentile implements Command {
         final FieldSet field = this.field;
         final int numBuckets = this.numBuckets;
 
-        session.checkGroupLimit(numBuckets * session.numGroups);
+        session.checkGroupLimit((long) (numBuckets) * session.numGroups);
 
         session.timer.push("get counts");
         final Map<String, List<List<String>>> sessionStats = new HashMap<>();
@@ -83,7 +83,7 @@ public class ExplodePerDocPercentile implements Command {
                 if (runningCounts[group] == counts[group]) {
                     // To not to rely on double precision.
                     fraction = numBuckets;
-                } else if (runningCounts[group] < counts[group]){
+                } else if (runningCounts[group] < counts[group]) {
                     fraction = (int) Math.floor(((double) numBuckets * runningCounts[group]) / counts[group]);
                 } else {
                     // per-group hasintfield < sum_term per-term-group hasintfield means it is multi-valued field.
@@ -103,9 +103,14 @@ public class ExplodePerDocPercentile implements Command {
             }
 
             @Override
-            public boolean needGroup() { return true; }
+            public boolean needGroup() {
+                return true;
+            }
+
             @Override
-            public boolean needStats() { return true; }
+            public boolean needStats() {
+                return true;
+            }
         }, session.timer, session.options);
         session.timer.pop();
 

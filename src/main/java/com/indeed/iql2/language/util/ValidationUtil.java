@@ -21,6 +21,8 @@ import com.indeed.flamdex.query.Query;
 import com.indeed.imhotep.automaton.Automaton;
 import com.indeed.imhotep.automaton.RegExp;
 import com.indeed.imhotep.automaton.RegexTooComplexException;
+import com.indeed.imhotep.matcher.StringTermMatcher;
+import com.indeed.imhotep.matcher.StringTermMatchers;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.JQLParser;
@@ -251,15 +253,16 @@ public class ValidationUtil {
         INT, STR, NULL
     }
 
-    public static Automaton compileRegex(String regex) {
+    public static StringTermMatcher compileRegex(final String regex) {
         try {
-            return new RegExp(regex).toAutomaton();
-        } catch (Exception e) {
+            return StringTermMatchers.forRegex(regex);
+        } catch (final Exception e) {
             Throwables.propagateIfInstanceOf(e, RegexTooComplexException.class);
             throw new IqlKnownException.ParseErrorException(
                     "The provided regex filter [" + regex + "] failed to parse."
                             + "\nError was: " + e.getMessage()
-                            + "\nThe supported regex syntax can be seen here: http://www.brics.dk/automaton/doc/index.html?dk/brics/automaton/RegExp.html"
+                            + "\nThe supported regex syntax can be seen here: http://www.brics.dk/automaton/doc/index.html?dk/brics/automaton/RegExp.html",
+                    e
             );
         }
     }

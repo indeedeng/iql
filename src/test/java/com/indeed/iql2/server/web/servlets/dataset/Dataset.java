@@ -66,7 +66,7 @@ public class Dataset {
 
     public DatasetsMetadata getDatasetsMetadata() {
         if (datasetsMetada == null) {
-            final ImhotepMetadataCache metadataCache = new ImhotepMetadataCache(null, getNormalClient(), "", new FieldFrequencyCache(null), true);
+            final ImhotepMetadataCache metadataCache = new ImhotepMetadataCache(null, getNormalClient(), "", new FieldFrequencyCache(null));
             metadataCache.updateDatasets();
             datasetsMetada = metadataCache.get();
         }
@@ -75,7 +75,7 @@ public class Dataset {
 
     public DatasetsMetadata getDimensionsDatasetsMetadata() {
         if (dimensionsDatasetsMetadata == null) {
-            final ImhotepMetadataCache metadataCache = new ImhotepMetadataCache(getDimensionImsClient(), getDimensionsClient(), "", new FieldFrequencyCache(null), true);
+            final ImhotepMetadataCache metadataCache = new ImhotepMetadataCache(getDimensionImsClient(), getDimensionsClient(), "", new FieldFrequencyCache(null));
             metadataCache.updateDatasets();
             dimensionsDatasetsMetadata = metadataCache.get();
         }
@@ -140,7 +140,7 @@ public class Dataset {
         final File targetDir = new File(Dataset.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getParentFile();
         final Path tempDir = targetDir.toPath().resolve("iql_test_shardmaster_" + hash(shards));
         final boolean aleadyExisted = tempDir.toFile().exists();
-        final ShardMasterAndImhotepDaemonClusterRunner cluster = new ShardMasterAndImhotepDaemonClusterRunner(tempDir.resolve("shards").toFile(), tempDir.toFile());
+        final ShardMasterAndImhotepDaemonClusterRunner cluster = new ShardMasterAndImhotepDaemonClusterRunner(tempDir.resolve("shards"), tempDir);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             try {
                 cluster.stop();

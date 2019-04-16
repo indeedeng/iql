@@ -15,23 +15,14 @@
 package com.indeed.iql2.language;
 
 import com.google.common.collect.ImmutableSet;
-import com.indeed.iql.exceptions.IqlKnownException;
-import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql.metadata.FieldType;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.query.fieldresolution.ScopedFieldResolver;
 import com.indeed.iql2.language.util.ValidationUtil;
-import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
 
 import static com.indeed.iql2.language.DocMetrics.extractPlainDimensionDocMetric;
 
@@ -69,19 +60,17 @@ public class DocFilters {
             public void enterLegacyDocBetween(JQLParser.LegacyDocBetweenContext ctx) {
                 final long lowerBound = Long.parseLong(ctx.lowerBound.getText());
                 final long upperBound = Long.parseLong(ctx.upperBound.getText());
-                accept(fieldResolver.resolveDocFilter(ctx.field, new ScopedFieldResolver.BetweenCallback(lowerBound, upperBound, true)));
+                final DocMetric metric = DocMetrics.parseLegacyDocMetric(ctx.metric, fieldResolver, datasetsMetadata);
+                accept(new DocFilter.Between(metric, lowerBound, upperBound, true));
             }
 
             @Override
-            public void enterLegacyDocFieldIn(JQLParser.LegacyDocFieldInContext ctx) {
+            public void enterLegacyDocFieldIn(final JQLParser.LegacyDocFieldInContext ctx) {
                 final FieldSet field = fieldResolver.resolve(ctx.field);
-                final List<JQLParser.LegacyTermValContext> terms = ctx.terms;
                 final boolean negate = ctx.not != null;
-                final ArrayList<Term> termsList = new ArrayList<>();
-                for (final JQLParser.LegacyTermValContext term : terms) {
-                    termsList.add(Term.parseLegacyTerm(term));
-                }
-                accept(docInHelper(datasetsMetadata, field, negate, termsList, true));
+                final ImmutableSet<Term> terms =
+                        ImmutableSet.copyOf(ctx.terms.stream().map(Term::parseLegacyTerm).iterator());
+                accept(docInHelper(field, negate, terms));
             }
 
             @Override
@@ -129,7 +118,7 @@ public class DocFilters {
 
             @Override
             public void enterLegacyDocLuceneFieldIs(JQLParser.LegacyDocLuceneFieldIsContext ctx) {
-                final DocFilter.FieldIs fieldIs = new DocFilter.FieldIs(fieldResolver.resolve(ctx.field), Term.parseLegacyTerm(ctx.legacyTermVal()));
+                final DocFilter fieldIs = DocFilter.FieldIs.create(fieldResolver.resolve(ctx.field), Term.parseLegacyTerm(ctx.legacyTermVal()));
                 if (ctx.negate == null) {
                     accept(fieldIs);
                 } else {
@@ -242,19 +231,16 @@ public class DocFilters {
             public void enterDocBetween(JQLParser.DocBetweenContext ctx) {
                 final long lowerBound = Long.parseLong(ctx.lowerBound.getText());
                 final long upperBound = Long.parseLong(ctx.upperBound.getText());
-                accept(fieldResolver.resolveDocFilter(ctx.singlyScopedField(), new ScopedFieldResolver.BetweenCallback(lowerBound, upperBound, false)));
+                final DocMetric metric = DocMetrics.parseJQLDocMetric(ctx.metric, context);
+                accept(new DocFilter.Between(metric, lowerBound, upperBound, false));
             }
 
             @Override
-            public void enterDocFieldIn(JQLParser.DocFieldInContext ctx) {
+            public void enterDocFieldIn(final JQLParser.DocFieldInContext ctx) {
                 final FieldSet field = fieldResolver.resolve(ctx.singlyScopedField());
-                final List<JQLParser.JqlTermValContext> terms = ctx.terms;
                 final boolean negate = ctx.not != null;
-                final ArrayList<Term> termsList = new ArrayList<>();
-                for (final JQLParser.JqlTermValContext term : terms) {
-                    termsList.add(Term.parseJqlTerm(term));
-                }
-                accept(field.wrap(docInHelper(context.datasetsMetadata, field, negate, termsList, false)));
+                final ImmutableSet<Term> terms = ImmutableSet.copyOf(ctx.terms.stream().map(Term::parseJqlTerm).iterator());
+                accept(field.wrap(docInHelper(field, negate, terms)));
             }
 
             @Override
@@ -463,87 +449,21 @@ public class DocFilters {
             final DocMetric.Qualified qualified = (DocMetric.Qualified) docMetric;
             final FieldSet innerResult = extractPlainField(qualified.metric);
             if (innerResult != null) {
-                return innerResult.subset(Collections.singleton(qualified.dataset));
+                return innerResult.subset(qualified.dataset);
             }
         }
         return null;
     }
 
     private static DocFilter docInHelper(
-            final DatasetsMetadata datasetsMetadata,
             final FieldSet field,
             final boolean negate,
-            final List<Term> termsList,
-            final boolean isLegacy) {
-        // In legacy mode we determine field type by actual dataset metadata.
-        // In IQL2 mode we determine field type by terms type.
-        final boolean isStringField = isLegacy ? isStringField(field, datasetsMetadata, termsList) : anyIsString(termsList);
-        final DocFilter filter;
-        if (isStringField) {
-            final Set<String> termSet = new HashSet<>();
-            for (final Term term : termsList) {
-                if (term.isIntTerm) {
-                    termSet.add(String.valueOf(term.intTerm));
-                } else {
-                    termSet.add(term.stringTerm);
-                }
-            }
-            filter = new DocFilter.StringFieldIn(field, ImmutableSet.copyOf(termSet));
-        } else {
-            final Set<Long> termSet = new LongOpenHashSet();
-            for (final Term term : termsList) {
-                if (term.isIntTerm) {
-                    termSet.add(term.intTerm);
-                } else {
-                    try {
-                        final long longTerm = Long.parseLong(term.stringTerm);
-                        termSet.add(longTerm);
-                    } catch (final NumberFormatException ignored) {
-                        throw new IqlKnownException.FieldTypeMismatchException(
-                                "A non integer value '" + term.stringTerm +
-                                "' specified for an integer field: " + field);
-                    }
-                }
-            }
-            filter = new DocFilter.IntFieldIn(field, termSet);
-        }
+            final ImmutableSet<Term> terms) {
+        final DocFilter filter = DocFilter.FieldInTermsSet.create(field, terms);
         if (negate) {
             return new DocFilter.Not(filter);
         } else {
             return filter;
         }
-    }
-
-    private static boolean anyIsString(final List<Term> terms) {
-        return terms.stream().anyMatch(t -> !t.isIntTerm);
-    }
-
-    private static boolean isStringField(
-            final FieldSet field,
-            final DatasetsMetadata datasetsMetadata,
-            final List<Term> terms) {
-        boolean hasStringField = false;
-        boolean hasIntField = false;
-        for (final String dataset : field.datasets()) {
-            final String fieldName = field.datasetFieldName(dataset);
-            final Optional<DatasetMetadata> metadata = datasetsMetadata.getMetadata(dataset);
-            if (!metadata.isPresent()) {
-                throw new IllegalStateException("Can't find metadata for dataset " + dataset);
-            }
-            if (metadata.get().hasStringField(fieldName)) {
-                hasStringField = true;
-            }
-            if (metadata.get().hasIntField(fieldName)) {
-                hasIntField = true;
-            }
-        }
-        if (hasStringField ^ hasIntField) {
-            // one is true and another is false.
-            return hasStringField;
-        }
-
-        // conflicting field or no field found,
-        // determining type by terms.
-        return anyIsString(terms);
     }
 }

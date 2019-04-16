@@ -244,10 +244,10 @@ public interface AggregateMetric extends Pushable {
     }
 
     // Base class for multiple argument function
-    abstract class Multiple implements AggregateMetric {
+    abstract class Multiary implements AggregateMetric {
         public final List<AggregateMetric> metrics;
 
-        protected Multiple(final List<AggregateMetric> metrics) {
+        protected Multiary(final List<AggregateMetric> metrics) {
             if (metrics.size() < 2) {
                 throw new IllegalArgumentException("2 or more arguments expected.");
             }

@@ -28,7 +28,6 @@ import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.Query;
 
 import javax.annotation.Nonnull;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -169,7 +168,7 @@ public class FieldExtractor {
 
 			@Override
 			public Set<DatasetField> visit(final DocFilter.Between between) {
-				return between.field.datasetFields();
+				return getDatasetFields(between.metric);
 			}
 
 			@Override
@@ -256,13 +255,8 @@ public class FieldExtractor {
 			}
 
 			@Override
-			public Set<DatasetField> visit(final DocFilter.StringFieldIn stringFieldIn) {
-				return stringFieldIn.field.datasetFields();
-			}
-
-			@Override
-			public Set<DatasetField> visit(final DocFilter.IntFieldIn intFieldIn) {
-				return intFieldIn.field.datasetFields();
+			public Set<DatasetField> visit(final DocFilter.FieldInTermsSet fieldInTermsSet) throws RuntimeException {
+				return fieldInTermsSet.field.datasetFields();
 			}
 
 			@Override
@@ -337,7 +331,7 @@ public class FieldExtractor {
 
 			@Override
 			public Set<DatasetField> visit(final DocMetric.Add add) {
-				return getDatasetFieldsForMetrics(add.metrics);
+				return getDatasetFieldsForMetrics(add);
 			}
 
 			@Override
@@ -362,12 +356,12 @@ public class FieldExtractor {
 
 			@Override
 			public Set<DatasetField> visit(final DocMetric.Min min) {
-				return getFieldsForBinop(min);
+				return getDatasetFieldsForMetrics(min);
 			}
 
 			@Override
 			public Set<DatasetField> visit(final DocMetric.Max max) {
-				return getFieldsForBinop(max);
+				return getDatasetFieldsForMetrics(max);
 			}
 
 			@Override
@@ -607,7 +601,7 @@ public class FieldExtractor {
 
 			@Override
 			public Set<DatasetField> visit(final AggregateMetric.Add add) {
-				return getDatasetFieldsForAggregateMetrics(add.metrics);
+				return getDatasetFieldsForAggregateMetrics(add);
 			}
 
 			@Override
@@ -760,12 +754,12 @@ public class FieldExtractor {
 
 			@Override
 			public Set<DatasetField> visit(final AggregateMetric.Min min) {
-				return getDatasetFieldsForAggregateMetrics(min.metrics);
+				return getDatasetFieldsForAggregateMetrics(min);
 			}
 
 			@Override
 			public Set<DatasetField> visit(final AggregateMetric.Max max) {
-				return getDatasetFieldsForAggregateMetrics(max.metrics);
+				return getDatasetFieldsForAggregateMetrics(max);
 			}
 
 			@Override
@@ -857,36 +851,36 @@ public class FieldExtractor {
 	}
 
 	@Nonnull
-	private static Set<DatasetField> getDatasetFields(final DocFilter.Multiple multiple) {
+	private static Set<DatasetField> getDatasetFields(final DocFilter.Multiary multiary) {
 		final Set<DatasetField> set = Sets.newHashSet();
-		for (final DocFilter filter : multiple.filters) {
+		for (final DocFilter filter : multiary.filters) {
 			set.addAll(getDatasetFields(filter));
 		}
 		return set;
 	}
 
 	@Nonnull
-	private static Set<DatasetField> getDatasetFieldsForMetrics(final Collection<DocMetric> docMetrics) {
+	private static Set<DatasetField> getDatasetFieldsForMetrics(final DocMetric.Multiary multiary) {
 		final Set<DatasetField> set = Sets.newHashSet();
-		for (final DocMetric metric : docMetrics) {
+		for (final DocMetric metric : multiary.metrics) {
 			set.addAll(getDatasetFields(metric));
 		}
 		return set;
 	}
 
 	@Nonnull
-	private static Set<DatasetField> getDatasetFieldsForAggregateMetrics(final Collection<AggregateMetric> metrics) {
+	private static Set<DatasetField> getDatasetFieldsForAggregateMetrics(final AggregateMetric.Multiary multiary) {
 		final Set<DatasetField> set = Sets.newHashSet();
-		for (final AggregateMetric metric : metrics) {
+		for (final AggregateMetric metric : multiary.metrics) {
 			set.addAll(getDatasetFields(metric));
 		}
 		return set;
 	}
 
 	@Nonnull
-	private static Set<DatasetField> getDatasetFields(final AggregateFilter.Multiple multiple) {
+	private static Set<DatasetField> getDatasetFields(final AggregateFilter.Multiary multiary) {
 		final Set<DatasetField> set = Sets.newHashSet();
-		for (final AggregateFilter filter : multiple.filters) {
+		for (final AggregateFilter filter : multiary.filters) {
 			set.addAll(getDatasetFields(filter));
 		}
 		return set;

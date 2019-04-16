@@ -14,17 +14,20 @@
 
 package com.indeed.iql1.sql.ast;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
 /**
  * A number expression.
- * 
+ *
  * @author Ben Yu
  */
+@JsonSerialize
 public final class NumberExpression extends ValueObject implements Expression {
-  public final String number;
+    public final String number;
 
-  public NumberExpression(String number) {
-    this.number = number;
-  }
+    public NumberExpression(String number) {
+        this.number = number;
+    }
 
     public <Z> Z match(final Matcher<Z> matcher) {
         return matcher.numberExpression(number);

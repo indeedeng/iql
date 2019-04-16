@@ -13,6 +13,8 @@
  */
  package com.indeed.iql1.sql.ast2;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.indeed.iql1.sql.ast.Expression;
 import com.indeed.iql1.sql.ast.ValueObject;
 
@@ -22,7 +24,7 @@ import java.util.List;
 /**
  * @author vladimir
  */
-
+@JsonSerialize
 public class SelectClause extends ValueObject implements Serializable {
     private final List<Expression> projections;
 
@@ -30,6 +32,7 @@ public class SelectClause extends ValueObject implements Serializable {
         this.projections = projections;
     }
 
+    @JsonProperty
     public List<Expression> getProjections() {
         return projections;
     }

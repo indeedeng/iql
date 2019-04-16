@@ -14,21 +14,24 @@
 
 package com.indeed.iql1.sql.ast;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
 /**
  * An expression of binary operator.
- * 
+ *
  * @author Ben Yu
  */
+@JsonSerialize
 public final class BinaryExpression extends ValueObject implements Expression {
-  public final Expression left;
-  public final Expression right;
-  public final Op operator;
-  
-  public BinaryExpression(Expression left, Op op, Expression right) {
-    this.left = left;
-    this.operator = op;
-    this.right = right;
-  }
+    public final Expression left;
+    public final Expression right;
+    public final Op operator;
+
+    public BinaryExpression(Expression left, Op op, Expression right) {
+        this.left = left;
+        this.operator = op;
+        this.right = right;
+    }
 
     public <Z> Z match(final Matcher<Z> matcher) {
         return matcher.binaryExpression(left, operator, right);

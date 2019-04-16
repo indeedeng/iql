@@ -25,16 +25,25 @@ import lombok.ToString;
 @ToString
 public class SampleMetricAction implements Action {
     final ImmutableMap<String, DocMetric> perDatasetMetric;
-    public final double probability;
+    public final long numerator;
+    public final long denominator;
     public final String seed;
 
     public final int targetGroup;
     public final int positiveGroup;
     public final int negativeGroup;
 
-    public SampleMetricAction(final ImmutableMap<String, DocMetric> perDatasetMetric, final double probability, final String seed, final int targetGroup, final int positiveGroup, final int negativeGroup) {
+    public SampleMetricAction(
+            final ImmutableMap<String, DocMetric> perDatasetMetric,
+            final long numerator,
+            final long denominator,
+            final String seed,
+            final int targetGroup,
+            final int positiveGroup,
+            final int negativeGroup) {
         this.perDatasetMetric = perDatasetMetric;
-        this.probability = probability;
+        this.numerator = numerator;
+        this.denominator = denominator;
         this.seed = seed;
         this.targetGroup = targetGroup;
         this.positiveGroup = positiveGroup;
@@ -43,13 +52,15 @@ public class SampleMetricAction implements Action {
 
     @Override
     public void validate(final ValidationHelper validationHelper, final ErrorCollector errorCollector) {
+        validationHelper.validateSampleParams(numerator, denominator, errorCollector);
     }
 
     @Override
     public com.indeed.iql2.execution.actions.Action toExecutionAction() {
         return new com.indeed.iql2.execution.actions.SampleMetricAction(
                 perDatasetMetric,
-                probability,
+                numerator,
+                denominator,
                 seed,
                 targetGroup,
                 positiveGroup,

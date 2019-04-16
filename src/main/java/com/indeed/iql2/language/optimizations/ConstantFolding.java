@@ -125,16 +125,6 @@ public class ConstantFolding {
                     double result = Math.exp(x);
                     return new DocMetric.Constant((long) (result * exp.scaleFactor));
                 }
-            } else if (input instanceof DocMetric.Max) {
-                final DocMetric.Max max = (DocMetric.Max) input;
-                if (isConstant(max.m1) && isConstant(max.m2)) {
-                    return new DocMetric.Constant(Math.max(getConstant(max.m1), getConstant(max.m2)));
-                }
-            } else if (input instanceof DocMetric.Min) {
-                final DocMetric.Min min = (DocMetric.Min) input;
-                if (isConstant(min.m1) && isConstant(min.m2)) {
-                    return new DocMetric.Constant(Math.min(getConstant(min.m1), getConstant(min.m2)));
-                }
             } else if (input instanceof DocMetric.MetricEqual) {
                 final DocMetric.MetricEqual metricEqual = (DocMetric.MetricEqual) input;
                 if (isConstant(metricEqual.m1) && isConstant(metricEqual.m2)) {

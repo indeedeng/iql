@@ -14,8 +14,8 @@
 
 package com.indeed.iql2.language.query;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.AbstractPositional;
@@ -24,12 +24,11 @@ import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocFilter;
 import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.Positional;
+import com.indeed.iql2.language.Term;
 import com.indeed.iql2.language.TimePeriods;
 import com.indeed.iql2.language.commands.TopK;
 import com.indeed.iql2.language.execution.ExecutionStep;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
-import it.unimi.dsi.fastutil.longs.LongList;
-import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
@@ -333,38 +332,32 @@ public abstract class GroupBy extends AbstractPositional {
     @ToString
     public static class GroupByFieldIn extends GroupBy {
         public final FieldSet field;
-        public final LongList intTerms;
-        public final List<String> stringTerms;
+        public final ImmutableSet<Term> terms;
         public final boolean withDefault;
 
-        public GroupByFieldIn(FieldSet field, LongList intTerms, List<String> stringTerms, boolean withDefault) {
+        public GroupByFieldIn(final FieldSet field, final ImmutableSet<Term> terms, final boolean withDefault) {
             this.field = field;
-            this.intTerms = intTerms;
-            this.stringTerms = stringTerms;
+            this.terms = terms;
             this.withDefault = withDefault;
 
-            if (Sets.newHashSet(stringTerms).size() != stringTerms.size()) {
-                throw new IqlKnownException.ParseErrorException("String terms must be unique: " + stringTerms);
-            }
-            if (new LongOpenHashSet(intTerms).size() != intTerms.size()) {
-                throw new IqlKnownException.ParseErrorException("Int terms must be unique: " + intTerms);
-            }
-            if (!intTerms.isEmpty() && !stringTerms.isEmpty()) {
-                throw new IqlKnownException.ParseErrorException("Cannot have both int terms and string terms.");
-            }
-            if (intTerms.isEmpty() && stringTerms.isEmpty()) {
+            if (terms.isEmpty()) {
                 throw new IqlKnownException.ParseErrorException("Cannot have empty field in Set");
             }
         }
 
         @Override
-        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+        public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
         }
 
         @Override
-        public GroupBy transform(Function<GroupBy, GroupBy> groupBy, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
-            return groupBy.apply(new GroupByFieldIn(field, intTerms, stringTerms, withDefault)).copyPosition(this);
+        public GroupBy transform(
+                final Function<GroupBy, GroupBy> groupBy,
+                final Function<AggregateMetric, AggregateMetric> f,
+                final Function<DocMetric, DocMetric> g,
+                final Function<AggregateFilter, AggregateFilter> h,
+                final Function<DocFilter, DocFilter> i) {
+            return groupBy.apply(new GroupByFieldIn(field, terms, withDefault)).copyPosition(this);
         }
 
         @Override
@@ -373,12 +366,8 @@ public abstract class GroupBy extends AbstractPositional {
         }
 
         @Override
-        public ExecutionStep executionStep(List<Dataset> datasets) {
-            if (!intTerms.isEmpty()) {
-                return ExecutionStep.ExplodeFieldIn.intExplode(field, intTerms, withDefault);
-            } else {
-                return ExecutionStep.ExplodeFieldIn.stringExplode(field, stringTerms, withDefault);
-            }
+        public ExecutionStep executionStep(final List<Dataset> datasets) {
+            return new ExecutionStep.ExplodeFieldIn(field, terms, withDefault);
         }
 
         @Override
@@ -388,7 +377,7 @@ public abstract class GroupBy extends AbstractPositional {
 
         @Override
         public GroupBy makeTotal() {
-            return new GroupByFieldIn(field, intTerms, stringTerms, true);
+            return new GroupByFieldIn(field, terms, true);
         }
     }
 

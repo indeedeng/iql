@@ -13,6 +13,7 @@
  */
  package com.indeed.iql1.sql.ast2;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.indeed.iql1.sql.ast.Expression;
 import com.indeed.iql1.sql.ast.ValueObject;
 
@@ -22,7 +23,7 @@ import java.util.List;
 /**
  * @author vladimir
  */
-
+@JsonSerialize
 public class GroupByClause extends ValueObject implements Serializable {
     public final List<Expression> groupings;
 

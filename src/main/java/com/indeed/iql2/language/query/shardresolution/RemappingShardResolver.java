@@ -10,9 +10,11 @@ import org.joda.time.DateTime;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.PriorityQueue;
+import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -38,22 +40,23 @@ public class RemappingShardResolver implements ShardResolver {
                 remappedShards = remapShardsByNumDocs(initialResults.shards, hostsFromOption);
                 break;
 
-            case MODULO_MAPPING:
+            case SHUFFLE_MAPPING:
             default:
-                remappedShards = remapShardsByModulo(initialResults.shards, hostsFromOption);
+                remappedShards = remapShardsByShuffle(initialResults.shards, hostsFromOption);
                 break;
         }
 
         return new ShardResolutionResult(remappedShards, initialResults.missingShardTimeIntervals);
     }
 
-    private static List<Shard> remapShardsByModulo(final List<Shard> shards, final List<Host> hosts) {
+    private static List<Shard> remapShardsByShuffle(final List<Shard> shards, final List<Host> hosts) {
         Preconditions.checkArgument(!hosts.isEmpty());
 
-        return shards.stream()
-                .map(shard -> {
-                    final int hostIndex = Math.abs(shard.hashCode()) % hosts.size();
-                    return shard.withHost(hosts.get(hostIndex));
+        Collections.shuffle(shards, new Random(Long.MAX_VALUE));
+        return IntStream.range(0, shards.size())
+                .mapToObj(shardIndex -> {
+                    final Shard shard = shards.get(shardIndex);
+                    return shard.withServer(hosts.get(shardIndex % hosts.size()));
                 })
                 .collect(Collectors.toList());
     }
@@ -86,7 +89,7 @@ public class RemappingShardResolver implements ShardResolver {
         while (!docSumQueue.isEmpty()) {
             final Pair<Long, List<Integer>> poll = docSumQueue.poll();
             for (final int shardIndex : poll.getSecond()) {
-                remappedShards.add(shards.get(shardIndex).withHost(hosts.get(hostIndex)));
+                remappedShards.add(shards.get(shardIndex).withServer(hosts.get(hostIndex)));
             }
             hostIndex++;
         }

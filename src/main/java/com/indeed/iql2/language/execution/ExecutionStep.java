@@ -16,11 +16,13 @@ package com.indeed.iql2.language.execution;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocMetric;
+import com.indeed.iql2.language.Term;
 import com.indeed.iql2.language.actions.Action;
 import com.indeed.iql2.language.commands.ApplyFilterActions;
 import com.indeed.iql2.language.commands.ApplyGroupFilter;
@@ -41,8 +43,6 @@ import com.indeed.iql2.language.query.Dataset;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.util.core.Pair;
-import it.unimi.dsi.fastutil.longs.LongList;
-import it.unimi.dsi.fastutil.longs.LongLists;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
@@ -182,30 +182,18 @@ public interface ExecutionStep {
     @ToString
     class ExplodeFieldIn implements ExecutionStep {
         public final FieldSet field;
-        public final List<String> stringTerms;
-        public final LongList intTerms;
-        public final boolean isIntField;
+        public final ImmutableSet<Term> terms;
         public final boolean withDefault;
 
-        public ExplodeFieldIn(final FieldSet field, final List<String> stringTerms, final LongList intTerms, final boolean isIntField, final boolean withDefault) {
+        public ExplodeFieldIn(final FieldSet field, final ImmutableSet<Term> terms, final boolean withDefault) {
             this.field = field;
-            this.stringTerms = stringTerms;
-            this.intTerms = intTerms;
-            this.isIntField = isIntField;
+            this.terms = terms;
             this.withDefault = withDefault;
-        }
-
-        public static ExplodeFieldIn intExplode(FieldSet field, LongList terms, boolean withDefault) {
-            return new ExplodeFieldIn(field, Collections.emptyList(), terms, true, withDefault);
-        }
-
-        public static ExplodeFieldIn stringExplode(FieldSet field, List<String> terms, boolean withDefault) {
-            return new ExplodeFieldIn(field, terms, LongLists.EMPTY_LIST, false, withDefault);
         }
 
         @Override
         public List<Command> commands() {
-            return Collections.singletonList(new RegroupFieldIn(field, stringTerms, intTerms, isIntField, withDefault));
+            return Collections.singletonList(new RegroupFieldIn(field, terms, withDefault));
         }
 
         @Override

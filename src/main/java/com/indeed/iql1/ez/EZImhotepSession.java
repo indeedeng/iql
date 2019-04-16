@@ -237,14 +237,14 @@ public class EZImhotepSession implements Closeable {
                 }
             }
             Arrays.sort(intTermsSubset);
-            intFields.put(FieldSet.of(session.getDatasetName(), field.fieldName), intTermsSubset);
+            intFields.put(FieldSet.of(session.getDatasetName(), field.fieldName, true), intTermsSubset);
         } else {
             final String[] stringTermsSubset = new String[terms.size()];
             for(int i = 0; i < stringTermsSubset.length; i++) {
                 stringTermsSubset[i] = (String)terms.get(i);
             }
             Arrays.sort(stringTermsSubset);
-            stringFields.put(FieldSet.of(session.getDatasetName(), field.fieldName), stringTermsSubset);
+            stringFields.put(FieldSet.of(session.getDatasetName(), field.fieldName, false), stringTermsSubset);
         }
 
         return session.getSubsetFTGSIterator(intFields, stringFields, null);

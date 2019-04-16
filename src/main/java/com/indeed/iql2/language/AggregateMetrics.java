@@ -582,7 +582,7 @@ public class AggregateMetrics {
                 for (final JQLParser.JqlAggregateMetricContext metric : ctx.metrics) {
                     metrics.add(parseJQLAggregateMetric(metric, context));
                 }
-                accept(new AggregateMetric.Min(metrics));
+                accept(AggregateMetric.Min.create(metrics));
             }
 
             @Override
@@ -591,7 +591,7 @@ public class AggregateMetrics {
                 for (final JQLParser.JqlAggregateMetricContext metric : ctx.metrics) {
                     metrics.add(parseJQLAggregateMetric(metric, context));
                 }
-                accept(new AggregateMetric.Max(metrics));
+                accept(AggregateMetric.Max.create(metrics));
             }
 
             @Override

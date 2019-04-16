@@ -15,6 +15,7 @@ package com.indeed.iql;
 
 import com.google.common.base.Throwables;
 import com.google.common.io.Files;
+import com.indeed.imhotep.client.Host;
 import com.indeed.imhotep.service.GenericFlamdexReaderSource;
 import com.indeed.imhotep.service.ImhotepDaemon;
 import com.indeed.imhotep.service.LocalImhotepServiceConfig;
@@ -47,9 +48,10 @@ public class LocalImhotepDaemonAndShardmaster {
             final ServerSocket ss = new ServerSocket(0);
             final int imhotepPort = ss.getLocalPort();
             final String tempDir = Files.createTempDir().getAbsolutePath();
+            final Host myHost = new Host("localhost", imhotepPort);
             final ImhotepDaemon theImhotep = new ImhotepDaemon(
                     ss,
-                    new LocalImhotepServiceCore(Paths.get(tempDir), Long.MAX_VALUE, new GenericFlamdexReaderSource(), new LocalImhotepServiceConfig(), Paths.get(shardsDir)),
+                    new LocalImhotepServiceCore(Paths.get(tempDir), Long.MAX_VALUE, new GenericFlamdexReaderSource(), new LocalImhotepServiceConfig(), Paths.get(shardsDir), myHost),
                     null,
                     null,
                     "localhost",

@@ -1,6 +1,7 @@
 package com.indeed.iql2.execution;
 
 import com.indeed.imhotep.AsynchronousRemoteImhotepMultiSession;
+import com.indeed.imhotep.BatchRemoteImhotepMultiSession;
 import com.indeed.imhotep.QueryRemapRule;
 import com.indeed.imhotep.RemoteImhotepMultiSession;
 import com.indeed.imhotep.api.FTGSIterator;
@@ -36,8 +37,8 @@ public class ImhotepSessionHolder implements Closeable {
             final String datasetName,
             final ImhotepSession session
     ) {
-        if (!(session instanceof RemoteImhotepMultiSession) && !(session instanceof AsynchronousRemoteImhotepMultiSession)) {
-            throw new IllegalStateException("Must have RemoteImhotepMultiSession or AsynchronousRemoteImhotepMultiSession");
+        if (!(session instanceof RemoteImhotepMultiSession) && !(session instanceof AsynchronousRemoteImhotepMultiSession) && !(session instanceof BatchRemoteImhotepMultiSession)) {
+            throw new IllegalStateException("Must have RemoteImhotepMultiSession or AsynchronousRemoteImhotepMultiSession or BatchRemoteImhotepMultiSession");
         }
         this.datasetName = datasetName;
         this.session = session;
@@ -235,8 +236,10 @@ public class ImhotepSessionHolder implements Closeable {
             return ((RemoteImhotepMultiSession) session).getTempFilesBytesWritten();
         } else if (session instanceof AsynchronousRemoteImhotepMultiSession) {
             return ((AsynchronousRemoteImhotepMultiSession) session).getTempFilesBytesWritten();
+        } else if (session instanceof BatchRemoteImhotepMultiSession) {
+            return ((BatchRemoteImhotepMultiSession) session).getTempFilesBytesWritten();
         }
-        throw new IllegalStateException("Must have RemoteImhotepMultiSession or AsynchronousRemoteImhotepMultiSession");
+        throw new IllegalStateException("Must have RemoteImhotepMultiSession or AsynchronousRemoteImhotepMultiSession or BatchRemoteImhotepMultiSession");
     }
 
     public int regroupWithSender(
@@ -247,8 +250,10 @@ public class ImhotepSessionHolder implements Closeable {
         } else if (session instanceof AsynchronousRemoteImhotepMultiSession) {
             ((AsynchronousRemoteImhotepMultiSession) session).regroupWithRuleSender(sender, errorOnCollisions);
             return -999;
+        } else if (session instanceof BatchRemoteImhotepMultiSession) {
+            return ((BatchRemoteImhotepMultiSession) session).regroupWithRuleSender(sender, errorOnCollisions);
         }
-        throw new IllegalStateException("Must have RemoteImhotepMultiSession or AsynchronousRemoteImhotepMultiSession");
+        throw new IllegalStateException("Must have RemoteImhotepMultiSession or AsynchronousRemoteImhotepMultiSession or BatchRemoteImhotepMultiSession");
     }
 
     public AggregateStatTree aggregateStat(final int index) {
