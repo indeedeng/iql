@@ -140,7 +140,6 @@ public class RedisQueryCache implements QueryCache {
 
     /**
      * Tries to see if the Redis is accessible by checking if the root cache dir exists and recreating if necessary.
-     * @throws IOException
      */
     @Override
     public void healthcheck() {

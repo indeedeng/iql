@@ -23,9 +23,10 @@ import javax.annotation.Nonnull;
 
 /**
  * Small wrapper class around common logging patterns
- * <p/>
+ * <p>
  * The main pattern I want to pull out of the main codebase are using String.format() (or string math) to construct
  * detailed log messages inside isDebugEnabled() conditionals.
+ * </p>
  */
 public class Loggers {
     private Loggers() {
