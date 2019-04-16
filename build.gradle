@@ -1,6 +1,6 @@
 plugins {
     id 'java'
-    id 'maven-publish'
+//    id 'maven-publish'
     id 'antlr'
 }
 
@@ -75,30 +75,30 @@ generateGrammarSource {
     arguments += ["-visitor"]
 }
 
-task sourcesJar(type: Jar) {
-    classifier = 'sources'
-    from(sourceSets.main.allJava)
-}
-
-task javadocJar(type: Jar) {
-    classifier = 'javadoc'
-    from(javadoc.destinationDir)
-}
+//task sourcesJar(type: Jar) {
+//    classifier = 'sources'
+//    from(sourceSets.main.allJava)
+//}
+//
+//task javadocJar(type: Jar) {
+//    classifier = 'javadoc'
+//    from(javadoc.destinationDir)
+//}
 
 group = 'com.indeed'
 //version = '9999-SNAPSHOT'
 description = 'IQL Server'
 sourceCompatibility = '1.8'
 
-publishing {
-    publications {
-        maven(MavenPublication) {
-            from(components.java)
-            artifact(sourcesJar)
-            artifact(javadocJar)
-        }
-    }
-}
+//publishing {
+//    publications {
+//        maven(MavenPublication) {
+//            from(components.java)
+//            artifact(sourcesJar)
+//            artifact(javadocJar)
+//        }
+//    }
+//}
 
 tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
