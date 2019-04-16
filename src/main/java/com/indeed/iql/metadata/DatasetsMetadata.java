@@ -132,13 +132,10 @@ public class DatasetsMetadata {
         return datasetToDimensionAliasFields;
     }
 
-    public boolean fieldHasDescription(String dataset, String field) {
+    public boolean fieldHasDescription(final String dataset, final String field, final boolean useLegacy) {
         final Optional<DatasetMetadata> datasetMetadata = getMetadata(dataset);
         if (datasetMetadata.isPresent()) {
-            final FieldMetadata fieldMetadata = datasetMetadata.get().getField(field);
-            if (fieldMetadata != null) {
-                return !Strings.isNullOrEmpty(fieldMetadata.getDescription());
-            }
+            return !Strings.isNullOrEmpty(datasetMetadata.get().getFieldDescription(field, useLegacy));
         }
         return false;
     }

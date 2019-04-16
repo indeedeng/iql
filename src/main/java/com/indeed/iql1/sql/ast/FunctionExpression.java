@@ -14,27 +14,30 @@
 
 package com.indeed.iql1.sql.ast;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 /**
  * A function call.
- * 
+ *
  * @author Ben Yu
  */
+@JsonSerialize
 public final class FunctionExpression extends ValueObject implements Expression {
-  public final String function;
-  public final List<Expression> args;
-  
-  public FunctionExpression(String function, List<Expression> args) {
-    this.function = function;
-    this.args = Collections.unmodifiableList(args);
-  }
-  
-  public static FunctionExpression of(String function, Expression... args) {
-    return new FunctionExpression(function, Arrays.asList(args));
-  }
+    public final String function;
+    public final List<Expression> args;
+
+    public FunctionExpression(String function, List<Expression> args) {
+        this.function = function;
+        this.args = Collections.unmodifiableList(args);
+    }
+
+    public static FunctionExpression of(String function, Expression... args) {
+        return new FunctionExpression(function, Arrays.asList(args));
+    }
 
     public <Z> Z match(final Matcher<Z> matcher) {
         return matcher.functionExpression(function, args);

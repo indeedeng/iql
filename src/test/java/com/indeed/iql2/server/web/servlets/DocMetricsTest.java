@@ -46,6 +46,21 @@ public class DocMetricsTest extends BasicTest {
     }
 
     @Test
+    public void testMetricsIntTermsWithStringField() throws Exception {
+        QueryServletTestUtils.testAll(
+                ImmutableList.of(ImmutableList.of("", "10", "10", "0", "90")),
+                "from stringAsInt1 yesterday today select leadingZeroes = \"0001\", leadingZeroes=0001, leadingZeroes=1, leadingZeroes != 0002"
+        );
+
+        QueryServletTestUtils.testIQL2(
+                ImmutableList.of(ImmutableList.of("", "10", "10", "0", "90")),
+                "from stringAsInt1 yesterday today select stringAsInt1.leadingZeroes = \"0001\", " +
+                        "stringAsInt1.leadingZeroes=0001, stringAsInt1.leadingZeroes=1, " +
+                        "stringAsInt1.leadingZeroes != 0002"
+        );
+    }
+
+    @Test
     public void testHasStr() throws Exception {
         QueryServletTestUtils.testIQL1(
                 ImmutableList.of(ImmutableList.of("", "151", "151", "0")),
@@ -86,6 +101,49 @@ public class DocMetricsTest extends BasicTest {
                 ImmutableList.of(ImmutableList.of("", "22", "306", "328", "1", "328")),
                 // same check for '!='
                 "from organic yesterday today select oji != 10, ojc, ojc + oji != 10, M((ojc + oji) != 10), ojc + (oji != 10)"
+        );
+    }
+
+    @Test
+    public void testFiltersIntTermsWithStringField() throws Exception {
+        // in DocFilter
+        QueryServletTestUtils.testAll(
+                ImmutableList.of(ImmutableList.of("", "10")),
+                "from stringAsInt1 yesterday today where leadingZeroes=0001"
+        );
+
+        // in DocFilter
+        QueryServletTestUtils.testAll(
+                ImmutableList.of(ImmutableList.of("", "90")),
+                "from stringAsInt1 yesterday today where leadingZeroes!=0001"
+        );
+
+        // lucene style in DocFilter, not supported in IQL2
+        QueryServletTestUtils.testIQL1(
+                ImmutableList.of(ImmutableList.of("", "10")),
+                "from stringAsInt1 yesterday today where leadingZeroes:0001"
+        );
+
+        // in terms list
+        QueryServletTestUtils.testAll(
+                ImmutableList.of(ImmutableList.of("", "30")),
+                "from stringAsInt1 yesterday today where leadingZeroes in (0001, 0003, 0005)"
+        );
+
+        // terms list in group by
+        QueryServletTestUtils.testAll(
+                ImmutableList.of(
+                        ImmutableList.of("0001", "10"),
+                        ImmutableList.of("0003", "10"),
+                        ImmutableList.of("0005", "10")),
+                "from stringAsInt1 yesterday today group by leadingZeroes in (0001, 0003, 0005)"
+        );
+
+        // terms list from subquery
+        QueryServletTestUtils.testIQL2(
+                ImmutableList.of(ImmutableList.of("", "30")),
+                "from stringAsInt1 yesterday today where leadingZeroes in (" +
+                        "from stringAsInt1 yesterday today group by leadingZeroes in (0001, 0003, 0005) )"
         );
     }
 }

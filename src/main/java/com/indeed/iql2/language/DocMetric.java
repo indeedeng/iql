@@ -14,6 +14,7 @@
 
 package com.indeed.iql2.language;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -42,6 +43,9 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+
+import static com.indeed.iql2.language.DocMetrics.hasTermMetricOrThrow;
+import static com.indeed.iql2.language.DocMetrics.negateMetric;
 
 public abstract class DocMetric extends AbstractPositional {
     public interface Visitor<T, E extends Throwable> {
@@ -788,8 +792,19 @@ public abstract class DocMetric extends AbstractPositional {
 
     @EqualsAndHashCode(callSuper = true)
     public static class MetricEqual extends Binop {
-        public MetricEqual(DocMetric m1, DocMetric m2) {
+        private MetricEqual(DocMetric m1, DocMetric m2) {
             super(m1, m2);
+        }
+
+        public static DocMetric create(final DocMetric left, final DocMetric right) {
+            final FieldSet field = DocFilters.extractPlainField(left);
+            if ((field != null) && (right instanceof DocMetric.Constant)) {
+                final String rawInput = right.getRawInput();
+                final Term term = (rawInput != null) ? Term.term(rawInput) : Term.term(((Constant) right).value);
+                return hasTermMetricOrThrow(field, term);
+            } else {
+                return new DocMetric.MetricEqual(left, right);
+            }
         }
 
         @Override
@@ -810,8 +825,19 @@ public abstract class DocMetric extends AbstractPositional {
 
     @EqualsAndHashCode(callSuper = true)
     public static class MetricNotEqual extends Binop {
-        public MetricNotEqual(DocMetric m1, DocMetric m2) {
+        private MetricNotEqual(DocMetric m1, DocMetric m2) {
             super(m1, m2);
+        }
+
+        public static DocMetric create(final DocMetric left, final DocMetric right) {
+            final FieldSet field = DocFilters.extractPlainField(left);
+            if ((field != null) && (right instanceof DocMetric.Constant)) {
+                final String rawInput = right.getRawInput();
+                final Term term = (rawInput != null) ? Term.term(rawInput) : Term.term(((Constant) right).value);
+                return negateMetric(hasTermMetricOrThrow(field, term));
+            } else {
+                return new DocMetric.MetricNotEqual(left, right);
+            }
         }
 
         @Override
@@ -1151,18 +1177,16 @@ public abstract class DocMetric extends AbstractPositional {
     public static class HasString extends DocMetric {
         public final FieldSet field;
         public final String term;
-        // In legacy mode it's legal to have 'hasstr(intField, "string")' so we need validate it differently
-        private final boolean strictValidate;
 
-        public HasString(final FieldSet field, final String term, final boolean strictValidate) {
+        public HasString(final FieldSet field, final String term) {
+            Preconditions.checkState(!field.isIntField());
             this.field = field;
             this.term = term;
-            this.strictValidate = strictValidate;
         }
 
         @Override
         public DocMetric transform(Function<DocMetric, DocMetric> g, Function<DocFilter, DocFilter> i) {
-            return g.apply(new HasString(field, term, strictValidate)).copyPosition(this);
+            return g.apply(new HasString(field, term)).copyPosition(this);
         }
 
         @Override
@@ -1178,10 +1202,7 @@ public abstract class DocMetric extends AbstractPositional {
         @Override
         public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
             final String fieldName = field.datasetFieldName(dataset);
-            final boolean missingField =
-                    !validationHelper.containsField(dataset, fieldName) ||
-                    (strictValidate && !validationHelper.containsStringField(dataset, fieldName));
-            if (missingField) {
+            if (!validationHelper.containsStringField(dataset, fieldName)) {
                 errorCollector.error(ErrorMessages.missingStringField(dataset, fieldName, this));
             }
         }
@@ -1507,6 +1528,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public void validate(final String dataset, final ValidationHelper validationHelper, final ErrorCollector errorCollector) {
+            validationHelper.validateSampleParams(numerator, denominator, errorCollector);
             final String fieldName = field.datasetFieldName(dataset);
             if (isIntField) {
                 if (!validationHelper.containsIntField(dataset, fieldName)) {
@@ -1605,9 +1627,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public void validate(final String dataset, final ValidationHelper validationHelper, final ErrorCollector errorCollector) {
-            if ((numerator < 0) || (numerator > denominator)) {
-                errorCollector.error(ErrorMessages.incorrectSampleParams(numerator, denominator));
-            }
+            validationHelper.validateSampleParams(numerator, denominator, errorCollector);
             metric.validate(dataset, validationHelper, errorCollector);
         }
     }

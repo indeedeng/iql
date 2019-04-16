@@ -78,7 +78,7 @@ public class DocMetricsTest {
     private static final Function<String, String> REPLACE_DIVIDES = s -> s.replace("/", "\\");
 
     public static DocMetric docField(String field) {
-        return new Field(FieldSet.of("synthetic", field));
+        return new Field(FieldSet.of("synthetic", field, true));
     }
 
     @Test
@@ -150,7 +150,7 @@ public class DocMetricsTest {
     public void testIfThenElsePrecedence() {
         Assert.assertEquals(
                 new DocMetric.IfThenElse(
-                        new DocFilter.FieldIs(FieldSet.of("synthetic", "X"), Term.term(0)),
+                        DocFilter.FieldIs.create(FieldSet.of("synthetic", "X", true), Term.term(0)),
                         docField("Y"),
                         new DocMetric.Divide(docField("Z"), new DocMetric.Constant(100))
                 ),
@@ -158,7 +158,7 @@ public class DocMetricsTest {
         );
         Assert.assertEquals(
                 new DocMetric.IfThenElse(
-                        new DocFilter.FieldIs(FieldSet.of("synthetic", "X"), Term.term(0)),
+                        DocFilter.FieldIs.create(FieldSet.of("synthetic", "X", true), Term.term(0)),
                         docField("Y"),
                         new DocMetric.Divide(docField("Z"), new DocMetric.Constant(100))
                 ),
@@ -167,7 +167,7 @@ public class DocMetricsTest {
         Assert.assertEquals(
                 new DocMetric.Divide(
                     new DocMetric.IfThenElse(
-                            new DocFilter.FieldIs(FieldSet.of("synthetic", "X"), Term.term(0)),
+                            DocFilter.FieldIs.create(FieldSet.of("synthetic", "X", true), Term.term(0)),
                             docField("Y"),
                             docField("Z")
                     ),

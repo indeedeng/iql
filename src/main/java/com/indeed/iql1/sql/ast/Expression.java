@@ -20,7 +20,7 @@ import java.util.List;
 
 /**
  * Any expression
- * 
+ *
  * @author Ben Yu
  */
 public interface Expression {

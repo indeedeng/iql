@@ -14,14 +14,17 @@
 
 package com.indeed.iql1.sql.ast;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
 /**
  * A function call.
- * 
+ *
  * @author Ben Yu
  */
+@JsonSerialize
 public final class BracketsExpression extends ValueObject implements Expression {
-  public final String field;
-  public final String content;
+    public final String field;
+    public final String content;
 
     public BracketsExpression(String field, String content) {
         this.field = field;

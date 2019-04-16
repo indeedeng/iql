@@ -23,7 +23,6 @@ import com.indeed.iql2.execution.SessionCallback;
 import com.indeed.iql2.execution.groupkeys.sets.MetricRangeGroupKeySet;
 import com.indeed.util.logging.TracingTreeTimer;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -62,8 +61,7 @@ public class MetricRegroup implements Command {
         final int intermediateBuckets = ((excludeGutters && !withDefaultBucket) ? 0 : 2) + (int) Math.ceil(((double) max - min) / interval);
 
         final int groupsBefore = session.numGroups;
-        final int maxIntermediateGroups = intermediateBuckets * groupsBefore;
-        session.checkGroupLimit(maxIntermediateGroups);
+        final int maxIntermediateGroups = session.checkGroupLimit((long) (intermediateBuckets) * groupsBefore);
 
         final boolean deleteEmptyGroups = (session.iqlVersion == 1) && !withDefault && !fromPredicate;
         final int[] intermediateGroups = new int[1]; // array is because of lambda
@@ -85,7 +83,7 @@ public class MetricRegroup implements Command {
                 timer.pop();
 
                 if (withDefaultBucket) {
-                    timer.push("merge gutters into default/regroupWithProtos", "merge gutters into default/regroupWithProtos(" + intermediateBuckets * groupsBefore + " rules)" );
+                    timer.push("merge gutters into default/regroupWithProtos", "merge gutters into default/regroupWithProtos(" + intermediateBuckets * groupsBefore + " rules)");
                     final int rulesCount = intermediateBuckets * groupsBefore;
                     final int[] fromGroups = new int[rulesCount];
                     final int[] toGroups = new int[rulesCount];

@@ -57,6 +57,8 @@ public class QueryOptions {
 
         public static final String ASYNC = "async";
 
+        public static final String BATCH = "batch";
+
         private Experimental() {
         }
 
@@ -111,7 +113,7 @@ public class QueryOptions {
     }
 
     public enum HostsMappingMethod {
-        MODULO_MAPPING("modulo"), // the default method
+        SHUFFLE_MAPPING("shuffle"), // the default method
         NUMDOC_MAPPING("num_doc");
 
         private final String value;
@@ -126,7 +128,7 @@ public class QueryOptions {
         }
 
         public static HostsMappingMethod getDefaultMethod() {
-            return HostsMappingMethod.MODULO_MAPPING;
+            return HostsMappingMethod.SHUFFLE_MAPPING;
         }
 
         public static HostsMappingMethod fromString(final String text) {

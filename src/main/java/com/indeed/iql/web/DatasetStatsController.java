@@ -40,15 +40,15 @@ public class DatasetStatsController {
 
     private final ImhotepClient imhotepClient;
 
-    private final ImhotepMetadataCache metadataCacheIQL2;
+    private final ImhotepMetadataCache metadataCache;
 
     @Autowired
     public DatasetStatsController(
-            ImhotepClient imhotepClient,
-            ImhotepMetadataCache metadataCacheIQL2
+            final ImhotepClient imhotepClient,
+            final ImhotepMetadataCache metadataCache
     ) {
         this.imhotepClient = imhotepClient;
-        this.metadataCacheIQL2 = metadataCacheIQL2;
+        this.metadataCache = metadataCache;
     }
 
     @RequestMapping(value = "/datasetstats", produces = "application/json")
@@ -62,7 +62,7 @@ public class DatasetStatsController {
     private synchronized void updateDatasetStatsCache() {
         if (cached == null || DateTime.now().isAfter(lastCacheUpdate.plus(CACHE_EXPIRATION))) {
             long computationStartTime = System.currentTimeMillis();
-            cached = DatasetStatsCollector.computeStats(imhotepClient, metadataCacheIQL2);
+            cached = DatasetStatsCollector.computeStats(imhotepClient, metadataCache);
             lastCacheUpdate = DateTime.now();
             long timeTaken = System.currentTimeMillis() - computationStartTime;
             log.info("Computed Imhotep datasets stats in " + timeTaken + " ms. Cached for " + CACHE_EXPIRATION);
@@ -72,6 +72,6 @@ public class DatasetStatsController {
     @RequestMapping(value = "/typeconflictfields", produces = "application/json")
     @ResponseBody
     public List<DatasetTypeConflictFields> getTypeConflictFields() {
-        return metadataCacheIQL2.get().getTypeConflictFields();
+        return metadataCache.get().getTypeConflictFields();
     }
 }

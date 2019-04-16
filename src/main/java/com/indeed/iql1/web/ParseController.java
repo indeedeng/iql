@@ -11,8 +11,9 @@
  * express or implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
- package com.indeed.iql1.web;
+package com.indeed.iql1.web;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
 import com.indeed.iql.language.IQLStatement;
 import com.indeed.iql.language.SelectStatement;
@@ -22,6 +23,8 @@ import com.indeed.iql.web.QueryServlet;
 import com.indeed.iql.web.ServletUtil;
 import com.indeed.iql1.sql.parser.SelectStatementParser;
 import com.indeed.iql2.server.web.servlets.ParseServlet;
+import com.indeed.util.core.time.DefaultWallClock;
+import com.indeed.util.core.time.WallClock;
 import org.joda.time.DateTime;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -41,31 +44,40 @@ import java.io.IOException;
 public class ParseController {
     private final ImhotepMetadataCache metadata;
     private final ParseServlet parseServletV2;
+    private final WallClock wallClock;
 
     @Autowired
-    public ParseController(ImhotepMetadataCache metadataCacheIQL1, ParseServlet parseServletV2) {
-        this.metadata = metadataCacheIQL1;
+    public ParseController(final ImhotepMetadataCache metadataCache, final ParseServlet parseServletV2) {
+        this(metadataCache, parseServletV2, new DefaultWallClock());
+    }
+
+    @VisibleForTesting
+    public ParseController(final ImhotepMetadataCache metadataCache, final ParseServlet parseServletV2, final WallClock wallClock) {
+        this.metadata = metadataCache;
         this.parseServletV2 = parseServletV2;
+        this.wallClock = wallClock;
     }
 
     @RequestMapping("/parse")
     @ResponseBody
-    protected Object handleParse(@RequestParam("q") String query,
-                                          @RequestParam(value = "json", required = false, defaultValue = "") String json,
-                                          final HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    public Object handleParse(
+            @RequestParam("q") final String query,
+            @RequestParam(value = "json", required = false, defaultValue = "") final String json,
+            final HttpServletRequest req, final HttpServletResponse resp
+    ) throws IOException {
 
-        if(ServletUtil.getIQLVersionBasedOnParam(req) == 2) {
+        if (ServletUtil.getIQLVersionBasedOnParam(req) == 2) {
             return parseServletV2.parse(req, resp, query);
         }
 
         resp.setHeader("Access-Control-Allow-Origin", "*");
         try {
             final IQLStatement parsedQuery = StatementParser.parseIQLToStatement(query);
-            if(!(parsedQuery instanceof SelectStatement)) {
+            if (!(parsedQuery instanceof SelectStatement)) {
                 throw new RuntimeException("The query is not recognized as a select statement: " + query);
             }
-            return SelectStatementParser.parseSelectStatement(query, DateTime.now(), metadata);
-        } catch (Throwable e) {
+            return SelectStatementParser.parseSelectStatement(query, new DateTime(wallClock.currentTimeMillis()), metadata);
+        } catch (final Throwable e) {
             QueryServlet.handleError(resp, !Strings.isNullOrEmpty(json), e, false, false);
             return null;
         }

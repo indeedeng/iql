@@ -46,7 +46,6 @@ import com.indeed.iql2.server.web.servlets.query.SelectQueryExecution;
 import com.indeed.util.core.Pair;
 import com.indeed.util.core.time.WallClock;
 import com.indeed.util.logging.TracingTreeTimer;
-import it.unimi.dsi.fastutil.longs.LongArrayList;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.antlr.v4.runtime.Token;
@@ -186,7 +185,8 @@ public class Query extends AbstractPositional {
             final boolean useLegacy,
             final boolean isTopLevelQuery
     ) {
-        final FieldResolver fieldResolver = FieldResolver.build(queryCtx, partialContext.fromContext, partialContext.datasetsMetadata);
+        final FieldResolver fieldResolver = FieldResolver.build(queryCtx, partialContext.fromContext,
+                partialContext.datasetsMetadata, useLegacy);
         final Context context = partialContext.fullContext(fieldResolver.universalScope());
 
         final List<Pair<Dataset, Optional<DocFilter>>> datasetsWithFilters = Dataset.parseDatasets(context);
@@ -481,14 +481,16 @@ public class Query extends AbstractPositional {
         final Set<String> rewrittenFields = new HashSet<>();
         for (int i = 0; i < filters.size(); i++) {
             final DocFilter filter = filters.get(i);
-            if (filter instanceof DocFilter.StringFieldIn) {
-                final DocFilter.StringFieldIn stringFieldIn = (DocFilter.StringFieldIn)filter;
-                Preconditions.checkState(stringFieldIn.field.datasets().equals(expectedDatasets));
-                final String filterField = stringFieldIn.field.datasetFieldName(singleDataset);
+            if (filter instanceof DocFilter.FieldInTermsSet) {
+                final DocFilter.FieldInTermsSet fieldIn = (DocFilter.FieldInTermsSet)filter;
+                if (fieldIn.field.isIntField()) {
+                    continue;
+                }
+                Preconditions.checkState(fieldIn.field.datasets().equals(expectedDatasets));
+                final String filterField = fieldIn.field.datasetFieldName(singleDataset);
                 if (rewrittenFields.contains(filterField)) {
                     continue;
                 }
-                final List<String> stringTerms = new ArrayList<>(stringFieldIn.terms);
                 boolean foundRewriteGroupBy = false;
                 for (int j = 0; j < groupBys.size(); j++) {
                     final GroupByEntry groupByEntry = groupBys.get(j);
@@ -498,7 +500,8 @@ public class Query extends AbstractPositional {
                         Preconditions.checkState(groupByField.field.datasets().equals(expectedDatasets));
                         final String fieldName = groupByField.field.getOnlyField();
                         if (filterField.equals(fieldName) && !groupByField.isTopK()) {
-                            final GroupBy.GroupByFieldIn groupByFieldIn = new GroupBy.GroupByFieldIn(groupByField.field, new LongArrayList(), stringTerms, groupByField.withDefault);
+                            final GroupBy.GroupByFieldIn groupByFieldIn =
+                                    new GroupBy.GroupByFieldIn(groupByField.field, fieldIn.terms, groupByField.withDefault);
                             groupByFieldIn.copyPosition(groupByField);
                             groupBys.set(j, new GroupByEntry(groupByFieldIn, groupByEntry.filter, groupByEntry.alias));
                             foundRewriteGroupBy = true;
@@ -508,8 +511,8 @@ public class Query extends AbstractPositional {
                         Preconditions.checkState(groupByFieldIn.field.datasets().equals(expectedDatasets));
                         final String fieldName = groupByFieldIn.field.getOnlyField();
                         if (filterField.equals(fieldName)
-                                && (groupByFieldIn.stringTerms.size() == stringTerms.size())
-                                && groupByFieldIn.stringTerms.containsAll(stringTerms)) {
+                                && (groupByFieldIn.terms.size() == fieldIn.terms.size())
+                                && groupByFieldIn.terms.containsAll(fieldIn.terms)) {
                             // This filter does not affect visible result so it could be deleted.
                             foundRewriteGroupBy = true;
                         }

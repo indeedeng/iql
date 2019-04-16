@@ -54,13 +54,11 @@ public class ImhotepMetadataCache {
     @Nullable
     private final ImsClientInterface metadataClient;
     private final FieldFrequencyCache fieldFrequencyCache;
-    private final boolean caseInsensitiveNames;
 
-    public ImhotepMetadataCache(@Nullable ImsClientInterface imsClient, ImhotepClient client, String disabledFields, final FieldFrequencyCache fieldFrequencyCache, boolean caseInsensitiveNames) {
+    public ImhotepMetadataCache(@Nullable ImsClientInterface imsClient, ImhotepClient client, String disabledFields, final FieldFrequencyCache fieldFrequencyCache) {
         metadataClient = imsClient;
         imhotepClient = client;
         this.fieldFrequencyCache = fieldFrequencyCache;
-        this.caseInsensitiveNames = caseInsensitiveNames;
         if(!Strings.isNullOrEmpty(disabledFields)) {
             for(String field : disabledFields.split(",")) {
                 try {
@@ -88,7 +86,7 @@ public class ImhotepMetadataCache {
         for(DatasetInfo datasetInfo : datasetToShardList.values()) {
             final String datasetName = datasetInfo.getDataset();
 
-            final DatasetMetadata datasetMetadata = new DatasetMetadata(caseInsensitiveNames, datasetName);
+            final DatasetMetadata datasetMetadata = new DatasetMetadata(datasetName);
             newDatasets.put(datasetName, datasetMetadata);
             List<String> dsIntFields = Lists.newArrayList(datasetInfo.getIntFields());
             List<String> dsStringFields = Lists.newArrayList(datasetInfo.getStringFields());
@@ -127,13 +125,12 @@ public class ImhotepMetadataCache {
 
                         FieldsYaml[] fieldsYamls = datasetYaml.getFields();
                         for (FieldsYaml fieldYaml : fieldsYamls) {
-                            FieldMetadata fieldMetadata = newDataset.getField(fieldYaml.getName());
-                            if (fieldMetadata != null) {
+                            for (final FieldMetadata fieldMetadata : newDataset.getFieldAllTypes(fieldYaml.getName())) {
                                 fieldMetadata.setDescription(fieldYaml.getDescription());
                                 fieldMetadata.setHidden(fieldYaml.getHidden());
                                 fieldMetadata.setCertified(fieldYaml.getCertified());
                                 fieldMetadata.setAliases(fieldYaml.getAliases());
-                                for (String alias : fieldMetadata.getAliases()) {
+                                for (final String alias : fieldMetadata.getAliases()) {
                                     newDataset.getIql1ExpressionAliases().put(alias, fieldMetadata.getName());
                                     // TODO: make aliases not go through computed metrics?
                                     final MetricMetadata aliasAsComputedMetric = new MetricMetadata(alias,
@@ -152,8 +149,7 @@ public class ImhotepMetadataCache {
                             }
                             metrics.put(metricYaml.getName(), metricMetadata);
                             // try to reuse the metric description on the field it describes
-                            final FieldMetadata relatedField = newDataset.getField(metricMetadata.getName());
-                            if (relatedField != null) {
+                            for(final FieldMetadata relatedField : newDataset.getFieldAllTypes(metricMetadata.getName())) {
                                 if (Strings.isNullOrEmpty(metricMetadata.getExpression())) {
                                     // Having a metric defined with the same name is a marker we use
                                     // for fields that should be treated as Integer
@@ -182,8 +178,7 @@ public class ImhotepMetadataCache {
                 if (fieldFrequencies.containsKey(datasetMetadata.name)) {
                     final Map<String, Integer> fieldToFrequency = fieldFrequencies.get(datasetMetadata.name);
                     for (final Map.Entry<String, Integer> entry : fieldToFrequency.entrySet()) {
-                        final FieldMetadata fieldMetadata = datasetMetadata.getField(entry.getKey());
-                        if(fieldMetadata != null) {
+                        for (final FieldMetadata fieldMetadata : datasetMetadata.getFieldAllTypes(entry.getKey())) {
                             fieldMetadata.setFrequency(entry.getValue());
                         }
                     }
@@ -239,8 +234,8 @@ public class ImhotepMetadataCache {
     }
 
     @Nonnull
-    public DatasetMetadata getDataset(String dataset) {
-        return get().getMetadata(dataset).orElse(new DatasetMetadata(false, dataset, "", null, null, false));    // empty)
+    public DatasetMetadata getDataset(final String dataset) {
+        return get().getMetadata(dataset).orElse(new DatasetMetadata(dataset, "", null, null, false));    // empty)
     }
 
     // applicable to all indexes

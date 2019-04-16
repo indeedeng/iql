@@ -14,21 +14,24 @@
 
 package com.indeed.iql1.sql.ast;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
 /**
  * A name
- * 
+ *
  * @author Ben Yu
  */
+@JsonSerialize
 public final class NameExpression extends ValueObject implements Expression {
-  public final String name;
+    public final String name;
 
-  public NameExpression(String name) {
-    this.name = name;
-  }
-  
-  public static NameExpression of(String name) {
-    return new NameExpression(name);
-  }
+    public NameExpression(String name) {
+        this.name = name;
+    }
+
+    public static NameExpression of(String name) {
+        return new NameExpression(name);
+    }
 
     public <Z> Z match(final Matcher<Z> matcher) {
         return matcher.nameExpression(name);

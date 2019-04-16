@@ -54,9 +54,13 @@ public class BasicFilterTest extends BasicTest {
 
     @Test
     public void testHasStrOnIntField() throws Exception {
-        // Test that in Iql1 hasstr accepts any field.
-        // field = "str" and field != "str" lead to 'hasstr(field,"str")' pushStat so test it here as well
-        QueryServletTestUtils.testIQL1(ImmutableList.of(ImmutableList.of("", "129", "0", "151", "0", "0")),
+        // In Iql1 comparisons (field = term) are handles based on field type
+        // and hasInt/hasStr is based on operation name
+        QueryServletTestUtils.testOriginalIQL1(ImmutableList.of(ImmutableList.of("", "129", "0", "151", "0", "0")),
                 "from organic yesterday today select hasint(oji, 10), hasstr(oji, \"10\"), oji != \"sldgkslkkj\", oji = \"lskdgj\", hasstr(\"oji:lskjg\")", true);
+
+        // In Iql2 comparisons and hasInt/hasStr is based on field type and term type
+        QueryServletTestUtils.testIQL2AndLegacy(ImmutableList.of(ImmutableList.of("", "129", "129", "151", "1")),
+                "from organic yesterday today select hasint(oji, 10), hasstr(oji, \"10\"), oji != \"1\", oji = \"5\"", true);
     }
 }
