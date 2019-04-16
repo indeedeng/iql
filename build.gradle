@@ -16,15 +16,20 @@ repositories {
     }
 }
 
+ext {
+    imhotepVersion = '3.1.173'
+    imsVersion = '4.0.14'
+}
+
 dependencies {
-    compile 'com.indeed:imhotep-client:3.1.165'
-    compile 'com.indeed:imhotep-server:3.1.165'
-    compile 'com.indeed:imhotep-shardmaster:3.1.165'
+    compile "com.indeed:imhotep-client:${imhotepVersion}"
+    compile "com.indeed:imhotep-server:${imhotepVersion}"
+    compile "com.indeed:imhotep-shardmaster:${imhotepVersion}"
     compile 'com.indeed:util-core:1.0.24'
     compile 'com.indeed:util-serialization:1.0.24'
     compile 'com.indeed:util-io:1.0.24'
-    compile 'com.indeed:ims-rest-server:5.0.0'
-    compile 'com.indeed:ims-rest-client:5.0.0'
+    compile "com.indeed:ims-rest-server:${imsVersion}"
+    compile "com.indeed:ims-rest-client:${imsVersion}"
     compile 'log4j:log4j:1.2.17'
     compile 'com.google.guava:guava:16.0.1'
     compile 'com.google.code.findbugs:jsr305:1.3.9'
