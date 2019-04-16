@@ -36,7 +36,7 @@ public class TopK {
     public final AggregateMetric metric;
     public final SortOrder sortOrder;
 
-    public TopK(Optional<Long> limit, Optional<AggregateMetric> metric, SortOrder sortOrder) {
+    public TopK(final Optional<Long> limit, final Optional<AggregateMetric> metric, final SortOrder sortOrder) {
         Preconditions.checkArgument(limit.isPresent() || metric.isPresent(), "TopK should either have a limit or a metric");
         final AggregateMetric newMetric = metric.orElse(new AggregateMetric.DocStats(new DocMetric.Count()));
 
@@ -45,7 +45,7 @@ public class TopK {
         this.sortOrder = sortOrder;
     }
 
-    public com.indeed.iql2.execution.commands.misc.TopK toExecution(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet) {
+    public com.indeed.iql2.execution.commands.misc.TopK toExecution(final Function<String, PerGroupConstant> namedMetricLookup, final GroupKeySet groupKeySet) {
         return new com.indeed.iql2.execution.commands.misc.TopK(
                 limit.map(x -> (int)(long)x),
                 metric.toExecutionMetric(namedMetricLookup, groupKeySet),
@@ -57,7 +57,7 @@ public class TopK {
             return new TopK(limit, Optional.of(metric.transform(f, g, h, i, groupBy)), sortOrder);
     }
 
-    public TopK traverse1(Function<AggregateMetric, AggregateMetric> f) {
+    public TopK traverse1(final Function<AggregateMetric, AggregateMetric> f) {
             return new TopK(limit, Optional.of(f.apply(metric)), sortOrder);
     }
 }

@@ -68,7 +68,8 @@ public class ComputeFieldExtremeValue implements Command {
         return new com.indeed.iql2.execution.commands.ComputeFieldExtremeValue(
             field,
             metric.toExecutionMetric(namedMetricLookup, groupKeySet),
-            filter.map(f -> f.toExecutionFilter(namedMetricLookup, groupKeySet)), fieldExtremeType
+            filter.map(f -> f.toExecutionFilter(namedMetricLookup, groupKeySet)),
+            fieldExtremeType
         );
     }
 }
