@@ -4,6 +4,8 @@ plugins {
     id 'antlr'
 }
 
+ext['indeed.publish.name'] = 'iql'
+
 repositories {
     mavenLocal()
     
