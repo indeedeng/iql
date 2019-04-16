@@ -28,8 +28,7 @@ public class TestSplitterServlet {
                 null,
                 AllData.DATASET.getNormalClient(),
                 "",
-                new FieldFrequencyCache(null),
-                true
+                new FieldFrequencyCache(null)
         );
         cache.updateDatasets();
         SPLITTER_SERVLET = new SplitterServlet(new SplitServlet(cache));

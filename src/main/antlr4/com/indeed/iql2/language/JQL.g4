@@ -351,8 +351,8 @@ legacyDocMetric
     | SIGNUM '(' legacyDocMetric ')' # LegacyDocSignum
     | LOG '(' legacyDocMetric (',' scaleFactor = integer)? ')' # LegacyDocLog
     | EXP '(' legacyDocMetric (',' scaleFactor = integer)? ')' # LegacyDocExp
-    | MIN '(' arg1=legacyDocMetric ',' arg2=legacyDocMetric ')' # LegacyDocMin
-    | MAX '(' arg1=legacyDocMetric ',' arg2=legacyDocMetric ')' # LegacyDocMax
+    | MIN '(' metrics+=legacyDocMetric (',' metrics += legacyDocMetric)* ')' # LegacyDocMin
+    | MAX '(' metrics+=legacyDocMetric (',' metrics += legacyDocMetric)* ')' # LegacyDocMax
     | '-' legacyDocMetric # LegacyDocNegate
     | legacyDocMetric (multiply='*'|divide='\\'|modulus='%') legacyDocMetric # LegacyDocMultOrDivideOrModulus
     | legacyDocMetric (plus='+'|minus='-') legacyDocMetric # LegacyDocPlusOrMinus
@@ -418,7 +418,7 @@ legacyDocFilter
     | field=identifier not=NOT? IN '(' (terms += legacyTermVal)? (',' terms += legacyTermVal)* ')' # LegacyDocFieldIn
     | legacyDocMetric op=('='|'!='|'<'|'<='|'>'|'>=') legacyDocMetric # LegacyDocMetricInequality
     | (LUCENE | QUERY) '(' STRING_LITERAL ')' # LegacyLucene
-    | BETWEEN '(' field=identifier ',' lowerBound=integer ',' upperBound=integer ')' # LegacyDocBetween
+    | BETWEEN '(' metric=legacyDocMetric ',' lowerBound=integer ',' upperBound=integer ')' # LegacyDocBetween
     | SAMPLE '(' field=identifier ',' numerator=NAT (',' denominator=NAT (',' seed=(STRING_LITERAL | NAT))?)? ')' # LegacyDocSample
     | ('!' | '-') legacyDocFilter # LegacyDocNot
     | NOT '(' legacyDocFilter ')' # LegacyDocNot
@@ -440,7 +440,7 @@ jqlDocFilter
     | singlyScopedField not=NOT? IN '(' queryNoSelect ')' # DocFieldInQuery
     | jqlDocMetric op=('='|'!='|'<'|'<='|'>'|'>=') jqlDocMetric # DocMetricInequality
     | (LUCENE | QUERY) '(' STRING_LITERAL ')' # Lucene
-    | BETWEEN '(' singlyScopedField ',' lowerBound=integer ',' upperBound=integer ')' # DocBetween
+    | BETWEEN '(' metric=jqlDocMetric ',' lowerBound=integer ',' upperBound=integer ')' # DocBetween
     | SAMPLE '(' singlyScopedField ',' numerator=NAT (',' denominator=NAT (',' seed=(STRING_LITERAL | NAT))?)? ')' # DocSample
     | SAMPLE '(' jqlDocMetric ',' numerator=NAT (',' denominator=NAT (',' seed=(STRING_LITERAL | NAT))?)? ')' # DocSampleMetric
     | '!' jqlDocFilter # DocNot

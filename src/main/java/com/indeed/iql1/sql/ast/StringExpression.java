@@ -14,17 +14,26 @@
 
 package com.indeed.iql1.sql.ast;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
 /**
  * A string literal.
- * 
+ *
  * @author Ben Yu
  */
+@JsonSerialize
 public final class StringExpression extends ValueObject implements Expression {
-  private final String string;
+    private final String string;
 
-  public StringExpression(String string) {
-    this.string = string;
-  }
+    public StringExpression(String string) {
+        this.string = string;
+    }
+
+    @JsonProperty
+    public String getString() {
+        return string;
+    }
 
     public <Z> Z match(final Matcher<Z> matcher) {
         return matcher.stringExpression(string);

@@ -85,7 +85,9 @@ public class WebApp  extends AbstractAnnotationConfigDispatcherServletInitialize
             if(tempFile.isFile() && (
                     fileName.startsWith(IQLQuery.TEMP_FILE_PREFIX) || // IQL temp file
                     fileName.startsWith("query") && fileName.endsWith(".cache.tmp") || // IQL2 temp file
-                    fileName.startsWith("ftgs") && fileName.endsWith(".tmp") // Imhotep FTGS temp file
+                    fileName.startsWith("ftgs") && fileName.endsWith(".tmp") ||  // Imhotep FTGS temp file
+                    fileName.startsWith("batchGroupStatsIterator") && fileName.endsWith(".tmp") || // Batch Request temp file
+                    fileName.startsWith("groupStatsIterator") && fileName.endsWith(".tmp") // GetGroupStats temp file
             )) {
                 if(!tempFile.delete()) {
                     log.warn("Failed to delete temp file: " + tempFile);

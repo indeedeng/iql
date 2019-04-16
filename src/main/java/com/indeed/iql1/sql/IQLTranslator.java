@@ -14,15 +14,12 @@
  package com.indeed.iql1.sql;
 
 import com.google.common.base.Strings;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.indeed.flamdex.lucene.LuceneQueryTranslator;
 import com.indeed.imhotep.StrictCloser;
-import com.indeed.imhotep.automaton.RegExp;
 import com.indeed.imhotep.client.ImhotepClient;
-import com.indeed.imhotep.exceptions.RegexTooComplexException;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql.metadata.FieldMetadata;
@@ -59,6 +56,7 @@ import com.indeed.iql1.sql.parser.ExpressionParser;
 import com.indeed.iql1.sql.parser.PeriodParser;
 import com.indeed.iql2.language.TimePeriods;
 import com.indeed.iql2.language.util.ErrorMessages;
+import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.util.serialization.LongStringifier;
 import com.indeed.util.serialization.Stringifier;
 import org.apache.commons.lang.StringUtils;
@@ -366,7 +364,7 @@ public final class IQLTranslator {
      */
     @Nonnull
     private static Field getField(String name, DatasetMetadata datasetMetadata) {
-        final FieldMetadata fieldMetadata = datasetMetadata.getField(name);
+        final FieldMetadata fieldMetadata = datasetMetadata.getField(name, true);
         if(fieldMetadata == null) {
             throw new IqlKnownException.UnknownFieldException("Unknown field: " + name);
         }
@@ -628,7 +626,7 @@ public final class IQLTranslator {
                             right instanceof StringExpression)) {
                         // probably a has[str/int] operation
                         final String fieldName = ((NameExpression) left).name;
-                        final FieldMetadata field = datasetMetadata.getField(fieldName);
+                        final FieldMetadata field = datasetMetadata.getField(fieldName, true);
                         if(field == null) {
                             throw new IqlKnownException.UnknownFieldException("Field not found: " + fieldName);
                         }
@@ -856,17 +854,9 @@ public final class IQLTranslator {
                         throw new IqlKnownException.UnknownFieldException("Unknown field: " + fieldName);
                     }
                     fieldNames.add(fieldName);
-                    String regexp = getStr(right);
+                    final String regexp = getStr(right);
                     // validate the provided regex
-                    try {
-                        new RegExp(regexp).toAutomaton();
-                    } catch (Exception e) {
-                        Throwables.propagateIfInstanceOf(e, RegexTooComplexException.class);
-
-                        throw new IqlKnownException.ParseErrorException("The provided regex filter '" + regexp + "' failed to parse. " +
-                                "\nError was: " + e.getMessage() +
-                                "\nThe supported regex syntax can be seen here: http://www.brics.dk/automaton/doc/index.html?dk/brics/automaton/RegExp.html", e);
-                    }
+                    ValidationUtil.compileRegex(regexp);
                     return Collections.singletonList(new RegexCondition(Field.stringField(fieldName), regexp,
                         usingNegation));
                 case AND:

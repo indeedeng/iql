@@ -190,17 +190,12 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
         }
     }
 
-    // TODO: merge!
-    // IQL1 metadata cache
+    // IQL metadata cache
     @Bean
-    public ImhotepMetadataCache metadataCacheIQL1() {
-        return new ImhotepMetadataCache(imsClientIQL1(), imhotepClient(), env.getProperty("disabled.fields"), fieldFrequencyCache(), false);
+    public ImhotepMetadataCache metadataCache() {
+        return new ImhotepMetadataCache(imsClient(), imhotepClient(), env.getProperty("disabled.fields"), fieldFrequencyCache());
     }
-    // IQL2 metadata cache
-    @Bean
-    public ImhotepMetadataCache metadataCacheIQL2() {
-        return new ImhotepMetadataCache(imsClientIQL2(), imhotepClient(), env.getProperty("disabled.fields"), fieldFrequencyCache(), true);
-    }
+
     @Bean
     public TopTermsCache topTermsCache() {
         final boolean topTermsCacheEnabled = env.getProperty("topterms.cache.enabled", Boolean.class, true);
@@ -216,14 +211,8 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
         return IQLEnv.fromSpring(env);
     }
 
-    // We need 2 instances to be able to use them concurrently
-    @Bean(name = "imsClientIQL1")
-    public ImsClientInterface imsClientIQL1() {
-        return createIMSClient();
-    }
-
-    @Bean(name = "imsClientIQL2")
-    public ImsClientInterface imsClientIQL2() {
+    @Bean
+    public ImsClientInterface imsClient() {
         return createIMSClient();
     }
 

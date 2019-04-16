@@ -6,8 +6,16 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Predicate;
 
-import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.*;
+import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.LanguageVersion;
+import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.Options;
+import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.ResultFormat;
+import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.expectException;
+import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.expectExceptionAll;
+import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.runQuery;
+import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testAll;
+import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testIQL2;
 
 /**
  * Golden dataset testing to ensure that we don't CHANGE the results of
@@ -231,6 +239,20 @@ public class SampleAndRandomTest extends BasicTest {
     }
 
     @Test
+    public void testSampleParamCheck() throws Exception {
+        // check that query fails during verification
+        final Predicate<String> wrongSampleParams =
+                s -> s.contains("Wrong params for SAMPLE: expected 0 <= numerator <= denominator");
+
+        // doc filter
+        expectExceptionAll("from organic yesterday today where sample(oji, 10, 1)", wrongSampleParams);
+        // doc metric
+        expectException("from organic yesterday today where sample(oji + ojc, 10, 1)", LanguageVersion.IQL2, wrongSampleParams);
+        // group by filter
+        expectException("from organic yesterday today group by sample(oji, 10, 1)", LanguageVersion.IQL2, wrongSampleParams);
+    }
+
+    @Test
     public void testRandomCountryWithLargeBucketNumber() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("15", "ae", "1"));
@@ -299,5 +321,17 @@ public class SampleAndRandomTest extends BasicTest {
         expected.add(ImmutableList.of("156", "za", "1"));
 
         testIQL2(expected, "from countries yesterday today group by random(country, 2000, \"seed\"), country", Options.create(true));
+    }
+
+    @Test
+    public void testRandomLimitRejection() throws Exception {
+        runQuery("from countries yesterday today group by random(country, 100000)", LanguageVersion.IQL2, ResultFormat.EVENT_STREAM, Options.create(false), Collections.emptySet());
+        expectException("from countries yesterday today group by random(country, 100001)", LanguageVersion.IQL2, x -> x.contains("Max bucket count for RANDOM() regroup is 100K"));
+    }
+
+    @Test
+    public void testRandomMetricLimitRejection() throws Exception {
+        runQuery("from countries yesterday today group by random(random+5, 100000)", LanguageVersion.IQL2, ResultFormat.EVENT_STREAM, Options.create(false), Collections.emptySet());
+        expectException("from countries yesterday today group by random(random+5, 100001)", LanguageVersion.IQL2, x -> x.contains("Max bucket count for RANDOM() regroup is 100K"));
     }
 }

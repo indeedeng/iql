@@ -14,19 +14,22 @@
 
 package com.indeed.iql1.sql.ast;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
 /**
  * Models an expression with unary operator.
- * 
+ *
  * @author Ben Yu
  */
+@JsonSerialize
 public final class UnaryExpression extends ValueObject implements Expression {
-  public final Expression operand;
-  public final Op operator;
-  
-  public UnaryExpression(Op operator, Expression operand) {
-    this.operand = operand;
-    this.operator = operator;
-  }
+    public final Expression operand;
+    public final Op operator;
+
+    public UnaryExpression(Op operator, Expression operand) {
+        this.operand = operand;
+        this.operator = operator;
+    }
 
     @Override
     public <Z> Z match(Matcher<Z> matcher) {

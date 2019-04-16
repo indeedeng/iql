@@ -25,16 +25,25 @@ import lombok.ToString;
 @ToString
 public class SampleAction implements Action {
     public final FieldSet field;
-    public final double probability;
+    public final long numerator;
+    public final long denominator;
     public final String seed;
 
     public final int targetGroup;
     public final int positiveGroup;
     public final int negativeGroup;
 
-    public SampleAction(final FieldSet field, final double probability, final String seed, final int targetGroup, final int positiveGroup, final int negativeGroup) {
+    public SampleAction(
+            final FieldSet field,
+            final long numerator,
+            final long denominator,
+            final String seed,
+            final int targetGroup,
+            final int positiveGroup,
+            final int negativeGroup) {
         this.field = field;
-        this.probability = probability;
+        this.numerator = numerator;
+        this.denominator = denominator;
         this.seed = seed;
         this.targetGroup = targetGroup;
         this.positiveGroup = positiveGroup;
@@ -42,7 +51,8 @@ public class SampleAction implements Action {
     }
 
     @Override
-    public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {
+    public void validate(final ValidationHelper validationHelper, final ErrorCollector errorCollector) {
+        validationHelper.validateSampleParams(numerator, denominator, errorCollector);
         for (final String dataset : field.datasets()) {
             final String fieldName = field.datasetFieldName(dataset);
             if (!validationHelper.containsField(dataset, fieldName)) {
@@ -55,7 +65,8 @@ public class SampleAction implements Action {
     public com.indeed.iql2.execution.actions.Action toExecutionAction() {
         return new com.indeed.iql2.execution.actions.SampleAction(
                 field,
-                probability,
+                numerator,
+                denominator,
                 seed,
                 targetGroup,
                 positiveGroup,

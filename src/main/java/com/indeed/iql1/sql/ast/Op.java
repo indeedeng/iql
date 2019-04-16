@@ -14,12 +14,15 @@
 
 package com.indeed.iql1.sql.ast;
 
+import com.cloudera.org.codehaus.jackson.map.annotate.JsonSerialize;
+
 /**
  * Operators
- * 
+ *
  * @author Ben Yu
  */
+@JsonSerialize
 public enum Op {
-  PLUS, MINUS, MUL, DIV, AGG_DIV, MOD, IN, NOT_IN, EQ, NOT_EQ, AND, NEG, LESS, LESS_EQ, GREATER, GREATER_EQ, REGEX_EQ,
+    PLUS, MINUS, MUL, DIV, AGG_DIV, MOD, IN, NOT_IN, EQ, NOT_EQ, AND, NEG, LESS, LESS_EQ, GREATER, GREATER_EQ, REGEX_EQ,
     REGEX_NOT_EQ, @Deprecated EXPLODE
 }

@@ -66,7 +66,7 @@ public class Dataset {
 
     public DatasetsMetadata getDatasetsMetadata() {
         if (datasetsMetada == null) {
-            final ImhotepMetadataCache metadataCache = new ImhotepMetadataCache(null, getNormalClient(), "", new FieldFrequencyCache(null), true);
+            final ImhotepMetadataCache metadataCache = new ImhotepMetadataCache(null, getNormalClient(), "", new FieldFrequencyCache(null));
             metadataCache.updateDatasets();
             datasetsMetada = metadataCache.get();
         }
@@ -75,7 +75,7 @@ public class Dataset {
 
     public DatasetsMetadata getDimensionsDatasetsMetadata() {
         if (dimensionsDatasetsMetadata == null) {
-            final ImhotepMetadataCache metadataCache = new ImhotepMetadataCache(getDimensionImsClient(), getDimensionsClient(), "", new FieldFrequencyCache(null), true);
+            final ImhotepMetadataCache metadataCache = new ImhotepMetadataCache(getDimensionImsClient(), getDimensionsClient(), "", new FieldFrequencyCache(null));
             metadataCache.updateDatasets();
             dimensionsDatasetsMetadata = metadataCache.get();
         }
