@@ -194,6 +194,46 @@ public class AggregateFilterRegexTest {
     }
 
     @Test
+    public void testAggregationContext() {
+        final ExceptionMatcher<IllegalArgumentException> noAggregation = ExceptionMatcher
+                .withType(IllegalArgumentException.class)
+                .withMessage(Matchers.containsString("AggregateRegex is applied without aggregate context"));
+        final ExceptionMatcher<IllegalArgumentException> wrongAggregation = ExceptionMatcher
+                .withType(IllegalArgumentException.class)
+                .withMessage(Matchers.containsString("AggregateFilter.Regex should be applied to a field regroup"));
+        QueryServletTestUtils.expectException(
+                "from organic yesterday today select M(tk =~ '.*')",
+                QueryServletTestUtils.LanguageVersion.IQL2,
+                QueryServletTestUtils.Options.create(),
+                noAggregation
+        );
+        QueryServletTestUtils.expectException(
+                "from organic yesterday today group by bucket(tk, 0, 10, 1) having tk =~ '.*'",
+                QueryServletTestUtils.LanguageVersion.IQL2,
+                QueryServletTestUtils.Options.create(),
+                wrongAggregation
+        );
+        QueryServletTestUtils.expectException(
+                "from organic yesterday today group by bucket(tk, 0, 10, 1) select M(tk =~ '.*')",
+                QueryServletTestUtils.LanguageVersion.IQL2,
+                QueryServletTestUtils.Options.create(),
+                wrongAggregation
+        );
+        QueryServletTestUtils.expectException(
+                "from organic yesterday today group by tk select window(3, M(tk =~ ',*'))",
+                QueryServletTestUtils.LanguageVersion.IQL2,
+                QueryServletTestUtils.Options.create(),
+                wrongAggregation
+        );
+        QueryServletTestUtils.expectException(
+                "from organic yesterday today group by tk select running(M(tk =~ ',*'))",
+                QueryServletTestUtils.LanguageVersion.IQL2,
+                QueryServletTestUtils.Options.create(),
+                wrongAggregation
+        );
+    }
+
+    @Test
     public void testWrongUsages() {
         final ExceptionMatcher<IllegalArgumentException> exceptionMatcher = ExceptionMatcher
                 .withType(IllegalArgumentException.class)
