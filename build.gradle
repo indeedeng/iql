@@ -24,13 +24,21 @@ ext {
 }
 
 dependencies {
-    compile "com.indeed:imhotep-client:${imhotepVersion}"
-    compile "com.indeed:imhotep-server:${imhotepVersion}"
-    compile "com.indeed:imhotep-shardmaster:${imhotepVersion}"
+    compile ("com.indeed:imhotep-client:${imhotepVersion}") {
+        exclude group:'org.apache.hadoop', module:'hadoop-common'
+    }
+    compile ("com.indeed:imhotep-server:${imhotepVersion}") {
+        exclude group:'org.apache.hadoop', module:'hadoop-common'
+    }
+    compile ("com.indeed:imhotep-shardmaster:${imhotepVersion}") {
+        exclude group:'org.apache.hadoop', module:'hadoop-common'
+    }
     compile 'com.indeed:util-core:1.0.24'
     compile 'com.indeed:util-serialization:1.0.24'
     compile 'com.indeed:util-io:1.0.24'
-    compile "com.indeed:ims-rest-server:${imsVersion}"
+    compile ("com.indeed:ims-rest-server:${imsVersion}") {
+        exclude group:'com.indeed', module:'imhotep-client'
+    }
     compile "com.indeed:ims-rest-client:${imsVersion}"
     compile 'log4j:log4j:1.2.17'
     compile 'com.google.guava:guava:16.0.1'
