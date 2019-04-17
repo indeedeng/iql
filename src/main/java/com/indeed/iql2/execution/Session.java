@@ -190,12 +190,13 @@ public class Session {
         final boolean requestRust = optionsSet.contains(QueryOptions.USE_RUST_DAEMON);
         final boolean useAsync = optionsSet.contains(QueryOptions.Experimental.ASYNC);
         final boolean useBatchMode = optionsSet.contains(QueryOptions.Experimental.BATCH);
+        final boolean p2pCache = optionsList.contains(QueryOptions.Experimental.P2P_CACHE);
 
         progressCallback.startSession(Optional.of(commands.size()));
         progressCallback.preSessionOpen(datasets);
 
         treeTimer.push("createSubSessions");
-        final long firstStartTimeMillis = createSubSessions(client, requestRust, useAsync, useBatchMode, datasets,
+        final long firstStartTimeMillis = createSubSessions(client, requestRust, useAsync, useBatchMode, p2pCache, datasets,
                 strictCloser, sessions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, username, progressCallback);
         progressCallback.sessionsOpened(sessions);
         treeTimer.pop();
@@ -283,6 +284,7 @@ public class Session {
             final boolean requestRust,
             final boolean useAsync,
             final boolean useBatchMode,
+            final boolean p2pCache,
             final List<Queries.QueryDataset> sessionRequest,
             final StrictCloser strictCloser,
             final Map<String, ImhotepSessionInfo> sessions,
@@ -322,7 +324,8 @@ public class Session {
                 .shardsOverride(chosenShards)
                 .localTempFileSizeLimit(imhotepLocalTempFileSizeLimit)
                 .daemonTempFileSizeLimit(imhotepDaemonTempFileSizeLimit)
-                .allowSessionForwarding(requestRust);
+                .allowSessionForwarding(requestRust)
+                .allowPeerToPeerCache(p2pCache);
             treeTimer.pop();
             // TODO: message should be "build session builder (xxx shards on yyy daemons)"
             // but we can't get information about daemons count now

@@ -25,7 +25,7 @@ public class TopK {
     public final AggregateMetric metric;
     public final SortOrder sortOrder;
 
-    public TopK(Optional<Integer> limit, AggregateMetric metric, SortOrder sortOrder) {
+    public TopK(final Optional<Integer> limit, final AggregateMetric metric, final SortOrder sortOrder) {
         this.limit = limit;
         this.metric = metric;
         this.sortOrder = sortOrder;
