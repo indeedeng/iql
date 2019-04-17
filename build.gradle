@@ -104,7 +104,7 @@ dependencies {
     testCompile 'org.springframework:spring-test:4.3.8.RELEASE'
     testCompile 'io.opentracing:opentracing-mock:0.30.0'
     compileOnly 'org.apache.tomcat:tomcat-servlet-api:7.0.8'
-    testRuntime 'org.apache.tomcat:tomcat-servlet-api:7.0.8'
+    testCompile 'org.apache.tomcat:tomcat-servlet-api:7.0.8'
     compileOnly 'org.projectlombok:lombok:1.18.4'
     annotationProcessor 'org.projectlombok:lombok:1.18.4'
 }
