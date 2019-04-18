@@ -453,8 +453,8 @@ public class SelectQueryExecution {
 
         // Indicates if the cache has been checked yet or not
         private boolean cacheChecked = false;
-        // The following variables are state computed by the cache check potentially for later use
-        private boolean cacheEnabled;
+
+        private boolean cacheEnabled; // state computed by the cache check potentially for later use
 
         private ParsedQueryExecution(
                 final boolean isTopLevelQuery,
