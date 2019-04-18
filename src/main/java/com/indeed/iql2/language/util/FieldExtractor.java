@@ -488,6 +488,11 @@ public class FieldExtractor {
 			public Set<DatasetField> visit(final DocMetric.RandomMetric random) {
 				return getDatasetFields(random.metric);
 			}
+
+			@Override
+			public Set<DatasetField> visit(final DocMetric.UidToUnixtime uidToUnixtime) throws RuntimeException {
+				return uidToUnixtime.field.datasetFields();
+			}
 		});
 	}
 

@@ -1,6 +1,8 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -144,6 +146,14 @@ public class DocMetricsTest extends BasicTest {
                 ImmutableList.of(ImmutableList.of("", "30")),
                 "from stringAsInt1 yesterday today where leadingZeroes in (" +
                         "from stringAsInt1 yesterday today group by leadingZeroes in (0001, 0003, 0005) )"
+        );
+    }
+
+    @Test
+    public void testUidToTimestamp() throws Exception {
+        QueryServletTestUtils.testIQL2AndLegacy(
+                ImmutableList.of(ImmutableList.of("1d8lf84s022kk800", String.valueOf(new DateTime(2019, 4, 17, 11, 0, DateTimeZone.UTC).getMillis() / 1000))),
+                "from uidTimestamp yesterday today group by uid select UID_TO_UNIXTIME(uid)/count()"
         );
     }
 }
