@@ -375,7 +375,7 @@ public class SelectQueryExecution {
         }
 
         final int sessions = query.datasets.size();
-        if (sessions > limits.concurrentImhotepSessionsLimit) {
+        if (!limits.satisfiesConcurrentImhotepSessionsLimit(sessions)) {
             throw new UserSessionCountLimitExceededException("User is creating more concurrent imhotep sessions than the limit: " + limits.concurrentImhotepSessionsLimit);
         }
 
@@ -455,7 +455,6 @@ public class SelectQueryExecution {
         private boolean cacheChecked = false;
         // The following variables are state computed by the cache check potentially for later use
         private boolean cacheEnabled;
-        private InputStream cacheInputStream;
 
         private ParsedQueryExecution(
                 final boolean isTopLevelQuery,
@@ -495,6 +494,7 @@ public class SelectQueryExecution {
             final boolean skipCache = query.options.contains(QueryOptions.NO_CACHE);
             cacheEnabled = queryCache.isEnabled() && !skipCache;
 
+            final InputStream cacheInputStream;
             if (cacheEnabled) {
                 timer.push("cache check");
                 cacheInputStream = strictCloser.registerOrClose(queryCache.getInputStream(cacheKey.cacheFileName));
