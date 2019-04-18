@@ -19,6 +19,7 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
+import com.indeed.common.datastruct.ImmutableStack;
 import com.indeed.imhotep.Shard;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetsMetadata;
@@ -39,6 +40,7 @@ import com.indeed.iql2.language.Positioned;
 import com.indeed.iql2.language.cachekeys.CacheKey;
 import com.indeed.iql2.language.commands.Command;
 import com.indeed.iql2.language.query.fieldresolution.FieldResolver;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.query.fieldresolution.ScopedFieldResolver;
 import com.indeed.iql2.language.query.shardresolution.RemappingShardResolver;
 import com.indeed.iql2.language.query.shardresolution.ShardResolver;
@@ -48,6 +50,7 @@ import com.indeed.util.core.time.WallClock;
 import com.indeed.util.logging.TracingTreeTimer;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
+import lombok.Value;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 
@@ -95,6 +98,44 @@ public class Query extends AbstractPositional {
         this.useLegacy = useLegacy;
     }
 
+    public interface AggregateContext {
+        interface Matcher {
+            void matchField(final FieldSet field);
+
+            void matchMetric();
+
+            void matchSession();
+        }
+
+        @Value
+        class Field implements AggregateContext {
+            private final FieldSet field;
+
+            @Override
+            public void accept(final Matcher matcher) {
+                matcher.matchField(field);
+            }
+        }
+
+        @Value
+        class Metric implements AggregateContext {
+            @Override
+            public void accept(final Matcher matcher) {
+                matcher.matchMetric();
+            }
+        }
+
+        @Value
+        class Session implements AggregateContext {
+            @Override
+            public void accept(final Matcher matcher) {
+                matcher.matchSession();
+            }
+        }
+
+        void accept(final Matcher matcher);
+    }
+
     // Helper class for data that necessary while parsing query.
     public static class Context {
         public final List<String> options;
@@ -104,6 +145,7 @@ public class Query extends AbstractPositional {
         public final WallClock clock;
         public final ScopedFieldResolver fieldResolver;
         public final ShardResolver shardResolver;
+        public final ImmutableStack<AggregateContext> aggregateContexts;
         public final TracingTreeTimer timer;
 
         public Context(
@@ -114,7 +156,9 @@ public class Query extends AbstractPositional {
                 final WallClock clock,
                 final TracingTreeTimer timer,
                 final ScopedFieldResolver fieldResolver,
-                final ShardResolver shardResolver) {
+                final ShardResolver shardResolver,
+                final ImmutableStack<AggregateContext> aggregateContexts
+        ) {
             this.options = options;
             this.datasetsMetadata = datasetsMetadata;
             this.fromContext = fromContext;
@@ -123,18 +167,46 @@ public class Query extends AbstractPositional {
             this.timer = timer;
             this.fieldResolver = fieldResolver;
             this.shardResolver = shardResolver;
+            this.aggregateContexts = aggregateContexts;
         }
 
         public Context copyWithAnotherFromContext(final JQLParser.FromContentsContext newContext) {
-            return new Context(options, datasetsMetadata, newContext, warn, clock, timer, fieldResolver, shardResolver);
+            return new Context(options, datasetsMetadata, newContext, warn, clock, timer, fieldResolver, shardResolver, aggregateContexts);
         }
 
         public Context withFieldResolver(final ScopedFieldResolver fieldResolver) {
-            return new Context(options, datasetsMetadata, fromContext, warn, clock, timer, fieldResolver, shardResolver);
+            return new Context(options, datasetsMetadata, fromContext, warn, clock, timer, fieldResolver, shardResolver, aggregateContexts);
+        }
+
+        public Context withoutAggregate() {
+            return new Context(options, datasetsMetadata, fromContext, warn, clock, timer, fieldResolver, shardResolver, ImmutableStack.empty());
+        }
+
+        private Context withAggregate(final AggregateContext aggregateContext) {
+            return new Context(options, datasetsMetadata, fromContext, warn, clock, timer, fieldResolver, shardResolver, aggregateContexts.pushed(aggregateContext));
+        }
+
+        public Context withAggregatePopped() {
+            return new Context(options, datasetsMetadata, fromContext, warn, clock, timer, fieldResolver, shardResolver, aggregateContexts.popped());
+        }
+
+        public Context withFieldAggregate(final FieldSet fieldSet) {
+            return withAggregate(new AggregateContext.Field(fieldSet));
+        }
+
+        /**
+         * Including bucket, random, quantiles, window, running, etc.
+         */
+        public Context withMetricAggregate() {
+            return withAggregate(new AggregateContext.Metric());
+        }
+
+        public Context withSessionAggregate() {
+            return withAggregate(new AggregateContext.Session());
         }
 
         public PartialContext partialContext() {
-            return new PartialContext(options, datasetsMetadata, fromContext, warn, clock, timer, shardResolver);
+            return new PartialContext(options, datasetsMetadata, fromContext, warn, clock, timer, shardResolver, aggregateContexts);
         }
 
         // Represents Context when we don't yet have a FieldResolver.
@@ -147,8 +219,9 @@ public class Query extends AbstractPositional {
             public final WallClock clock;
             public final TracingTreeTimer timer;
             public final ShardResolver shardResolver;
+            public final ImmutableStack<AggregateContext> aggregateContexts;
 
-            public PartialContext(final List<String> options, final DatasetsMetadata datasetsMetadata, final JQLParser.FromContentsContext fromContext, final Consumer<String> warn, final WallClock clock, final TracingTreeTimer timer, final ShardResolver shardResolver) {
+            public PartialContext(final List<String> options, final DatasetsMetadata datasetsMetadata, final JQLParser.FromContentsContext fromContext, final Consumer<String> warn, final WallClock clock, final TracingTreeTimer timer, final ShardResolver shardResolver, final ImmutableStack<AggregateContext> aggregateContexts) {
                 this.options = options;
                 this.datasetsMetadata = datasetsMetadata;
                 this.fromContext = fromContext;
@@ -156,10 +229,11 @@ public class Query extends AbstractPositional {
                 this.clock = clock;
                 this.timer = timer;
                 this.shardResolver = shardResolver;
+                this.aggregateContexts = aggregateContexts;
             }
 
             public Context fullContext(final ScopedFieldResolver fieldResolver) {
-                return new Context(options, datasetsMetadata, fromContext, warn, clock, timer, fieldResolver, shardResolver);
+                return new Context(options, datasetsMetadata, fromContext, warn, clock, timer, fieldResolver, shardResolver, aggregateContexts);
             }
         }
     }
@@ -207,10 +281,14 @@ public class Query extends AbstractPositional {
         }
 
         final List<GroupByEntry> groupBys;
+        final Context newContext;
         if (groupByContents.isPresent()) {
-            groupBys = GroupBys.parseGroupBys(groupByContents.get(), context);
+            final Pair<List<GroupByEntry>, Context> parsed = GroupBys.parseGroupBys(groupByContents.get(), context);
+            groupBys = parsed.getFirst();
+            newContext = parsed.getSecond();
         } else {
             groupBys = Collections.emptyList();
+            newContext = context;
         }
 
         final List<AggregateMetric> selectedMetrics;
@@ -243,7 +321,7 @@ public class Query extends AbstractPositional {
                 }
                 selectedMetrics = new ArrayList<>();
                 for (final JQLParser.AggregateMetricContext metric : metrics) {
-                    selectedMetrics.add(AggregateMetrics.parseAggregateMetric(metric, context));
+                    selectedMetrics.add(AggregateMetrics.parseAggregateMetric(metric, newContext));
                 }
             }
         } else {
@@ -288,7 +366,7 @@ public class Query extends AbstractPositional {
         if (QueryOptions.Experimental.hasHosts(options)) {
             shardResolver = new RemappingShardResolver(shardResolver, QueryOptions.Experimental.parseHostMappingMethod(options), QueryOptions.Experimental.parseHosts(options));
         }
-        final Context.PartialContext context = new Context.PartialContext(options, datasetsMetadata, queryContext.fromContents(), warn, clock, timer, shardResolver);
+        final Context.PartialContext context = new Context.PartialContext(options, datasetsMetadata, queryContext.fromContents(), warn, clock, timer, shardResolver, ImmutableStack.empty());
         final Query query = parseQuery(
                 queryContext,
                 context,
@@ -341,18 +419,17 @@ public class Query extends AbstractPositional {
      * This means that query.transform(increment constants) will increment the constants in the outer query,
      * but will not increment the constants in any sub-query.
      *
+     * @param groupBy function to transform GroupBys by
+     * @param f       function to transform AggregateMetrics by
+     * @param g       function to transform DocMetrics by
+     * @param h       function to transform AggregateFilters by
+     * @param i       function to transform DocFilters by
+     * @return the transformed Query
      * @see AggregateMetric#transform
      * @see AggregateFilter#transform
      * @see DocMetric#transform
      * @see DocFilter#transform
      * @see GroupBy#transform
-     *
-     * @param groupBy function to transform GroupBys by
-     * @param f function to transform AggregateMetrics by
-     * @param g function to transform DocMetrics by
-     * @param h function to transform AggregateFilters by
-     * @param i function to transform DocFilters by
-     * @return the transformed Query
      */
     public Query transform(
             final Function<GroupBy, GroupBy> groupBy,
@@ -446,7 +523,7 @@ public class Query extends AbstractPositional {
     }
 
     public int maxConcurrentSessions() {
-        final int[] maxValueStorage = new int[] { datasets.size() };
+        final int[] maxValueStorage = new int[]{datasets.size()};
         runOnAllSubQueries(subQuery -> {
             maxValueStorage[0] = Math.max(maxValueStorage[0], subQuery.query.maxConcurrentSessions());
         });
@@ -482,7 +559,7 @@ public class Query extends AbstractPositional {
         for (int i = 0; i < filters.size(); i++) {
             final DocFilter filter = filters.get(i);
             if (filter instanceof DocFilter.FieldInTermsSet) {
-                final DocFilter.FieldInTermsSet fieldIn = (DocFilter.FieldInTermsSet)filter;
+                final DocFilter.FieldInTermsSet fieldIn = (DocFilter.FieldInTermsSet) filter;
                 if (fieldIn.field.isIntField()) {
                     continue;
                 }

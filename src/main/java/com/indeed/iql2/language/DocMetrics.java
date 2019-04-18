@@ -35,17 +35,18 @@ public class DocMetrics {
 
     public static DocMetric parseDocMetric(
             final JQLParser.DocMetricContext metricContext,
-            final Query.Context context) {
+            final Query.Context context
+    ) {
         if (metricContext.jqlDocMetric() != null) {
             return parseJQLDocMetric(metricContext.jqlDocMetric(), context);
         }
         if (metricContext.legacyDocMetric() != null) {
-            return parseLegacyDocMetric(metricContext.legacyDocMetric(), context.fieldResolver, context.datasetsMetadata);
+            return parseLegacyDocMetric(metricContext.legacyDocMetric(), context);
         }
         throw new UnsupportedOperationException("What do?!");
     }
 
-    public static DocMetric parseLegacyDocMetric(JQLParser.LegacyDocMetricContext legacyDocMetricContext, final ScopedFieldResolver fieldResolver, final DatasetsMetadata datasetsMetadata) {
+    public static DocMetric parseLegacyDocMetric(final JQLParser.LegacyDocMetricContext legacyDocMetricContext, final Query.Context context) {
         final DocMetric[] ref = new DocMetric[1];
 
         legacyDocMetricContext.enterRule(new JQLBaseListener() {
@@ -61,13 +62,13 @@ public class DocMetrics {
             }
 
             public void enterLegacyDocSignum(JQLParser.LegacyDocSignumContext ctx) {
-                accept(new DocMetric.Signum(parseLegacyDocMetric(ctx.legacyDocMetric(), fieldResolver, datasetsMetadata)));
+                accept(new DocMetric.Signum(parseLegacyDocMetric(ctx.legacyDocMetric(), context)));
             }
 
             @Override
             public void enterLegacyDocPlusOrMinus(JQLParser.LegacyDocPlusOrMinusContext ctx) {
-                final DocMetric left = parseLegacyDocMetric(ctx.legacyDocMetric(0), fieldResolver, datasetsMetadata);
-                final DocMetric right = parseLegacyDocMetric(ctx.legacyDocMetric(1), fieldResolver, datasetsMetadata);
+                final DocMetric left = parseLegacyDocMetric(ctx.legacyDocMetric(0), context);
+                final DocMetric right = parseLegacyDocMetric(ctx.legacyDocMetric(1), context);
                 if (ctx.plus != null) {
                     accept(DocMetric.Add.create(left, right));
                 } else if (ctx.minus != null) {
@@ -77,8 +78,8 @@ public class DocMetrics {
 
             @Override
             public void enterLegacyDocMultOrDivideOrModulus(JQLParser.LegacyDocMultOrDivideOrModulusContext ctx) {
-                final DocMetric left = parseLegacyDocMetric(ctx.legacyDocMetric(0), fieldResolver, datasetsMetadata);
-                final DocMetric right = parseLegacyDocMetric(ctx.legacyDocMetric(1), fieldResolver, datasetsMetadata);
+                final DocMetric left = parseLegacyDocMetric(ctx.legacyDocMetric(0), context);
+                final DocMetric right = parseLegacyDocMetric(ctx.legacyDocMetric(1), context);
                 if (ctx.multiply != null) {
                     accept(new DocMetric.Multiply(left, right));
                 } else if (ctx.divide != null) {
@@ -89,15 +90,15 @@ public class DocMetrics {
             }
 
             public void enterLegacyDocMetricParens(JQLParser.LegacyDocMetricParensContext ctx) {
-                accept(parseLegacyDocMetric(ctx.legacyDocMetric(), fieldResolver, datasetsMetadata));
+                accept(parseLegacyDocMetric(ctx.legacyDocMetric(), context));
             }
 
             public void enterLegacyDocAbs(JQLParser.LegacyDocAbsContext ctx) {
-                accept(new DocMetric.Abs(parseLegacyDocMetric(ctx.legacyDocMetric(), fieldResolver, datasetsMetadata)));
+                accept(new DocMetric.Abs(parseLegacyDocMetric(ctx.legacyDocMetric(), context)));
             }
 
             public void enterLegacyDocNegate(JQLParser.LegacyDocNegateContext ctx) {
-                accept(new DocMetric.Negate(parseLegacyDocMetric(ctx.legacyDocMetric(), fieldResolver, datasetsMetadata)));
+                accept(new DocMetric.Negate(parseLegacyDocMetric(ctx.legacyDocMetric(), context)));
             }
 
             public void enterLegacyDocInt(JQLParser.LegacyDocIntContext ctx) {
@@ -106,8 +107,8 @@ public class DocMetrics {
 
             @Override
             public void enterLegacyDocInequality(final JQLParser.LegacyDocInequalityContext ctx) {
-                final DocMetric left = parseLegacyDocMetric(ctx.legacyDocMetric(0), fieldResolver, datasetsMetadata);
-                final DocMetric right = parseLegacyDocMetric(ctx.legacyDocMetric(1), fieldResolver, datasetsMetadata);
+                final DocMetric left = parseLegacyDocMetric(ctx.legacyDocMetric(0), context);
+                final DocMetric right = parseLegacyDocMetric(ctx.legacyDocMetric(1), context);
                 if (ctx.gte != null) {
                     accept(new DocMetric.MetricGte(left, right));
                 } else if (ctx.gt != null) {
@@ -126,19 +127,19 @@ public class DocMetrics {
             @Override
             public void enterLegacyDocLog(JQLParser.LegacyDocLogContext ctx) {
                 final int scaleFactor = ctx.integer() == null ? 1 : Integer.parseInt(ctx.integer().getText());
-                accept(new DocMetric.Log(parseLegacyDocMetric(ctx.legacyDocMetric(), fieldResolver, datasetsMetadata), scaleFactor));
+                accept(new DocMetric.Log(parseLegacyDocMetric(ctx.legacyDocMetric(), context), scaleFactor));
             }
 
             @Override
             public void enterLegacyDocExp(JQLParser.LegacyDocExpContext ctx) {
                 final int scaleFactor = ctx.integer() == null ? 1 : Integer.parseInt(ctx.integer().getText());
-                accept(new DocMetric.Exponentiate(parseLegacyDocMetric(ctx.legacyDocMetric(), fieldResolver, datasetsMetadata), scaleFactor));
+                accept(new DocMetric.Exponentiate(parseLegacyDocMetric(ctx.legacyDocMetric(), context), scaleFactor));
             }
 
             @Override
             public void enterLegacyDocMin(JQLParser.LegacyDocMinContext ctx) {
                 final List<DocMetric> metrics = ctx.metrics.stream()
-                        .map(m -> parseLegacyDocMetric(m, fieldResolver, datasetsMetadata))
+                        .map(m -> parseLegacyDocMetric(m, context))
                         .collect(Collectors.toList());
                 accept(DocMetric.Min.create(metrics));
             }
@@ -146,13 +147,13 @@ public class DocMetrics {
             @Override
             public void enterLegacyDocMax(JQLParser.LegacyDocMaxContext ctx) {
                 final List<DocMetric> metrics = ctx.metrics.stream()
-                        .map(m -> parseLegacyDocMetric(m, fieldResolver, datasetsMetadata))
+                        .map(m -> parseLegacyDocMetric(m, context))
                         .collect(Collectors.toList());
                 accept(DocMetric.Max.create(metrics));
             }
 
             public void enterLegacyDocAtom(JQLParser.LegacyDocAtomContext ctx) {
-                accept(parseLegacyDocMetricAtom(ctx.legacyDocMetricAtom(), fieldResolver, datasetsMetadata));
+                accept(parseLegacyDocMetricAtom(ctx.legacyDocMetricAtom(), context));
             }
         });
 
@@ -167,8 +168,10 @@ public class DocMetrics {
 
     public static DocMetric parseLegacyDocMetricAtom(
             final JQLParser.LegacyDocMetricAtomContext legacyDocMetricAtomContext,
-            final ScopedFieldResolver fieldResolver, final DatasetsMetadata datasetsMetadata
+            final Query.Context context
     ) {
+        final ScopedFieldResolver fieldResolver = context.fieldResolver;
+        final DatasetsMetadata datasetsMetadata = context.datasetsMetadata;
         final DocMetric[] ref = new DocMetric[1];
 
         legacyDocMetricAtomContext.enterRule(new JQLBaseListener() {
@@ -208,7 +211,7 @@ public class DocMetrics {
             @Override
             public void enterLegacyDocMetricAtomHasInt(final JQLParser.LegacyDocMetricAtomHasIntContext ctx) {
                 final Term term = Term.term(ctx.integer().getText());
-                accept(fieldResolver.resolveDocMetric(ctx.field, new ScopedFieldResolver.HasTermCallback(term)));
+                accept(fieldResolver.resolveDocMetric(ctx.field, new ScopedFieldResolver.HasTermCallback(term), context));
             }
 
             @Override
@@ -222,7 +225,7 @@ public class DocMetrics {
             public void enterLegacyDocMetricAtomHasIntQuoted(JQLParser.LegacyDocMetricAtomHasIntQuotedContext ctx) {
                 final HasTermQuote hasTermQuote = HasTermQuote.create(ctx.STRING_LITERAL().getText());
                 final Term termInt = Term.term(hasTermQuote.getTerm());
-                accept(fieldResolver.resolveDocMetric(Queries.runParser(hasTermQuote.getField(), JQLParser::identifierTerminal).identifier(), new ScopedFieldResolver.HasTermCallback(termInt)));
+                accept(fieldResolver.resolveDocMetric(Queries.runParser(hasTermQuote.getField(), JQLParser::identifierTerminal).identifier(), new ScopedFieldResolver.HasTermCallback(termInt), context));
             }
 
             @Override
@@ -235,7 +238,7 @@ public class DocMetrics {
 
             @Override
             public void enterLegacyDocMetricAtomRawField(JQLParser.LegacyDocMetricAtomRawFieldContext ctx) {
-                accept(fieldResolver.resolveDocMetric(ctx.identifier(), ScopedFieldResolver.PLAIN_DOC_METRIC_CALLBACK));
+                accept(fieldResolver.resolveDocMetric(ctx.identifier(), ScopedFieldResolver.PLAIN_DOC_METRIC_CALLBACK, context));
             }
 
             @Override
@@ -264,7 +267,7 @@ public class DocMetrics {
     }
 
     // .. this used to be more substantial. TODO: Inline this grammar rule?
-    public static DocMetric parseJQLSyntacticallyAtomicDocMetricAtom(JQLParser.JqlSyntacticallyAtomicDocMetricAtomContext jqlSyntacticallyAtomicDocMetricAtomContext, final ScopedFieldResolver fieldResolver) {
+    public static DocMetric parseJQLSyntacticallyAtomicDocMetricAtom(JQLParser.JqlSyntacticallyAtomicDocMetricAtomContext jqlSyntacticallyAtomicDocMetricAtomContext, final Query.Context context) {
         final DocMetric[] ref = new DocMetric[1];
 
         jqlSyntacticallyAtomicDocMetricAtomContext.enterRule(new JQLBaseListener() {
@@ -277,7 +280,7 @@ public class DocMetrics {
 
             @Override
             public void enterDocMetricAtomRawField(JQLParser.DocMetricAtomRawFieldContext ctx) {
-                accept(fieldResolver.resolveDocMetric(ctx.singlyScopedField(), ScopedFieldResolver.PLAIN_DOC_METRIC_CALLBACK));
+                accept(context.fieldResolver.resolveDocMetric(ctx.singlyScopedField(), ScopedFieldResolver.PLAIN_DOC_METRIC_CALLBACK, context));
             }
         });
 
@@ -449,7 +452,7 @@ public class DocMetrics {
             @Override
             public void enterDocMetricAtomHasntInt(JQLParser.DocMetricAtomHasntIntContext ctx) {
                 final Term term = Term.term(ctx.integer().getText());
-                accept(fieldResolver.resolveDocMetric(ctx.singlyScopedField(), new ScopedFieldResolver.HasTermCallback(term).map(DocMetrics::negateMetric)));
+                accept(fieldResolver.resolveDocMetric(ctx.singlyScopedField(), new ScopedFieldResolver.HasTermCallback(term).map(DocMetrics::negateMetric), context));
             }
 
             @Override
@@ -467,7 +470,7 @@ public class DocMetrics {
             @Override
             public void enterDocMetricAtomHasInt(JQLParser.DocMetricAtomHasIntContext ctx) {
                 final Term term = Term.term(ctx.integer().getText());
-                accept(fieldResolver.resolveDocMetric(ctx.singlyScopedField(), new ScopedFieldResolver.HasTermCallback(term)));
+                accept(fieldResolver.resolveDocMetric(ctx.singlyScopedField(), new ScopedFieldResolver.HasTermCallback(term), context));
             }
 
             @Override
@@ -550,18 +553,18 @@ public class DocMetrics {
 
             @Override
             public void enterSyntacticallyAtomicDocMetricAtom(JQLParser.SyntacticallyAtomicDocMetricAtomContext ctx) {
-                accept(parseJQLSyntacticallyAtomicDocMetricAtom(ctx.jqlSyntacticallyAtomicDocMetricAtom(), fieldResolver));
+                accept(parseJQLSyntacticallyAtomicDocMetricAtom(ctx.jqlSyntacticallyAtomicDocMetricAtom(), context));
             }
 
             @Override
             public void enterDocMetricAtomLucene(final JQLParser.DocMetricAtomLuceneContext ctx) {
-                accept(new DocMetric.Lucene(ParserCommon.unquote(ctx.queryField.getText()), context.datasetsMetadata, fieldResolver));
+                accept(new DocMetric.Lucene(ParserCommon.unquote(ctx.queryField.getText()), context.datasetsMetadata, context.fieldResolver));
             }
 
             @Override
             public void enterDocMetricAtomFieldEqual(final JQLParser.DocMetricAtomFieldEqualContext ctx) {
-                final DocMetric metric1 = extractPlainDimensionDocMetric(ctx.singlyScopedField(0), fieldResolver);
-                final DocMetric metric2 = extractPlainDimensionDocMetric(ctx.singlyScopedField(1), fieldResolver);
+                final DocMetric metric1 = extractPlainDimensionDocMetric(ctx.singlyScopedField(0), context);
+                final DocMetric metric2 = extractPlainDimensionDocMetric(ctx.singlyScopedField(1), context);
 
                 final FieldSet plainField1 = DocFilters.extractPlainField(metric1);
                 final FieldSet plainField2 = DocFilters.extractPlainField(metric2);
@@ -580,8 +583,8 @@ public class DocMetrics {
 
             @Override
             public void enterDocMetricAtomNotFieldEqual(final JQLParser.DocMetricAtomNotFieldEqualContext ctx) {
-                final DocMetric metric1 = extractPlainDimensionDocMetric(ctx.singlyScopedField(0), fieldResolver);
-                final DocMetric metric2 = extractPlainDimensionDocMetric(ctx.singlyScopedField(1), fieldResolver);
+                final DocMetric metric1 = extractPlainDimensionDocMetric(ctx.singlyScopedField(0), context);
+                final DocMetric metric2 = extractPlainDimensionDocMetric(ctx.singlyScopedField(1), context);
 
                 final FieldSet plainField1 = DocFilters.extractPlainField(metric1);
                 final FieldSet plainField2 = DocFilters.extractPlainField(metric2);
@@ -614,8 +617,8 @@ public class DocMetrics {
         return ref[0];
     }
 
-    static DocMetric extractPlainDimensionDocMetric(final JQLParser.SinglyScopedFieldContext field, final ScopedFieldResolver fieldResolver) {
-        return fieldResolver.resolveDocMetric(field, ScopedFieldResolver.PLAIN_DOC_METRIC_CALLBACK);
+    static DocMetric extractPlainDimensionDocMetric(final JQLParser.SinglyScopedFieldContext field, final Query.Context context) {
+        return context.fieldResolver.resolveDocMetric(field, ScopedFieldResolver.PLAIN_DOC_METRIC_CALLBACK, context);
     }
 
     public static DocMetric negateMetric(DocMetric metric) {

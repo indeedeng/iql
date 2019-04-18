@@ -16,11 +16,13 @@ package com.indeed.iql2.language;
 
 import com.google.common.collect.ImmutableList;
 import com.indeed.iql2.language.query.Query;
+import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.query.fieldresolution.ScopedFieldResolver;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 
 public class AggregateFilters {
     private AggregateFilters() {
@@ -28,7 +30,7 @@ public class AggregateFilters {
 
     public static AggregateFilter aggregateInHelper(final Iterator<Term> terms, final boolean negate) {
         final List<AggregateFilter> termFilters = new ArrayList<>();
-        while(terms.hasNext()) {
+        while (terms.hasNext()) {
             termFilters.add(new AggregateFilter.TermIs(terms.next()));
         }
         AggregateFilter filter = AggregateFilter.Or.create(termFilters);
@@ -61,10 +63,6 @@ public class AggregateFilters {
                 ref[0] = value;
             }
 
-            public void enterAggregateRegex(JQLParser.AggregateRegexContext ctx) {
-                accept(new AggregateFilter.Regex(fieldResolver.resolve(ctx.field), ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
-            }
-
             public void enterAggregateFalse(JQLParser.AggregateFalseContext ctx) {
                 accept(new AggregateFilter.Never());
             }
@@ -77,7 +75,13 @@ public class AggregateFilters {
                 accept(new AggregateFilter.TermRegex(Term.term(ParserCommon.unquote(ctx.STRING_LITERAL().getText()))));
             }
 
+            public void enterAggregateRegex(JQLParser.AggregateRegexContext ctx) {
+                checkAggregateRegex(ctx.field);
+                accept(new AggregateFilter.Regex(fieldResolver.resolve(ctx.field), ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
+            }
+
             public void enterAggregateNotRegex(JQLParser.AggregateNotRegexContext ctx) {
+                checkAggregateRegex(ctx.field);
                 accept(new AggregateFilter.Not(new AggregateFilter.Regex(fieldResolver.resolve(ctx.field), ParserCommon.unquote(ctx.STRING_LITERAL().getText()))));
             }
 
@@ -139,6 +143,35 @@ public class AggregateFilters {
                 final AggregateFilter left = parseJQLAggregateFilter(ctx.jqlAggregateFilter(0), context);
                 final AggregateFilter right = parseJQLAggregateFilter(ctx.jqlAggregateFilter(1), context);
                 accept(AggregateFilter.Or.create(ImmutableList.of(left, right)));
+            }
+
+            private void checkAggregateRegex(final JQLParser.IdentifierContext fieldContext) {
+                context.warn.accept("Aggregate regex (e.g. HAVING fieldName =~ \"regex\") is deprecated. Please use TERM() =~ \"regex\" or NOT(TERM() =~ \"regex\") instead.");
+                final FieldSet resolvedField = fieldResolver.resolve(fieldContext);
+                if (context.aggregateContexts.isEmpty()) {
+                    throw new IllegalStateException("AggregateRegex is applied without aggregate context");
+                }
+                context.aggregateContexts.top().accept(new Query.AggregateContext.Matcher() {
+                    @Override
+                    public void matchField(final FieldSet field) {
+                        if (!resolvedField.equals(field)) {
+                            final String regexFieldString = fieldContext.getText();
+                            final String groupByFieldString = Optional.ofNullable(field.getRawInput()).orElseGet(field::toString);
+                            throw new IllegalArgumentException(
+                                    "Can't apply aggregate regex on field " + regexFieldString + " in aggregate context " + groupByFieldString + ".\nDid you mean [" + regexFieldString + " =~ \"...\"] > 0?");
+                        }
+                    }
+
+                    @Override
+                    public void matchMetric() {
+                        throw new UnsupportedOperationException("AggregateFilter.Regex should be applied to a field regroup");
+                    }
+
+                    @Override
+                    public void matchSession() {
+                        throw new UnsupportedOperationException("AggregateFilter.Regex shouldn be applied to a field regroup");
+                    }
+                });
             }
         });
 

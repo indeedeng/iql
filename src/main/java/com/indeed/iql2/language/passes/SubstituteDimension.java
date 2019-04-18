@@ -23,8 +23,6 @@ import com.indeed.iql2.language.query.Queries;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.fieldresolution.ScopedFieldResolver;
 import com.indeed.iql2.language.query.shardresolution.NullShardResolver;
-import com.indeed.util.core.time.DefaultWallClock;
-import com.indeed.util.logging.TracingTreeTimer;
 import org.apache.log4j.Logger;
 
 public class SubstituteDimension {
@@ -33,21 +31,22 @@ public class SubstituteDimension {
     private SubstituteDimension() {
     }
 
-    private static AggregateMetric parseDimensionsMetric(final String name, final String expr, final DatasetsMetadata datasetsMetadata, final ScopedFieldResolver fieldResolver) {
+    private static AggregateMetric parseDimensionsMetric(final String name, final String expr, final DatasetsMetadata datasetsMetadata, final ScopedFieldResolver fieldResolver, final Query.Context context) {
         Preconditions.checkNotNull(expr);
 
         final AggregateMetric dimensionMetric = Queries.parseAggregateMetric(
                 expr,
                 true,
                 new Query.Context(
-                        null, // TODO: use options now that they're available?
+                        context.options,
                         datasetsMetadata,
-                        null,
+                        context.fromContext,
                         s -> log.warn(String.format("parse DimensionMetric name: %s, expr: %s, warning: %s", name, expr, s)),
-                        new DefaultWallClock(),
-                        new TracingTreeTimer(),
+                        context.clock,
+                        context.timer,
                         fieldResolver,
-                        new NullShardResolver() // Dimensions metrics cannot use subqueries
+                        new NullShardResolver(), // Dimensions metrics cannot use subqueries
+                        context.aggregateContexts
                 )
         );
 
@@ -56,12 +55,12 @@ public class SubstituteDimension {
         return dimensionMetric;
     }
 
-    public static AggregateMetric getAggregateMetric(final MetricMetadata metricMetadata, final DatasetsMetadata datasetsMetadata, final ScopedFieldResolver scopedFieldResolver) {
-        return parseDimensionsMetric(metricMetadata.getName(), metricMetadata.getExpression(), datasetsMetadata, scopedFieldResolver);
+    public static AggregateMetric getAggregateMetric(final MetricMetadata metricMetadata, final DatasetsMetadata datasetsMetadata, final ScopedFieldResolver scopedFieldResolver, final Query.Context context) {
+        return parseDimensionsMetric(metricMetadata.getName(), metricMetadata.getExpression(), datasetsMetadata, scopedFieldResolver, context);
     }
 
-    public static DocMetric getDocMetricOrThrow(final MetricMetadata metricMetadata, final DatasetsMetadata datasetsMetadata, final ScopedFieldResolver scopedFieldResolver) {
-        final AggregateMetric metric = parseDimensionsMetric(metricMetadata.getName(), metricMetadata.getExpression(), datasetsMetadata, scopedFieldResolver);
+    public static DocMetric getDocMetricOrThrow(final MetricMetadata metricMetadata, final DatasetsMetadata datasetsMetadata, final ScopedFieldResolver scopedFieldResolver, final Query.Context context) {
+        final AggregateMetric metric = parseDimensionsMetric(metricMetadata.getName(), metricMetadata.getExpression(), datasetsMetadata, scopedFieldResolver, context);
         if (!(metric instanceof AggregateMetric.DocStats)) {
             throw new IllegalArgumentException(
                     String.format("Cannot use compound metrics in per-document context, metric [ %s: %s ]",

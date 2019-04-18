@@ -1,6 +1,7 @@
 package com.indeed.iql2.language.query.fieldresolution;
 
 import com.google.common.collect.ImmutableMap;
+import com.indeed.common.datastruct.ImmutableStack;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql.metadata.ImhotepMetadataCache;
@@ -10,14 +11,22 @@ import com.indeed.iql2.language.DocFilter;
 import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.JQLParser;
 import com.indeed.iql2.language.query.Queries;
+import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.fieldresolution.ScopedFieldResolver.MetricResolverCallback;
+import com.indeed.iql2.language.query.shardresolution.NullShardResolver;
 import com.indeed.iql2.server.web.servlets.DimensionUtils;
 import com.indeed.iql2.server.web.servlets.dataset.AllData;
+import com.indeed.util.core.time.StoppedClock;
+import com.indeed.util.core.time.WallClock;
+import com.indeed.util.logging.TracingTreeTimer;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.junit.Assert;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
+import java.util.function.Consumer;
 
 import static com.indeed.iql2.language.query.fieldresolution.FieldResolver.FAILED_TO_RESOLVE_DATASET;
 import static com.indeed.iql2.language.query.fieldresolution.FieldResolver.FAILED_TO_RESOLVE_FIELD;
@@ -30,6 +39,21 @@ import static org.junit.Assert.assertTrue;
  * @author jwolfe
  */
 public class FieldResolverTest {
+    private static final Consumer<String> WARN = s -> System.out.println("PARSE WARNING: " + s);
+    private static final WallClock CLOCK = new StoppedClock(new DateTime(2015, 2, 1, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis());
+    private static final FieldResolver FIELD_RESOLVER = FieldResolverTest.fromQuery("from organic 2d 1d");
+    private static final Query.Context CONTEXT = new Query.Context(
+            Collections.emptyList(),
+            AllData.DATASET.getDatasetsMetadata(),
+            null,
+            WARN,
+            CLOCK,
+            new TracingTreeTimer(),
+            FIELD_RESOLVER.universalScope(),
+            new NullShardResolver(),
+            ImmutableStack.empty()
+    );
+
     public static FieldResolver fromQuery(final String query) {
         final boolean useLegacy = false;
         final JQLParser.QueryContext parseResult = Queries.parseQueryContext(query, useLegacy);
@@ -163,13 +187,13 @@ public class FieldResolverTest {
         final ScopedFieldResolver scopedResolver = fieldResolver.universalScope();
 
         final DocMetric.Field i1 = new DocMetric.Field(FieldSet.of("DIMension", "i1", true));
-        assertEquals(i1, scopedResolver.resolveDocMetric(parseIdentifier("i1"), PLAIN_DOC_METRIC_CALLBACK));
+        assertEquals(i1, scopedResolver.resolveDocMetric(parseIdentifier("i1"), PLAIN_DOC_METRIC_CALLBACK, CONTEXT));
 
         final DocMetric.Field i2 = new DocMetric.Field(FieldSet.of("DIMension", "i2", true));
-        assertEquals(DocMetric.Add.create(i1, i2), scopedResolver.resolveDocMetric(parseIdentifier("plus"), PLAIN_DOC_METRIC_CALLBACK));
+        assertEquals(DocMetric.Add.create(i1, i2), scopedResolver.resolveDocMetric(parseIdentifier("plus"), PLAIN_DOC_METRIC_CALLBACK, CONTEXT));
 
         // Ensure it's not wrapped in qualified because {DIMension}={DIMension}
-        assertEquals(DocMetric.Add.create(i1, i2), scopedResolver.resolveDocMetric(parseSinglyScopedField("dimension.plus"), PLAIN_DOC_METRIC_CALLBACK));
+        assertEquals(DocMetric.Add.create(i1, i2), scopedResolver.resolveDocMetric(parseSinglyScopedField("dimension.plus"), PLAIN_DOC_METRIC_CALLBACK, CONTEXT));
     }
 
     @Test
@@ -193,7 +217,7 @@ public class FieldResolverTest {
                 Assert.fail("Should not find metric");
                 return null;
             }
-        }));
+        }, CONTEXT));
 
         final DocMetric.Field i1 = new DocMetric.Field(FieldSet.of("DIMension", "i1", true));
         final DocMetric.Field i2 = new DocMetric.Field(FieldSet.of("DIMension", "i2", true));
@@ -209,7 +233,7 @@ public class FieldResolverTest {
                 Assert.assertEquals(DocMetric.Add.create(i1, i2), metric);
                 return success;
             }
-        }));
+        }, CONTEXT));
 
         // Ensure it's not wrapped in qualified because {DIMension}={DIMension}
         assertEquals(success, scopedResolver.resolveDocFilter(parseSinglyScopedField("dimension.plus"), new MetricResolverCallback<DocFilter>() {
@@ -224,7 +248,7 @@ public class FieldResolverTest {
                 Assert.assertEquals(DocMetric.Add.create(i1, i2), metric);
                 return success;
             }
-        }));
+        }, CONTEXT));
     }
 
     @Test
@@ -234,9 +258,9 @@ public class FieldResolverTest {
 
         final DocMetric.Field i1 = new DocMetric.Field(FieldSet.of("DIMension", "i1", true));
         final DocMetric.Field i2 = new DocMetric.Field(FieldSet.of("DIMension", "i2", true));
-        assertEquals(new AggregateMetric.DocStats(i1), scopedResolver.resolveAggregateMetric(parseIdentifier("i1")));
-        assertEquals(new AggregateMetric.DocStats(DocMetric.Add.create(i1, i2)), scopedResolver.resolveAggregateMetric(parseIdentifier("plus")));
-        assertEquals(new AggregateMetric.DocStats(DocMetric.Add.create(i1, i2)), scopedResolver.resolveAggregateMetric(parseSinglyScopedField("dimension.plus")));
+        assertEquals(new AggregateMetric.DocStats(i1), scopedResolver.resolveAggregateMetric(parseIdentifier("i1"), CONTEXT));
+        assertEquals(new AggregateMetric.DocStats(DocMetric.Add.create(i1, i2)), scopedResolver.resolveAggregateMetric(parseIdentifier("plus"), CONTEXT));
+        assertEquals(new AggregateMetric.DocStats(DocMetric.Add.create(i1, i2)), scopedResolver.resolveAggregateMetric(parseSinglyScopedField("dimension.plus"), CONTEXT));
     }
 
     @Test
@@ -244,12 +268,12 @@ public class FieldResolverTest {
         final FieldResolver fieldResolver = fromQueryDimensions("from dimension 2d 1d, dimension2");
         final ScopedFieldResolver scopedResolver = fieldResolver.universalScope();
 
-        assertEquals(new DocMetric.Field(FieldSet.of("DIMension", "i1", "dimension2", "i1", true)), scopedResolver.resolveDocMetric(parseIdentifier("i1"), PLAIN_DOC_METRIC_CALLBACK));
+        assertEquals(new DocMetric.Field(FieldSet.of("DIMension", "i1", "dimension2", "i1", true)), scopedResolver.resolveDocMetric(parseIdentifier("i1"), PLAIN_DOC_METRIC_CALLBACK, CONTEXT));
 
-        assertEquals(new DocMetric.Field(FieldSet.of("DIMension", "i2", "dimension2", "i1", true)), scopedResolver.resolveDocMetric(parseIdentifier("i2"), PLAIN_DOC_METRIC_CALLBACK));
+        assertEquals(new DocMetric.Field(FieldSet.of("DIMension", "i2", "dimension2", "i1", true)), scopedResolver.resolveDocMetric(parseIdentifier("i2"), PLAIN_DOC_METRIC_CALLBACK, CONTEXT));
 
         final DocMetric.Qualified qualifiedExpected = new DocMetric.Qualified("DIMension", new DocMetric.Field(FieldSet.of("DIMension", "i1", true)));
-        assertEquals(qualifiedExpected, scopedResolver.resolveDocMetric(parseSinglyScopedField("dimension.aliasi1"), PLAIN_DOC_METRIC_CALLBACK));
+        assertEquals(qualifiedExpected, scopedResolver.resolveDocMetric(parseSinglyScopedField("dimension.aliasi1"), PLAIN_DOC_METRIC_CALLBACK, CONTEXT));
 
         final DocMetric.PerDatasetDocMetric calcExpected = new DocMetric.PerDatasetDocMetric(
                 ImmutableMap.of(
@@ -271,6 +295,6 @@ public class FieldResolverTest {
                         )
                 )
         );
-        assertEquals(calcExpected, scopedResolver.resolveDocMetric(parseIdentifier("calc"), PLAIN_DOC_METRIC_CALLBACK));
+        assertEquals(calcExpected, scopedResolver.resolveDocMetric(parseIdentifier("calc"), PLAIN_DOC_METRIC_CALLBACK, CONTEXT));
     }
 }
