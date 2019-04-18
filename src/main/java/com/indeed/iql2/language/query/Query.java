@@ -19,7 +19,7 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
-import com.indeed.common.datastruct.ImmutableStack;
+import com.indeed.common.datastruct.PersistentStack;
 import com.indeed.imhotep.Shard;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetsMetadata;
@@ -145,7 +145,7 @@ public class Query extends AbstractPositional {
         public final WallClock clock;
         public final ScopedFieldResolver fieldResolver;
         public final ShardResolver shardResolver;
-        public final ImmutableStack<AggregateContext> aggregateContexts;
+        public final PersistentStack<AggregateContext> aggregateContexts;
         public final TracingTreeTimer timer;
 
         public Context(
@@ -157,7 +157,7 @@ public class Query extends AbstractPositional {
                 final TracingTreeTimer timer,
                 final ScopedFieldResolver fieldResolver,
                 final ShardResolver shardResolver,
-                final ImmutableStack<AggregateContext> aggregateContexts
+                final PersistentStack<AggregateContext> aggregateContexts
         ) {
             this.options = options;
             this.datasetsMetadata = datasetsMetadata;
@@ -179,7 +179,7 @@ public class Query extends AbstractPositional {
         }
 
         public Context withoutAggregate() {
-            return new Context(options, datasetsMetadata, fromContext, warn, clock, timer, fieldResolver, shardResolver, ImmutableStack.empty());
+            return new Context(options, datasetsMetadata, fromContext, warn, clock, timer, fieldResolver, shardResolver, PersistentStack.empty());
         }
 
         private Context withAggregate(final AggregateContext aggregateContext) {
@@ -219,9 +219,9 @@ public class Query extends AbstractPositional {
             public final WallClock clock;
             public final TracingTreeTimer timer;
             public final ShardResolver shardResolver;
-            public final ImmutableStack<AggregateContext> aggregateContexts;
+            public final PersistentStack<AggregateContext> aggregateContexts;
 
-            public PartialContext(final List<String> options, final DatasetsMetadata datasetsMetadata, final JQLParser.FromContentsContext fromContext, final Consumer<String> warn, final WallClock clock, final TracingTreeTimer timer, final ShardResolver shardResolver, final ImmutableStack<AggregateContext> aggregateContexts) {
+            public PartialContext(final List<String> options, final DatasetsMetadata datasetsMetadata, final JQLParser.FromContentsContext fromContext, final Consumer<String> warn, final WallClock clock, final TracingTreeTimer timer, final ShardResolver shardResolver, final PersistentStack<AggregateContext> aggregateContexts) {
                 this.options = options;
                 this.datasetsMetadata = datasetsMetadata;
                 this.fromContext = fromContext;
@@ -366,7 +366,7 @@ public class Query extends AbstractPositional {
         if (QueryOptions.Experimental.hasHosts(options)) {
             shardResolver = new RemappingShardResolver(shardResolver, QueryOptions.Experimental.parseHostMappingMethod(options), QueryOptions.Experimental.parseHosts(options));
         }
-        final Context.PartialContext context = new Context.PartialContext(options, datasetsMetadata, queryContext.fromContents(), warn, clock, timer, shardResolver, ImmutableStack.empty());
+        final Context.PartialContext context = new Context.PartialContext(options, datasetsMetadata, queryContext.fromContents(), warn, clock, timer, shardResolver, PersistentStack.empty());
         final Query query = parseQuery(
                 queryContext,
                 context,

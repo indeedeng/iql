@@ -16,7 +16,7 @@ package com.indeed.iql.web.print;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
-import com.indeed.common.datastruct.ImmutableStack;
+import com.indeed.common.datastruct.PersistentStack;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.AbstractPositional;
 import com.indeed.iql2.language.AggregateFilter;
@@ -106,7 +106,7 @@ public class PrettyPrint {
         this.inputStream = queryContext.start.getInputStream();
         this.datasetsMetadata = datasetsMetadata;
         this.fieldResolver = fieldResolver;
-        this.context = new Query.Context(null, datasetsMetadata, null, consumer, clock, timer, fieldResolver, new NullShardResolver(), ImmutableStack.empty());
+        this.context = new Query.Context(null, datasetsMetadata, null, consumer, clock, timer, fieldResolver, new NullShardResolver(), PersistentStack.empty());
     }
 
     private String getText(Positional positional) {

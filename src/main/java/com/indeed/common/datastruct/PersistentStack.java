@@ -5,24 +5,24 @@ import lombok.Value;
 import javax.annotation.Nullable;
 import java.util.Objects;
 
-public class ImmutableStack<E> {
+public class PersistentStack<E> {
     @Nullable // Null means it's a sentinel
     private final Node<E> node;
 
-    private ImmutableStack() {
+    private PersistentStack() {
         this(null);
     }
 
-    private ImmutableStack(final E element, final ImmutableStack<E> next) {
+    private PersistentStack(final E element, final PersistentStack<E> next) {
         this(new Node<>(element, next));
     }
 
-    private ImmutableStack(@Nullable final Node<E> node) {
+    private PersistentStack(@Nullable final Node<E> node) {
         this.node = node;
     }
 
-    public static <E> ImmutableStack<E> empty() {
-        return new ImmutableStack<>();
+    public static <E> PersistentStack<E> empty() {
+        return new PersistentStack<>();
     }
 
     public boolean isEmpty() {
@@ -36,11 +36,11 @@ public class ImmutableStack<E> {
         return Objects.requireNonNull(this.node).element;
     }
 
-    public ImmutableStack<E> pushed(final E element) {
-        return new ImmutableStack<>(element, this);
+    public PersistentStack<E> pushed(final E element) {
+        return new PersistentStack<>(element, this);
     }
 
-    public ImmutableStack<E> popped() {
+    public PersistentStack<E> popped() {
         if (this.isEmpty()) {
             throw new IllegalArgumentException("Can't pop from empty stack");
         }
@@ -51,6 +51,6 @@ public class ImmutableStack<E> {
     private static class Node<E> {
         final E element;
         @Nullable
-        final ImmutableStack<E> next;
+        final PersistentStack<E> next;
     }
 }

@@ -1,7 +1,7 @@
 package com.indeed.iql2.language.query.fieldresolution;
 
 import com.google.common.collect.ImmutableMap;
-import com.indeed.common.datastruct.ImmutableStack;
+import com.indeed.common.datastruct.PersistentStack;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql.metadata.ImhotepMetadataCache;
@@ -51,7 +51,7 @@ public class FieldResolverTest {
             new TracingTreeTimer(),
             FIELD_RESOLVER.universalScope(),
             new NullShardResolver(),
-            ImmutableStack.empty()
+            PersistentStack.empty()
     );
 
     public static FieldResolver fromQuery(final String query) {

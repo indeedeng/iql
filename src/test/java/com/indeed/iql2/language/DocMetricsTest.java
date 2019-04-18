@@ -14,7 +14,7 @@
 
 package com.indeed.iql2.language;
 
-import com.indeed.common.datastruct.ImmutableStack;
+import com.indeed.common.datastruct.PersistentStack;
 import com.indeed.iql2.language.query.Queries;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.fieldresolution.FieldResolver;
@@ -52,7 +52,7 @@ public class DocMetricsTest {
             new TracingTreeTimer(),
             FIELD_RESOLVER.universalScope(),
             new NullShardResolver(),
-            ImmutableStack.empty()
+            PersistentStack.empty()
     );
 
     private static final Function<String, DocMetric> PARSE_LEGACY_DOC_METRIC = new Function<String, DocMetric>() {
