@@ -16,6 +16,7 @@ package com.indeed.iql2.language.query;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.JQLParser;
 import com.indeed.iql2.language.query.shardresolution.NullShardResolver;
@@ -26,7 +27,9 @@ import com.indeed.util.logging.TracingTreeTimer;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.Collections;
 import java.util.List;
@@ -37,6 +40,8 @@ import java.util.Set;
  */
 public class QueriesTest {
     private static final Set<String> NO_OPTIONS = Collections.emptySet();
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
 
     @Test
     public void testSplitQuery() {
@@ -130,6 +135,14 @@ public class QueriesTest {
                 ),
                 extractDatasetsHelper("FROM /* dumb */ jobsearch(oji=1) 1d 0d as j1, jobsearch 2d 1d as j2 /* dumb */, mobsearch ALIASING(ojc as c) /* dumb */ GROUP BY oji", false)
         );
+    }
+
+    @Test
+    public void testLexerFailure() {
+        thrown.expect(IqlKnownException.ParseErrorException.class);
+        thrown.expectMessage("Invalid input: [from jobsearch 1d today where tk ~= 'regex'] token recognition error at: '~'");
+        // Should have been =~ but ~=
+        Queries.runParser("from jobsearch 1d today where tk ~= 'regex'", input -> input.query(false));
     }
 
     private List<SplitQuery.Dataset> extractDatasetsHelper(final String q, final boolean useLegacy) {

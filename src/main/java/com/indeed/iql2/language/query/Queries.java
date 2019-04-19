@@ -52,13 +52,16 @@ import com.indeed.iql2.language.util.ParserUtil;
 import com.indeed.util.core.time.WallClock;
 import com.indeed.util.logging.Loggers;
 import com.indeed.util.logging.TracingTreeTimer;
+import org.antlr.v4.runtime.ANTLRErrorListener;
 import org.antlr.v4.runtime.ANTLRInputStream;
+import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.DefaultErrorStrategy;
 import org.antlr.v4.runtime.Parser;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RecognitionException;
+import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.misc.Interval;
 import org.apache.log4j.Logger;
 
@@ -71,6 +74,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -189,7 +193,8 @@ public class Queries {
     }
 
     public static ParseResult parseQuery(String q, boolean useLegacy, DatasetsMetadata datasetsMetadata, final Set<String> defaultOptions, WallClock clock, final TracingTreeTimer timer, final ShardResolver shardResolver) {
-        return parseQuery(q, useLegacy, datasetsMetadata, defaultOptions, s -> {}, clock, timer, shardResolver);
+        return parseQuery(q, useLegacy, datasetsMetadata, defaultOptions, s -> {
+        }, clock, timer, shardResolver);
     }
 
     public static ParseResult parseQuery(String q, boolean useLegacy, DatasetsMetadata datasetsMetadata, final Set<String> defaultOptions, Consumer<String> warn, WallClock clock, final TracingTreeTimer timer, final ShardResolver shardResolver) {
@@ -398,17 +403,27 @@ public class Queries {
             final boolean throwOnError) {
         final IqlKnownException.ParseErrorException error;
         try {
-            final JQLParser parser = parserForString(input);
+            final AtomicReference<IqlKnownException.ParseErrorException> lexerException = new AtomicReference<>();
             final List<RecognitionException> exceptions = new ArrayList<>();
-            parser.setErrorHandler(new DefaultErrorStrategy() {
+            final ANTLRErrorListener errorListener = new BaseErrorListener() {
                 @Override
-                public void reportError(Parser recognizer, RecognitionException e) {
+                public void syntaxError(final Recognizer<?, ?> recognizer, final Object offendingSymbol, final int line, final int charPositionInLine, final String msg, final RecognitionException e) {
+                    super.syntaxError(recognizer, offendingSymbol, line, charPositionInLine, msg, e);
+                    if (lexerException.get() == null) {
+                        lexerException.set(new IqlKnownException.ParseErrorException("Invalid input: [" + input + "] " + msg, e));
+                    }
+                }
+            };
+            final DefaultErrorStrategy errorStrategy = new DefaultErrorStrategy() {
+                @Override
+                public void reportError(final Parser recognizer, final RecognitionException e) {
                     super.reportError(recognizer, e);
                     exceptions.add(e);
                 }
-            });
+            };
+            final JQLParser parser = parserForString(input, errorListener, errorStrategy);
             final T result = applyParser.apply(parser);
-            if (parser.getNumberOfSyntaxErrors() == 0) {
+            if ((parser.getNumberOfSyntaxErrors() == 0) && (lexerException.get() == null)) {
                 return result;
             }
 
@@ -416,15 +431,19 @@ public class Queries {
                 return null;
             }
 
-            final String extra;
-            if (!exceptions.isEmpty()) {
-                final RecognitionException anException = exceptions.get(0);
-                final String message = anException.getExpectedTokens().toString(JQLParser.VOCABULARY);
-                extra = ", expected " + message + ", found [" + anException.getOffendingToken().getText() + "]";
+            if (lexerException.get() != null) {
+                error = lexerException.get();
             } else {
-                extra = "";
+                final String extra;
+                if (!exceptions.isEmpty()) {
+                    final RecognitionException anException = exceptions.get(0);
+                    final String message = anException.getExpectedTokens().toString(JQLParser.VOCABULARY);
+                    extra = ", expected " + message + ", found [" + anException.getOffendingToken().getText() + "]";
+                } else {
+                    extra = "";
+                }
+                error = new IqlKnownException.ParseErrorException("Invalid input: [" + input + "]" + extra);
             }
-            error = new IqlKnownException.ParseErrorException("Invalid input: [" + input + "]" + extra);
         } catch (final Throwable t) {
             // Some unexpected error inside parser.
             throw new RuntimeException("Something went wrong inside query parser", t);
@@ -451,19 +470,20 @@ public class Queries {
         return AggregateMetrics.parseAggregateMetric(aggregateMetricContext, context);
     }
 
-    public static JQLParser parserForString(String q) {
+    private static JQLParser parserForString(final String q, final ANTLRErrorListener errorListener, final DefaultErrorStrategy errorStrategy) {
         final JQLLexer lexer = new JQLLexer(new UpperCaseInputStream(new ANTLRInputStream(q)));
         lexer.removeErrorListeners();
+        lexer.addErrorListener(errorListener);
         final CommonTokenStream tokens = new CommonTokenStream(lexer);
         final JQLParser parser = new JQLParser(tokens);
         parser.removeErrorListeners();
+        parser.setErrorHandler(errorStrategy);
         return parser;
     }
 
     public static List<Command> queryCommands(final Query query) {
         return queryCommands(query, Optional.empty());
     }
-
 
     public static List<Command> queryCommands(
             final Query query,
