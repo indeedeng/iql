@@ -24,7 +24,7 @@ public enum IQLEnv {
     STAGE("stage"),
     QA("qa"),
     INTEGRATION("integration"),
-    DEVELOPER("developer");
+    LOCAL("local");
 
     public final String id;
 
