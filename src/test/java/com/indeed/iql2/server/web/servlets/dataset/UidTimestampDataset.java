@@ -23,10 +23,23 @@ public class UidTimestampDataset {
     static Dataset create() {
         final List<Dataset.DatasetShard> result = new ArrayList<>();
         final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
-        final FlamdexDocument doc = new FlamdexDocument();
-        // Timestamp matches 2019-04-17T11:00:00.000 GMT
-        doc.addStringTerm("uid", "1d8lf84s022kk800");
-        flamdex.addDocument(doc);
+        {
+            final FlamdexDocument doc = new FlamdexDocument();
+            // Timestamp matches 2019-04-17T11:00:00.000 GMT
+            doc.addStringTerm("uid", "1d8lf84s022kk800");
+            flamdex.addDocument(doc);
+        }
+        {
+            final FlamdexDocument doc = new FlamdexDocument();
+            doc.addStringTerm("uid", "");
+            flamdex.addDocument(doc);
+        }
+        {
+            final FlamdexDocument doc = new FlamdexDocument();
+            // too short
+            doc.addStringTerm("uid", "5");
+            flamdex.addDocument(doc);
+        }
         result.add(new Dataset.DatasetShard("uidTimestamp", "index20150101.00-20150102.00", flamdex));
         return new Dataset(result);
     }

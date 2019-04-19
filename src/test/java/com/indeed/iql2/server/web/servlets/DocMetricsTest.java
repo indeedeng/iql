@@ -1,6 +1,7 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
+import com.indeed.imhotep.exceptions.GenericImhotepKnownException;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.junit.Test;
@@ -151,9 +152,18 @@ public class DocMetricsTest extends BasicTest {
 
     @Test
     public void testUidToTimestamp() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("", "-1"));
+        expected.add(ImmutableList.of("1d8lf84s022kk800", String.valueOf(new DateTime(2019, 4, 17, 11, 0, DateTimeZone.UTC).getMillis() / 1000)));
+        expected.add(ImmutableList.of("5", "-1"));
         QueryServletTestUtils.testIQL2AndLegacy(
-                ImmutableList.of(ImmutableList.of("1d8lf84s022kk800", String.valueOf(new DateTime(2019, 4, 17, 11, 0, DateTimeZone.UTC).getMillis() / 1000))),
+                expected,
                 "from uidTimestamp yesterday today group by uid select UID_TO_UNIXTIME(uid)/count()"
         );
+    }
+
+    @Test
+    public void testMultiValuedUidToTimestamp() throws Exception {
+        QueryServletTestUtils.expectException("from multiValuedUidTimestamp yesterday today select UID_TO_UNIXTIME(uid)", QueryServletTestUtils.LanguageVersion.IQL2, x -> x.contains("Can only compute uid_to_timestamp on single valued fields containing UIDs"));
     }
 }
