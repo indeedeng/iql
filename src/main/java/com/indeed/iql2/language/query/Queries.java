@@ -193,8 +193,7 @@ public class Queries {
     }
 
     public static ParseResult parseQuery(String q, boolean useLegacy, DatasetsMetadata datasetsMetadata, final Set<String> defaultOptions, WallClock clock, final TracingTreeTimer timer, final ShardResolver shardResolver) {
-        return parseQuery(q, useLegacy, datasetsMetadata, defaultOptions, s -> {
-        }, clock, timer, shardResolver);
+        return parseQuery(q, useLegacy, datasetsMetadata, defaultOptions, s -> {}, clock, timer, shardResolver);
     }
 
     public static ParseResult parseQuery(String q, boolean useLegacy, DatasetsMetadata datasetsMetadata, final Set<String> defaultOptions, Consumer<String> warn, WallClock clock, final TracingTreeTimer timer, final ShardResolver shardResolver) {
@@ -403,14 +402,13 @@ public class Queries {
             final boolean throwOnError) {
         final IqlKnownException.ParseErrorException error;
         try {
-            final AtomicReference<IqlKnownException.ParseErrorException> lexerException = new AtomicReference<>();
-            final List<RecognitionException> exceptions = new ArrayList<>();
+            final AtomicReference<IqlKnownException.ParseErrorException> exceptions = new AtomicReference<>();
             final ANTLRErrorListener errorListener = new BaseErrorListener() {
                 @Override
                 public void syntaxError(final Recognizer<?, ?> recognizer, final Object offendingSymbol, final int line, final int charPositionInLine, final String msg, final RecognitionException e) {
                     super.syntaxError(recognizer, offendingSymbol, line, charPositionInLine, msg, e);
-                    if (lexerException.get() == null) {
-                        lexerException.set(new IqlKnownException.ParseErrorException("Invalid input: [" + input + "] " + msg, e));
+                    if (exceptions.get() == null) {
+                        exceptions.set(new IqlKnownException.ParseErrorException("Invalid input: [" + input + "] " + msg, e));
                     }
                 }
             };
@@ -418,31 +416,29 @@ public class Queries {
                 @Override
                 public void reportError(final Parser recognizer, final RecognitionException e) {
                     super.reportError(recognizer, e);
-                    exceptions.add(e);
+                    if (exceptions.get() == null) {
+                        final RecognitionException anException = e;
+                        final String message = anException.getExpectedTokens().toString(JQLParser.VOCABULARY);
+                        exceptions.set(new IqlKnownException.ParseErrorException(
+                                "Invalid input: [" + input + "]" + ", expected " + message + ", found [" + anException.getOffendingToken().getText() + "]",
+                                e
+                        ));
+                    }
                 }
             };
             final JQLParser parser = parserForString(input, errorListener, errorStrategy);
             final T result = applyParser.apply(parser);
-            if ((parser.getNumberOfSyntaxErrors() == 0) && (lexerException.get() == null)) {
+            if ((parser.getNumberOfSyntaxErrors() == 0) && (exceptions.get() == null)) {
                 return result;
             }
 
             if (!throwOnError) {
                 return null;
             }
-
-            if (lexerException.get() != null) {
-                error = lexerException.get();
+            if (exceptions.get() == null) {
+                error = new IqlKnownException.ParseErrorException("Invalid input: [" + input + "]");
             } else {
-                final String extra;
-                if (!exceptions.isEmpty()) {
-                    final RecognitionException anException = exceptions.get(0);
-                    final String message = anException.getExpectedTokens().toString(JQLParser.VOCABULARY);
-                    extra = ", expected " + message + ", found [" + anException.getOffendingToken().getText() + "]";
-                } else {
-                    extra = "";
-                }
-                error = new IqlKnownException.ParseErrorException("Invalid input: [" + input + "]" + extra);
+                error = exceptions.get();
             }
         } catch (final Throwable t) {
             // Some unexpected error inside parser.
