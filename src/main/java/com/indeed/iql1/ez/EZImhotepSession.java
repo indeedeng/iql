@@ -108,13 +108,13 @@ public class EZImhotepSession implements Closeable {
         if (initialDepth + 1 != stackDepth) {
             throw new RuntimeException("Bug! Did not change stack depth by exactly 1.");
         }
-        SingleStatReference statReference = new SingleStatReference(initialDepth, stat.toString(), this);
+        SingleStatReference statReference = new SingleStatReference(initialDepth, stat.toString());
         if(stat instanceof Stats.AggregateBinOpConstStat) { // hacks for handling division by a constant
             final Stats.AggregateBinOpConstStat statAsConstAggregate = (Stats.AggregateBinOpConstStat) stat;
             if(!"/".equals(statAsConstAggregate.getOp())) {
                 throw new IllegalArgumentException("Only aggregate division is currently supported");
             }
-            statReference = new ConstantDivideSingleStatReference(statReference, statAsConstAggregate.getValue(), this);
+            statReference = new ConstantDivideSingleStatReference(statReference, statAsConstAggregate.getValue());
         }
 
         statStack.push(statReference);
@@ -127,8 +127,8 @@ public class EZImhotepSession implements Closeable {
         if (initialDepth + 2 != stackDepth) {
             throw new RuntimeException("Bug! Did not change stack depth by exactly 2.");
         }
-        final SingleStatReference stat1 = new SingleStatReference(initialDepth, stat.toString(), this);
-        final SingleStatReference stat2 = new SingleStatReference(initialDepth + 1, stat.toString(), this);
+        final SingleStatReference stat1 = new SingleStatReference(initialDepth, stat.toString());
+        final SingleStatReference stat2 = new SingleStatReference(initialDepth + 1, stat.toString());
         final CompositeStatReference statReference = new CompositeStatReference(stat1, stat2);
         statStack.push(statReference);
         return statReference;
@@ -148,8 +148,8 @@ public class EZImhotepSession implements Closeable {
         return numGroups;
     }
 
-    public double[] getGroupStats(StatReference statReference) throws ImhotepOutOfMemoryException {
-        return statReference.getGroupStats();
+    public double[] getGroupStats(final StatReference statReference) throws ImhotepOutOfMemoryException {
+        return statReference.getGroupStats(this);
     }
 
     long[] getGroupStats(int depth) throws ImhotepOutOfMemoryException {

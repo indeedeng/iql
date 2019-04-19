@@ -21,13 +21,11 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 public class SingleStatReference implements StatReference {
     final int depth;
     private final String stringRep;
-    private final EZImhotepSession session;
     private boolean valid = true;
 
-    SingleStatReference(int depth, String stringRep, EZImhotepSession session) {
+    SingleStatReference(final int depth, final String stringRep) {
         this.depth = depth;
         this.stringRep = stringRep;
-        this.session = session;
     }
 
     @Override
@@ -40,7 +38,7 @@ public class SingleStatReference implements StatReference {
     }
 
     @Override
-    public double[] getGroupStats() throws ImhotepOutOfMemoryException {
+    public double[] getGroupStats(final EZImhotepSession session) throws ImhotepOutOfMemoryException {
         Stats.requireValid(this);
         long[] values = session.getGroupStats(depth);
         double[] realValues = new double[values.length];

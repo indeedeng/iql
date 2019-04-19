@@ -70,7 +70,7 @@ public class PercentileGrouping extends Grouping {
             return Collections.<GroupStats>emptyList().iterator();
         }
         final StatReference countStatRef = session.pushStat(countStat);
-        final long[] counts = getCounts(countStatRef);
+        final long[] counts = getCounts(countStatRef, session);
 
         final Int2ObjectMap<Int2LongMap> groupToPositionToStats = getPercentileStats(session, groupKeys, countStatRef, counts);
 
@@ -173,8 +173,8 @@ public class PercentileGrouping extends Grouping {
         return ret;
     }
 
-    private static long[] getCounts(final StatReference countStatRef) throws ImhotepOutOfMemoryException {
-        final double[] doubleGroupStats = countStatRef.getGroupStats();
+    private static long[] getCounts(final StatReference countStatRef, final EZImhotepSession session) throws ImhotepOutOfMemoryException {
+        final double[] doubleGroupStats = countStatRef.getGroupStats(session);
         final long[] groupStats = new long[doubleGroupStats.length];
         for (int i = 0; i < doubleGroupStats.length; ++i) {
             groupStats[i] = Math.round(doubleGroupStats[i]);
