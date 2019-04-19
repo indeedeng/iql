@@ -14,6 +14,7 @@
 
 package com.indeed.iql2.language.optimizations;
 
+import com.google.common.collect.Iterables;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocFilter;
 import com.indeed.iql2.language.DocMetric;
@@ -47,7 +48,7 @@ public class ConstantFolding {
 
     private static final Function<DocMetric, DocMetric> METRIC_OPTIMIZER = new Function<DocMetric, DocMetric>() {
         @Override
-        public DocMetric apply(DocMetric input) {
+        public DocMetric apply(final DocMetric input) {
             if (input instanceof DocMetric.Multiply) {
                 // Multiply (Constant x) (Constant y) = Constant (x * y)
                 // Multiply (Constant 0) x = Constant 0
@@ -136,15 +137,16 @@ public class ConstantFolding {
                         return new DocMetric.Constant(0);
                     }
                 }
-                if ((metricEqual.m1 instanceof DocMetric.Field) && isConstant(metricEqual.m2)) {
-                    return new DocMetric.HasInt(((DocMetric.Field) metricEqual.m1).field, getConstant(metricEqual.m2));
+                final Pair<DocMetric, DocMetric> normalized = normalize(metricEqual.m1, metricEqual.m2);
+                if (isConstant(normalized.getFirst()) &&  (normalized.getSecond() instanceof DocMetric.Field)) {
+                    return new DocMetric.HasInt(((DocMetric.Field) normalized.getSecond()).field, getConstant(normalized.getFirst()));
                 }
-                if ((metricEqual.m1 instanceof DocMetric.ZeroOneMetric) && isConstant(metricEqual.m2)) {
-                    final long value = getConstant(metricEqual.m2);
+                if (isConstant(normalized.getFirst()) && (normalized.getSecond() instanceof DocMetric.ZeroOneMetric)) {
+                    final long value = getConstant(normalized.getFirst());
                     if (value == 1) {
-                        return metricEqual.m1;
+                        return normalized.getSecond();
                     } else if (value == 0) {
-                        final DocMetric inverted = ((DocMetric.ZeroOneMetric) metricEqual.m1).invert();
+                        final DocMetric inverted = ((DocMetric.ZeroOneMetric) normalized.getSecond()).invert();
                         if (inverted != null) {
                             return inverted;
                         }
@@ -162,21 +164,22 @@ public class ConstantFolding {
                         return new DocMetric.Constant(0);
                     }
                 }
-                if ((metricNotEqual.m1 instanceof DocMetric.Field) && isConstant(metricNotEqual.m2)) {
+                final Pair<DocMetric, DocMetric> normalized = normalize(metricNotEqual.m1, metricNotEqual.m2);
+                if (isConstant(normalized.getFirst()) && (normalized.getSecond() instanceof DocMetric.Field)) {
                     // field != constant can be implemented in two ways
                     // 1. pushStat("field', "constant", "!=")
                     // 2. pushStat("1", "hasInt(field, constant)", "-")
                     // Second seems to be better because will use less memory and could require only one term un-inversion
                     return DocMetrics.negateMetric(
-                            new DocMetric.HasInt(((DocMetric.Field) metricNotEqual.m1).field,
-                                    getConstant(metricNotEqual.m2)));
+                            new DocMetric.HasInt(((DocMetric.Field) normalized.getSecond()).field,
+                                    getConstant(normalized.getFirst())));
                 }
-                if ((metricNotEqual.m1 instanceof DocMetric.ZeroOneMetric) && isConstant(metricNotEqual.m2)) {
-                    final long value = getConstant(metricNotEqual.m2);
+                if (isConstant(normalized.getFirst()) && (normalized.getSecond() instanceof DocMetric.ZeroOneMetric)) {
+                    final long value = getConstant(normalized.getFirst());
                     if (value == 0) {
-                        return metricNotEqual.m1;
+                        return normalized.getSecond();
                     } else if (value == 1) {
-                        final DocMetric inverted = ((DocMetric.ZeroOneMetric) metricNotEqual.m1).invert();
+                        final DocMetric inverted = ((DocMetric.ZeroOneMetric) normalized.getSecond()).invert();
                         if (inverted != null) {
                             return inverted;
                         }
@@ -242,20 +245,21 @@ public class ConstantFolding {
     };
     private static final Function<DocFilter, DocFilter> FILTER_OPTIMIZER = new Function<DocFilter, DocFilter>() {
         @Override
-        public DocFilter apply(DocFilter input) {
+        public DocFilter apply(final DocFilter input) {
             if (input instanceof DocFilter.MetricEqual) {
                 final DocFilter.MetricEqual metricEqual = (DocFilter.MetricEqual) input;
                 if (isConstant(metricEqual.m1) && isConstant(metricEqual.m2)) {
                     return makeConstant(getConstant(metricEqual.m1) == getConstant(metricEqual.m2));
                 }
-                if ((metricEqual.m1 instanceof DocMetric.ZeroOneMetric) && isConstant(metricEqual.m2)) {
-                    final long value = getConstant(metricEqual.m2);
+                final Pair<DocMetric, DocMetric> normalized = normalize(metricEqual.m1, metricEqual.m2);
+                if (isConstant(normalized.getFirst()) && (normalized.getSecond() instanceof DocMetric.ZeroOneMetric)) {
+                    final long value = getConstant(normalized.getFirst());
                     // result of binary operation is compared to constant
                     // unwrapping operation
                     if (value == 1) {
-                        return ((DocMetric.ZeroOneMetric) metricEqual.m1).convertToFilter();
+                        return ((DocMetric.ZeroOneMetric) normalized.getSecond()).convertToFilter();
                     } else if (value == 0) {
-                        DocFilter result = ((DocMetric.ZeroOneMetric) metricEqual.m1).convertToFilter();
+                        DocFilter result = ((DocMetric.ZeroOneMetric) normalized.getSecond()).convertToFilter();
                         result = new DocFilter.Not(result);
                         // applying this method once again to optimize Not.
                         return FILTER_OPTIMIZER.apply(result);
@@ -263,23 +267,24 @@ public class ConstantFolding {
                         return new DocFilter.Never();
                     }
                 }
-                if ((metricEqual.m1 instanceof DocMetric.Field) && isConstant(metricEqual.m2)) {
-                    final FieldSet field = ((DocMetric.Field) metricEqual.m1).field;
-                    return DocFilter.FieldIs.create(field, Term.term(getConstant(metricEqual.m2)));
+                if (isConstant(normalized.getFirst()) && (normalized.getSecond() instanceof DocMetric.Field)) {
+                    final FieldSet field = ((DocMetric.Field) normalized.getSecond()).field;
+                    return DocFilter.FieldIs.create(field, Term.term(getConstant(normalized.getFirst())));
                 }
             } else if (input instanceof DocFilter.MetricNotEqual) {
                 final DocFilter.MetricNotEqual metricNotEqual = (DocFilter.MetricNotEqual) input;
                 if (isConstant(metricNotEqual.m1) && isConstant(metricNotEqual.m2)) {
                     return makeConstant(getConstant(metricNotEqual.m1) != getConstant(metricNotEqual.m2));
                 }
-                if ((metricNotEqual.m1 instanceof DocMetric.ZeroOneMetric) && isConstant(metricNotEqual.m2)) {
-                    final long value = getConstant(metricNotEqual.m2);
+                final Pair<DocMetric, DocMetric> normalized = normalize(metricNotEqual.m1, metricNotEqual.m2);
+                if (isConstant(normalized.getFirst()) && (normalized.getSecond() instanceof DocMetric.ZeroOneMetric)) {
+                    final long value = getConstant(normalized.getFirst());
                     // result of binary operation is compared to constant
                     // unwrapping operation
                     if (value == 0) {
-                        return ((DocMetric.ZeroOneMetric) metricNotEqual.m1).convertToFilter();
+                        return ((DocMetric.ZeroOneMetric) normalized.getSecond()).convertToFilter();
                     } else if (value == 1) {
-                        DocFilter result = ((DocMetric.ZeroOneMetric) metricNotEqual.m1).convertToFilter();
+                        DocFilter result = ((DocMetric.ZeroOneMetric) normalized.getSecond()).convertToFilter();
                         result = new DocFilter.Not(result);
                         // applying this method once again to optimize Not.
                         return FILTER_OPTIMIZER.apply(result);
@@ -287,9 +292,9 @@ public class ConstantFolding {
                         return new DocFilter.Always();
                     }
                 }
-                if ((metricNotEqual.m1 instanceof DocMetric.Field) && isConstant(metricNotEqual.m2)) {
-                    final FieldSet field = ((DocMetric.Field) metricNotEqual.m1).field;
-                    return DocFilter.FieldIsnt.create(field, Term.term(getConstant(metricNotEqual.m2)));
+                if (isConstant(normalized.getFirst()) && (normalized.getSecond() instanceof DocMetric.Field)) {
+                    final FieldSet field = ((DocMetric.Field) normalized.getSecond()).field;
+                    return DocFilter.FieldIsnt.create(field, Term.term(getConstant(normalized.getFirst())));
                 }
             } else if (input instanceof DocFilter.MetricGt) {
                 final DocFilter.MetricGt metricGt = (DocFilter.MetricGt) input;
@@ -297,7 +302,7 @@ public class ConstantFolding {
                     return makeConstant(getConstant(metricGt.m1) > getConstant(metricGt.m2));
                 }
                 if (isConstant(metricGt.m2) && (getConstant(metricGt.m2) == Long.MAX_VALUE)) {
-                    return makeConstant(false); // always false
+                    return new DocFilter.Never(); // always false
                 }
             } else if (input instanceof DocFilter.MetricGte) {
                 final DocFilter.MetricGte metricGte = (DocFilter.MetricGte) input;
@@ -305,7 +310,7 @@ public class ConstantFolding {
                     return makeConstant(getConstant(metricGte.m1) >= getConstant(metricGte.m2));
                 }
                 if (isConstant(metricGte.m2) && (getConstant(metricGte.m2) == Long.MIN_VALUE)) {
-                    return makeConstant(true); // always true
+                    return new DocFilter.Always(); // always true
                 }
             } else if (input instanceof DocFilter.MetricLt) {
                 final DocFilter.MetricLt metricLt = (DocFilter.MetricLt) input;
@@ -313,7 +318,7 @@ public class ConstantFolding {
                     return makeConstant(getConstant(metricLt.m1) < getConstant(metricLt.m2));
                 }
                 if (isConstant(metricLt.m2) && (getConstant(metricLt.m2) == Long.MIN_VALUE)) {
-                    return makeConstant(false); // always false
+                    return new DocFilter.Never(); // always false
                 }
             } else if (input instanceof DocFilter.MetricLte) {
                 final DocFilter.MetricLte metricLte = (DocFilter.MetricLte) input;
@@ -321,12 +326,12 @@ public class ConstantFolding {
                     return makeConstant(getConstant(metricLte.m1) <= getConstant(metricLte.m2));
                 }
                 if (isConstant(metricLte.m2) && (getConstant(metricLte.m2) == Long.MAX_VALUE)) {
-                    return makeConstant(true); // always true;
+                    return new DocFilter.Always(); // always true;
                 }
             } else if (input instanceof DocFilter.FieldInTermsSet) {
                 final DocFilter.FieldInTermsSet fieldIn = (DocFilter.FieldInTermsSet)input;
                 if (fieldIn.terms.size() == 1) {
-                    return DocFilter.FieldIs.create(fieldIn.field, fieldIn.terms.iterator().next());
+                    return DocFilter.FieldIs.create(fieldIn.field, Iterables.getOnlyElement(fieldIn.terms));
                 }
             } else if (input instanceof DocFilter.Not) {
                 final DocFilter.Not not = (DocFilter.Not) input;
