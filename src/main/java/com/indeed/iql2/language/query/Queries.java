@@ -417,8 +417,7 @@ public class Queries {
                 public void reportError(final Parser recognizer, final RecognitionException e) {
                     super.reportError(recognizer, e);
                     if (exceptions.get() == null) {
-                        final RecognitionException anException = e;
-                        final String message = anException.getExpectedTokens().toString(JQLParser.VOCABULARY);
+                        final String message = e.getExpectedTokens().toString(JQLParser.VOCABULARY);
                         exceptions.set(new IqlKnownException.ParseErrorException(
                                 "Invalid input: [" + input + "]" + ", expected " + message + ", found [" + anException.getOffendingToken().getText() + "]",
                                 e
