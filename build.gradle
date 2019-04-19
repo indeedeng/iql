@@ -2,7 +2,6 @@ plugins {
     id 'java'
 //    id 'maven-publish'
     id 'antlr'
-    id 'jacoco'
 }
 
 ext['indeed.publish.name'] = 'iql'
@@ -22,14 +21,6 @@ repositories {
 ext {
     imhotepVersion = '3.1.174'
     imsVersion = '4.0.14'
-}
-
-jacocoTestReport {
-    reports {
-        xml.enabled = false
-        csv.enabled = false
-        html.destination = file("${buildDir}/jacocoHtml")
-    }
 }
 
 dependencies {
