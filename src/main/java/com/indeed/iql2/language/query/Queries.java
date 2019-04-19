@@ -402,13 +402,13 @@ public class Queries {
             final boolean throwOnError) {
         final IqlKnownException.ParseErrorException error;
         try {
-            final AtomicReference<IqlKnownException.ParseErrorException> exceptions = new AtomicReference<>();
+            final AtomicReference<IqlKnownException.ParseErrorException> exception = new AtomicReference<>();
             final ANTLRErrorListener errorListener = new BaseErrorListener() {
                 @Override
                 public void syntaxError(final Recognizer<?, ?> recognizer, final Object offendingSymbol, final int line, final int charPositionInLine, final String msg, final RecognitionException e) {
                     super.syntaxError(recognizer, offendingSymbol, line, charPositionInLine, msg, e);
-                    if (exceptions.get() == null) {
-                        exceptions.set(new IqlKnownException.ParseErrorException("Invalid input: [" + input + "] " + msg, e));
+                    if (exception.get() == null) {
+                        exception.set(new IqlKnownException.ParseErrorException("Invalid input: [" + input + "] " + msg, e));
                     }
                 }
             };
@@ -416,9 +416,9 @@ public class Queries {
                 @Override
                 public void reportError(final Parser recognizer, final RecognitionException e) {
                     super.reportError(recognizer, e);
-                    if (exceptions.get() == null) {
+                    if (exception.get() == null) {
                         final String message = e.getExpectedTokens().toString(JQLParser.VOCABULARY);
-                        exceptions.set(new IqlKnownException.ParseErrorException(
+                        exception.set(new IqlKnownException.ParseErrorException(
                                 "Invalid input: [" + input + "]" + ", expected " + message + ", found [" + anException.getOffendingToken().getText() + "]",
                                 e
                         ));
@@ -427,17 +427,17 @@ public class Queries {
             };
             final JQLParser parser = parserForString(input, errorListener, errorStrategy);
             final T result = applyParser.apply(parser);
-            if ((parser.getNumberOfSyntaxErrors() == 0) && (exceptions.get() == null)) {
+            if ((parser.getNumberOfSyntaxErrors() == 0) && (exception.get() == null)) {
                 return result;
             }
 
             if (!throwOnError) {
                 return null;
             }
-            if (exceptions.get() == null) {
+            if (exception.get() == null) {
                 error = new IqlKnownException.ParseErrorException("Invalid input: [" + input + "]");
             } else {
-                error = exceptions.get();
+                error = exception.get();
             }
         } catch (final Throwable t) {
             // Some unexpected error inside parser.
