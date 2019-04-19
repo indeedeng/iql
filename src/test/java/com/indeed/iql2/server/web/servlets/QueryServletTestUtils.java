@@ -116,7 +116,7 @@ public class QueryServletTestUtils extends BasicTest {
 				new FieldFrequencyCache(null),
                 options.wallClock,
                 defaultOptions,
-                IQLEnv.LOCAL
+                IQLEnv.DEVELOPER
         );
     }
 

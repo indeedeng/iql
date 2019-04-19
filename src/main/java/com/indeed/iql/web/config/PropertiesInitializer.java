@@ -116,7 +116,7 @@ public class PropertiesInitializer implements ApplicationContextInitializer<Conf
         List<String> locations = Lists.newArrayList();
         if(env != null) {
             locations.add(getSVNConfigLocation() + getConfigFileName(env.id));
-            if(env.equals(IQLEnv.LOCAL)) {    // allow optional local override file (e.g. for private auth data)
+            if(env.equals(IQLEnv.DEVELOPER)) {    // allow optional local override file (e.g. for private auth data)
                 locations.add(getSVNConfigLocation() + getConfigFileName(env.id + "-private"));
             }
         }
