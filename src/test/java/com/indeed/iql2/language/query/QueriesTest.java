@@ -141,7 +141,7 @@ public class QueriesTest {
     public void testLexerFailure() {
         thrown.expect(IqlKnownException.ParseErrorException.class);
         thrown.expectMessage("Invalid input: [from jobsearch 1d today where tk ~= 'regex'] token recognition error at: '~'");
-        // Should have been =~ but ~=
+        // Should have been =~ but was ~=
         Queries.runParser("from jobsearch 1d today where tk ~= 'regex'", input -> input.query(false));
     }
 
