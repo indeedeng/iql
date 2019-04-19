@@ -419,7 +419,7 @@ public class Queries {
                     if (exception.get() == null) {
                         final String message = e.getExpectedTokens().toString(JQLParser.VOCABULARY);
                         exception.set(new IqlKnownException.ParseErrorException(
-                                "Invalid input: [" + input + "]" + ", expected " + message + ", found [" + anException.getOffendingToken().getText() + "]",
+                                "Invalid input: [" + input + "]" + ", expected " + message + ", found [" + e.getOffendingToken().getText() + "]",
                                 e
                         ));
                     }
