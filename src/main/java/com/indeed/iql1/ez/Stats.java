@@ -31,7 +31,7 @@ public class Stats {
     }
 
     public abstract static class Stat {
-        protected abstract List<String> pushes(EZImhotepSession session);
+        protected abstract List<String> pushes();
     }
 
     public static class IntFieldStat extends Stat {
@@ -40,7 +40,7 @@ public class Stats {
             this.fieldName = fieldName;
         }
         @Override
-        protected List<String> pushes(EZImhotepSession session) {
+        protected List<String> pushes() {
             return Lists.newArrayList(fieldName);
         }
         @Override
@@ -75,11 +75,11 @@ public class Stats {
         }
 
         @Override
-        protected List<String> pushes(EZImhotepSession session) {
+        protected List<String> pushes() {
             boolean first = true;
             final List<String> ret = Lists.newArrayList();
             for (Stat stat : stats) {
-                ret.addAll(stat.pushes(session));
+                ret.addAll(stat.pushes());
                 if (!first) {
                     ret.add(op);
                 }
@@ -117,8 +117,8 @@ public class Stats {
         }
 
         @Override
-        protected List<String> pushes(EZImhotepSession session) {
-            return Lists.newArrayList(Iterables.concat(statLeft.pushes(session), statRight.pushes(session)));
+        protected List<String> pushes() {
+            return Lists.newArrayList(Iterables.concat(statLeft.pushes(), statRight.pushes()));
         }
 
         @Override
@@ -139,8 +139,8 @@ public class Stats {
         }
 
         @Override
-        protected List<String> pushes(EZImhotepSession session) {
-            return statLeft.pushes(session);
+        protected List<String> pushes() {
+            return statLeft.pushes();
         }
 
         @Override
@@ -163,7 +163,7 @@ public class Stats {
             this.value = value;
         }
         @Override
-        protected List<String> pushes(EZImhotepSession session) {
+        protected List<String> pushes() {
             return Lists.newArrayList(Long.toString(value));
         }
         @Override
@@ -184,8 +184,8 @@ public class Stats {
             this.scaleFactor = scaleFactor;
         }
         @Override
-        protected List<String> pushes(EZImhotepSession session) {
-            List<String> prev = Lists.newArrayList(stat.pushes(session));
+        protected List<String> pushes() {
+            List<String> prev = Lists.newArrayList(stat.pushes());
             prev.add("exp " + scaleFactor);
             return prev;
         }
@@ -203,8 +203,8 @@ public class Stats {
             this.scaleFactor = scaleFactor;
         }
         @Override
-        protected List<String> pushes(EZImhotepSession session) {
-            List<String> prev = Lists.newArrayList(stat.pushes(session));
+        protected List<String> pushes() {
+            List<String> prev = Lists.newArrayList(stat.pushes());
             prev.add("log " + scaleFactor);
             return prev;
         }
@@ -222,7 +222,7 @@ public class Stats {
             this.value = value;
         }
         @Override
-        protected List<String> pushes(EZImhotepSession session) {
+        protected List<String> pushes() {
             return Lists.newArrayList("hasint " + field + ":" + Long.toString(value));
         }
         @Override
@@ -239,7 +239,7 @@ public class Stats {
             this.value = value;
         }
         @Override
-        protected List<String> pushes(EZImhotepSession session) {
+        protected List<String> pushes() {
             return Lists.newArrayList("hasstr " + field + ":" + value);
         }
         @Override
@@ -254,7 +254,7 @@ public class Stats {
             this.field = field;
         }
         @Override
-        protected List<String> pushes(EZImhotepSession session) {
+        protected List<String> pushes() {
             return Lists.newArrayList("hasstrfield " + field);
         }
         @Override
@@ -269,7 +269,7 @@ public class Stats {
             this.field = field;
         }
         @Override
-        protected List<String> pushes(EZImhotepSession session) {
+        protected List<String> pushes() {
             return Lists.newArrayList("hasintfield " + field);
         }
         @Override
@@ -284,7 +284,7 @@ public class Stats {
             this.luceneQuery = luceneQuery;
         }
         @Override
-        protected List<String> pushes(EZImhotepSession session) {
+        protected List<String> pushes() {
             final QueryMessage luceneQueryMessage = ImhotepClientMarshaller.marshal(luceneQuery);
             final String base64EncodedQuery = Base64.encodeBase64String(luceneQueryMessage.toByteArray());
             return Lists.newArrayList("lucene " + base64EncodedQuery);
@@ -299,7 +299,7 @@ public class Stats {
         CountStat() {
         }
         @Override
-        protected List<String> pushes(EZImhotepSession session) {
+        protected List<String> pushes() {
             return Lists.newArrayList("count()");
         }
         @Override
@@ -314,8 +314,8 @@ public class Stats {
             this.stat = stat;
         }
         @Override
-        protected List<String> pushes(EZImhotepSession session) {
-            List<String> ret = Lists.newArrayList(stat.pushes(session));
+        protected List<String> pushes() {
+            List<String> ret = Lists.newArrayList(stat.pushes());
             ret.add("cached()");
             return ret;
         }
@@ -327,8 +327,8 @@ public class Stats {
             this.stat = stat;
         }
         @Override
-        protected List<String> pushes(EZImhotepSession session) {
-            List<String> ret = Lists.newArrayList(stat.pushes(session));
+        protected List<String> pushes() {
+            List<String> ret = Lists.newArrayList(stat.pushes());
             ret.add("abs()");
             return ret;
         }
@@ -345,7 +345,7 @@ public class Stats {
             this.add = add;
         }
         @Override
-        protected List<String> pushes(EZImhotepSession session) {
+        protected List<String> pushes() {
             return Lists.newArrayList("floatscale "+fieldName+" * "+mult+" + "+add);
         }
     }
@@ -361,9 +361,9 @@ public class Stats {
             this.stat2 = stat2;
         }
         @Override
-        protected List<String> pushes(EZImhotepSession session) {
-            List<String> ret = Lists.newArrayList(stat1.pushes(session));
-            ret.addAll(stat2.pushes(session));
+        protected List<String> pushes() {
+            List<String> ret = Lists.newArrayList(stat1.pushes());
+            ret.addAll(stat2.pushes());
             ret.add("mulshr " + shift);
             return ret;
         }
@@ -380,9 +380,9 @@ public class Stats {
             this.stat2 = stat2;
         }
         @Override
-        protected List<String> pushes(EZImhotepSession session) {
-            List<String> ret = Lists.newArrayList(stat1.pushes(session));
-            ret.addAll(stat2.pushes(session));
+        protected List<String> pushes() {
+            List<String> ret = Lists.newArrayList(stat1.pushes());
+            ret.addAll(stat2.pushes());
             ret.add("shldiv " + shift);
             return ret;
         }

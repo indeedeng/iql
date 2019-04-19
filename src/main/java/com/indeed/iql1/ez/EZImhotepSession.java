@@ -104,7 +104,7 @@ public class EZImhotepSession implements Closeable {
                     "'/' (aggregate division) not supported here in IQL1. Did you mean '\\' for per-document instead? If not, for deeper nested arithmetic, use IQL2.");
         }
         final int initialDepth = stackDepth;
-        stackDepth = session.pushStats(stat.pushes(this));
+        stackDepth = session.pushStats(stat.pushes());
         if (initialDepth + 1 != stackDepth) {
             throw new RuntimeException("Bug! Did not change stack depth by exactly 1.");
         }
@@ -123,7 +123,7 @@ public class EZImhotepSession implements Closeable {
 
     private CompositeStatReference pushStatComposite(Stats.AggregateBinOpStat stat) throws ImhotepOutOfMemoryException {
         final int initialDepth = stackDepth;
-        stackDepth = session.pushStats(stat.pushes(this));
+        stackDepth = session.pushStats(stat.pushes());
         if (initialDepth + 2 != stackDepth) {
             throw new RuntimeException("Bug! Did not change stack depth by exactly 2.");
         }
