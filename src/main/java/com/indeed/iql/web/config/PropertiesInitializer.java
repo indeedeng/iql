@@ -72,7 +72,7 @@ public class PropertiesInitializer implements ApplicationContextInitializer<Conf
         // try to infer the appropriate Spring profile
         // this JVM system property should be set in OPs managed JVMs
         String indeedEnv = System.getProperty(indeedEnvironmentJVMProperty);
-        if(Strings.isNullOrEmpty(indeedEnv)) {
+        if(Strings.isNullOrEmpty(indeedEnv) || "local".equals(indeedEnv)) {
             indeedEnv = "developer"; // assume this is not an OPs managed JVM and thus a developer station
         }
         final List<String> profiles = Lists.newArrayList(springEnv.getActiveProfiles());
@@ -116,7 +116,7 @@ public class PropertiesInitializer implements ApplicationContextInitializer<Conf
         List<String> locations = Lists.newArrayList();
         if(env != null) {
             locations.add(getSVNConfigLocation() + getConfigFileName(env.id));
-            if(env.equals(IQLEnv.LOCAL)) {    // allow optional local override file (e.g. for private auth data)
+            if(env.equals(IQLEnv.DEVELOPER)) {    // allow optional local override file (e.g. for private auth data)
                 locations.add(getSVNConfigLocation() + getConfigFileName(env.id + "-private"));
             }
         }
