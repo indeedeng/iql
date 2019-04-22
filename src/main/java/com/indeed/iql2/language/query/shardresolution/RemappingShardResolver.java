@@ -56,7 +56,7 @@ public class RemappingShardResolver implements ShardResolver {
         return IntStream.range(0, shards.size())
                 .mapToObj(shardIndex -> {
                     final Shard shard = shards.get(shardIndex);
-                    return shard.withHost(hosts.get(shardIndex % hosts.size()));
+                    return shard.withServer(hosts.get(shardIndex % hosts.size()));
                 })
                 .collect(Collectors.toList());
     }
@@ -89,7 +89,7 @@ public class RemappingShardResolver implements ShardResolver {
         while (!docSumQueue.isEmpty()) {
             final Pair<Long, List<Integer>> poll = docSumQueue.poll();
             for (final int shardIndex : poll.getSecond()) {
-                remappedShards.add(shards.get(shardIndex).withHost(hosts.get(hostIndex)));
+                remappedShards.add(shards.get(shardIndex).withServer(hosts.get(hostIndex)));
             }
             hostIndex++;
         }

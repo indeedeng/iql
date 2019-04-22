@@ -203,7 +203,7 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
             log.info("TopTermsCache disabled by the topterms.cache.enabled setting");
         }
         return new TopTermsCache(imhotepClient(), env.getProperty("topterms.cache.dir"),
-                IQLEnv.fromSpring(env) == IQLEnv.DEVELOPER, topTermsCacheEnabled);
+                IQLEnv.fromSpring(env) == IQLEnv.LOCAL, topTermsCacheEnabled);
     }
 
     @Bean

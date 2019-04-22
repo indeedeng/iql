@@ -153,7 +153,6 @@ public class S3QueryCache implements QueryCache {
 
     /**
      * Tries to see if the S3 is accessible by listing the files in the bucket
-     * @throws IOException
      */
     @Override
     public void healthcheck() {

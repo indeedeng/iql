@@ -77,15 +77,25 @@ public class FieldRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("0", "2", "0"));
         testAll(expected, "from organic yesterday today group by ojc[3] select count(), ojc", true);
         testAll(addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc[3], allbit select count(), ojc", true);
+
+        expected.add(ImmutableList.of("10", "2", "20"));
+        testAll(expected, "from organic yesterday today group by ojc[4] select count(), ojc", true);
+        testAll(addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc[4], allbit select count(), ojc", true);
     }
 
     @Test
     public void testImplicitOrderingBackwardsIntField() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("15", "1", "15"));
+        testAll(expected, "from organic yesterday today group by ojc[bottom 1] select count(), ojc", true);
+        testAll(addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc[bottom 1], allbit select count(), ojc", true);
+
         expected.add(ImmutableList.of("5", "1", "5"));
+        testAll(expected, "from organic yesterday today group by ojc[bottom 2] select count(), ojc", true);
+        testAll(addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc[bottom 2], allbit select count(), ojc", true);
+
         expected.add(ImmutableList.of("2", "1", "2"));
-        testIQL2AndLegacy(expected, "from organic yesterday today group by ojc[BOTTOM 3] select count(), ojc", true);
+        testAll(expected, "from organic yesterday today group by ojc[bottom 3] select count(), ojc", true);
         testAll(addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc[bottom 3], allbit select count(), ojc", true);
     }
 
