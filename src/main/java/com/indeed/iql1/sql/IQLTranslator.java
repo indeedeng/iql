@@ -597,7 +597,7 @@ public final class IQLTranslator {
                     }
                     final String luceneQuery = getStr(input.get(0));
                     final com.indeed.flamdex.query.Query flamdexQuery = parseLuceneQuery(luceneQuery, datasetMetadata);
-                    return lucene(flamdexQuery);
+                    return lucene(luceneQuery, flamdexQuery);
                 }
             });
             statLookup = builder.build();
@@ -728,7 +728,7 @@ public final class IQLTranslator {
                     }
                     final String queryString = getStr(input.get(0));
                     final com.indeed.flamdex.query.Query luceneQuery = parseLuceneQuery(queryString, datasetMetadata);
-                    return new QueryCondition(luceneQuery, negation);
+                    return new QueryCondition(queryString, luceneQuery, negation);
                 }
             };
             builder.put("lucene", luceneQueryHandler);

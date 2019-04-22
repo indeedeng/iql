@@ -279,8 +279,11 @@ public class Stats {
     }
 
     static class LuceneQueryStat extends Stat {
+        // Query as it is in original query
+        private final String queryAsString;
         private final Query luceneQuery;
-        public LuceneQueryStat(Query luceneQuery) {
+        public LuceneQueryStat(final String queryAsString, final Query luceneQuery) {
+            this.queryAsString = queryAsString;
             this.luceneQuery = luceneQuery;
         }
         @Override
