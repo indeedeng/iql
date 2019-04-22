@@ -79,6 +79,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Matcher;
@@ -1060,7 +1061,7 @@ public final class IQLTranslator {
                                 noGutters = "true".equalsIgnoreCase(noGuttersStr) || "1".equals(noGuttersStr);
                             }
                             return new StatRangeGrouping(input.get(0).match(statMatcher), min, max, interval, noGutters,
-                                    new LongStringifier(), false, limits);
+                                    new LongStringifier(), false, Optional.empty(), limits);
                         } else if (input.size() == 8) {
                             throw new IqlKnownException.ParseErrorException("DEPRECATED: queries using buckets() with 8 args should be rewritten as 2 buckets() groupings with 4 args each");
                         } else {
@@ -1118,7 +1119,7 @@ public final class IQLTranslator {
             } else {
                 stat = intField(DatasetMetadata.TIME_FIELD_NAME);
             }
-            return new StatRangeGrouping(stat, min, max, interval, false, stringifier, true, limits);
+            return new StatRangeGrouping(stat, min, max, interval, false, stringifier, true, Optional.ofNullable(format), limits);
         }
 
 

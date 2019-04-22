@@ -23,6 +23,7 @@ import com.indeed.util.serialization.Stringifier;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 
 import java.text.DecimalFormat;
+import java.util.Optional;
 
 import static com.indeed.iql1.ez.Stats.Stat;
 
@@ -37,6 +38,7 @@ public final class StatRangeGrouping extends Grouping {
     private final boolean noGutters;
     private final Stringifier<Long> stringFormatter;
     private final boolean isTimeGrouping;
+    private final Optional<String> timeFormat;
     private final long expectedBucketCount;
     private final DecimalFormat df = new DecimalFormat("###,###");
     private final Limits limits;
@@ -44,7 +46,7 @@ public final class StatRangeGrouping extends Grouping {
 
     public StatRangeGrouping(final Stat stat, final long minValue, final long maxValue, final long intervalSize,
                              final boolean noGutters, Stringifier<Long> stringFormatter, boolean isTimeGrouping,
-                             final Limits limits) {
+                             final Optional<String> timeFormat, final Limits limits) {
         this.limits = limits;
         if(intervalSize <= 0) {
             throw new IqlKnownException.ParseErrorException("Bucket size has to be positive for stat: " + stat.toString());
@@ -56,6 +58,7 @@ public final class StatRangeGrouping extends Grouping {
         this.noGutters = noGutters;
         this.stringFormatter = stringFormatter;
         this.isTimeGrouping = isTimeGrouping;
+        this.timeFormat = timeFormat;
 
         expectedBucketCount = (maxValue - minValue) / intervalSize;
         if(!limits.satisfiesQueryInMemoryRowsLimit(expectedBucketCount) || expectedBucketCount < 0) {
