@@ -14,6 +14,7 @@
 
 package com.indeed.iql2.language;
 
+import com.indeed.common.datastruct.PersistentStack;
 import com.indeed.iql2.language.query.Queries;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.fieldresolution.FieldResolver;
@@ -51,7 +52,8 @@ public class AggregateMetricsTest {
             CLOCK,
             new TracingTreeTimer(),
             FIELD_RESOLVER.universalScope(),
-            new NullShardResolver()
+            new NullShardResolver(),
+            PersistentStack.empty()
     );
 
     private static final Function<String, AggregateMetric> PARSE_IQL2_AGGREGATE_METRIC = new Function<String, AggregateMetric>() {

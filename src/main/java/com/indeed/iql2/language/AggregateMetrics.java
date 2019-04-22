@@ -21,6 +21,7 @@ import com.indeed.iql2.language.query.GroupBys;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.query.fieldresolution.ScopedFieldResolver;
+import com.indeed.util.core.Pair;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -42,12 +43,13 @@ public class AggregateMetrics {
             return parseJQLAggregateMetric(metricContext.jqlAggregateMetric(), context);
         }
         if (metricContext.legacyAggregateMetric() != null) {
-            return parseLegacyAggregateMetric(metricContext.legacyAggregateMetric(), context.fieldResolver, context.datasetsMetadata);
+            return parseLegacyAggregateMetric(metricContext.legacyAggregateMetric(), context);
         }
         throw new UnsupportedOperationException("This should be unreachable");
     }
 
-    public static AggregateMetric parseLegacyAggregateMetric(JQLParser.LegacyAggregateMetricContext metricContext, final ScopedFieldResolver fieldResolver, final DatasetsMetadata datasetsMetadata) {
+    public static AggregateMetric parseLegacyAggregateMetric(JQLParser.LegacyAggregateMetricContext metricContext, final Query.Context context) {
+        final ScopedFieldResolver fieldResolver = context.fieldResolver;
         final AggregateMetric[] ref = new AggregateMetric[1];
         metricContext.enterRule(new JQLBaseListener() {
             private void accept(AggregateMetric value) {
@@ -59,7 +61,7 @@ public class AggregateMetrics {
 
             @Override
             public void enterLegacyAggregateDivByConstant(JQLParser.LegacyAggregateDivByConstantContext ctx) {
-                accept(new AggregateMetric.Divide(parseLegacyAggregateMetric(ctx.legacyAggregateMetric(), fieldResolver, datasetsMetadata), new AggregateMetric.Constant(Double.parseDouble(ctx.number().getText()))));
+                accept(new AggregateMetric.Divide(parseLegacyAggregateMetric(ctx.legacyAggregateMetric(), context), new AggregateMetric.Constant(Double.parseDouble(ctx.number().getText()))));
             }
 
             @Override
@@ -69,7 +71,7 @@ public class AggregateMetrics {
 
             @Override
             public void enterLegacyAggregateDiv(JQLParser.LegacyAggregateDivContext ctx) {
-                AggregateMetric aggDivisor = parsePossibleDimensionAggregateMetric(ctx.legacyDocMetric(1), fieldResolver, datasetsMetadata);
+                AggregateMetric aggDivisor = parsePossibleDimensionAggregateMetric(ctx.legacyDocMetric(1), context);
                 if (aggDivisor instanceof AggregateMetric.DocStats) {
                     final DocMetric docMetric = ((AggregateMetric.DocStats) aggDivisor).docMetric;
                     if (docMetric instanceof DocMetric.Constant) {
@@ -77,7 +79,7 @@ public class AggregateMetrics {
                     }
                 }
                 accept(new AggregateMetric.Divide(
-                        parsePossibleDimensionAggregateMetric(ctx.legacyDocMetric(0), fieldResolver, datasetsMetadata),
+                        parsePossibleDimensionAggregateMetric(ctx.legacyDocMetric(0), context),
                         aggDivisor
                 ));
             }
@@ -89,12 +91,12 @@ public class AggregateMetrics {
 
             @Override
             public void enterLegacyImplicitSum(JQLParser.LegacyImplicitSumContext ctx) {
-                accept(parsePossibleDimensionAggregateMetric(ctx.legacyDocMetric(), fieldResolver, datasetsMetadata));
+                accept(parsePossibleDimensionAggregateMetric(ctx.legacyDocMetric(), context));
             }
 
             @Override
             public void enterLegacyAggregateParens(JQLParser.LegacyAggregateParensContext ctx) {
-                accept(parseLegacyAggregateMetric(ctx.legacyAggregateMetric(), fieldResolver, datasetsMetadata));
+                accept(parseLegacyAggregateMetric(ctx.legacyAggregateMetric(), context));
             }
         });
 
@@ -107,20 +109,20 @@ public class AggregateMetrics {
         return ref[0];
     }
 
-    private static AggregateMetric parsePossibleDimensionAggregateMetric(final JQLParser.LegacyDocMetricContext ctx, final ScopedFieldResolver fieldResolver, final DatasetsMetadata datasetsMetadata) {
+    private static AggregateMetric parsePossibleDimensionAggregateMetric(final JQLParser.LegacyDocMetricContext ctx, final Query.Context context) {
         final JQLParser.IdentifierContext identifier = DocMetrics.asPlainField(ctx);
         if (identifier == null) {
-            return new AggregateMetric.DocStats(DocMetrics.parseLegacyDocMetric(ctx, fieldResolver, datasetsMetadata));
+            return new AggregateMetric.DocStats(DocMetrics.parseLegacyDocMetric(ctx, context));
         }
-        return fieldResolver.resolveAggregateMetric(identifier);
+        return context.fieldResolver.resolveAggregateMetric(identifier, context);
     }
 
-    private static AggregateMetric parsePossibleDimensionAggregateMetric(final JQLParser.JqlSyntacticallyAtomicDocMetricAtomContext ctx, final ScopedFieldResolver fieldResolver) {
+    private static AggregateMetric parsePossibleDimensionAggregateMetric(final JQLParser.JqlSyntacticallyAtomicDocMetricAtomContext ctx, final Query.Context context) {
         final JQLParser.SinglyScopedFieldContext identifier = DocMetrics.asPlainField(ctx);
         if (identifier == null) {
-            return new AggregateMetric.DocStats(DocMetrics.parseJQLSyntacticallyAtomicDocMetricAtom(ctx, fieldResolver));
+            return new AggregateMetric.DocStats(DocMetrics.parseJQLSyntacticallyAtomicDocMetricAtom(ctx, context));
         }
-        return fieldResolver.resolveAggregateMetric(identifier);
+        return context.fieldResolver.resolveAggregateMetric(identifier, context);
     }
 
     private static AggregateMetric parsePossibleDimensionAggregateMetric(final JQLParser.JqlDocMetricAtomContext ctx, final Query.Context context) {
@@ -128,10 +130,10 @@ public class AggregateMetrics {
         if (identifier == null) {
             return new AggregateMetric.DocStats(DocMetrics.parseJQLDocMetricAtom(ctx, context));
         }
-        return context.fieldResolver.resolveAggregateMetric(identifier);
+        return context.fieldResolver.resolveAggregateMetric(identifier, context);
     }
 
-    public static AggregateMetric parseSyntacticallyAtomicJQLAggregateMetric(JQLParser.SyntacticallyAtomicJqlAggregateMetricContext ctx, final ScopedFieldResolver fieldResolver) {
+    public static AggregateMetric parseSyntacticallyAtomicJQLAggregateMetric(JQLParser.SyntacticallyAtomicJqlAggregateMetricContext ctx, final Query.Context context) {
         final AggregateMetric[] ref = new AggregateMetric[1];
         ctx.enterRule(new JQLBaseListener() {
             private void accept(AggregateMetric value) {
@@ -153,12 +155,12 @@ public class AggregateMetrics {
 
             @Override
             public void enterAggregateDocMetricAtom2(JQLParser.AggregateDocMetricAtom2Context ctx) {
-                final AggregateMetric.NeedsSubstitution alias = parsePossibleMetricSubstitution(ctx.jqlSyntacticallyAtomicDocMetricAtom(), fieldResolver);
+                final AggregateMetric.NeedsSubstitution alias = parsePossibleMetricSubstitution(ctx.jqlSyntacticallyAtomicDocMetricAtom(), context.fieldResolver);
                 if (alias != null) {
                     accept(alias);
                     return;
                 }
-                accept(parsePossibleDimensionAggregateMetric(ctx.jqlSyntacticallyAtomicDocMetricAtom(), fieldResolver));
+                accept(parsePossibleDimensionAggregateMetric(ctx.jqlSyntacticallyAtomicDocMetricAtom(),  context));
             }
         });
 
@@ -202,7 +204,7 @@ public class AggregateMetrics {
                 final List<String> scope = Collections.singletonList(fieldResolver.resolveDataset(ctx.field).unwrap());
                 final AggregateMetric metric;
                 if (ctx.syntacticallyAtomicJqlAggregateMetric() != null) {
-                    metric = parseSyntacticallyAtomicJQLAggregateMetric(ctx.syntacticallyAtomicJqlAggregateMetric(), context.fieldResolver.forScope(Sets.newHashSet(scope)));
+                    metric = parseSyntacticallyAtomicJQLAggregateMetric(ctx.syntacticallyAtomicJqlAggregateMetric(), context.withFieldResolver(context.fieldResolver.forScope(Sets.newHashSet(scope))));
                 } else {
                     throw new IllegalStateException();
                 }
@@ -264,7 +266,10 @@ public class AggregateMetrics {
 
             @Override
             public void enterAggregateParent(JQLParser.AggregateParentContext ctx) {
-                accept(new AggregateMetric.Parent(parseJQLAggregateMetric(ctx.jqlAggregateMetric(), context)));
+                if (context.aggregateContexts.isEmpty()) {
+                    throw new IllegalArgumentException("Parent shouldn't be applied without any aggregation");
+                }
+                accept(new AggregateMetric.Parent(parseJQLAggregateMetric(ctx.jqlAggregateMetric(), context.withAggregatePopped())));
             }
 
             @Override
@@ -312,14 +317,14 @@ public class AggregateMetrics {
                 final AggregateMetric testClcMetric = parseJQLAggregateMetric(ctx.testClcMetric, context);
                 final AggregateMetric testImpMetric = parseJQLAggregateMetric(ctx.testImpMetric, context);
 
-                final AggregateMetric controlRatio = new AggregateMetric.Divide(controlClcMetric,controlImpMetric);
-                final AggregateMetric testRatio = new AggregateMetric.Divide(testClcMetric,testImpMetric);
+                final AggregateMetric controlRatio = new AggregateMetric.Divide(controlClcMetric, controlImpMetric);
+                final AggregateMetric testRatio = new AggregateMetric.Divide(testClcMetric, testImpMetric);
 
                 accept(new AggregateMetric.Abs(new AggregateMetric.Subtract(controlRatio, testRatio)));
             }
 
             @Override
-            public void enterAggregateSingleScorer(JQLParser.AggregateSingleScorerContext ctx){
+            public void enterAggregateSingleScorer(JQLParser.AggregateSingleScorerContext ctx) {
                 final AggregateMetric controlGrp = parseJQLAggregateMetric(ctx.controlGrp, context);
                 final AggregateMetric testGrp = parseJQLAggregateMetric(ctx.testGrp, context);
                 final AggregateMetric controlParent = new AggregateMetric.Parent(controlGrp);
@@ -327,22 +332,20 @@ public class AggregateMetrics {
 
                 final AggregateFilter singleCondition = new AggregateFilter.Lt(controlGrp, new AggregateMetric.Subtract(controlParent, controlGrp));
 
-                final AggregateMetric actualDiff = new AggregateMetric.Subtract(new AggregateMetric.Subtract(controlParent,controlGrp), new AggregateMetric.Subtract(testParent,testGrp));
+                final AggregateMetric actualDiff = new AggregateMetric.Subtract(new AggregateMetric.Subtract(controlParent, controlGrp), new AggregateMetric.Subtract(testParent, testGrp));
 
-                final AggregateMetric defaultFraction = new AggregateMetric.Divide(new AggregateMetric.Subtract(controlParent,controlGrp), controlParent);
+                final AggregateMetric defaultFraction = new AggregateMetric.Divide(new AggregateMetric.Subtract(controlParent, controlGrp), controlParent);
                 final AggregateMetric totalDiff = new AggregateMetric.Subtract(controlParent, testParent);
-                final AggregateMetric expectedDiff = new AggregateMetric.Multiply(defaultFraction,totalDiff);
+                final AggregateMetric expectedDiff = new AggregateMetric.Multiply(defaultFraction, totalDiff);
 
-                final AggregateMetric trueCase = new AggregateMetric.Abs(new AggregateMetric.Subtract(actualDiff,expectedDiff));
+                final AggregateMetric trueCase = new AggregateMetric.Abs(new AggregateMetric.Subtract(actualDiff, expectedDiff));
                 final AggregateMetric falseCase = new AggregateMetric.Constant(0);
 
                 accept(new AggregateMetric.IfThenElse(singleCondition, trueCase, falseCase));
             }
 
-
-
             @Override
-            public void enterAggregateRatioScorer(JQLParser.AggregateRatioScorerContext ctx){
+            public void enterAggregateRatioScorer(JQLParser.AggregateRatioScorerContext ctx) {
 
                 final AggregateMetric controlClcMetric = parseJQLAggregateMetric(ctx.controlClcMetric, context);
                 final AggregateMetric controlImpMetric = parseJQLAggregateMetric(ctx.controlImpMetric, context);
@@ -356,8 +359,8 @@ public class AggregateMetrics {
 
                 final AggregateFilter ratioCondition = new AggregateFilter.Lt(controlImpMetric, new AggregateMetric.Subtract(parentControlImpMetric, controlImpMetric));
 
-                final AggregateMetric controlDefaultRatio = new AggregateMetric.Divide(new AggregateMetric.Subtract(parentControlClcMetric,controlClcMetric), new AggregateMetric.Subtract(parentControlImpMetric,controlImpMetric));
-                final AggregateMetric testDefaultRatio = new AggregateMetric.Divide(new AggregateMetric.Subtract(parentTestClcMetric,testClcMetric), new AggregateMetric.Subtract(parentTestImpMetric,testImpMetric));
+                final AggregateMetric controlDefaultRatio = new AggregateMetric.Divide(new AggregateMetric.Subtract(parentControlClcMetric, controlClcMetric), new AggregateMetric.Subtract(parentControlImpMetric, controlImpMetric));
+                final AggregateMetric testDefaultRatio = new AggregateMetric.Divide(new AggregateMetric.Subtract(parentTestClcMetric, testClcMetric), new AggregateMetric.Subtract(parentTestImpMetric, testImpMetric));
                 final AggregateMetric actualDiff = new AggregateMetric.Subtract(controlDefaultRatio, testDefaultRatio);
 
                 final AggregateMetric controlTotalRatio = new AggregateMetric.Divide(parentControlClcMetric, parentControlImpMetric);
@@ -371,12 +374,12 @@ public class AggregateMetrics {
             }
 
             @Override
-            public void enterAggregateRMSError(JQLParser.AggregateRMSErrorContext ctx){
+            public void enterAggregateRMSError(JQLParser.AggregateRMSErrorContext ctx) {
 
                 final int lowerLimit = Integer.parseInt(ctx.lowerLimit.getText());
                 final int upperLimit = Integer.parseInt(ctx.upperLimit.getText());
                 final int stepSize = Integer.parseInt(ctx.stepSize.getText());
-                final String useRatio = ctx.useRatio!=null ? ctx.useRatio.getText() : null;
+                final String useRatio = ctx.useRatio != null ? ctx.useRatio.getText() : null;
 
                 final AggregateMetric predictedVal = parseJQLAggregateMetric(ctx.predictedVal, context);
                 final AggregateMetric actualVal = parseJQLAggregateMetric(ctx.actualVal, context);
@@ -386,17 +389,17 @@ public class AggregateMetrics {
                 final GroupBy.GroupByMetric modelGrouping = new GroupBy.GroupByMetric(groupingMetric, lowerLimit, upperLimit, stepSize, true, true);
 
                 final AggregateMetric modelRatio;
-                if (useRatio != null && useRatio.toLowerCase().equals("true")){
-                    modelRatio = new AggregateMetric.Subtract(new AggregateMetric.Divide(predictedVal,actualVal),new AggregateMetric.Constant(1.0));
+                if (useRatio != null && useRatio.toLowerCase().equals("true")) {
+                    modelRatio = new AggregateMetric.Subtract(new AggregateMetric.Divide(predictedVal, actualVal), new AggregateMetric.Constant(1.0));
                 } else {
-                    modelRatio = new AggregateMetric.Subtract(predictedVal,actualVal);
+                    modelRatio = new AggregateMetric.Subtract(predictedVal, actualVal);
                 }
 
                 final AggregateMetric squaredDev = new AggregateMetric.Power(modelRatio, new AggregateMetric.Constant(2));
                 final AggregateMetric weightedDev = new AggregateMetric.Multiply(totalCount, squaredDev);
 
                 final AggregateMetric totalError = new AggregateMetric.SumAcross(modelGrouping, weightedDev);
-                final AggregateMetric meanError = new AggregateMetric.Divide(totalError,totalCount);
+                final AggregateMetric meanError = new AggregateMetric.Divide(totalError, totalCount);
                 accept(new AggregateMetric.Power(meanError, new AggregateMetric.Constant(0.5)));
             }
 
@@ -473,18 +476,21 @@ public class AggregateMetrics {
                 if (ctx.old != null) {
                     context.warn.accept("Using WINDOW instead of WINDOW_SUM. WINDOW is deprecated because it is deceptive.");
                 }
-                accept(new AggregateMetric.Window(Integer.parseInt(ctx.NAT().getText()), parseJQLAggregateMetric(ctx.jqlAggregateMetric(), context)));
+                if (context.aggregateContexts.isEmpty()) {
+                    throw new IllegalArgumentException("Window shouldn't be applied without any aggregation");
+                }
+                accept(new AggregateMetric.Window(Integer.parseInt(ctx.NAT().getText()), parseJQLAggregateMetric(ctx.jqlAggregateMetric(), context.withAggregatePopped().withMetricAggregate())));
             }
 
             @Override
             public void enterAggregateDistinctWindow(JQLParser.AggregateDistinctWindowContext ctx) {
+                final FieldSet field = fieldResolver.resolve(ctx.scopedField());
                 final Optional<AggregateFilter> filter;
                 if (ctx.jqlAggregateFilter() == null) {
                     filter = Optional.empty();
                 } else {
-                    filter = Optional.of(AggregateFilters.parseJQLAggregateFilter(ctx.jqlAggregateFilter(), context));
+                    filter = Optional.of(AggregateFilters.parseJQLAggregateFilter(ctx.jqlAggregateFilter(), context.withFieldAggregate(field)));
                 }
-                final FieldSet field = fieldResolver.resolve(ctx.scopedField());
                 accept(field.wrap(new AggregateMetric.Distinct(field, filter, Optional.of(Integer.parseInt(ctx.NAT().getText())))));
             }
 
@@ -502,56 +508,62 @@ public class AggregateMetrics {
 
             @Override
             public void enterAggregateRunning(JQLParser.AggregateRunningContext ctx) {
-                accept(new AggregateMetric.Running(1, parseJQLAggregateMetric(ctx.jqlAggregateMetric(), context)));
+                if (context.aggregateContexts.isEmpty()) {
+                    throw new IllegalArgumentException("Running shouldn't be applied without any aggregation");
+                }
+                accept(new AggregateMetric.Running(1, parseJQLAggregateMetric(ctx.jqlAggregateMetric(), context.withAggregatePopped().withMetricAggregate())));
             }
 
             @Override
             public void enterAggregateDistinct(JQLParser.AggregateDistinctContext ctx) {
+                final FieldSet field = fieldResolver.resolve(ctx.scopedField());
                 final Optional<AggregateFilter> filter;
                 if (ctx.jqlAggregateFilter() == null) {
                     filter = Optional.empty();
                 } else {
-                    filter = Optional.of(AggregateFilters.parseJQLAggregateFilter(ctx.jqlAggregateFilter(), context));
+                    filter = Optional.of(AggregateFilters.parseJQLAggregateFilter(ctx.jqlAggregateFilter(), context.withFieldAggregate(field)));
                 }
-                final FieldSet field = fieldResolver.resolve(ctx.scopedField());
                 accept(field.wrap(new AggregateMetric.Distinct(field, filter, Optional.empty())));
             }
 
             @Override
             public void enterAggregateSumAcross(JQLParser.AggregateSumAcrossContext ctx) {
+                final Pair<GroupBy, Query.Context> groupBy = GroupBys.parseGroupByAndGetAggregatedContext(ctx.groupByElement(), context);
                 accept(new AggregateMetric.SumAcross(
-                        GroupBys.parseGroupBy(ctx.groupByElement(), context),
-                        parseJQLAggregateMetric(ctx.jqlAggregateMetric(), context)));
+                        groupBy.getFirst(),
+                        parseJQLAggregateMetric(ctx.jqlAggregateMetric(), groupBy.getSecond())));
             }
 
             @Override
             public void enterAggregateSumAcross2(final JQLParser.AggregateSumAcross2Context ctx) {
+                final FieldSet field = fieldResolver.resolve(ctx.field);
+                final Query.Context aggregatedContext = context.withFieldAggregate(field);
                 final Optional<AggregateFilter> filter;
                 if (ctx.jqlAggregateFilter() != null) {
-                    filter = Optional.of(AggregateFilters.parseJQLAggregateFilter(ctx.jqlAggregateFilter(), context));
+                    filter = Optional.of(AggregateFilters.parseJQLAggregateFilter(ctx.jqlAggregateFilter(), aggregatedContext));
                 } else {
                     filter = Optional.empty();
                 }
-                final FieldSet field = fieldResolver.resolve(ctx.field);
                 final GroupBy groupBy = new GroupBy.GroupByField(field, filter, Optional.empty(), false);
-                accept(field.wrap(new AggregateMetric.SumAcross(groupBy, AggregateMetrics.parseJQLAggregateMetric(ctx.jqlAggregateMetric(), context))));
+                accept(field.wrap(new AggregateMetric.SumAcross(groupBy, AggregateMetrics.parseJQLAggregateMetric(ctx.jqlAggregateMetric(), aggregatedContext))));
             }
 
             @Override
             public void enterAggregateAverageAcross(JQLParser.AggregateAverageAcrossContext ctx) {
+                final FieldSet field = fieldResolver.resolve(ctx.field);
+                final Query.Context aggregatedContext = context.withFieldAggregate(field);
                 final Optional<AggregateFilter> filter;
                 if (ctx.jqlAggregateFilter() != null) {
-                    filter = Optional.of(AggregateFilters.parseJQLAggregateFilter(ctx.jqlAggregateFilter(), context));
+                    filter = Optional.of(AggregateFilters.parseJQLAggregateFilter(ctx.jqlAggregateFilter(), aggregatedContext));
                 } else {
                     filter = Optional.empty();
                 }
                 if (ctx.havingBrackets != null) {
                     context.warn.accept("Used square brackets in AVG_OVER HAVING. This is no longer necessary and is deprecated.");
                 }
-                final FieldSet field = fieldResolver.resolve(ctx.field);
                 final GroupBy groupBy = new GroupBy.GroupByField(field, filter, Optional.empty(), false);
                 accept(field.wrap(new AggregateMetric.Divide(
-                        new AggregateMetric.SumAcross(groupBy, AggregateMetrics.parseJQLAggregateMetric(ctx.jqlAggregateMetric(), context)),
+                        new AggregateMetric.SumAcross(groupBy, AggregateMetrics.parseJQLAggregateMetric(ctx.jqlAggregateMetric(), aggregatedContext)),
                         new AggregateMetric.Distinct(field, filter, Optional.empty())
                 )));
             }
@@ -559,20 +571,22 @@ public class AggregateMetrics {
             @Override
             public void enterAggregateFieldMin(JQLParser.AggregateFieldMinContext ctx) {
                 final FieldSet field = fieldResolver.resolve(ctx.scopedField());
+                final Query.Context aggregatedContext = context.withFieldAggregate(field);
                 final Optional<AggregateMetric> metric = Optional.ofNullable(ctx.aggregate)
-                    .map(m -> AggregateMetrics.parseJQLAggregateMetric(m, context));
+                        .map(m -> AggregateMetrics.parseJQLAggregateMetric(m, aggregatedContext));
                 final Optional<AggregateFilter> filter = Optional.ofNullable(ctx.filter)
-                    .map(f -> AggregateFilters.parseJQLAggregateFilter(f, context));
+                        .map(f -> AggregateFilters.parseJQLAggregateFilter(f, aggregatedContext));
                 accept(field.wrap(new AggregateMetric.FieldMin(field, metric, filter)));
             }
 
             @Override
             public void enterAggregateFieldMax(JQLParser.AggregateFieldMaxContext ctx) {
                 final FieldSet field = fieldResolver.resolve(ctx.scopedField());
+                final Query.Context aggregatedContext = context.withFieldAggregate(field);
                 final Optional<AggregateMetric> metric = Optional.ofNullable(ctx.aggregate)
-                    .map(m -> AggregateMetrics.parseJQLAggregateMetric(m, context));
+                        .map(m -> AggregateMetrics.parseJQLAggregateMetric(m, aggregatedContext));
                 final Optional<AggregateFilter> filter = Optional.ofNullable(ctx.filter)
-                    .map(f -> AggregateFilters.parseJQLAggregateFilter(f, context));
+                        .map(f -> AggregateFilters.parseJQLAggregateFilter(f, aggregatedContext));
                 accept(field.wrap(new AggregateMetric.FieldMax(field, metric, filter)));
             }
 
@@ -614,7 +628,7 @@ public class AggregateMetrics {
 
             @Override
             public void enterSyntacticallyAtomicAggregateMetric(JQLParser.SyntacticallyAtomicAggregateMetricContext ctx) {
-                accept(parseSyntacticallyAtomicJQLAggregateMetric(ctx.syntacticallyAtomicJqlAggregateMetric(), fieldResolver));
+                accept(parseSyntacticallyAtomicJQLAggregateMetric(ctx.syntacticallyAtomicJqlAggregateMetric(), context));
             }
         });
 

@@ -49,6 +49,7 @@ import com.indeed.iql2.language.passes.SubstituteNamed;
 import com.indeed.iql2.language.query.shardresolution.NullShardResolver;
 import com.indeed.iql2.language.query.shardresolution.ShardResolver;
 import com.indeed.iql2.language.util.ParserUtil;
+import com.indeed.util.core.Pair;
 import com.indeed.util.core.time.WallClock;
 import com.indeed.util.logging.Loggers;
 import com.indeed.util.logging.TracingTreeTimer;
@@ -130,6 +131,13 @@ public class Queries {
             final String rawGroupBy,
             final boolean useLegacy,
             final Query.Context context) {
+        return parseGroupByAndGetAggregatedContext(rawGroupBy, useLegacy, context).getFirst();
+    }
+
+    public static Pair<GroupBy, Query.Context> parseGroupByAndGetAggregatedContext(
+            final String rawGroupBy,
+            final boolean useLegacy,
+            final Query.Context context) {
         final JQLParser.GroupByElementContext groupByElementContext = runParser(rawGroupBy, new Function<JQLParser, JQLParser.GroupByElementContext>() {
             @Nullable
             @Override
@@ -137,7 +145,7 @@ public class Queries {
                 return input.groupByElementEof(useLegacy).groupByElement();
             }
         });
-        return GroupBys.parseGroupBy(groupByElementContext, context);
+        return GroupBys.parseGroupByAndGetAggregatedContext(groupByElementContext, context);
     }
 
     public static AggregateFilter parseAggregateFilter(
