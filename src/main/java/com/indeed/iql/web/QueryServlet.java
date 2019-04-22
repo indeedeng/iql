@@ -379,7 +379,7 @@ public class QueryServlet {
                 selectQueryExecution.processSelect(runningQueriesManager);
             } else {
                 // IQL1
-                final IQL1SelectStatement iql1SelectStatement = SelectStatementParser.parseSelectStatement(query, new DateTime(clock.currentTimeMillis()), metadataCache);
+                final IQL1SelectStatement iql1SelectStatement = SelectStatementParser.parseSelectStatement(query, new DateTime(clock.currentTimeMillis()), metadataCache.get());
                 setQueryInfoFromSelectStatement(iql1SelectStatement, queryInfo, clientInfo);
 
                 final PrintWriter writer = resp.getWriter();
@@ -420,7 +420,7 @@ public class QueryServlet {
         final String queryForHashing = parsedQuery.toHashKeyString();
 
         final IQLQuery iqlQuery = IQLTranslator.translate(parsedQuery, imhotepClient,
-                args.imhotepUserName, metadataCache, selectQuery.get().limits, queryInfo, strictCloser);
+                args.imhotepUserName, metadataCache.get(), selectQuery.get().limits, queryInfo, strictCloser);
 
         queryInfo.numShards = iqlQuery.getShards().size();
         queryInfo.datasetFields = iqlQuery.getDatasetFields();

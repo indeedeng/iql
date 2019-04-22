@@ -16,7 +16,8 @@
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.indeed.iql.exceptions.IqlKnownException;
-import com.indeed.iql.metadata.ImhotepMetadataCache;
+import com.indeed.iql.metadata.DatasetMetadata;
+import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql1.sql.ast.Expression;
 import com.indeed.iql1.sql.ast.FunctionExpression;
 import com.indeed.iql1.sql.ast2.FromClause;
@@ -37,6 +38,7 @@ import org.joda.time.Period;
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * @author vladimir
@@ -51,20 +53,20 @@ public class SelectStatementParser {
     public static IQL1SelectStatement parseSelectStatement(
             final String selectQuery,
             final DateTime querySubmitTime,
-            final ImhotepMetadataCache metadata) {
+            @Nullable final DatasetsMetadata datasetsMetadata) {
         final QueryParts parts;
         try {
             parts = QuerySplitter.splitQuery(selectQuery);
         } catch (Exception e) {
             throw new IqlKnownException.StatementParseException(e, "splitter");
         }
-        return parseSelectStatement(parts, querySubmitTime, metadata);
+        return parseSelectStatement(parts, querySubmitTime, datasetsMetadata);
     }
 
     static IQL1SelectStatement parseSelectStatement(
             final QueryParts parts,
             final DateTime querySubmitTime,
-            final ImhotepMetadataCache metadata) {
+            @Nullable final DatasetsMetadata metadata) {
         final SelectClause select;
         final FromClause from;
         final WhereClause where;
@@ -76,7 +78,10 @@ public class SelectStatementParser {
             throw new IqlKnownException.StatementParseException(e, "from");
         }
         final String dataset = from.getDataset();
-        final java.util.Map<String, String> aliases = metadata != null ? metadata.getDataset(dataset).getIql1ExpressionAliases() : Collections.emptyMap();
+        final java.util.Map<String, String> aliases = Optional.ofNullable(metadata)
+                .flatMap(meta -> meta.getMetadata(dataset))
+                .map(DatasetMetadata::getIql1ExpressionAliases)
+                .orElse(Collections.emptyMap());
 
         try {
             select = parseSelectClause(parts.select, aliases);

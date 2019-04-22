@@ -22,8 +22,8 @@ import com.indeed.imhotep.StrictCloser;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetMetadata;
+import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql.metadata.FieldMetadata;
-import com.indeed.iql.metadata.ImhotepMetadataCache;
 import com.indeed.iql.web.Limits;
 import com.indeed.iql.web.QueryInfo;
 import com.indeed.iql1.ez.EZImhotepSession;
@@ -130,7 +130,7 @@ public final class IQLTranslator {
             IQL1SelectStatement parse,
             ImhotepClient client,
             String username,
-            ImhotepMetadataCache metadata,
+            final DatasetsMetadata datasetsMetadata,
             Limits limits,
             QueryInfo queryInfo,
             StrictCloser strictCloser
@@ -141,10 +141,10 @@ public final class IQLTranslator {
 
         final FromClause fromClause = parse.from;
         final String dataset = fromClause.getDataset();
-        if (!metadata.get().getMetadata(dataset).isPresent()) {
+        if (!datasetsMetadata.getMetadata(dataset).isPresent()) {
             throw new IqlKnownException.UnknownDatasetException("Dataset not found: \"" + dataset + "\"");
         }
-        final DatasetMetadata datasetMetadata = metadata.getDataset(dataset);
+        final DatasetMetadata datasetMetadata = datasetsMetadata.getMetadata(dataset).get();
         final List<Stat> stats = Lists.newArrayList();
 
         final Set<String> fieldNames = Sets.newHashSet();
