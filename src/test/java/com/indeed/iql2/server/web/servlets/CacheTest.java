@@ -246,6 +246,22 @@ public class CacheTest extends BasicTest {
     }
 
     @Test
+    public void testSubQueryCache() throws Exception {
+        final QueryServletTestUtils.Options options = new QueryServletTestUtils.Options();
+        final InMemoryQueryCache queryCache = new InMemoryQueryCache();
+        options.setQueryCache(queryCache);
+
+        Assert.assertEquals(Collections.emptySet(), queryCache.getReadsTracked());
+        QueryServletTestUtils.runQuery("from organic 2d 1d where country in (from organic 2d 1d group by country[5]) group by country", IQL2, EVENT_STREAM, options, Collections.emptySet());
+        Assert.assertEquals(Collections.emptySet(), queryCache.getReadsTracked());
+        // expect top-level metadata and data for both top-level and sub-query.
+        awaitCacheWrites(queryCache, 3);
+
+        QueryServletTestUtils.runQuery("from organic 2d 1d where country in (from organic 2d 1d group by country[5]) group by tk", IQL2, EVENT_STREAM, options, Collections.emptySet());
+        Assert.assertEquals(1, queryCache.getReadsTracked().size());
+    }
+
+    @Test
     public void testResultSizeLimit() throws Exception {
         final String query = "from organic yesterday today group by time(1h) select count()";
 
