@@ -773,7 +773,7 @@ public final class IQLTranslator {
                         // generate a new salt
                         salt = String.valueOf(System.nanoTime() % Integer.MAX_VALUE);
                     }
-                    return new SampleCondition(field, (double) numerator / denominator, salt, negation);
+                    return new SampleCondition(field, numerator, denominator, salt, negation);
                     // we can also do it through a predicate condition but that requires FTGS instead of a regroup
                 }
             });
