@@ -59,11 +59,11 @@ public class Stats {
         }
     }
 
-    static class BinOpStat extends Stat {
+    static class MultiaryStat extends Stat {
         private final String op;
-        private final List<Stat> stats;
+        protected final List<Stat> stats;
 
-        public BinOpStat(String op, Stat... stats) {
+        public MultiaryStat(final String op, final Stat... stats) {
             this.op = op;
             this.stats = Arrays.asList(stats);
             for(Stat stat : stats) {
@@ -102,6 +102,20 @@ public class Stats {
             }
             sb.append(')');
             return sb.toString();
+        }
+    }
+
+    static class BinaryStat extends MultiaryStat {
+        public BinaryStat(final String op, final Stat left, final Stat right) {
+            super(op, left, right);
+        }
+
+        public Stat left() {
+            return stats.get(0);
+        }
+
+        public Stat right() {
+            return stats.get(1);
         }
     }
 

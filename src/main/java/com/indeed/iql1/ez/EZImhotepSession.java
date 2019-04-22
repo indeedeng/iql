@@ -854,48 +854,48 @@ public class EZImhotepSession implements Closeable {
         }
     }
 
-    public static Stats.Stat add(Stats.Stat... stats) {
-        return new Stats.BinOpStat("+", stats);
+    public static Stats.Stat add(final Stats.Stat left, final Stats.Stat right) {
+        return new Stats.BinaryStat("+", left, right);
     }
-    public static Stats.Stat sub(Stats.Stat... stats) {
-        return new Stats.BinOpStat("-", stats);
+    public static Stats.Stat sub(final Stats.Stat left, final Stats.Stat right) {
+        return new Stats.BinaryStat("-", left, right);
     }
-    public static Stats.Stat mult(Stats.Stat... stats) {
-        return new Stats.BinOpStat("*", stats);
+    public static Stats.Stat mult(final Stats.Stat left, final Stats.Stat right) {
+        return new Stats.BinaryStat("*", left, right);
     }
-    public static Stats.Stat div(Stats.Stat... stats) {
-        return new Stats.BinOpStat("/", stats);
+    public static Stats.Stat div(final Stats.Stat left, final Stats.Stat right) {
+        return new Stats.BinaryStat("/", left, right);
     }
-    public static Stats.Stat mod(Stats.Stat... stats) {
-        return new Stats.BinOpStat("%", stats);
+    public static Stats.Stat mod(final Stats.Stat left, final Stats.Stat right) {
+        return new Stats.BinaryStat("%", left, right);
     }
-    public static Stats.Stat less(Stats.Stat... stats) {
-        return new Stats.BinOpStat("<", stats);
+    public static Stats.Stat less(final Stats.Stat left, final Stats.Stat right) {
+        return new Stats.BinaryStat("<", left, right);
     }
-    public static Stats.Stat lessEq(Stats.Stat... stats) {
-        return new Stats.BinOpStat("<=", stats);
+    public static Stats.Stat lessEq(final Stats.Stat left, final Stats.Stat right) {
+        return new Stats.BinaryStat("<=", left, right);
     }
-    public static Stats.Stat isEqual(Stats.Stat... stats) {
+    public static Stats.Stat isEqual(final Stats.Stat left, final Stats.Stat right) {
         // try to optimize it as a hasint stat
-        if(stats.length == 2 && stats[0] instanceof Stats.IntFieldStat && stats[1] instanceof Stats.ConstantStat) {
-            return hasInt(((Stats.IntFieldStat)stats[0]).getFieldName(), ((Stats.ConstantStat) stats[1]).getValue());
+        if((left instanceof Stats.IntFieldStat) && (right instanceof Stats.ConstantStat)) {
+            return hasInt(((Stats.IntFieldStat)left).getFieldName(), ((Stats.ConstantStat) right).getValue());
         }
-        return new Stats.BinOpStat("=", stats);
+        return new Stats.BinaryStat("=", left, right);
     }
-    public static Stats.Stat isNotEqual(Stats.Stat... stats) {
-        return new Stats.BinOpStat("!=", stats);
+    public static Stats.Stat isNotEqual(final Stats.Stat left, final Stats.Stat right) {
+        return new Stats.BinaryStat("!=", left, right);
     }
-    public static Stats.Stat greater(Stats.Stat... stats) {
-        return new Stats.BinOpStat(">", stats);
+    public static Stats.Stat greater(final Stats.Stat left, final Stats.Stat right) {
+        return new Stats.BinaryStat(">", left, right);
     }
-    public static Stats.Stat greaterEq(Stats.Stat... stats) {
-        return new Stats.BinOpStat(">=", stats);
+    public static Stats.Stat greaterEq(final Stats.Stat left, final Stats.Stat right) {
+        return new Stats.BinaryStat(">=", left, right);
     }
     public static Stats.Stat min(Stats.Stat... stats) {
-        return new Stats.BinOpStat("min()", stats);
+        return new Stats.MultiaryStat("min()", stats);
     }
     public static Stats.Stat max(Stats.Stat... stats) {
-        return new Stats.BinOpStat("max()", stats);
+        return new Stats.MultiaryStat("max()", stats);
     }
     public static Stats.Stat exp(Stats.Stat ref, int scaleFactor) {
         return new Stats.ExpStat(ref, scaleFactor);
