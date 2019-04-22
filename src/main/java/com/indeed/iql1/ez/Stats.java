@@ -35,7 +35,7 @@ public class Stats {
     }
 
     public static class IntFieldStat extends Stat {
-        private final String fieldName;
+        public final String fieldName;
         IntFieldStat(String fieldName) {
             this.fieldName = fieldName;
         }
@@ -59,9 +59,9 @@ public class Stats {
         }
     }
 
-    static class MultiaryStat extends Stat {
-        private final String op;
-        protected final List<Stat> stats;
+    public static class MultiaryStat extends Stat {
+        public final String op;
+        public final List<Stat> stats;
 
         public MultiaryStat(final String op, final Stat... stats) {
             this.op = op;
@@ -105,7 +105,7 @@ public class Stats {
         }
     }
 
-    static class BinaryStat extends MultiaryStat {
+    public static class BinaryStat extends MultiaryStat {
         public BinaryStat(final String op, final Stat left, final Stat right) {
             super(op, left, right);
         }
@@ -119,10 +119,10 @@ public class Stats {
         }
     }
 
-    static class AggregateBinOpStat extends Stat {
+    public static class AggregateBinOpStat extends Stat {
         private final String op;
-        final Stat statLeft;
-        final Stat statRight;
+        public final Stat statLeft;
+        public final Stat statRight;
 
         public AggregateBinOpStat(String op, Stat statLeft, Stat statRight) {
             this.op = op;
@@ -141,10 +141,10 @@ public class Stats {
         }
     }
 
-    static class AggregateBinOpConstStat extends Stat {
+    public static class AggregateBinOpConstStat extends Stat {
         private final String op;
         private final long value;
-        final Stat statLeft;
+        public final Stat statLeft;
 
         public AggregateBinOpConstStat(String op, Stat statLeft, long value) {
             this.op = op;
@@ -171,7 +171,7 @@ public class Stats {
         }
     }
 
-    static class ConstantStat extends Stat {
+    public static class ConstantStat extends Stat {
         private final long value;
         public ConstantStat(long value) {
             this.value = value;
@@ -190,9 +190,9 @@ public class Stats {
         }
     }
 
-    static class ExpStat extends Stat {
-        private final Stat stat;
-        private final int scaleFactor;
+    public static class ExpStat extends Stat {
+        public final Stat stat;
+        public final int scaleFactor;
         public ExpStat(Stat stat, int scaleFactor) {
             this.stat = stat;
             this.scaleFactor = scaleFactor;
@@ -209,9 +209,9 @@ public class Stats {
         }
     }
 
-    static class LogStat extends Stat {
-        private final Stat stat;
-        private final int scaleFactor;
+    public static class LogStat extends Stat {
+        public final Stat stat;
+        public final int scaleFactor;
         public LogStat(Stat stat, int scaleFactor) {
             this.stat = stat;
             this.scaleFactor = scaleFactor;
@@ -228,9 +228,9 @@ public class Stats {
         }
     }
 
-    static class HasIntStat extends Stat {
-        private final String field;
-        private final long value;
+    public static class HasIntStat extends Stat {
+        public final String field;
+        public final long value;
         public HasIntStat(String field, long value) {
             this.field = field;
             this.value = value;
@@ -245,9 +245,9 @@ public class Stats {
         }
     }
 
-    static class HasStringStat extends Stat {
-        private final String field;
-        private final String value;
+    public static class HasStringStat extends Stat {
+        public final String field;
+        public final String value;
         public HasStringStat(String field, String value) {
             this.field = field;
             this.value = value;
@@ -262,8 +262,8 @@ public class Stats {
         }
     }
 
-    static class HasStringFieldStat extends Stat {
-        private final String field;
+    public static class HasStringFieldStat extends Stat {
+        public final String field;
         public HasStringFieldStat(String field) {
             this.field = field;
         }
@@ -277,8 +277,8 @@ public class Stats {
         }
     }
 
-    static class HasIntFieldStat extends Stat {
-        private final String field;
+    public static class HasIntFieldStat extends Stat {
+        public final String field;
         public HasIntFieldStat(String field) {
             this.field = field;
         }
@@ -292,10 +292,10 @@ public class Stats {
         }
     }
 
-    static class LuceneQueryStat extends Stat {
+    public static class LuceneQueryStat extends Stat {
         // Query as it is in original query
-        private final String queryAsString;
-        private final Query luceneQuery;
+        public final String queryAsString;
+        public final Query luceneQuery;
         public LuceneQueryStat(final String queryAsString, final Query luceneQuery) {
             this.queryAsString = queryAsString;
             this.luceneQuery = luceneQuery;
@@ -312,7 +312,7 @@ public class Stats {
         }
     }
 
-    static class CountStat extends Stat {
+    public static class CountStat extends Stat {
         CountStat() {
         }
         @Override
@@ -326,7 +326,7 @@ public class Stats {
     }
 
     public static class CachedStat extends Stat {
-        private final Stat stat;
+        public final Stat stat;
         CachedStat(Stat stat) {
             this.stat = stat;
         }
@@ -339,7 +339,7 @@ public class Stats {
     }
 
     public static class AbsoluteValueStat extends Stat {
-        private final Stat stat;
+        public final Stat stat;
         AbsoluteValueStat(Stat stat) {
             this.stat = stat;
         }
@@ -352,9 +352,9 @@ public class Stats {
     }
 
     public static class FloatScaleStat extends Stat {
-        private final String fieldName;
-        private final long mult;
-        private final long add;
+        public final String fieldName;
+        public final long mult;
+        public final long add;
 
         FloatScaleStat(String fieldName, long mult, long add) {
             this.fieldName = fieldName;

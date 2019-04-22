@@ -31,14 +31,14 @@ import static com.indeed.iql1.ez.Stats.Stat;
  * @author jplaisance
  */
 public final class StatRangeGrouping extends Grouping {
-    private final Stat stat;
-    private final long minValue;
-    private final long maxValue;
-    private final long intervalSize;
-    private final boolean noGutters;
+    public final Stat stat;
+    public final long minValue;
+    public final long maxValue;
+    public final long intervalSize;
+    public final boolean noGutters;
     private final Stringifier<Long> stringFormatter;
-    private final boolean isTimeGrouping;
-    private final Optional<String> timeFormat;
+    public final boolean isTimeGrouping;
+    public final Optional<String> timeFormat;
     private final long expectedBucketCount;
     private final DecimalFormat df = new DecimalFormat("###,###");
     private final Limits limits;

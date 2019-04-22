@@ -45,9 +45,9 @@ import java.util.Set;
 public class PercentileGrouping extends Grouping {
     private final Stat countStat;
 
-    private final List<Field> fields = Lists.newArrayList();
-    private final DoubleList percentiles = new DoubleArrayList();
-    private final IntList fieldProjectionPositions = new IntArrayList();
+    public final List<Field> fields = Lists.newArrayList();
+    public final DoubleList percentiles = new DoubleArrayList();
+    public final IntList fieldProjectionPositions = new IntArrayList();
 
     public PercentileGrouping(final Stat countStat) {
         this.countStat = countStat;

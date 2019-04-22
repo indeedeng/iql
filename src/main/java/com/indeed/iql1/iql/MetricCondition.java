@@ -22,10 +22,10 @@ import com.indeed.iql1.ez.Stats;
  * @author jplaisance
  */
 public final class MetricCondition implements Condition {
-    private final Stats.Stat stat;
-    private final long min;
-    private final long max;
-    private final boolean negation;
+    public final Stats.Stat stat;
+    public final long min;
+    public final long max;
+    public final boolean negation;
 
     public MetricCondition(Stats.Stat stat, long min, long max, boolean negation) {
         this.stat = stat;

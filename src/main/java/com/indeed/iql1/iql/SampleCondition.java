@@ -22,10 +22,10 @@ import com.indeed.iql1.ez.Field;
  * @author vladimir
  */
 public class SampleCondition implements Condition {
-    private final Field field;
-    private final long numerator;
-    private final long denominator;
-    private final String salt;
+    public final Field field;
+    public final long numerator;
+    public final long denominator;
+    public final String salt;
 
     /**
      * @param field field to sample by

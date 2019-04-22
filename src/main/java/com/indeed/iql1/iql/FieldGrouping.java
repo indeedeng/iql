@@ -41,13 +41,13 @@ import static com.indeed.iql1.ez.Stats.Stat;
 public final class FieldGrouping extends Grouping {
     private static final Stat DEFAULT_SORT_STAT = EZImhotepSession.counts();
 
-    private final Field field;
-    private final int topK;
-    private final Stat sortStat;
-    private final boolean isBottom;
+    public final Field field;
+    public final int topK;
+    public final Stat sortStat;
+    public final boolean isBottom;
     private final Optional<ArrayList<String>> termSubset;
     private final Limits limits;
-    private final int rowLimit;
+    public final int rowLimit;
 
     public FieldGrouping(final Field field, int rowLimit, Limits limits) {
         this(field, 0, DEFAULT_SORT_STAT, false, Optional.empty(), rowLimit, limits);
