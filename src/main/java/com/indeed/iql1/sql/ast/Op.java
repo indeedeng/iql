@@ -14,7 +14,7 @@
 
 package com.indeed.iql1.sql.ast;
 
-import com.cloudera.org.codehaus.jackson.map.annotate.JsonSerialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 /**
  * Operators

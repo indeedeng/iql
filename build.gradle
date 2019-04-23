@@ -1,6 +1,5 @@
 plugins {
     id 'java'
-//    id 'maven-publish'
     id 'antlr'
     id 'jacoco'
 }
@@ -64,21 +63,8 @@ dependencies {
         exclude group:'org.apache.hadoop', module:'hadoop-mapreduce-client-app'
         exclude group:'org.apache.hadoop', module:'hadoop-mapreduce-client-core'
         exclude group:'org.glassfish', module:'javax.servlet'
-        exclude group:'javax.servlet', module:'servlet-api'
-        exclude group:'javax.servlet', module:'javax.servlet-api'
-        exclude group:'javax.servlet', module:'jsp-api'
-        exclude group:'javax.servlet.jsp', module:'jsp-api'
-        exclude group:'com.sun.jersey', module:'jersey-core'
-        exclude group:'com.sun.jersey', module:'jersey-server'
-        exclude group:'com.sun.jersey.jersey-test-framework', module:'jersey-test-framework-grizzly2'
-        exclude group:'com.sun.jersey', module:'jersey-json'
-        exclude group:'com.sun.jersey.contribs', module:'jersey-guice'
-    }
-    compile ('org.apache.hadoop:hadoop-hdfs:2.6.0-cdh5.15.1') {
-        exclude group:'org.apache.hadoop', module:'hadoop-yarn-api'
-        exclude group:'org.apache.hadoop', module:'hadoop-mapreduce-client-app'
-        exclude group:'org.apache.hadoop', module:'hadoop-mapreduce-client-core'
-        exclude group:'org.glassfish', module:'javax.servlet'
+        exclude group:'org.mortbay.jetty', module:'jetty'
+        exclude group:'org.mortbay.jetty', module:'jetty-util'
         exclude group:'javax.servlet', module:'servlet-api'
         exclude group:'javax.servlet', module:'javax.servlet-api'
         exclude group:'javax.servlet', module:'jsp-api'
@@ -123,30 +109,9 @@ generateGrammarSource {
     arguments += ["-visitor"]
 }
 
-//task sourcesJar(type: Jar) {
-//    classifier = 'sources'
-//    from(sourceSets.main.allJava)
-//}
-//
-//task javadocJar(type: Jar) {
-//    classifier = 'javadoc'
-//    from(javadoc.destinationDir)
-//}
-
 group = 'com.indeed'
-//version = '9999-SNAPSHOT'
 description = 'IQL Server'
 sourceCompatibility = '1.8'
-
-//publishing {
-//    publications {
-//        maven(MavenPublication) {
-//            from(components.java)
-//            artifact(sourcesJar)
-//            artifact(javadocJar)
-//        }
-//    }
-//}
 
 tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
