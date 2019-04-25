@@ -104,17 +104,17 @@ public class EZImhotepSession implements Closeable {
                     "'/' (aggregate division) not supported here in IQL1. Did you mean '\\' for per-document instead? If not, for deeper nested arithmetic, use IQL2.");
         }
         final int initialDepth = stackDepth;
-        stackDepth = session.pushStats(stat.pushes(this));
+        stackDepth = session.pushStats(stat.pushes());
         if (initialDepth + 1 != stackDepth) {
             throw new RuntimeException("Bug! Did not change stack depth by exactly 1.");
         }
-        SingleStatReference statReference = new SingleStatReference(initialDepth, stat.toString(), this);
+        SingleStatReference statReference = new SingleStatReference(initialDepth, stat.toString());
         if(stat instanceof Stats.AggregateBinOpConstStat) { // hacks for handling division by a constant
             final Stats.AggregateBinOpConstStat statAsConstAggregate = (Stats.AggregateBinOpConstStat) stat;
             if(!"/".equals(statAsConstAggregate.getOp())) {
                 throw new IllegalArgumentException("Only aggregate division is currently supported");
             }
-            statReference = new ConstantDivideSingleStatReference(statReference, statAsConstAggregate.getValue(), this);
+            statReference = new ConstantDivideSingleStatReference(statReference, statAsConstAggregate.getValue());
         }
 
         statStack.push(statReference);
@@ -123,12 +123,12 @@ public class EZImhotepSession implements Closeable {
 
     private CompositeStatReference pushStatComposite(Stats.AggregateBinOpStat stat) throws ImhotepOutOfMemoryException {
         final int initialDepth = stackDepth;
-        stackDepth = session.pushStats(stat.pushes(this));
+        stackDepth = session.pushStats(stat.pushes());
         if (initialDepth + 2 != stackDepth) {
             throw new RuntimeException("Bug! Did not change stack depth by exactly 2.");
         }
-        final SingleStatReference stat1 = new SingleStatReference(initialDepth, stat.toString(), this);
-        final SingleStatReference stat2 = new SingleStatReference(initialDepth + 1, stat.toString(), this);
+        final SingleStatReference stat1 = new SingleStatReference(initialDepth, stat.toString());
+        final SingleStatReference stat2 = new SingleStatReference(initialDepth + 1, stat.toString());
         final CompositeStatReference statReference = new CompositeStatReference(stat1, stat2);
         statStack.push(statReference);
         return statReference;
@@ -148,8 +148,8 @@ public class EZImhotepSession implements Closeable {
         return numGroups;
     }
 
-    public double[] getGroupStats(StatReference statReference) throws ImhotepOutOfMemoryException {
-        return statReference.getGroupStats();
+    public double[] getGroupStats(final StatReference statReference) throws ImhotepOutOfMemoryException {
+        return statReference.getGroupStats(this);
     }
 
     long[] getGroupStats(int depth) throws ImhotepOutOfMemoryException {
@@ -854,48 +854,48 @@ public class EZImhotepSession implements Closeable {
         }
     }
 
-    public static Stats.Stat add(Stats.Stat... stats) {
-        return new Stats.BinOpStat("+", stats);
+    public static Stats.Stat add(final Stats.Stat left, final Stats.Stat right) {
+        return new Stats.BinaryStat("+", left, right);
     }
-    public static Stats.Stat sub(Stats.Stat... stats) {
-        return new Stats.BinOpStat("-", stats);
+    public static Stats.Stat sub(final Stats.Stat left, final Stats.Stat right) {
+        return new Stats.BinaryStat("-", left, right);
     }
-    public static Stats.Stat mult(Stats.Stat... stats) {
-        return new Stats.BinOpStat("*", stats);
+    public static Stats.Stat mult(final Stats.Stat left, final Stats.Stat right) {
+        return new Stats.BinaryStat("*", left, right);
     }
-    public static Stats.Stat div(Stats.Stat... stats) {
-        return new Stats.BinOpStat("/", stats);
+    public static Stats.Stat div(final Stats.Stat left, final Stats.Stat right) {
+        return new Stats.BinaryStat("/", left, right);
     }
-    public static Stats.Stat mod(Stats.Stat... stats) {
-        return new Stats.BinOpStat("%", stats);
+    public static Stats.Stat mod(final Stats.Stat left, final Stats.Stat right) {
+        return new Stats.BinaryStat("%", left, right);
     }
-    public static Stats.Stat less(Stats.Stat... stats) {
-        return new Stats.BinOpStat("<", stats);
+    public static Stats.Stat less(final Stats.Stat left, final Stats.Stat right) {
+        return new Stats.BinaryStat("<", left, right);
     }
-    public static Stats.Stat lessEq(Stats.Stat... stats) {
-        return new Stats.BinOpStat("<=", stats);
+    public static Stats.Stat lessEq(final Stats.Stat left, final Stats.Stat right) {
+        return new Stats.BinaryStat("<=", left, right);
     }
-    public static Stats.Stat isEqual(Stats.Stat... stats) {
+    public static Stats.Stat isEqual(final Stats.Stat left, final Stats.Stat right) {
         // try to optimize it as a hasint stat
-        if(stats.length == 2 && stats[0] instanceof Stats.IntFieldStat && stats[1] instanceof Stats.ConstantStat) {
-            return hasInt(((Stats.IntFieldStat)stats[0]).getFieldName(), ((Stats.ConstantStat) stats[1]).getValue());
+        if((left instanceof Stats.IntFieldStat) && (right instanceof Stats.ConstantStat)) {
+            return hasInt(((Stats.IntFieldStat)left).getFieldName(), ((Stats.ConstantStat) right).getValue());
         }
-        return new Stats.BinOpStat("=", stats);
+        return new Stats.BinaryStat("=", left, right);
     }
-    public static Stats.Stat isNotEqual(Stats.Stat... stats) {
-        return new Stats.BinOpStat("!=", stats);
+    public static Stats.Stat isNotEqual(final Stats.Stat left, final Stats.Stat right) {
+        return new Stats.BinaryStat("!=", left, right);
     }
-    public static Stats.Stat greater(Stats.Stat... stats) {
-        return new Stats.BinOpStat(">", stats);
+    public static Stats.Stat greater(final Stats.Stat left, final Stats.Stat right) {
+        return new Stats.BinaryStat(">", left, right);
     }
-    public static Stats.Stat greaterEq(Stats.Stat... stats) {
-        return new Stats.BinOpStat(">=", stats);
+    public static Stats.Stat greaterEq(final Stats.Stat left, final Stats.Stat right) {
+        return new Stats.BinaryStat(">=", left, right);
     }
     public static Stats.Stat min(Stats.Stat... stats) {
-        return new Stats.BinOpStat("min()", stats);
+        return new Stats.MultiaryStat("min()", stats);
     }
     public static Stats.Stat max(Stats.Stat... stats) {
-        return new Stats.BinOpStat("max()", stats);
+        return new Stats.MultiaryStat("max()", stats);
     }
     public static Stats.Stat exp(Stats.Stat ref, int scaleFactor) {
         return new Stats.ExpStat(ref, scaleFactor);
@@ -921,8 +921,8 @@ public class EZImhotepSession implements Closeable {
     public static Stats.Stat hasStringField(String field) {
         return new Stats.HasStringFieldStat(field);
     }
-    public static Stats.Stat lucene(Query luceneQuery) {
-        return new Stats.LuceneQueryStat(luceneQuery);
+    public static Stats.Stat lucene(final String queryAsString, final Query luceneQuery) {
+        return new Stats.LuceneQueryStat(queryAsString, luceneQuery);
     }
     public static Stats.Stat counts() {
         return new Stats.CountStat();

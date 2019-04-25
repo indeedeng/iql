@@ -21,9 +21,9 @@ import com.indeed.iql1.ez.Field;
  * @author jplaisance
  */
 public final class RegexCondition implements Condition {
-    private final Field.StringField stringField;
-    private final String regex;
-    private final boolean negation;
+    public final Field.StringField stringField;
+    public final String regex;
+    public final boolean negation;
 
     public RegexCondition(Field.StringField stringField, String regex, boolean negation) {
         this.stringField = stringField;

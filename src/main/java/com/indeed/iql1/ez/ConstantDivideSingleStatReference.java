@@ -24,8 +24,8 @@ import com.indeed.iql.exceptions.IqlKnownException;
 public class ConstantDivideSingleStatReference extends SingleStatReference {
     private final long value;
 
-    public ConstantDivideSingleStatReference(SingleStatReference stat, long value, EZImhotepSession session) {
-        super(stat.depth, stat.toString() + "/" + value, session);
+    public ConstantDivideSingleStatReference(final SingleStatReference stat, final long value) {
+        super(stat.depth, stat.toString() + "/" + value);
         if(value == 0) {
             throw new IqlKnownException.ParseErrorException("Can't divide by 0");
         }
@@ -33,8 +33,8 @@ public class ConstantDivideSingleStatReference extends SingleStatReference {
     }
 
     @Override
-    public double[] getGroupStats() throws ImhotepOutOfMemoryException {
-        double[] results = super.getGroupStats();
+    public double[] getGroupStats(final EZImhotepSession session) throws ImhotepOutOfMemoryException {
+        final double[] results = super.getGroupStats(session);
         for(int i = 0; i < results.length; i++) {
             results[i] = results[i] / value;
         }

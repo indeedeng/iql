@@ -22,8 +22,8 @@ import com.indeed.imhotep.StrictCloser;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetMetadata;
+import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql.metadata.FieldMetadata;
-import com.indeed.iql.metadata.ImhotepMetadataCache;
 import com.indeed.iql.web.Limits;
 import com.indeed.iql.web.QueryInfo;
 import com.indeed.iql1.ez.EZImhotepSession;
@@ -79,6 +79,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Matcher;
@@ -130,7 +131,7 @@ public final class IQLTranslator {
             IQL1SelectStatement parse,
             ImhotepClient client,
             String username,
-            ImhotepMetadataCache metadata,
+            final DatasetsMetadata datasetsMetadata,
             Limits limits,
             QueryInfo queryInfo,
             StrictCloser strictCloser
@@ -141,10 +142,10 @@ public final class IQLTranslator {
 
         final FromClause fromClause = parse.from;
         final String dataset = fromClause.getDataset();
-        if (!metadata.get().getMetadata(dataset).isPresent()) {
+        if (!datasetsMetadata.getMetadata(dataset).isPresent()) {
             throw new IqlKnownException.UnknownDatasetException("Dataset not found: \"" + dataset + "\"");
         }
-        final DatasetMetadata datasetMetadata = metadata.getDataset(dataset);
+        final DatasetMetadata datasetMetadata = datasetsMetadata.getMetadata(dataset).get();
         final List<Stat> stats = Lists.newArrayList();
 
         final Set<String> fieldNames = Sets.newHashSet();
@@ -189,7 +190,7 @@ public final class IQLTranslator {
         handleDiffGrouping(groupings, stats, limits);
 
         return new IQLQuery(client, stats, fromClause.getDataset(), fromClause.getStart(), fromClause.getEnd(),
-                conditions, groupings, parse.limit, username, limits, fieldNames, datasetMetadata, queryInfo, strictCloser);
+                conditions, groupings, parse.limit, username, limits, fieldNames, datasetsMetadata, datasetMetadata, queryInfo, strictCloser);
     }
 
     private static void ensureDistinctSelectDoesntMatchGroupings(List<Grouping> groupings, DistinctGrouping distinctGrouping) {
@@ -597,7 +598,7 @@ public final class IQLTranslator {
                     }
                     final String luceneQuery = getStr(input.get(0));
                     final com.indeed.flamdex.query.Query flamdexQuery = parseLuceneQuery(luceneQuery, datasetMetadata);
-                    return lucene(flamdexQuery);
+                    return lucene(luceneQuery, flamdexQuery);
                 }
             });
             statLookup = builder.build();
@@ -728,7 +729,7 @@ public final class IQLTranslator {
                     }
                     final String queryString = getStr(input.get(0));
                     final com.indeed.flamdex.query.Query luceneQuery = parseLuceneQuery(queryString, datasetMetadata);
-                    return new QueryCondition(luceneQuery, negation);
+                    return new QueryCondition(queryString, luceneQuery, negation);
                 }
             };
             builder.put("lucene", luceneQueryHandler);
@@ -773,7 +774,7 @@ public final class IQLTranslator {
                         // generate a new salt
                         salt = String.valueOf(System.nanoTime() % Integer.MAX_VALUE);
                     }
-                    return new SampleCondition(field, (double) numerator / denominator, salt, negation);
+                    return new SampleCondition(field, numerator, denominator, salt, negation);
                     // we can also do it through a predicate condition but that requires FTGS instead of a regroup
                 }
             });
@@ -1060,7 +1061,7 @@ public final class IQLTranslator {
                                 noGutters = "true".equalsIgnoreCase(noGuttersStr) || "1".equals(noGuttersStr);
                             }
                             return new StatRangeGrouping(input.get(0).match(statMatcher), min, max, interval, noGutters,
-                                    new LongStringifier(), false, limits);
+                                    new LongStringifier(), false, Optional.empty(), limits);
                         } else if (input.size() == 8) {
                             throw new IqlKnownException.ParseErrorException("DEPRECATED: queries using buckets() with 8 args should be rewritten as 2 buckets() groupings with 4 args each");
                         } else {
@@ -1118,7 +1119,7 @@ public final class IQLTranslator {
             } else {
                 stat = intField(DatasetMetadata.TIME_FIELD_NAME);
             }
-            return new StatRangeGrouping(stat, min, max, interval, false, stringifier, true, limits);
+            return new StatRangeGrouping(stat, min, max, interval, false, stringifier, true, Optional.ofNullable(format), limits);
         }
 
 

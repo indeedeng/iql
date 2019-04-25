@@ -49,9 +49,9 @@ public class CompositeStatReference implements StatReference {
     }
 
     @Override
-    public double[] getGroupStats() throws ImhotepOutOfMemoryException {
-        double[] stats1 = ref1.getGroupStats();
-        double[] stats2 = ref2.getGroupStats();
+    public double[] getGroupStats(final EZImhotepSession session) throws ImhotepOutOfMemoryException {
+        final double[] stats1 = ref1.getGroupStats(session);
+        final double[] stats2 = ref2.getGroupStats(session);
 
         int resultLength = Math.max(stats1.length, stats2.length);
         double[] finalStats = new double[resultLength];
