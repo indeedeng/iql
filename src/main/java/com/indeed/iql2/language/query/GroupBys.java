@@ -146,7 +146,7 @@ public class GroupBys {
                 } else {
                     final ImmutableSet<Term> terms = ImmutableSet.copyOf(ctx.terms.stream().map(Term::parseTerm).iterator());
                     final boolean withDefault = ctx.withDefault != null;
-                    accept(new GroupBy.GroupByFieldIn(field, terms, withDefault), aggregatedContext);
+                    accept(new GroupBy.GroupByFieldIn(field, terms, withDefault, ctx.useLegacy), aggregatedContext);
                 }
             }
 

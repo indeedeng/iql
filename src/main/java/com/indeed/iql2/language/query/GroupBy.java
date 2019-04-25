@@ -334,13 +334,19 @@ public abstract class GroupBy extends AbstractPositional {
         public final FieldSet field;
         public final ImmutableSet<Term> terms;
         public final boolean withDefault;
+        public final boolean useLegacy;
 
-        public GroupByFieldIn(final FieldSet field, final ImmutableSet<Term> terms, final boolean withDefault) {
+        public GroupByFieldIn(
+                final FieldSet field,
+                final ImmutableSet<Term> terms,
+                final boolean withDefault,
+                final boolean useLegacy) {
             this.field = field;
             this.terms = terms;
             this.withDefault = withDefault;
+            this.useLegacy = useLegacy;
 
-            if (terms.isEmpty()) {
+            if (!useLegacy && terms.isEmpty()) {
                 throw new IqlKnownException.ParseErrorException("Cannot have empty field in Set");
             }
         }
@@ -357,7 +363,7 @@ public abstract class GroupBy extends AbstractPositional {
                 final Function<DocMetric, DocMetric> g,
                 final Function<AggregateFilter, AggregateFilter> h,
                 final Function<DocFilter, DocFilter> i) {
-            return groupBy.apply(new GroupByFieldIn(field, terms, withDefault)).copyPosition(this);
+            return groupBy.apply(new GroupByFieldIn(field, terms, withDefault, useLegacy)).copyPosition(this);
         }
 
         @Override
@@ -377,7 +383,7 @@ public abstract class GroupBy extends AbstractPositional {
 
         @Override
         public GroupBy makeTotal() {
-            return new GroupByFieldIn(field, terms, true);
+            return new GroupByFieldIn(field, terms, true, useLegacy);
         }
     }
 

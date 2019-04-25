@@ -768,7 +768,7 @@ public class SelectQueryExecution {
                                     final ImmutableSet<Term> immutableTerms = ImmutableSet.copyOf(terms);
                                     // Once terms are converted to immutable, store it to cache to prevent convertion next time.
                                     queryToResults.put(q, immutableTerms);
-                                    return new GroupBy.GroupByFieldIn(fieldInQuery.field, immutableTerms, fieldInQuery.withDefault);
+                                    return new GroupBy.GroupByFieldIn(fieldInQuery.field, immutableTerms, fieldInQuery.withDefault, false);
                                 }
                             }
                             return input;

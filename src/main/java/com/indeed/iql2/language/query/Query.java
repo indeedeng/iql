@@ -578,7 +578,7 @@ public class Query extends AbstractPositional {
                         final String fieldName = groupByField.field.getOnlyField();
                         if (filterField.equals(fieldName) && !groupByField.isTopK()) {
                             final GroupBy.GroupByFieldIn groupByFieldIn =
-                                    new GroupBy.GroupByFieldIn(groupByField.field, fieldIn.terms, groupByField.withDefault);
+                                    new GroupBy.GroupByFieldIn(groupByField.field, fieldIn.terms, groupByField.withDefault, true);
                             groupByFieldIn.copyPosition(groupByField);
                             groupBys.set(j, new GroupByEntry(groupByFieldIn, groupByEntry.filter, groupByEntry.alias));
                             foundRewriteGroupBy = true;

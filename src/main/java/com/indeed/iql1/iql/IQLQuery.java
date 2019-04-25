@@ -672,7 +672,7 @@ public final class IQLQuery implements Closeable {
                 final GroupBy groupBy;
                 if (fieldGrouping.isTermSubset()) {
                     final ImmutableSet<Term> terms = ImmutableSet.copyOf(fieldGrouping.getTermSubset().stream().map(Term::term).iterator());
-                    groupBy = new GroupBy.GroupByFieldIn(field, terms, false);
+                    groupBy = new GroupBy.GroupByFieldIn(field, terms, false, true);
                 } else if (fieldGrouping.topK > 0) {
                     final TopK topK = new TopK(
                             Optional.of((long)fieldGrouping.topK),
