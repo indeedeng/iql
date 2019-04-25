@@ -235,7 +235,7 @@ public class FieldResolver {
 
     // Use only in IQL1 -> IQL2 conversion
     // simplified version of build method above
-    public static FieldResolver create(
+    public static FieldResolver createForQueryConversion(
             final String dataset,
             final DatasetsMetadata datasetsMetadata) {
         final Map<String, ResolvedDataset> datasets = new HashMap<>();
@@ -253,7 +253,7 @@ public class FieldResolver {
                 metadata
         ));
 
-        final Set<String> aliasesFound = new HashSet<>();
+        final Set<String> aliasesFound = Collections.emptySet();
         return new FieldResolver(aliasesFound, datasets, datasetsMetadata, FieldType.String);
     }
 }

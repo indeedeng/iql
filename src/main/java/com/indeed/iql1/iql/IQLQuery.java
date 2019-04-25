@@ -646,7 +646,7 @@ public final class IQLQuery implements Closeable {
     }
 
     public Query convertToIQL2Query(final boolean fixKnownDiffs) throws Iql1ConvertException {
-        final Dataset singleDataset = Dataset.create(
+        final Dataset singleDataset = Dataset.createForQueryConversion(
                 dataset, start, end, new ShardResolver.ShardResolutionResult(shards, timeIntervalsMissingShards));
         final List<Dataset> datasets = Collections.singletonList(singleDataset);
 
@@ -656,9 +656,7 @@ public final class IQLQuery implements Closeable {
         final List<Optional<String>> formatStrings = selects.stream().map(s -> Optional.<String>empty()).collect(Collectors.toList());
         final List<String> options = Collections.emptyList();
         final Optional<Integer> rowLimit =
-                ((this.rowLimit != Integer.MAX_VALUE) && (this.rowLimit != (Integer.MAX_VALUE - 1))) ?
-                        Optional.of(this.rowLimit) :
-                        Optional.empty();
+                (this.rowLimit < (Integer.MAX_VALUE - 1)) ? Optional.of(this.rowLimit) : Optional.empty();
         final boolean useLegacy = true;
         return new Query(datasets, filter, groupBys, selects, formatStrings, options, rowLimit, useLegacy);
     }
@@ -803,7 +801,11 @@ public final class IQLQuery implements Closeable {
         } else if (condition instanceof QueryCondition) {
             // regroup(QueryRemapRule)
             final QueryCondition queryCondition = (QueryCondition)condition;
-            return new DocFilter.Lucene(queryCondition.queryAsString, createResolver(), datasetsMetadata);
+            DocFilter filter = new DocFilter.Lucene(queryCondition.queryAsString, createResolver(), datasetsMetadata);
+            if (queryCondition.negation) {
+                filter = new DocFilter.Not(filter);
+            }
+            return filter;
         } else if (condition instanceof RegexCondition) {
             // regexRegroup
             final RegexCondition regexCondition = (RegexCondition)condition;
@@ -971,7 +973,7 @@ public final class IQLQuery implements Closeable {
     }
 
     private ScopedFieldResolver createResolver() {
-        final FieldResolver fieldResolver = FieldResolver.create(dataset, datasetsMetadata);
+        final FieldResolver fieldResolver = FieldResolver.createForQueryConversion(dataset, datasetsMetadata);
         return new ScopedFieldResolver(fieldResolver, Sets.newHashSet(dataset));
     }
 }

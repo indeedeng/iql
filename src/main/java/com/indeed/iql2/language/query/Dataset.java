@@ -88,7 +88,7 @@ public class Dataset extends AbstractPositional {
     }
 
     // Use only in IQL1 -> IQL2 conversion
-    public static Dataset create(
+    public static Dataset createForQueryConversion(
             final String dataset,
             final DateTime start,
             final DateTime end,

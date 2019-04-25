@@ -23,7 +23,7 @@ import com.indeed.iql1.ez.EZImhotepSession;
 public final class QueryCondition implements Condition {
     public final String queryAsString;
     private final Query query;
-    private final boolean negation;
+    public final boolean negation;
 
     public QueryCondition(final String queryAsString, final Query query, final boolean negation) {
         this.queryAsString = queryAsString;
