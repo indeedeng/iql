@@ -80,7 +80,9 @@ public class CacheTest extends BasicTest {
             "from organic yesterday today where tk not in (from organic 60m 0m where tk=\"a\" group by tk)",
             "from organic yesterday today where tk not in (from organic 60m 0m where oji=10 group by tk)",
             "from organic yesterday today group by tk in (from organic 60m 0m where tk=\"a\" group by tk)",
-            "from organic yesterday today group by tk not in (from organic 60m 0m where tk=\"a\" group by tk)"
+            "from organic yesterday today group by tk not in (from organic 60m 0m where tk=\"a\" group by tk)",
+            "from organic yesterday today as a, organic yesterday today as b where a.tk=\"a\" select a.count(), b.count()",
+            "from organic yesterday today as b, organic yesterday today as a where a.tk=\"a\" select a.count(), b.count()"
     );
     private static final StoppedClock CLOCK = new StoppedClock(new DateTime(2015, 1, 1, 0, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis());
 
