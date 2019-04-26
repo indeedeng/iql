@@ -337,6 +337,11 @@ public class ScopedFieldResolver {
     private MetricMetadata lookupDimensionMetric(final String dataset, final String typedField) {
         final DatasetsMetadata datasetsMetadata = fieldResolver.datasetsMetadata;
         final ResolvedDataset resolvedDataset = fieldResolver.datasets.get(dataset);
+
+        if (resolvedDataset == null) {
+            return null;
+        }
+
         final String imhotepDataset = resolvedDataset.imhotepName;
 
         if (datasetsMetadata.getMetadata(imhotepDataset).isPresent()) {
