@@ -32,7 +32,6 @@ import java.io.PrintWriter;
 * @author dwahler
 */
 @Controller
-@Deprecated
 public class ResultServlet {
     private final QueryCache queryCache;
 
