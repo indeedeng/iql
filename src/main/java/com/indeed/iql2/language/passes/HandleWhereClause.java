@@ -15,12 +15,17 @@
 package com.indeed.iql2.language.passes;
 
 import com.google.common.collect.ImmutableList;
+import com.indeed.iql2.execution.QueryOptions;
+import com.indeed.iql2.language.DocFilter;
+import com.indeed.iql2.language.GroupNameSupplier;
 import com.indeed.iql2.language.GroupSuppliers;
 import com.indeed.iql2.language.actions.Action;
 import com.indeed.iql2.language.actions.Actions;
 import com.indeed.iql2.language.execution.ExecutionStep;
 import com.indeed.iql2.language.optimizations.ConstantFolding;
 import com.indeed.iql2.language.query.Query;
+import com.indeed.iql2.language.util.ValidationHelper;
+import com.indeed.iql2.server.web.servlets.query.CommandValidator;
 
 import java.util.Collections;
 import java.util.List;
@@ -33,10 +38,18 @@ public class HandleWhereClause {
     public static Result handleWhereClause(Query query) {
         if (query.filter.isPresent()) {
             final Query newQuery = new Query(query.datasets, Optional.empty(), query.groupBys, query.selects, query.formatStrings, query.options, query.rowLimit, query.useLegacy);
-            final List<Action> naiveActions = ConstantFolding.apply(query.filter.get()).getExecutionActions(query.nameToIndex(), 1, 1, 0, GroupSuppliers.newGroupSupplier(2));
-            // TODO: Should the optimization part happen somewhere else?
-            final List<Action> optimizedActions = Actions.optimizeConsecutiveQueryActions(naiveActions);
-            return new Result(newQuery, Collections.singletonList(new ExecutionStep.FilterActions(ImmutableList.copyOf(optimizedActions))));
+
+            if (query.options.contains(QueryOptions.Experimental.PWHERE)) {
+                final DocFilter constantFolded = ConstantFolding.apply(query.filter.get());
+                final BooleanFilterTree tree = constantFolded.asTree(new GroupNameSupplier());
+                return new Result(newQuery, Collections.singletonList(new ExecutionStep.FilterDocuments(constantFolded, tree)));
+            } else {
+                final List<Action> naiveActions = ConstantFolding.apply(query.filter.get()).getExecutionActions(query.nameToIndex(), 1, 1, 0, GroupSuppliers.newGroupSupplier(2));
+                // TODO: Should the optimization part happen somewhere else?
+                final List<Action> optimizedActions = Actions.optimizeConsecutiveQueryActions(naiveActions);
+                return new Result(newQuery, Collections.singletonList(new ExecutionStep.FilterActions(ImmutableList.copyOf(optimizedActions))));
+            }
+
         } else {
             return new Result(query, Collections.emptyList());
         }

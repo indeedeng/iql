@@ -10,6 +10,7 @@ import com.indeed.imhotep.api.GroupStatsIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.api.PerformanceStats;
+import com.indeed.imhotep.api.RegroupParams;
 import com.indeed.imhotep.io.RequestTools;
 import com.indeed.imhotep.metrics.aggregate.AggregateStatTree;
 import com.indeed.imhotep.protobuf.StatsSortOrder;
@@ -245,13 +246,14 @@ public class ImhotepSessionHolder implements Closeable {
     public int regroupWithSender(
             final RequestTools.GroupMultiRemapRuleSender sender,
             final boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
+        // TODO: change RegroupParams.DEFAULT to something else if needed.
         if (session instanceof RemoteImhotepMultiSession) {
-            return ((RemoteImhotepMultiSession) session).regroupWithRuleSender(sender, errorOnCollisions);
+            return ((RemoteImhotepMultiSession) session).regroupWithRuleSender(RegroupParams.DEFAULT, sender, errorOnCollisions);
         } else if (session instanceof AsynchronousRemoteImhotepMultiSession) {
-            ((AsynchronousRemoteImhotepMultiSession) session).regroupWithRuleSender(sender, errorOnCollisions);
+            ((AsynchronousRemoteImhotepMultiSession) session).regroupWithRuleSender(RegroupParams.DEFAULT, sender, errorOnCollisions);
             return -999;
         } else if (session instanceof BatchRemoteImhotepMultiSession) {
-            return ((BatchRemoteImhotepMultiSession) session).regroupWithRuleSender(sender, errorOnCollisions);
+            return ((BatchRemoteImhotepMultiSession) session).regroupWithRuleSender(RegroupParams.DEFAULT, sender, errorOnCollisions);
         }
         throw new IllegalStateException("Must have RemoteImhotepMultiSession or AsynchronousRemoteImhotepMultiSession or BatchRemoteImhotepMultiSession");
     }
@@ -275,4 +277,7 @@ public class ImhotepSessionHolder implements Closeable {
         session.close();
     }
 
+    public ImhotepSession getSession() {
+        return session;
+    }
 }

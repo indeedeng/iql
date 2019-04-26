@@ -29,41 +29,23 @@ import java.util.TreeSet;
 public class ValidationHelper {
     private final boolean useLegacy;
     private final DatasetsMetadata datasetsMetadata;
-    private final Map<String, Set<String>> datasetAliasIntFields;
-    private final Map<String, Set<String>> datasetAliasStringFields;
     private final Map<String, Pair<Long, Long>> datasetsTimeRange;
     private final Set<String> definedComputations = new HashSet<>();
 
     public ValidationHelper(final DatasetsMetadata datasetsMetadata,
                             final Map<String, Pair<Long, Long>> datasetsTimeRange,
-                            final Map<String, Set<String>> datasetAliasIntFields,
-                            final Map<String, Set<String>> datasetAliasStringFields,
                             final boolean useLegacy) {
         this.useLegacy = useLegacy;
         this.datasetsTimeRange = datasetsTimeRange;
         this.datasetsMetadata = datasetsMetadata;
-        this.datasetAliasIntFields = toCaseInsensitive(datasetAliasIntFields);
-        this.datasetAliasStringFields = toCaseInsensitive(datasetAliasStringFields);
     }
-
-    private Map<String, Set<String>> toCaseInsensitive(final Map<String, Set<String>> map) {
-        final Map<String, Set<String>> caseInsensitiveMap = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-        for (Map.Entry<String, Set<String>> entry : map.entrySet()) {
-            caseInsensitiveMap.put(entry.getKey(), new TreeSet<>(String.CASE_INSENSITIVE_ORDER));
-            caseInsensitiveMap.get(entry.getKey()).addAll(entry.getValue());
-        }
-        return caseInsensitiveMap;
-    }
-
 
     public boolean containsStringField(String dataset, String field) {
-        return (datasetsMetadata.getMetadata(dataset).isPresent() && datasetsMetadata.getMetadata(dataset).get().hasStringField(field)) ||
-                (datasetAliasStringFields.containsKey(dataset) && datasetAliasStringFields.get(dataset).contains(field));
+        return (datasetsMetadata.getMetadata(dataset).isPresent() && datasetsMetadata.getMetadata(dataset).get().hasStringField(field));
     }
 
     public boolean containsIntField(String dataset, String field) {
-        return (datasetsMetadata.getMetadata(dataset).isPresent() && datasetsMetadata.getMetadata(dataset).get().hasIntField(field)) ||
-                (datasetAliasIntFields.containsKey(dataset) && datasetAliasIntFields.get(dataset).contains(field));
+        return (datasetsMetadata.getMetadata(dataset).isPresent() && datasetsMetadata.getMetadata(dataset).get().hasIntField(field));
     }
 
     public void validateIntField(String dataset, String datasetField, ErrorCollector errorCollector, Object context) {

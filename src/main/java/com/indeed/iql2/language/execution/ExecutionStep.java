@@ -21,10 +21,12 @@ import com.google.common.collect.Maps;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
+import com.indeed.iql2.language.DocFilter;
 import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.Term;
 import com.indeed.iql2.language.actions.Action;
 import com.indeed.iql2.language.commands.ApplyFilterActions;
+import com.indeed.iql2.language.commands.ApplyFilterTree;
 import com.indeed.iql2.language.commands.ApplyGroupFilter;
 import com.indeed.iql2.language.commands.Command;
 import com.indeed.iql2.language.commands.ComputeAndCreateGroupStatsLookup;
@@ -38,6 +40,7 @@ import com.indeed.iql2.language.commands.RegroupFieldIn;
 import com.indeed.iql2.language.commands.SimpleIterate;
 import com.indeed.iql2.language.commands.TimePeriodRegroup;
 import com.indeed.iql2.language.commands.TopK;
+import com.indeed.iql2.language.passes.BooleanFilterTree;
 import com.indeed.iql2.language.precomputed.Precomputed;
 import com.indeed.iql2.language.query.Dataset;
 import com.indeed.iql2.language.query.Query;
@@ -434,6 +437,28 @@ public interface ExecutionStep {
         @Override
         public List<Command> commands() {
             return Collections.singletonList(new ApplyFilterActions(actions));
+        }
+
+        @Override
+        public ExecutionStep traverse1(Function<AggregateMetric, AggregateMetric> f) {
+            return this;
+        }
+    }
+
+    @EqualsAndHashCode
+    @ToString
+    class FilterDocuments implements ExecutionStep {
+        private final DocFilter originalFilter;
+        private final BooleanFilterTree tree;
+
+        public FilterDocuments(final DocFilter originalFilter, final BooleanFilterTree tree) {
+            this.originalFilter = originalFilter;
+            this.tree = tree;
+        }
+
+        @Override
+        public List<Command> commands() {
+            return Collections.singletonList(new ApplyFilterTree(originalFilter, tree));
         }
 
         @Override
