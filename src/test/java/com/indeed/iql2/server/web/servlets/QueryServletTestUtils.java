@@ -261,12 +261,16 @@ public class QueryServletTestUtils extends BasicTest {
 
         public Options copy() {
             final Options copy = new Options();
+            copy.dataset = dataset;
             copy.tmpDir = tmpDir;
             copy.subQueryTermLimit = subQueryTermLimit;
             copy.queryCache = queryCache;
             copy.imsClient = imsClient;
             copy.skipTestDimension = skipTestDimension;
             copy.wallClock = wallClock;
+            copy.maxCacheQuerySizeLimitBytes = maxCacheQuerySizeLimitBytes;
+            copy.skipCsv = skipCsv;
+            copy.onlyCsv = onlyCsv;
             return copy;
         }
 
