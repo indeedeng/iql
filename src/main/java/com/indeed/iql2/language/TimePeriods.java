@@ -34,7 +34,7 @@ public class TimePeriods {
 
     public static List<Pair<Integer, TimeUnit>> parseTimeBuckets(final JQLParser.TimeBucketContext timeBucketContext, final boolean useLegacy) {
         if (timeBucketContext.STRING_LITERAL() != null) {
-            final String unquoted = ParserCommon.unquote(timeBucketContext.STRING_LITERAL().getText());
+            final String unquoted = ParserCommon.unquote(timeBucketContext.STRING_LITERAL().getText(), useLegacy);
             final JQLParser.TimeBucketTerminalContext bucketTerminal = Queries.tryRunParser(unquoted, JQLParser::timeBucketTerminal);
             if (bucketTerminal == null) {
                 throw new IqlKnownException.ParseErrorException("Syntax errors encountered parsing bucket: [" + unquoted + "]");

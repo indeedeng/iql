@@ -212,13 +212,7 @@ public class GroupBys {
                 final Optional<String> timeFormat;
                 if (ctx.groupByTime().timeFormat != null) {
                     final String format = ctx.groupByTime().timeFormat.getText();
-                    if (format.startsWith("\'") && format.endsWith("\'")) {
-                        timeFormat = Optional.of(ParserCommon.unquote(format));
-                    } else if (format.startsWith("\"") && format.endsWith("\"")) {
-                        timeFormat = Optional.of(ParserCommon.unquote(format));
-                    } else {
-                        timeFormat = Optional.of(format);
-                    }
+                    timeFormat = Optional.of(ParserCommon.unquote(format, ctx.useLegacy));
                 } else {
                     timeFormat = Optional.empty();
                 }

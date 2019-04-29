@@ -247,7 +247,7 @@ public class Dataset extends AbstractPositional {
         if (dateTimeContext.DATETIME_TOKEN() != null) {
             return createDateTime(dateTimeContext.DATETIME_TOKEN().getText().replaceAll(" ", "T"));
         } else if (dateTimeContext.STRING_LITERAL() != null) {
-            final String unquoted = ParserCommon.unquote(dateTimeContext.STRING_LITERAL().getText());
+            final String unquoted = ParserCommon.unquote(dateTimeContext.STRING_LITERAL().getText(), useLegacy);
 
             // unquoted literal must be parseable by dateTimeTerminal or relativeTimeTerminal
 
