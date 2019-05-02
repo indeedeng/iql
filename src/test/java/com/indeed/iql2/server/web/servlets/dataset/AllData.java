@@ -29,6 +29,7 @@ public class AllData {
         datasets.add(RegroupEmptyFieldDataset.createDataset());
         datasets.add(StringAsIntFieldDataset.create());
         datasets.add(StringLenDataset.create());
+        datasets.add(StringEscapeDataset.create());
         datasets.add(SubQueryLimitDataset.createDataset());
         datasets.add(TimeRegroupDatasets.dayOfWeekDataset());
         datasets.add(TimeRegroupDatasets.multiMonthDataset());

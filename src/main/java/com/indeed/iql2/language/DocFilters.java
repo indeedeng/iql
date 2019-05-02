@@ -82,7 +82,7 @@ public class DocFilters {
             }
 
             @Override
-            public void enterLegacyDocSample(JQLParser.LegacyDocSampleContext ctx) {
+            public void enterLegacyDocSample(final JQLParser.LegacyDocSampleContext ctx) {
                 final FieldSet field = fieldResolver.resolve(ctx.field);
                 final long numerator = Long.parseLong(ctx.numerator.getText());
                 final long denominator;
@@ -93,7 +93,7 @@ public class DocFilters {
                 }
                 final String seed;
                 if (ctx.seed != null) {
-                    seed = ParserCommon.unquote(ctx.seed.getText());
+                    seed = ParserCommon.unquoteLegacy(ctx.seed.getText());
                 } else {
                     seed = String.valueOf(Math.random());
                 }
@@ -108,8 +108,14 @@ public class DocFilters {
 
             @Override
             public void enterLegacyDocRegex(final JQLParser.LegacyDocRegexContext ctx) {
-                // TODO: use DocMetrics.hasTermOrThrow after IQL-874 is merged
-                accept(new DocFilter.Regex(fieldResolver.resolve(ctx.field), ParserCommon.unquote(ctx.legacyTermVal().getText())));
+                final String unquoted = ParserCommon.unquoteLegacy(ctx.legacyTermVal().getText());
+                accept(new DocFilter.Regex(fieldResolver.resolve(ctx.field), unquoted));
+            }
+
+            @Override
+            public void enterLegacyDocNotRegex(final JQLParser.LegacyDocNotRegexContext ctx) {
+                final String unquoted = ParserCommon.unquoteLegacy(ctx.legacyTermVal().getText());
+                accept(new DocFilter.NotRegex(fieldResolver.resolve(ctx.field), unquoted));
             }
 
             @Override
@@ -185,14 +191,8 @@ public class DocFilters {
             }
 
             @Override
-            public void enterLegacyLucene(JQLParser.LegacyLuceneContext ctx) {
-                accept(new DocFilter.Lucene(ParserCommon.unquote(ctx.STRING_LITERAL().getText()), fieldResolver, datasetsMetadata));
-            }
-
-            @Override
-            public void enterLegacyDocNotRegex(final JQLParser.LegacyDocNotRegexContext ctx) {
-                // TODO: use DocMetrics.hasTermOrThrow after IQL-874 is merged
-                accept(new DocFilter.NotRegex(fieldResolver.resolve(ctx.field), ParserCommon.unquote(ctx.legacyTermVal().getText())));
+            public void enterLegacyLucene(final JQLParser.LegacyLuceneContext ctx) {
+                accept(new DocFilter.Lucene(ParserCommon.unquoteLegacy(ctx.STRING_LITERAL().getText()), fieldResolver, datasetsMetadata));
             }
 
             @Override
