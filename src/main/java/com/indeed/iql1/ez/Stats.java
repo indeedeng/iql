@@ -35,21 +35,21 @@ public class Stats {
     }
 
     public static class IntFieldStat extends Stat {
-        public final String fieldName;
-        IntFieldStat(String fieldName) {
-            this.fieldName = fieldName;
+        public final Field field;
+        IntFieldStat(Field field) {
+            this.field = field;
         }
         @Override
         protected List<String> pushes() {
-            return Lists.newArrayList(fieldName);
+            return Lists.newArrayList(getFieldName());
         }
         @Override
         public String toString() {
-            return "int:"+fieldName;
+            return "int:"+getFieldName();
         }
 
         public String getFieldName() {
-            return fieldName;
+            return field.getFieldName();
         }
     }
 
@@ -229,66 +229,66 @@ public class Stats {
     }
 
     public static class HasIntStat extends Stat {
-        public final String field;
+        public final Field field;
         public final long value;
-        public HasIntStat(String field, long value) {
+        public HasIntStat(Field field, long value) {
             this.field = field;
             this.value = value;
         }
         @Override
         protected List<String> pushes() {
-            return Lists.newArrayList("hasint " + field + ":" + Long.toString(value));
+            return Lists.newArrayList("hasint " + field.getFieldName() + ":" + Long.toString(value));
         }
         @Override
         public String toString() {
-            return "hasint:"+ field + ":" + Long.toString(value);
+            return "hasint:"+ field.getFieldName() + ":" + Long.toString(value);
         }
     }
 
     public static class HasStringStat extends Stat {
-        public final String field;
+        public final Field field;
         public final String value;
-        public HasStringStat(String field, String value) {
+        public HasStringStat(final Field field, final String value) {
             this.field = field;
             this.value = value;
         }
         @Override
         protected List<String> pushes() {
-            return Lists.newArrayList("hasstr " + field + ":" + value);
+            return Lists.newArrayList("hasstr " + field.getFieldName() + ":" + value);
         }
         @Override
         public String toString() {
-            return "hasstr:" + field + ":" + value;
+            return "hasstr:" + field.getFieldName() + ":" + value;
         }
     }
 
     public static class HasStringFieldStat extends Stat {
-        public final String field;
-        public HasStringFieldStat(String field) {
+        public final Field field;
+        public HasStringFieldStat(final Field field) {
             this.field = field;
         }
         @Override
         protected List<String> pushes() {
-            return Lists.newArrayList("hasstrfield " + field);
+            return Lists.newArrayList("hasstrfield " + field.getFieldName());
         }
         @Override
         public String toString() {
-            return "hasstrfield:" + field;
+            return "hasstrfield:" + field.getFieldName();
         }
     }
 
     public static class HasIntFieldStat extends Stat {
-        public final String field;
-        public HasIntFieldStat(String field) {
+        public final Field field;
+        public HasIntFieldStat(Field field) {
             this.field = field;
         }
         @Override
         protected List<String> pushes() {
-            return Lists.newArrayList("hasintfield " + field);
+            return Lists.newArrayList("hasintfield " + field.getFieldName());
         }
         @Override
         public String toString() {
-            return "hasintfield:" + field;
+            return "hasintfield:" + field.getFieldName();
         }
     }
 
@@ -352,18 +352,18 @@ public class Stats {
     }
 
     public static class FloatScaleStat extends Stat {
-        public final String fieldName;
+        public final Field field;
         public final long mult;
         public final long add;
 
-        FloatScaleStat(String fieldName, long mult, long add) {
-            this.fieldName = fieldName;
+        FloatScaleStat(Field field, long mult, long add) {
+            this.field = field;
             this.mult = mult;
             this.add = add;
         }
         @Override
         protected List<String> pushes() {
-            return Lists.newArrayList("floatscale "+fieldName+" * "+mult+" + "+add);
+            return Lists.newArrayList("floatscale "+ field.getFieldName() +" * "+mult+" + "+add);
         }
     }
 
