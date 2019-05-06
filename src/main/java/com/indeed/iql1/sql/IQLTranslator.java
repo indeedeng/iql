@@ -342,7 +342,7 @@ public final class IQLTranslator {
             }
 
             String fieldName = getStr(functionProjection.args.get(0));
-            final Field.IntField field = getIntField(fieldName, datasetMetadata);
+            final Field field = getField(fieldName, datasetMetadata);
             fieldNames.add(fieldName);
             projectionsIter.remove();
 

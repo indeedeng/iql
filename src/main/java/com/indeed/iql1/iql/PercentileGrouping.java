@@ -45,7 +45,7 @@ import java.util.Set;
 public class PercentileGrouping extends Grouping {
     private final Stat countStat;
 
-    public final List<Field.IntField> fields = Lists.newArrayList();
+    public final List<Field> fields = Lists.newArrayList();
     public final DoubleList percentiles = new DoubleArrayList();
     public final IntList fieldProjectionPositions = new IntArrayList();
 
@@ -53,7 +53,7 @@ public class PercentileGrouping extends Grouping {
         this.countStat = countStat;
     }
 
-    public void addPercentileQuery(final Field.IntField field, final double percentile, final int fieldProjectionPosition) {
+    public void addPercentileQuery(final Field field, final double percentile, final int fieldProjectionPosition) {
         fields.add(field);
         percentiles.add(percentile);
         fieldProjectionPositions.add(fieldProjectionPosition);
@@ -106,14 +106,14 @@ public class PercentileGrouping extends Grouping {
     }
 
     private Int2ObjectMap<Int2LongMap> getPercentileStats(final EZImhotepSession session, final Int2ObjectMap<GroupKey> groupKeys, final StatReference countStatRef, final long[] counts) throws ImhotepOutOfMemoryException {
-        final Set<Field.IntField> uniqueFields = Sets.newHashSet(fields);
+        final Set<Field> uniqueFields = Sets.newHashSet(fields);
 
         final Int2ObjectMap<Int2LongMap> groupToPositionToStats = new Int2ObjectOpenHashMap<>();
         for (final int group : groupKeys.keySet()) {
             groupToPositionToStats.put(group, new Int2LongOpenHashMap());
         }
 
-        for (final Field.IntField f : uniqueFields) {
+        for (final Field f : uniqueFields) {
             final DoubleList fieldPercentiles = new DoubleArrayList();
             final IntList projectionPositions = new IntArrayList();
 
@@ -135,7 +135,10 @@ public class PercentileGrouping extends Grouping {
             }
 
             final PercentileFTGSCallback callback = new PercentileFTGSCallback(session.getStackDepth(), countStatRef, percentileValues);
-            session.ftgsIterate(f, callback);
+            // hack for ramses indexes, it's slower to iterate over a string field as an int field but it's better than
+            // doing a 2D metric regroup like ramhotep does
+            final Field ftgsField = f.isIntField() ? f : Field.intField(f.getFieldName());
+            session.ftgsIterate(ftgsField, callback);
 
             final Int2ObjectMap<LongList> groupToPercentileStats = callback.finalizeAndGetGroupToPercentileStats();
             for (final Map.Entry<Integer, LongList> entry : groupToPercentileStats.entrySet()) {
