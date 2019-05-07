@@ -297,4 +297,13 @@ public class FieldResolverTest {
         );
         assertEquals(calcExpected, scopedResolver.resolveDocMetric(parseIdentifier("calc"), PLAIN_DOC_METRIC_CALLBACK, CONTEXT));
     }
+
+    @Test(expected = IqlKnownException.UnknownDatasetException.class)
+    public void testIncorrectQualifiedDataset() {
+        final FieldResolver fieldResolver = fromQuery("from organic 2d 1d");
+        fieldResolver.setErrorMode(FieldResolver.ErrorMode.DEFERRED);
+        final ScopedFieldResolver scopedResolver = fieldResolver.universalScope();
+        assertNotNull(scopedResolver.resolveAggregateMetric(parseSinglyScopedField("foo.field"), CONTEXT));
+        fieldResolver.setErrorMode(FieldResolver.ErrorMode.IMMEDIATE);
+    }
 }
