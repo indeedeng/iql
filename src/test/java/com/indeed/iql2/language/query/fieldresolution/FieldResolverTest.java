@@ -300,10 +300,17 @@ public class FieldResolverTest {
 
     @Test(expected = IqlKnownException.UnknownDatasetException.class)
     public void testIncorrectQualifiedDataset() {
-        final FieldResolver fieldResolver = fromQuery("from organic 2d 1d");
-        fieldResolver.setErrorMode(FieldResolver.ErrorMode.DEFERRED);
-        final ScopedFieldResolver scopedResolver = fieldResolver.universalScope();
-        assertNotNull(scopedResolver.resolveAggregateMetric(parseSinglyScopedField("foo.field"), CONTEXT));
+        final FieldResolver fieldResolver;
+        try {
+            fieldResolver = fromQuery("from organic 2d 1d");
+            fieldResolver.setErrorMode(FieldResolver.ErrorMode.DEFERRED);
+            final ScopedFieldResolver scopedResolver = fieldResolver.universalScope();
+            assertNotNull(scopedResolver.resolveAggregateMetric(parseSinglyScopedField("foo.field"), CONTEXT));
+        } catch (final Exception e) {
+            Assert.fail("Not supposed to throw an exception yet");
+            // required for compiler to understand that fieldResolver is always initialized in the next line
+            throw new RuntimeException();
+        }
         fieldResolver.setErrorMode(FieldResolver.ErrorMode.IMMEDIATE);
     }
 }
