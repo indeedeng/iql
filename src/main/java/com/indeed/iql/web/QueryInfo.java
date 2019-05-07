@@ -38,7 +38,8 @@ public class QueryInfo {
         OBJECT_MAPPER.configure(SerializationFeature.INDENT_OUTPUT, true);
     }
 
-    public QueryInfo(String query, int iqlVersion, long queryStartTimestamp, @Nullable String sqlQuery) {
+    public QueryInfo(final String hostname, String query, int iqlVersion, long queryStartTimestamp, @Nullable String sqlQuery) {
+        this.hostname = hostname;
         this.queryLength = query.length();
         this.queryStringTruncatedForPrint = truncateQuery(query);
         this.sqlQuery = truncateQuery(sqlQuery);
@@ -63,6 +64,7 @@ public class QueryInfo {
     public long queryStartTimestamp;
     public final int iqlVersion;
     public int queryLength;
+    public final String hostname;
     @Nullable public Set<String> datasets;
     @Nullable public Integer totalDatasetRangeDays; // SUM(dataset (End - Start)). duration in FROM even if missing shards
     @Nullable public Integer totalShardPeriodHours; // SUM(shard (end-start)). time actually covered by shards

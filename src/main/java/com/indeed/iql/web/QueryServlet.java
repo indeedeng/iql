@@ -214,7 +214,7 @@ public class QueryServlet {
                 query = sqlToIQLParser.parse(query);
             }
 
-            final QueryInfo queryInfo = new QueryInfo(query, queryRequestParams.version, System.currentTimeMillis(), sqlQuery);
+            final QueryInfo queryInfo = new QueryInfo(hostname, query, queryRequestParams.version, System.currentTimeMillis(), sqlQuery);
 
             try {
                 if (Strings.isNullOrEmpty(client) && Strings.isNullOrEmpty(userName)) {
