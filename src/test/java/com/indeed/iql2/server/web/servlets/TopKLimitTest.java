@@ -19,12 +19,17 @@ public class TopKLimitTest extends BasicTest {
         QueryServletTestUtils.expectException(
                 "from organic yesterday today group by country[0]",
                 QueryServletTestUtils.LanguageVersion.IQL2,
-                x -> x.contains("The K in Top K must be in [0, MAX_INT - 1). Value was: 0")
+                x -> x.contains("The K in Top K must be in [0, INT_MAX). Value was: 0")
         );
         QueryServletTestUtils.expectException(
                 "from organic yesterday today group by country[4294967297]",
                 QueryServletTestUtils.LanguageVersion.IQL2,
-                x -> x.contains("The K in Top K must be in [0, MAX_INT - 1). Value was: 4294967297")
+                x -> x.contains("The K in Top K must be in [0, INT_MAX). Value was: 4294967297")
+        );
+        QueryServletTestUtils.expectException(
+                "from organic yesterday today group by country[" + Integer.MAX_VALUE + "]",
+                QueryServletTestUtils.LanguageVersion.IQL2,
+                x -> x.contains("The K in Top K must be in [0, INT_MAX). Value was: " + Integer.MAX_VALUE)
         );
     }
 }
