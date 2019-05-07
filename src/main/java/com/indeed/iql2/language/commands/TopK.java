@@ -70,7 +70,7 @@ public class TopK {
             // arbitrarily subtracting 1 because boundaries are easy to get screwy and this number is
             // already too massive to be reasonable.
             if ((limitValue <= 0) || (limitValue > (Integer.MAX_VALUE - 1))) {
-                errorCollector.error("The K in Top K must be in [0, INT_MAX). Value was: " + limitValue);
+                errorCollector.error("The K in Top K must be in [1, INT_MAX). Value was: " + limitValue);
             }
         }
     }
