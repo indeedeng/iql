@@ -389,9 +389,9 @@ public class AggregateMetricsTest extends BasicTest {
     @Test
     public void testRegroupIntoParent() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
-        expected.add(ImmutableList.of("", "151", "151", "151"));
+        expected.add(ImmutableList.of("1", "151", "151", "151"));
         // SUM_OVER and RUNNING in one query cause RegroupIntoParent command to happen.
-        QueryServletTestUtils.testIQL2(expected, "FROM organic yesterday today SELECT count(), SUM_OVER(time(1d), COUNT()), RUNNING(COUNT())");
+        QueryServletTestUtils.testIQL2(expected, "FROM organic yesterday today group by (true) HAVING COUNT()>0 SELECT count(), SUM_OVER(time(1d), COUNT()), RUNNING(COUNT())");
     }
 
     @Test

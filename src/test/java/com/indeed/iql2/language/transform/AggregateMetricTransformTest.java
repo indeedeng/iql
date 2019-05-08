@@ -3,6 +3,7 @@ package com.indeed.iql2.language.transform;
 import com.google.common.collect.ImmutableList;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocMetricsTest;
+import com.indeed.iql2.language.JQLParser;
 import com.indeed.iql2.language.query.Queries;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -37,6 +38,17 @@ public class AggregateMetricTransformTest {
             final String untested = classesToTest.stream().map(Class::getSimpleName).collect(Collectors.joining(", "));
             throw new IllegalStateException("Failed to test classes: " + untested);
         }
+    }
+
+    private void testOnGroupedContext(final String metricText, final String groupByField) {
+        final JQLParser.IdentifierContext groupByIdentifier = Queries.runParser(groupByField, JQLParser::identifierTerminal).identifier();
+        final AggregateMetric parsed = Queries.parseAggregateMetric(metricText, false, DocMetricsTest.CONTEXT.withFieldAggregate(DocMetricsTest.CONTEXT.fieldResolver.resolve(groupByIdentifier)));
+        classesToTest.remove(parsed.getClass());
+        Assert.assertEquals(metricText, parsed.getRawInput());
+        final AggregateMetric transformed = parsed.transform(Function.identity(), Function.identity(), Function.identity(), Function.identity(), Function.identity());
+        Assert.assertEquals(parsed, transformed);
+        Assert.assertNotSame(parsed, transformed);
+        Assert.assertEquals(parsed.getRawInput(), transformed.getRawInput());
     }
 
     private void test(final String metricText) {
@@ -109,7 +121,7 @@ public class AggregateMetricTransformTest {
 
     @Test
     public void testParent() {
-        test("parent(oji)");
+        testOnGroupedContext("parent(oji)", "ojc");
     }
 
     @Test
@@ -119,7 +131,7 @@ public class AggregateMetricTransformTest {
 
     @Test
     public void testWindow() {
-        test("window(5, oji)");
+        testOnGroupedContext("window(5, oji)", "ojc");
     }
 
     @Test
@@ -139,7 +151,7 @@ public class AggregateMetricTransformTest {
 
     @Test
     public void testRunning() {
-        test("running(oji)");
+        testOnGroupedContext("running(oji)", "ojc");
     }
 
     @Test

@@ -37,16 +37,18 @@ public class DocFilters {
             return parseJQLDocFilter(docFilterContext.jqlDocFilter(), context);
         }
         if (docFilterContext.legacyDocFilter() != null) {
-            return parseLegacyDocFilter(docFilterContext.legacyDocFilter(), context.fieldResolver, context.datasetsMetadata);
+            return parseLegacyDocFilter(docFilterContext.legacyDocFilter(), context);
         }
         throw new UnsupportedOperationException("What do?!");
     }
 
     public static DocFilter parseLegacyDocFilter(
             final JQLParser.LegacyDocFilterContext legacyDocFilterContext,
-            final ScopedFieldResolver fieldResolver,
-            final DatasetsMetadata datasetsMetadata) {
+            final Query.Context context
+    ) {
         final DocFilter[] ref = new DocFilter[1];
+        final ScopedFieldResolver fieldResolver = context.fieldResolver;
+        final DatasetsMetadata datasetsMetadata = context.datasetsMetadata;
 
         legacyDocFilterContext.enterRule(new JQLBaseListener() {
             public void accept(DocFilter value) {
@@ -60,7 +62,7 @@ public class DocFilters {
             public void enterLegacyDocBetween(JQLParser.LegacyDocBetweenContext ctx) {
                 final long lowerBound = Long.parseLong(ctx.lowerBound.getText());
                 final long upperBound = Long.parseLong(ctx.upperBound.getText());
-                final DocMetric metric = DocMetrics.parseLegacyDocMetric(ctx.metric, fieldResolver, datasetsMetadata);
+                final DocMetric metric = DocMetrics.parseLegacyDocMetric(ctx.metric, context);
                 accept(new DocFilter.Between(metric, lowerBound, upperBound, true));
             }
 
@@ -76,11 +78,11 @@ public class DocFilters {
             @Override
             public void enterLegacyDocFieldIsnt(JQLParser.LegacyDocFieldIsntContext ctx) {
                 final Term term = Term.parseLegacyTerm(ctx.legacyTermVal());
-                accept(fieldResolver.resolveDocFilter(ctx.field, new ScopedFieldResolver.FieldIsntCallback(term)));
+                accept(fieldResolver.resolveDocFilter(ctx.field, new ScopedFieldResolver.FieldIsntCallback(term), context));
             }
 
             @Override
-            public void enterLegacyDocSample(JQLParser.LegacyDocSampleContext ctx) {
+            public void enterLegacyDocSample(final JQLParser.LegacyDocSampleContext ctx) {
                 final FieldSet field = fieldResolver.resolve(ctx.field);
                 final long numerator = Long.parseLong(ctx.numerator.getText());
                 final long denominator;
@@ -91,7 +93,7 @@ public class DocFilters {
                 }
                 final String seed;
                 if (ctx.seed != null) {
-                    seed = ParserCommon.unquote(ctx.seed.getText());
+                    seed = ParserCommon.unquoteLegacy(ctx.seed.getText());
                 } else {
                     seed = String.valueOf(Math.random());
                 }
@@ -101,19 +103,25 @@ public class DocFilters {
 
             @Override
             public void enterLegacyDocNot(JQLParser.LegacyDocNotContext ctx) {
-                accept(new DocFilter.Not(parseLegacyDocFilter(ctx.legacyDocFilter(), fieldResolver, datasetsMetadata)));
+                accept(new DocFilter.Not(parseLegacyDocFilter(ctx.legacyDocFilter(), context)));
             }
 
             @Override
             public void enterLegacyDocRegex(final JQLParser.LegacyDocRegexContext ctx) {
-                // TODO: use DocMetrics.hasTermOrThrow after IQL-874 is merged
-                accept(new DocFilter.Regex(fieldResolver.resolve(ctx.field), ParserCommon.unquote(ctx.legacyTermVal().getText())));
+                final String unquoted = ParserCommon.unquoteLegacy(ctx.legacyTermVal().getText());
+                accept(new DocFilter.Regex(fieldResolver.resolve(ctx.field), unquoted));
+            }
+
+            @Override
+            public void enterLegacyDocNotRegex(final JQLParser.LegacyDocNotRegexContext ctx) {
+                final String unquoted = ParserCommon.unquoteLegacy(ctx.legacyTermVal().getText());
+                accept(new DocFilter.NotRegex(fieldResolver.resolve(ctx.field), unquoted));
             }
 
             @Override
             public void enterLegacyDocFieldIs(JQLParser.LegacyDocFieldIsContext ctx) {
                 final Term term = Term.parseLegacyTerm(ctx.legacyTermVal());
-                accept(fieldResolver.resolveDocFilter(ctx.field, new ScopedFieldResolver.FieldIsCallback(term)));
+                accept(fieldResolver.resolveDocFilter(ctx.field, new ScopedFieldResolver.FieldIsCallback(term), context));
             }
 
             @Override
@@ -128,8 +136,8 @@ public class DocFilters {
 
             @Override
             public void enterLegacyDocOr(final JQLParser.LegacyDocOrContext ctx) {
-                final DocFilter left = parseLegacyDocFilter(ctx.legacyDocFilter(0), fieldResolver, datasetsMetadata);
-                final DocFilter right = parseLegacyDocFilter(ctx.legacyDocFilter(1), fieldResolver, datasetsMetadata);
+                final DocFilter left = parseLegacyDocFilter(ctx.legacyDocFilter(0), context);
+                final DocFilter right = parseLegacyDocFilter(ctx.legacyDocFilter(1), context);
                 accept(DocFilter.Or.create(left, right));
             }
 
@@ -141,8 +149,8 @@ public class DocFilters {
             @Override
             public void enterLegacyDocMetricInequality(JQLParser.LegacyDocMetricInequalityContext ctx) {
                 final String op = ctx.op.getText();
-                final DocMetric arg1 = DocMetrics.parseLegacyDocMetric(ctx.legacyDocMetric(0), fieldResolver, datasetsMetadata);
-                final DocMetric arg2 = DocMetrics.parseLegacyDocMetric(ctx.legacyDocMetric(1), fieldResolver, datasetsMetadata);
+                final DocMetric arg1 = DocMetrics.parseLegacyDocMetric(ctx.legacyDocMetric(0), context);
+                final DocMetric arg2 = DocMetrics.parseLegacyDocMetric(ctx.legacyDocMetric(1), context);
                 final DocFilter result;
                 switch (op) {
                     case "=": {
@@ -177,25 +185,19 @@ public class DocFilters {
 
             @Override
             public void enterLegacyDocAnd(final JQLParser.LegacyDocAndContext ctx) {
-                final DocFilter left = parseLegacyDocFilter(ctx.legacyDocFilter(0), fieldResolver, datasetsMetadata);
-                final DocFilter right = parseLegacyDocFilter(ctx.legacyDocFilter(1), fieldResolver, datasetsMetadata);
+                final DocFilter left = parseLegacyDocFilter(ctx.legacyDocFilter(0), context);
+                final DocFilter right = parseLegacyDocFilter(ctx.legacyDocFilter(1), context);
                 accept(DocFilter.And.create(left, right));
             }
 
             @Override
-            public void enterLegacyLucene(JQLParser.LegacyLuceneContext ctx) {
-                accept(new DocFilter.Lucene(ParserCommon.unquote(ctx.STRING_LITERAL().getText()), fieldResolver, datasetsMetadata));
-            }
-
-            @Override
-            public void enterLegacyDocNotRegex(final JQLParser.LegacyDocNotRegexContext ctx) {
-                // TODO: use DocMetrics.hasTermOrThrow after IQL-874 is merged
-                accept(new DocFilter.NotRegex(fieldResolver.resolve(ctx.field), ParserCommon.unquote(ctx.legacyTermVal().getText())));
+            public void enterLegacyLucene(final JQLParser.LegacyLuceneContext ctx) {
+                accept(new DocFilter.Lucene(ParserCommon.unquoteLegacy(ctx.STRING_LITERAL().getText()), fieldResolver, datasetsMetadata));
             }
 
             @Override
             public void enterLegacyDocFilterParens(JQLParser.LegacyDocFilterParensContext ctx) {
-                accept(parseLegacyDocFilter(ctx.legacyDocFilter(), fieldResolver, datasetsMetadata));
+                accept(parseLegacyDocFilter(ctx.legacyDocFilter(), context));
             }
 
             @Override
@@ -303,8 +305,8 @@ public class DocFilters {
 
             @Override
             public void enterDocFieldEqual(final JQLParser.DocFieldEqualContext ctx) {
-                final DocMetric metric1 = extractPlainDimensionDocMetric(ctx.singlyScopedField(0), fieldResolver);
-                final DocMetric metric2 = extractPlainDimensionDocMetric(ctx.singlyScopedField(1), fieldResolver);
+                final DocMetric metric1 = extractPlainDimensionDocMetric(ctx.singlyScopedField(0), context);
+                final DocMetric metric2 = extractPlainDimensionDocMetric(ctx.singlyScopedField(1), context);
 
                 final FieldSet plainField1 = extractPlainField(metric1);
                 final FieldSet plainField2 = extractPlainField(metric2);
@@ -323,8 +325,8 @@ public class DocFilters {
 
             @Override
             public void enterDocNotFieldEqual(final JQLParser.DocNotFieldEqualContext ctx) {
-                final DocMetric metric1 = extractPlainDimensionDocMetric(ctx.singlyScopedField(0), fieldResolver);
-                final DocMetric metric2 = extractPlainDimensionDocMetric(ctx.singlyScopedField(1), fieldResolver);
+                final DocMetric metric1 = extractPlainDimensionDocMetric(ctx.singlyScopedField(0), context);
+                final DocMetric metric2 = extractPlainDimensionDocMetric(ctx.singlyScopedField(1), context);
 
                 final FieldSet plainField1 = extractPlainField(metric1);
                 final FieldSet plainField2 = extractPlainField(metric2);
@@ -344,13 +346,13 @@ public class DocFilters {
             @Override
             public void enterDocFieldIs(JQLParser.DocFieldIsContext ctx) {
                 final Term term = Term.parseJqlTerm(ctx.jqlTermVal());
-                accept(fieldResolver.resolveDocFilter(ctx.singlyScopedField(), new ScopedFieldResolver.FieldIsCallback(term)));
+                accept(fieldResolver.resolveDocFilter(ctx.singlyScopedField(), new ScopedFieldResolver.FieldIsCallback(term), context));
             }
 
             @Override
             public void enterDocFieldIsnt(JQLParser.DocFieldIsntContext ctx) {
                 final Term term = Term.parseJqlTerm(ctx.jqlTermVal());
-                accept(fieldResolver.resolveDocFilter(ctx.singlyScopedField(), new ScopedFieldResolver.FieldIsntCallback(term)));
+                accept(fieldResolver.resolveDocFilter(ctx.singlyScopedField(), new ScopedFieldResolver.FieldIsntCallback(term), context));
             }
 
             @Override

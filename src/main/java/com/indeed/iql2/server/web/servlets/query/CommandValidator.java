@@ -16,6 +16,7 @@ package com.indeed.iql2.server.web.servlets.query;
 
 import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql.metadata.DatasetsMetadata;
+import com.indeed.iql.web.Limits;
 import com.indeed.iql2.language.commands.Command;
 import com.indeed.iql2.language.commands.GetGroupStats;
 import com.indeed.iql2.language.commands.SimpleIterate;
@@ -38,11 +39,12 @@ public class CommandValidator {
 
     public static void validate(
             final Query query,
+            final Limits limits,
             final DatasetsMetadata datasetsMetadata,
             final ErrorCollector errorCollector
     ) {
         final List<Command> commands = query.commands();
-        final ValidationHelper validationHelper = buildValidationHelper(query.datasets, query.nameToIndex(), datasetsMetadata, query.useLegacy);
+        final ValidationHelper validationHelper = buildValidationHelper(query.datasets, query.nameToIndex(), datasetsMetadata, query.useLegacy, limits);
         for (final Command command : commands) {
             command.validate(validationHelper, errorCollector);
         }
@@ -57,8 +59,13 @@ public class CommandValidator {
         }
     }
 
-    private static ValidationHelper buildValidationHelper(final List<Dataset> relevantDatasets, final Map<String, String> nameToActualDataset,
-                                                          final DatasetsMetadata datasetsMetadata, final boolean useLegacy) {
+    private static ValidationHelper buildValidationHelper(
+            final List<Dataset> relevantDatasets,
+            final Map<String, String> nameToActualDataset,
+            final DatasetsMetadata datasetsMetadata,
+            final boolean useLegacy,
+            final Limits limits
+    ) {
         final Map<String, DatasetMetadata> relevantDatasetToMetadata = new HashMap<>();
         final HashMap<String, Pair<Long,Long>> datasetsTimeRange = new HashMap<>();
         for (final Dataset relevantDataset : relevantDatasets) {
@@ -71,6 +78,6 @@ public class CommandValidator {
             relevantDatasetToMetadata.put(aliasDataset, datasetMetadata);
             datasetsTimeRange.put(aliasDataset,new Pair<>(relevantDataset.startInclusive.unwrap().getMillis(), relevantDataset.endExclusive.unwrap().getMillis()));
         }
-        return new ValidationHelper(new DatasetsMetadata(relevantDatasetToMetadata), datasetsTimeRange, Collections.emptyMap(), Collections.emptyMap(), useLegacy);
+        return new ValidationHelper(new DatasetsMetadata(relevantDatasetToMetadata), limits, datasetsTimeRange, Collections.emptyMap(), Collections.emptyMap(), useLegacy);
     }
 }

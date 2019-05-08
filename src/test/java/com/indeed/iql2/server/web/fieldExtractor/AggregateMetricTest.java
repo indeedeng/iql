@@ -91,7 +91,7 @@ public class AggregateMetricTest extends BaseTest{
 
 	@Test
 	public void testParent() {
-		verify(ImmutableSet.of(ORGANIC_OJI), "from organic yesterday today select parent(oji)");
+		verify(ImmutableSet.of(ORGANIC_OJI, ORGANIC_OJC), "from organic yesterday today group by ojc select parent(oji)");
 	}
 
 	@Test
@@ -106,7 +106,7 @@ public class AggregateMetricTest extends BaseTest{
 
 	@Test
 	public void testWindow() {
-		verify(ImmutableSet.of(ORGANIC_OJI), "from organic yesterday today select window(5, oji)");
+		verify(ImmutableSet.of(ORGANIC_OJI, ORGANIC_OJC), "from organic yesterday today group by ojc select window(5, oji)");
 	}
 
 	@Test
@@ -131,7 +131,7 @@ public class AggregateMetricTest extends BaseTest{
 
 	@Test
 	public void testRunning() {
-		verify(ImmutableSet.of(ORGANIC_OJI), "from organic yesterday today select running(oji)");
+		verify(ImmutableSet.of(ORGANIC_OJI, ORGANIC_OJC), "from organic yesterday today group by ojc select running(oji)");
 	}
 
 	@Test

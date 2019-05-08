@@ -192,7 +192,6 @@ public class FieldResolver {
                 final String chosenName = (name != null) ? Identifiers.extractIdentifier(name) : imhotepName;
 
                 final Map<String, String> dimensionsAliases = datasetsMetadata.getDatasetToDimensionAliasFields().getOrDefault(imhotepName, Collections.emptyMap());
-                final ResolvedDataset dimensionsOnlyDataset = new ResolvedDataset(chosenName, imhotepName, dimensionsAliases, metadata);
 
                 final Map<String, String> aliasMapping = new HashMap<>(dimensionsAliases);
 
@@ -201,6 +200,7 @@ public class FieldResolver {
                             aliases.actual.size() == aliases.virtual.size(),
                             "Expected actual and virtual to have same size"
                     );
+                    final ResolvedDataset dimensionsOnlyDataset = new ResolvedDataset(chosenName, imhotepName, dimensionsAliases, metadata);
                     for (int i = 0; i < aliases.actual.size(); i++) {
                         String actual = dimensionsOnlyDataset.resolveFieldName(Identifiers.extractIdentifier(aliases.actual.get(i)));
                         actual = dimensionsAliases.getOrDefault(actual, actual);
@@ -231,5 +231,29 @@ public class FieldResolver {
         queryVisitor.visit(queryCtx);
 
         return new FieldResolver(aliasesFound, datasets, datasetsMetadata, useLegacy ? FieldType.String : FieldType.Integer);
+    }
+
+    // Use only in IQL1 -> IQL2 conversion
+    // simplified version of build method above
+    public static FieldResolver createForQueryConversion(
+            final String dataset,
+            final DatasetsMetadata datasetsMetadata) {
+        final Map<String, ResolvedDataset> datasets = new HashMap<>();
+
+        final DatasetMetadata metadata = datasetsMetadata
+                .getMetadata(dataset)
+                .orElseGet(() -> new DatasetMetadata(dataset));
+
+        final Map<String, String> dimensionsAliases = datasetsMetadata.getDatasetToDimensionAliasFields().getOrDefault(dataset, Collections.emptyMap());
+
+        datasets.put(dataset, new ResolvedDataset(
+                dataset,
+                dataset,
+                dimensionsAliases,
+                metadata
+        ));
+
+        final Set<String> aliasesFound = Collections.emptySet();
+        return new FieldResolver(aliasesFound, datasets, datasetsMetadata, FieldType.String);
     }
 }

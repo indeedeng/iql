@@ -53,6 +53,8 @@ public class CacheKey {
         }
         for (final Dataset dataset : query.datasets) {
             sha1.update(dataset.dataset.unwrap().getBytes(Charsets.UTF_8));
+            sha1.update((byte) 0); // separator to avoid dataset+alias concatenation clashes
+            sha1.update(dataset.alias.orElse(dataset.dataset).unwrap().getBytes(Charsets.UTF_8));
             sha1.update(Longs.toByteArray(dataset.startInclusive.unwrap().getMillis()));
             sha1.update(Longs.toByteArray(dataset.endExclusive.unwrap().getMillis()));
             final List<FieldAlias> sortedFieldAliases = dataset.fieldAliases.entrySet().stream()

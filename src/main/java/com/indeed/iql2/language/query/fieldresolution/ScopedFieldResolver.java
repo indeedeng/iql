@@ -20,6 +20,7 @@ import com.indeed.iql2.language.JQLParser;
 import com.indeed.iql2.language.Positioned;
 import com.indeed.iql2.language.Term;
 import com.indeed.iql2.language.passes.SubstituteDimension;
+import com.indeed.iql2.language.query.Query;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.apache.log4j.Logger;
 
@@ -69,7 +70,7 @@ public class ScopedFieldResolver {
             return FieldResolver.FAILED_TO_RESOLVE_DATASET;
         }
         if (allMatching.isEmpty()) {
-            fieldResolver.addError(new IqlKnownException.UnknownDatasetException("Dataset not found: \"" + dataset + "\""));
+            fieldResolver.addError(new IqlKnownException.UnknownDatasetException("Dataset not found or not included in query: \"" + dataset + "\""));
             return FieldResolver.FAILED_TO_RESOLVE_DATASET;
         }
         return Iterables.getOnlyElement(allMatching);
@@ -216,33 +217,33 @@ public class ScopedFieldResolver {
         }
     }
 
-    public DocMetric resolveDocMetric(final JQLParser.SinglyScopedFieldContext ctx, final MetricResolverCallback<DocMetric> callback) {
+    public DocMetric resolveDocMetric(final JQLParser.SinglyScopedFieldContext ctx, final MetricResolverCallback<DocMetric> callback, final Query.Context queryContext) {
         final ScopedFieldResolver resolver = forScope(ctx);
-        final DocMetric metric = resolver.resolveDocMetric(ctx.field, callback);
+        final DocMetric metric = resolver.resolveDocMetric(ctx.field, callback, queryContext);
         if (resolver != this) {
             return new DocMetric.Qualified(Iterables.getOnlyElement(resolver.scope), metric);
         }
         return metric;
     }
 
-    public DocMetric resolveDocMetric(final JQLParser.IdentifierContext ctx, final MetricResolverCallback<DocMetric> callback) {
-        return resolvePotentialDocMetric(ctx, ctx, callback);
+    public DocMetric resolveDocMetric(final JQLParser.IdentifierContext ctx, final MetricResolverCallback<DocMetric> callback, final Query.Context queryContext) {
+        return resolvePotentialDocMetric(ctx, ctx, callback, queryContext);
     }
 
-    public DocFilter resolveDocFilter(final JQLParser.SinglyScopedFieldContext ctx, final MetricResolverCallback<DocFilter> callback) {
+    public DocFilter resolveDocFilter(final JQLParser.SinglyScopedFieldContext ctx, final MetricResolverCallback<DocFilter> callback, final Query.Context queryContext) {
         final ScopedFieldResolver resolver = forScope(ctx);
-        final DocFilter filter = resolver.resolveDocFilter(ctx.field, callback);
+        final DocFilter filter = resolver.resolveDocFilter(ctx.field, callback, queryContext);
         if (resolver != this) {
             return new DocFilter.Qualified(new ArrayList<>(resolver.scope), filter);
         }
         return filter;
     }
 
-    public DocFilter resolveDocFilter(final JQLParser.IdentifierContext ctx, final MetricResolverCallback<DocFilter> callback) {
-        return resolvePotentialDocMetric(ctx, ctx, callback);
+    public DocFilter resolveDocFilter(final JQLParser.IdentifierContext ctx, final MetricResolverCallback<DocFilter> callback, final Query.Context queryContext) {
+        return resolvePotentialDocMetric(ctx, ctx, callback, queryContext);
     }
 
-    private <T extends AbstractPositional> T resolvePotentialDocMetric(final JQLParser.IdentifierContext ctx, final ParserRuleContext syntacticCtx, final MetricResolverCallback<T> callback) {
+    private <T extends AbstractPositional> T resolvePotentialDocMetric(final JQLParser.IdentifierContext ctx, final ParserRuleContext syntacticCtx, final MetricResolverCallback<T> callback, final Query.Context queryContext) {
         final Map<String, DocMetric> datasetToMetric = new HashMap<>();
         boolean foundDimensionMetric = false;
 
@@ -252,7 +253,7 @@ public class ScopedFieldResolver {
             final ScopedFieldResolver scopedResolver = forScope(Collections.singleton(dataset));
             final MetricMetadata metricMetadata = scopedResolver.lookupDimensionMetric(dataset, identifier);
             if (metricMetadata != null) {
-                final DocMetric dimensionMetric = SubstituteDimension.getDocMetricOrThrow(metricMetadata, fieldResolver.datasetsMetadata, scopedResolver);
+                final DocMetric dimensionMetric = SubstituteDimension.getDocMetricOrThrow(metricMetadata, fieldResolver.datasetsMetadata, scopedResolver, queryContext);
                 datasetToMetric.put(dataset, dimensionMetric);
                 foundDimensionMetric = true;
             } else {
@@ -280,20 +281,20 @@ public class ScopedFieldResolver {
         return result;
     }
 
-    public AggregateMetric resolveAggregateMetric(final JQLParser.SinglyScopedFieldContext ctx) {
+    public AggregateMetric resolveAggregateMetric(final JQLParser.SinglyScopedFieldContext ctx, final Query.Context queryContext) {
         final ScopedFieldResolver resolver = forScope(ctx);
-        final AggregateMetric filter = resolver.resolveAggregateMetric(ctx.field);
+        final AggregateMetric filter = resolver.resolveAggregateMetric(ctx.field, queryContext);
         if (resolver != this) {
             return new AggregateMetric.Qualified(new ArrayList<>(resolver.scope), filter);
         }
         return filter;
     }
 
-    public AggregateMetric resolveAggregateMetric(final JQLParser.IdentifierContext ctx) {
-        return resolvePotentialAggregateMetric(ctx, ctx);
+    public AggregateMetric resolveAggregateMetric(final JQLParser.IdentifierContext ctx, final Query.Context queryContext) {
+        return resolvePotentialAggregateMetric(ctx, ctx, queryContext);
     }
 
-    private AggregateMetric resolvePotentialAggregateMetric(final JQLParser.IdentifierContext ctx, final ParserRuleContext syntacticCtx) {
+    private AggregateMetric resolvePotentialAggregateMetric(final JQLParser.IdentifierContext ctx, final ParserRuleContext syntacticCtx, final Query.Context queryContext) {
         boolean foundDimensionMetric = false;
 
         final String identifier = Identifiers.extractIdentifier(ctx);
@@ -304,7 +305,7 @@ public class ScopedFieldResolver {
             final MetricMetadata metricMetadata = scopedResolver.lookupDimensionMetric(dataset, identifier);
             final AggregateMetric metric;
             if (metricMetadata != null) {
-                metric = SubstituteDimension.getAggregateMetric(metricMetadata, fieldResolver.datasetsMetadata, scopedResolver);
+                metric = SubstituteDimension.getAggregateMetric(metricMetadata, fieldResolver.datasetsMetadata, scopedResolver, queryContext);
                 foundDimensionMetric = true;
             } else {
                 metric = new AggregateMetric.DocStats(new DocMetric.Field(scopedResolver.resolve(ctx)));
@@ -336,6 +337,11 @@ public class ScopedFieldResolver {
     private MetricMetadata lookupDimensionMetric(final String dataset, final String typedField) {
         final DatasetsMetadata datasetsMetadata = fieldResolver.datasetsMetadata;
         final ResolvedDataset resolvedDataset = fieldResolver.datasets.get(dataset);
+
+        if (resolvedDataset == null) {
+            return null;
+        }
+
         final String imhotepDataset = resolvedDataset.imhotepName;
 
         if (datasetsMetadata.getMetadata(imhotepDataset).isPresent()) {

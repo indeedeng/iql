@@ -14,6 +14,7 @@
 
 package com.indeed.iql2.language;
 
+import com.indeed.common.datastruct.PersistentStack;
 import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.GroupBys;
 import com.indeed.iql2.language.query.Queries;
@@ -48,20 +49,21 @@ public class GroupByTest {
             CLOCK,
             new TracingTreeTimer(),
             FIELD_RESOLVER.universalScope(),
-            new NullShardResolver()
+            new NullShardResolver(),
+            PersistentStack.empty()
     );
 
     private static final Function<JQLParser, GroupByEntry> PARSE_IQL1_GROUP_BY = new Function<JQLParser, GroupByEntry>() {
         @Override
         public GroupByEntry apply(JQLParser input) {
-            return GroupBys.parseGroupByEntry(input.groupByEntry(true), CONTEXT);
+            return GroupBys.parseGroupByEntry(input.groupByEntry(true), CONTEXT).getFirst();
         }
     };
 
     private static final Function<JQLParser, GroupByEntry> PARSE_IQL2_GROUP_BY = new Function<JQLParser, GroupByEntry>() {
         @Override
         public GroupByEntry apply(JQLParser input) {
-            return GroupBys.parseGroupByEntry(input.groupByEntry(false), CONTEXT);
+            return GroupBys.parseGroupByEntry(input.groupByEntry(false), CONTEXT).getFirst();
         }
     };
 

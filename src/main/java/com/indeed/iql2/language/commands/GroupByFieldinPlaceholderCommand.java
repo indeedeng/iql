@@ -45,7 +45,7 @@ public class GroupByFieldinPlaceholderCommand implements Command {
                 errorCollector.error(ErrorMessages.missingField(dataset, fieldName, this));
             }
         }
-        CommandValidator.validate(query, datasetsMetadata, errorCollector);
+        CommandValidator.validate(query, validationHelper.limits, datasetsMetadata, errorCollector);
     }
 
     @Override

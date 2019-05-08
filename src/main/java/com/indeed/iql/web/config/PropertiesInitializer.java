@@ -72,7 +72,7 @@ public class PropertiesInitializer implements ApplicationContextInitializer<Conf
         // try to infer the appropriate Spring profile
         // this JVM system property should be set in OPs managed JVMs
         String indeedEnv = System.getProperty(indeedEnvironmentJVMProperty);
-        if(Strings.isNullOrEmpty(indeedEnv)) {
+        if(Strings.isNullOrEmpty(indeedEnv) || "local".equals(indeedEnv)) {
             indeedEnv = "developer"; // assume this is not an OPs managed JVM and thus a developer station
         }
         final List<String> profiles = Lists.newArrayList(springEnv.getActiveProfiles());

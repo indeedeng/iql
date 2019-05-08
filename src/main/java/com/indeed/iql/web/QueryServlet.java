@@ -214,7 +214,7 @@ public class QueryServlet {
                 query = sqlToIQLParser.parse(query);
             }
 
-            final QueryInfo queryInfo = new QueryInfo(query, queryRequestParams.version, System.currentTimeMillis(), sqlQuery);
+            final QueryInfo queryInfo = new QueryInfo(hostname, query, queryRequestParams.version, System.currentTimeMillis(), sqlQuery);
 
             try {
                 if (Strings.isNullOrEmpty(client) && Strings.isNullOrEmpty(userName)) {
@@ -251,7 +251,7 @@ public class QueryServlet {
                 } else if (iqlStatement instanceof ShowStatement) {
                     handleShowStatement(queryRequestParams, resp);
                 } else if (iqlStatement instanceof ExplainStatement) {
-                    handleExplainStatement((ExplainStatement) iqlStatement, queryRequestParams, resp, clock);
+                    handleExplainStatement((ExplainStatement) iqlStatement, queryRequestParams, clientInfo, resp, clock);
                 } else {
                     throw new IqlKnownException.ParseErrorException("Query parsing failed: unknown statement type");
                 }
@@ -379,7 +379,7 @@ public class QueryServlet {
                 selectQueryExecution.processSelect(runningQueriesManager);
             } else {
                 // IQL1
-                final IQL1SelectStatement iql1SelectStatement = SelectStatementParser.parseSelectStatement(query, new DateTime(clock.currentTimeMillis()), metadataCache);
+                final IQL1SelectStatement iql1SelectStatement = SelectStatementParser.parseSelectStatement(query, new DateTime(clock.currentTimeMillis()), metadataCache.get());
                 setQueryInfoFromSelectStatement(iql1SelectStatement, queryInfo, clientInfo);
 
                 final PrintWriter writer = resp.getWriter();
@@ -420,7 +420,7 @@ public class QueryServlet {
         final String queryForHashing = parsedQuery.toHashKeyString();
 
         final IQLQuery iqlQuery = IQLTranslator.translate(parsedQuery, imhotepClient,
-                args.imhotepUserName, metadataCache, selectQuery.get().limits, queryInfo, strictCloser);
+                args.imhotepUserName, metadataCache.get(), selectQuery.get().limits, queryInfo, strictCloser);
 
         queryInfo.numShards = iqlQuery.getShards().size();
         queryInfo.datasetFields = iqlQuery.getDatasetFields();
@@ -702,15 +702,16 @@ public class QueryServlet {
         }
     }
 
-    private void handleExplainStatement(ExplainStatement explainStatement, QueryRequestParams queryRequestParams, HttpServletResponse resp, WallClock clock) throws IOException {
+    private void handleExplainStatement(ExplainStatement explainStatement, QueryRequestParams queryRequestParams, final ClientInfo clientInfo, HttpServletResponse resp, WallClock clock) throws IOException {
         if(queryRequestParams.version == 1 && !queryRequestParams.legacyMode) {
             throw new IqlKnownException.ParseErrorException("IQL 1 doesn't support EXPLAIN statements");
         }
         if (queryRequestParams.json) {
             resp.setHeader("Content-Type", "application/json");
         }
+        final Limits limits = accessControl.getLimitsForIdentity(clientInfo.username, clientInfo.client);
         final ExplainQueryExecution explainQueryExecution = new ExplainQueryExecution(
-                metadataCache.get(), resp.getWriter(), explainStatement.selectQuery, queryRequestParams.version, queryRequestParams.json, clock, defaultIQL2Options);
+                metadataCache.get(), resp.getWriter(), explainStatement.selectQuery, queryRequestParams.version, queryRequestParams.json, clock, defaultIQL2Options, limits);
         explainQueryExecution.processExplain();
     }
 

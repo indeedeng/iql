@@ -80,7 +80,9 @@ public class CacheTest extends BasicTest {
             "from organic yesterday today where tk not in (from organic 60m 0m where tk=\"a\" group by tk)",
             "from organic yesterday today where tk not in (from organic 60m 0m where oji=10 group by tk)",
             "from organic yesterday today group by tk in (from organic 60m 0m where tk=\"a\" group by tk)",
-            "from organic yesterday today group by tk not in (from organic 60m 0m where tk=\"a\" group by tk)"
+            "from organic yesterday today group by tk not in (from organic 60m 0m where tk=\"a\" group by tk)",
+            "from organic yesterday today as a, organic yesterday today as b where a.tk=\"a\" select a.count(), b.count()",
+            "from organic yesterday today as b, organic yesterday today as a where a.tk=\"a\" select a.count(), b.count()"
     );
     private static final StoppedClock CLOCK = new StoppedClock(new DateTime(2015, 1, 1, 0, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis());
 
@@ -243,6 +245,22 @@ public class CacheTest extends BasicTest {
             Assert.assertEquals("Didn't read from cache when it was expected to", expectedCachedFiles, queryCache.getReadsTracked().size());
             Assert.assertEquals(result1, result2);
         }
+    }
+
+    @Test
+    public void testSubQueryCache() throws Exception {
+        final QueryServletTestUtils.Options options = new QueryServletTestUtils.Options();
+        final InMemoryQueryCache queryCache = new InMemoryQueryCache();
+        options.setQueryCache(queryCache);
+
+        Assert.assertEquals(Collections.emptySet(), queryCache.getReadsTracked());
+        QueryServletTestUtils.runQuery("from organic 2d 1d where country in (from organic 2d 1d group by country[5]) group by country", IQL2, EVENT_STREAM, options, Collections.emptySet());
+        Assert.assertEquals(Collections.emptySet(), queryCache.getReadsTracked());
+        // expect top-level metadata and data for both top-level and sub-query.
+        awaitCacheWrites(queryCache, 3);
+
+        QueryServletTestUtils.runQuery("from organic 2d 1d where country in (from organic 2d 1d group by country[5]) group by tk", IQL2, EVENT_STREAM, options, Collections.emptySet());
+        Assert.assertEquals(1, queryCache.getReadsTracked().size());
     }
 
     @Test

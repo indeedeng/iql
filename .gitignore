@@ -1,13 +1,5 @@
-/bin
-/target
-.settings/
-.project
-.classpath
-
-# /
-/*.iml
-/web-build
-/build-transient-src
-/build
-/dist
-/.idea
+.gradle/
+*.iml
+.idea/
+build/
+out/

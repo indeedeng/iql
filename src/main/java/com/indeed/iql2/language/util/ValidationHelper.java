@@ -16,6 +16,7 @@ package com.indeed.iql2.language.util;
 
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql.metadata.MetricMetadata;
+import com.indeed.iql.web.Limits;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 import com.indeed.util.core.Pair;
 
@@ -27,6 +28,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 public class ValidationHelper {
+    public final Limits limits;
     private final boolean useLegacy;
     private final DatasetsMetadata datasetsMetadata;
     private final Map<String, Set<String>> datasetAliasIntFields;
@@ -34,11 +36,15 @@ public class ValidationHelper {
     private final Map<String, Pair<Long, Long>> datasetsTimeRange;
     private final Set<String> definedComputations = new HashSet<>();
 
-    public ValidationHelper(final DatasetsMetadata datasetsMetadata,
-                            final Map<String, Pair<Long, Long>> datasetsTimeRange,
-                            final Map<String, Set<String>> datasetAliasIntFields,
-                            final Map<String, Set<String>> datasetAliasStringFields,
-                            final boolean useLegacy) {
+    public ValidationHelper(
+            final DatasetsMetadata datasetsMetadata,
+            final Limits limits,
+            final Map<String, Pair<Long, Long>> datasetsTimeRange,
+            final Map<String, Set<String>> datasetAliasIntFields,
+            final Map<String, Set<String>> datasetAliasStringFields,
+            final boolean useLegacy
+    ) {
+        this.limits = limits;
         this.useLegacy = useLegacy;
         this.datasetsTimeRange = datasetsTimeRange;
         this.datasetsMetadata = datasetsMetadata;

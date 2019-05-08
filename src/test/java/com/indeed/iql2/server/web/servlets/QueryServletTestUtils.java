@@ -41,6 +41,7 @@ import com.indeed.iql2.server.web.servlets.dataset.Dataset;
 import com.indeed.util.core.threads.NamedThreadFactory;
 import com.indeed.util.core.time.StoppedClock;
 import com.indeed.util.core.time.WallClock;
+import org.hamcrest.Matcher;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.junit.Assert;
@@ -260,12 +261,16 @@ public class QueryServletTestUtils extends BasicTest {
 
         public Options copy() {
             final Options copy = new Options();
+            copy.dataset = dataset;
             copy.tmpDir = tmpDir;
             copy.subQueryTermLimit = subQueryTermLimit;
             copy.queryCache = queryCache;
             copy.imsClient = imsClient;
             copy.skipTestDimension = skipTestDimension;
             copy.wallClock = wallClock;
+            copy.maxCacheQuerySizeLimitBytes = maxCacheQuerySizeLimitBytes;
+            copy.skipCsv = skipCsv;
+            copy.onlyCsv = onlyCsv;
             return copy;
         }
 
@@ -560,6 +565,26 @@ public class QueryServletTestUtils extends BasicTest {
     static void expectException(String query, LanguageVersion version, Predicate<String> exceptionMessagePredicate) {
         final Options options = Options.create();
         expectException(query, version, options, exceptionMessagePredicate);
+    }
+
+    static <T extends Throwable> void expectException(final String query, final LanguageVersion version, final Matcher<Throwable> exceptionMatcher) {
+        final Options options = Options.create();
+        expectException(query, version, options, exceptionMatcher);
+    }
+
+    static void expectException(
+            final String query,
+            final LanguageVersion version,
+            final Options options,
+            final Matcher<Throwable> exceptionMatcher
+    ) {
+        final ImhotepClient client = options.dataset.getNormalClient();
+        try {
+            runQuery(client, query, version, EVENT_STREAM, options, Collections.emptySet());
+            Assert.fail("No exception returned in expectException");
+        } catch (final Exception e) {
+            Assert.assertThat(e, exceptionMatcher);
+        }
     }
 
     static void expectException(

@@ -21,9 +21,9 @@ import com.indeed.iql1.ez.Field;
  * @author jplaisance
  */
 public final class IntInCondition implements Condition {
-    private final Field.IntField intField;
-    private final long[] values;
-    private final boolean negation;
+    public final Field.IntField intField;
+    public final long[] values;
+    public final boolean negation;
 
     public IntInCondition(Field.IntField intField, boolean negation, long... values) {
         this.intField = intField;

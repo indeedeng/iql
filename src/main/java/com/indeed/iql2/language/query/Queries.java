@@ -49,16 +49,20 @@ import com.indeed.iql2.language.passes.SubstituteNamed;
 import com.indeed.iql2.language.query.shardresolution.NullShardResolver;
 import com.indeed.iql2.language.query.shardresolution.ShardResolver;
 import com.indeed.iql2.language.util.ParserUtil;
+import com.indeed.util.core.Pair;
 import com.indeed.util.core.time.WallClock;
 import com.indeed.util.logging.Loggers;
 import com.indeed.util.logging.TracingTreeTimer;
+import org.antlr.v4.runtime.ANTLRErrorListener;
 import org.antlr.v4.runtime.ANTLRInputStream;
+import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.DefaultErrorStrategy;
 import org.antlr.v4.runtime.Parser;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RecognitionException;
+import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.misc.Interval;
 import org.apache.log4j.Logger;
 
@@ -71,6 +75,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -126,6 +131,13 @@ public class Queries {
             final String rawGroupBy,
             final boolean useLegacy,
             final Query.Context context) {
+        return parseGroupByAndGetAggregatedContext(rawGroupBy, useLegacy, context).getFirst();
+    }
+
+    public static Pair<GroupBy, Query.Context> parseGroupByAndGetAggregatedContext(
+            final String rawGroupBy,
+            final boolean useLegacy,
+            final Query.Context context) {
         final JQLParser.GroupByElementContext groupByElementContext = runParser(rawGroupBy, new Function<JQLParser, JQLParser.GroupByElementContext>() {
             @Nullable
             @Override
@@ -133,7 +145,7 @@ public class Queries {
                 return input.groupByElementEof(useLegacy).groupByElement();
             }
         });
-        return GroupBys.parseGroupBy(groupByElementContext, context);
+        return GroupBys.parseGroupByAndGetAggregatedContext(groupByElementContext, context);
     }
 
     public static AggregateFilter parseAggregateFilter(
@@ -398,33 +410,43 @@ public class Queries {
             final boolean throwOnError) {
         final IqlKnownException.ParseErrorException error;
         try {
-            final JQLParser parser = parserForString(input);
-            final List<RecognitionException> exceptions = new ArrayList<>();
-            parser.setErrorHandler(new DefaultErrorStrategy() {
+            final AtomicReference<IqlKnownException.ParseErrorException> exception = new AtomicReference<>();
+            final ANTLRErrorListener errorListener = new BaseErrorListener() {
                 @Override
-                public void reportError(Parser recognizer, RecognitionException e) {
-                    super.reportError(recognizer, e);
-                    exceptions.add(e);
+                public void syntaxError(final Recognizer<?, ?> recognizer, final Object offendingSymbol, final int line, final int charPositionInLine, final String msg, final RecognitionException e) {
+                    super.syntaxError(recognizer, offendingSymbol, line, charPositionInLine, msg, e);
+                    if (exception.get() == null) {
+                        exception.set(new IqlKnownException.ParseErrorException("Invalid input: [" + input + "] " + msg, e));
+                    }
                 }
-            });
+            };
+            final DefaultErrorStrategy errorStrategy = new DefaultErrorStrategy() {
+                @Override
+                public void reportError(final Parser recognizer, final RecognitionException e) {
+                    super.reportError(recognizer, e);
+                    if (exception.get() == null) {
+                        final String message = e.getExpectedTokens().toString(JQLParser.VOCABULARY);
+                        exception.set(new IqlKnownException.ParseErrorException(
+                                "Invalid input: [" + input + "]" + ", expected " + message + ", found [" + e.getOffendingToken().getText() + "]",
+                                e
+                        ));
+                    }
+                }
+            };
+            final JQLParser parser = parserForString(input, errorListener, errorStrategy);
             final T result = applyParser.apply(parser);
-            if (parser.getNumberOfSyntaxErrors() == 0) {
+            if ((parser.getNumberOfSyntaxErrors() == 0) && (exception.get() == null)) {
                 return result;
             }
 
             if (!throwOnError) {
                 return null;
             }
-
-            final String extra;
-            if (!exceptions.isEmpty()) {
-                final RecognitionException anException = exceptions.get(0);
-                final String message = anException.getExpectedTokens().toString(JQLParser.VOCABULARY);
-                extra = ", expected " + message + ", found [" + anException.getOffendingToken().getText() + "]";
+            if (exception.get() == null) {
+                error = new IqlKnownException.ParseErrorException("Invalid input: [" + input + "]");
             } else {
-                extra = "";
+                error = exception.get();
             }
-            error = new IqlKnownException.ParseErrorException("Invalid input: [" + input + "]" + extra);
         } catch (final Throwable t) {
             // Some unexpected error inside parser.
             throw new RuntimeException("Something went wrong inside query parser", t);
@@ -451,19 +473,20 @@ public class Queries {
         return AggregateMetrics.parseAggregateMetric(aggregateMetricContext, context);
     }
 
-    public static JQLParser parserForString(String q) {
+    private static JQLParser parserForString(final String q, final ANTLRErrorListener errorListener, final DefaultErrorStrategy errorStrategy) {
         final JQLLexer lexer = new JQLLexer(new UpperCaseInputStream(new ANTLRInputStream(q)));
         lexer.removeErrorListeners();
+        lexer.addErrorListener(errorListener);
         final CommonTokenStream tokens = new CommonTokenStream(lexer);
         final JQLParser parser = new JQLParser(tokens);
         parser.removeErrorListeners();
+        parser.setErrorHandler(errorStrategy);
         return parser;
     }
 
     public static List<Command> queryCommands(final Query query) {
         return queryCommands(query, Optional.empty());
     }
-
 
     public static List<Command> queryCommands(
             final Query query,
