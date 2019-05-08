@@ -35,9 +35,11 @@ import com.indeed.iql.metadata.FieldMetadata;
 import com.indeed.iql.web.Limits;
 import com.indeed.iql.web.QueryInfo;
 import com.indeed.iql1.ez.EZImhotepSession;
+import com.indeed.iql1.ez.Field;
 import com.indeed.iql1.ez.GroupKey;
 import com.indeed.iql1.ez.StatReference;
 import com.indeed.iql1.ez.Stats;
+import com.indeed.iql1.sql.IQLTranslator;
 import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocFilter;
@@ -331,7 +333,8 @@ public final class IQLQuery implements Closeable {
         final long min = shardsMinMax.getMin();
         final long max = shardsMinMax.getMax();
         if (min < start.getMillis() || max > end.getMillis()) {
-            new MetricCondition(EZImhotepSession.intField(DatasetMetadata.TIME_FIELD_NAME),
+            final Field field = IQLTranslator.getField(DatasetMetadata.TIME_FIELD_NAME, datasetMetadata);
+            new MetricCondition(EZImhotepSession.intField(field),
                     (int)(start.getMillis()/1000), (int)((end.getMillis()-1)/1000), false).filter(session);
         }
     }
@@ -668,7 +671,7 @@ public final class IQLQuery implements Closeable {
                 throw new Iql1ConvertException("... group by diff(...) is not supported in legacy mode");
             } else if (grouping instanceof FieldGrouping) {
                 final FieldGrouping fieldGrouping = (FieldGrouping) grouping;
-                final FieldSet field = createField(fieldGrouping.field.getFieldName());
+                final FieldSet field = createField(fieldGrouping.field);
                 final GroupBy groupBy;
                 if (fieldGrouping.isTermSubset()) {
                     final ImmutableSet<Term> terms = ImmutableSet.copyOf(fieldGrouping.getTermSubset().stream().map(Term::term).iterator());
@@ -700,13 +703,13 @@ public final class IQLQuery implements Closeable {
                 final StatRangeGrouping statRangeGrouping = (StatRangeGrouping) grouping;
                 final GroupBy groupBy;
                 if (statRangeGrouping.isTimeGrouping) {
-                    final String fieldName;
+                    final Field field;
                     if (statRangeGrouping.stat instanceof Stats.IntFieldStat) {
-                        fieldName = ((Stats.IntFieldStat) statRangeGrouping.stat).fieldName;
+                        field = ((Stats.IntFieldStat) statRangeGrouping.stat).field;
                     } else {
                         throw new Iql1ConvertException("group by time must be by field");
                     }
-                    final Optional<FieldSet> f = fieldName.equals(DatasetMetadata.TIME_FIELD_NAME) ? Optional.empty() : Optional.of(createField(fieldName));
+                    final Optional<FieldSet> f = field.getFieldName().equals(DatasetMetadata.TIME_FIELD_NAME) ? Optional.empty() : Optional.of(createField(field));
                     groupBy = new GroupBy.GroupByTime(statRangeGrouping.intervalSize * 1000, f, statRangeGrouping.timeFormat, false);
                 } else {
                     groupBy = new GroupBy.GroupByMetric(
@@ -743,7 +746,7 @@ public final class IQLQuery implements Closeable {
         if (condition instanceof IntInCondition) {
             // intOrRegroup
             final IntInCondition intInCondition = (IntInCondition)condition;
-            final FieldSet field = createField(intInCondition.intField.getFieldName());
+            final FieldSet field = createField(intInCondition.intField);
 
             DocFilter filter;
             if (intInCondition.values.length == 1) {
@@ -767,7 +770,7 @@ public final class IQLQuery implements Closeable {
         } else if (condition instanceof StringInCondition) {
             // stringOrRegroup
             final StringInCondition stringInCondition = (StringInCondition)condition;
-            final FieldSet field = createField(stringInCondition.stringField.getFieldName());
+            final FieldSet field = createField(stringInCondition.stringField);
 
             DocFilter filter;
             if (stringInCondition.equality) {   // true = equality, false = IN clause
@@ -809,14 +812,14 @@ public final class IQLQuery implements Closeable {
         } else if (condition instanceof RegexCondition) {
             // regexRegroup
             final RegexCondition regexCondition = (RegexCondition)condition;
-            final FieldSet field = createField(regexCondition.stringField.getFieldName());
+            final FieldSet field = createField(regexCondition.stringField);
             return regexCondition.negation ?
                     new DocFilter.NotRegex(field, regexCondition.regex) :
                     new DocFilter.Regex(field, regexCondition.regex);
         } else if (condition instanceof SampleCondition) {
             // randomRegroup
             final SampleCondition sampleCondition = (SampleCondition)condition;
-            final FieldSet field = createField(sampleCondition.field.getFieldName());
+            final FieldSet field = createField(sampleCondition.field);
             return new DocFilter.Sample(
                     field,
                     sampleCondition.field.isIntField(),
@@ -894,7 +897,7 @@ public final class IQLQuery implements Closeable {
         } else if(stat instanceof Stats.FloatScaleStat) {
             final Stats.FloatScaleStat floatScaleStat = (Stats.FloatScaleStat)stat;
             return new DocMetric.FloatScale(
-                    createField(floatScaleStat.fieldName),
+                    createField(floatScaleStat.field),
                     floatScaleStat.mult,
                     floatScaleStat.add);
         } else if(stat instanceof Stats.HasIntFieldStat) {
@@ -911,7 +914,7 @@ public final class IQLQuery implements Closeable {
             return DocMetrics.hasTermMetricOrThrow(createField(hasStringStat.field), Term.term(hasStringStat.value));
         } else if(stat instanceof Stats.IntFieldStat) {
             final Stats.IntFieldStat fieldStat = (Stats.IntFieldStat)stat;
-            return new DocMetric.Field(createField(fieldStat.fieldName));
+            return new DocMetric.Field(createField(fieldStat.field));
         } else if(stat instanceof Stats.LogStat) {
             final Stats.LogStat logStat = (Stats.LogStat)stat;
             return new DocMetric.Log(convertToDocMetric(logStat.stat), logStat.scaleFactor);
@@ -937,7 +940,7 @@ public final class IQLQuery implements Closeable {
             final DistinctGrouping distinct = (DistinctGrouping)lastGrouping;
             for (int i = 0; i < distinct.fields.size(); i++) {
                 final AggregateMetric.Distinct d = new AggregateMetric.Distinct(
-                        createField(distinct.fields.get(i).getFieldName()),
+                        createField(distinct.fields.get(i)),
                         Optional.empty(),
                         Optional.empty());
                 result.add(distinct.distinctProjectionPositions.getInt(i), d);
@@ -946,7 +949,7 @@ public final class IQLQuery implements Closeable {
             final PercentileGrouping percentile = (PercentileGrouping)lastGrouping;
             for (int i = 0; i < percentile.fields.size(); i++) {
                 final AggregateMetric.Percentile p = new AggregateMetric.Percentile(
-                        createField(percentile.fields.get(i).getFieldName()),
+                        createField(percentile.fields.get(i)),
                         percentile.percentiles.getDouble(i));
                 result.add(percentile.fieldProjectionPositions.getInt(i), p);
             }
@@ -967,9 +970,9 @@ public final class IQLQuery implements Closeable {
         }
     }
 
-    private FieldSet createField(final String fieldName) {
-        final FieldMetadata fieldMetadata = datasetMetadata.getField(fieldName, true);
-        return FieldSet.of(dataset, fieldName, (fieldMetadata == null) || fieldMetadata.isIntField());
+    private FieldSet createField(final Field field) {
+        final FieldMetadata fieldMetadata = datasetMetadata.getField(field.getFieldName(), true);
+        return FieldSet.of(dataset, field.getFieldName(), (fieldMetadata == null) || fieldMetadata.isIntField());
     }
 
     private ScopedFieldResolver createResolver() {

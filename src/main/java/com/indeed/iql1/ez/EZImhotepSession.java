@@ -878,7 +878,7 @@ public class EZImhotepSession implements Closeable {
     public static Stats.Stat isEqual(final Stats.Stat left, final Stats.Stat right) {
         // try to optimize it as a hasint stat
         if((left instanceof Stats.IntFieldStat) && (right instanceof Stats.ConstantStat)) {
-            return hasInt(((Stats.IntFieldStat)left).getFieldName(), ((Stats.ConstantStat) right).getValue());
+            return hasInt(((Stats.IntFieldStat)left).field, ((Stats.ConstantStat) right).getValue());
         }
         return new Stats.BinaryStat("=", left, right);
     }
@@ -906,19 +906,19 @@ public class EZImhotepSession implements Closeable {
     public static Stats.Stat constant(long value) {
         return new Stats.ConstantStat(value);
     }
-    public static Stats.Stat intField(String name) {
+    public static Stats.Stat intField(Field name) {
         return new Stats.IntFieldStat(name);
     }
-    public static Stats.Stat hasInt(String field, long value) {
+    public static Stats.Stat hasInt(Field field, long value) {
         return new Stats.HasIntStat(field, value);
     }
-    public static Stats.Stat hasString(String field, String value) {
+    public static Stats.Stat hasString(Field field, String value) {
         return new Stats.HasStringStat(field, value);
     }
-    public static Stats.Stat hasIntField(String field) {
+    public static Stats.Stat hasIntField(Field field) {
         return new Stats.HasIntFieldStat(field);
     }
-    public static Stats.Stat hasStringField(String field) {
+    public static Stats.Stat hasStringField(Field field) {
         return new Stats.HasStringFieldStat(field);
     }
     public static Stats.Stat lucene(final String queryAsString, final Query luceneQuery) {
@@ -933,7 +933,7 @@ public class EZImhotepSession implements Closeable {
     public static Stats.Stat abs(Stats.Stat stat) {
         return new Stats.AbsoluteValueStat(stat);
     }
-    public static Stats.Stat floatScale(String intField, long mult, long add) {
+    public static Stats.Stat floatScale(Field intField, long mult, long add) {
         return new Stats.FloatScaleStat(intField, mult, add);
     }
     public static Stats.Stat multiplyShiftRight(int shift, Stats.Stat stat1, Stats.Stat stat2) {
