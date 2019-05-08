@@ -31,6 +31,8 @@ import java.util.Set;
 
 public class AccessControl {
     private static final Logger log = Logger.getLogger(AccessControl.class);
+    public static final String MULTIUSER_CLIENT_DEFAULT_IDENTITY = "defaultuser";
+    public static final String SINGLEUSER_CLIENT_DEFAULT_IDENTITY = "defaultclient";
 
     private final Set<String> bannedUsers;
     private final Set<String> multiuserClients;
@@ -74,7 +76,7 @@ public class AccessControl {
         }
 
         // Try to use the default permissions from the DB
-        final String defaultLimitsGroup = isMultiuserClient ? "defaultuser" : "defaultclient";
+        final String defaultLimitsGroup = isMultiuserClient ? MULTIUSER_CLIENT_DEFAULT_IDENTITY : SINGLEUSER_CLIENT_DEFAULT_IDENTITY;
         limits = identityToLimits.get(defaultLimitsGroup);
         if(limits != null) {
             return limits;

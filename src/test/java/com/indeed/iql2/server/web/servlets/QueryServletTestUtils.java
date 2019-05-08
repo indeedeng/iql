@@ -110,7 +110,7 @@ public class QueryServletTestUtils extends BasicTest {
                 runningQueriesManager,
                 executorService,
                 new AccessControl(Collections.emptySet(), Collections.emptySet(),
-                        null, new Limits(50, options.subQueryTermLimit.intValue(), 1000, 1000, 2, 8),
+                        null, new Limits((byte)0, 50, options.subQueryTermLimit.intValue(), 1000, 1000, 2, 8),
                         Collections.emptySet(), Collections.emptySet()),
                 options.maxCacheQuerySizeLimitBytes,
                 MetricStatsEmitter.NULL_EMITTER,

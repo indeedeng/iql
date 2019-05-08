@@ -178,6 +178,7 @@ public class Session {
             final ProgressCallback progressCallback,
             final Long imhotepLocalTempFileSizeLimit,
             final Long imhotepDaemonTempFileSizeLimit,
+            final byte priority,
             final String username,
             final FieldType defaultFieldType,
             final ResultFormat resultFormat,
@@ -197,7 +198,8 @@ public class Session {
 
         treeTimer.push("createSubSessions");
         final long firstStartTimeMillis = createSubSessions(client, requestRust, useAsync, useBatchMode, p2pCache, datasets,
-                strictCloser, sessions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, username, progressCallback);
+                strictCloser, sessions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, priority,
+                username, progressCallback);
         progressCallback.sessionsOpened(sessions);
         treeTimer.pop();
 
@@ -291,6 +293,7 @@ public class Session {
             final TracingTreeTimer treeTimer,
             final Long imhotepLocalTempFileSizeLimit,
             final Long imhotepDaemonTempFileSizeLimit,
+            final byte priority,
             final String username,
             final ProgressCallback progressCallback
     ) throws ImhotepOutOfMemoryException {
@@ -320,7 +323,9 @@ public class Session {
             }
             final ImhotepClient.SessionBuilder sessionBuilder = client
                 .sessionBuilder(imhotepDataset, startDateTime, endDateTime)
-                .username("IQL2:" + username)
+                .clientName("IQL2")
+                .username(username)
+                .priority(priority)
                 .shardsOverride(chosenShards)
                 .localTempFileSizeLimit(imhotepLocalTempFileSizeLimit)
                 .daemonTempFileSizeLimit(imhotepDaemonTempFileSizeLimit)

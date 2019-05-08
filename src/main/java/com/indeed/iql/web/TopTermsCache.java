@@ -112,7 +112,8 @@ public class TopTermsCache {
 
             final ImhotepSession imhotepSession;
             try {
-                final ImhotepClient.SessionBuilder sessionBuilder = client.sessionBuilder(dataset, startTime, endTime).username("IQL: topterms");
+                final ImhotepClient.SessionBuilder sessionBuilder = client.sessionBuilder(dataset, startTime, endTime)
+                        .clientName("IQL").username("topterms");
                 if(sessionBuilder.getChosenShards().isEmpty()) {
                     log.info("Index " + dataset + " has no shards for midday " + DAYS_DELAY + " days ago");
                     continue;

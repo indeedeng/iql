@@ -657,6 +657,7 @@ public class SelectQueryExecution {
                             compositeProgressCallback,
                             mbToBytes(limits.queryFTGSIQLLimitMB),
                             mbToBytes(limits.queryFTGSImhotepDaemonLimitMB),
+                            limits.priority,
                             clientInfo.username,
                             (version == 2) ? FieldType.Integer : FieldType.String,
                             resultFormat,

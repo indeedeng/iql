@@ -300,6 +300,7 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
     private Limits getDefaultLimits() {
         final Long queryDocumentCountLimit = env.getProperty("query.document.count.limit", Long.class);
         return new Limits(
+                (byte) 0,
                 queryDocumentCountLimit != null ? (int) (queryDocumentCountLimit / 1_000_000_000) : null,
                 env.getProperty("row.limit", Integer.class),
                 env.getProperty("imhotep.local.temp.file.size.mb.limit", Integer.class),
