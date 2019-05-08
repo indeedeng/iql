@@ -17,6 +17,7 @@ package com.indeed.iql2.server.web.servlets.query;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Joiner;
 import com.indeed.iql.metadata.DatasetsMetadata;
+import com.indeed.iql.web.Limits;
 import com.indeed.iql.web.print.LevelPrinter;
 import com.indeed.iql2.IQL2Options;
 import com.indeed.iql2.language.DocFilter;
@@ -46,6 +47,7 @@ public class ExplainQueryExecution {
     private final boolean isJSON;
     private final WallClock clock;
     private final Set<String> defaultIQL2Options;
+    private final Limits limits;
 
     // Query output state
     private final PrintWriter outputStream;
@@ -62,8 +64,8 @@ public class ExplainQueryExecution {
             final int version,
             final boolean isJSON,
             final WallClock clock,
-            final IQL2Options defaultIQL2Options
-    ) {
+            final IQL2Options defaultIQL2Options,
+            final Limits limits) {
         this.datasetsMetadata = datasetsMetadata;
         this.outputStream = outputStream;
         this.query = query;
@@ -71,6 +73,7 @@ public class ExplainQueryExecution {
         this.isJSON = isJSON;
         this.clock = clock;
         this.defaultIQL2Options = defaultIQL2Options.getOptions();
+        this.limits = limits;
         this.printer = new LevelPrinter();
     }
 
@@ -137,7 +140,7 @@ public class ExplainQueryExecution {
             );
 
             final List<Command> commands = Queries.queryCommands(query);
-            CommandValidator.validate(query, datasetsMetadata, new ErrorCollector(errors, warnings));
+            CommandValidator.validate(query, limits, datasetsMetadata, new ErrorCollector(errors, warnings));
 
             for (final Command command : commands) {
                 printer.push(command.toString());

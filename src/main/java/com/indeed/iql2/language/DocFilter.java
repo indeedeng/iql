@@ -263,7 +263,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
-            CommandValidator.validate(query, datasetsMetadata, errorCollector);
+            CommandValidator.validate(query, validationHelper.limits, datasetsMetadata, errorCollector);
         }
     }
 

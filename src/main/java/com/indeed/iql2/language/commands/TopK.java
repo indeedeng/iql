@@ -14,6 +14,7 @@
 
 package com.indeed.iql2.language.commands;
 
+import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
@@ -69,8 +70,9 @@ public class TopK {
             final long limitValue = limit.get();
             // arbitrarily subtracting 1 because boundaries are easy to get screwy and this number is
             // already too massive to be reasonable.
-            if ((limitValue <= 0) || (limitValue > (Integer.MAX_VALUE - 1))) {
-                errorCollector.error("The K in Top K must be in [1, INT_MAX). Value was: " + limitValue);
+            final int groupLimit = Objects.firstNonNull(validationHelper.limits.queryInMemoryRowsLimit, 1_000_000);
+            if ((limitValue <= 0) || (limitValue > groupLimit)) {
+                errorCollector.error("The K in Top K must be in [1, " + groupLimit + "). Value was: " + limitValue);
             }
         }
     }
