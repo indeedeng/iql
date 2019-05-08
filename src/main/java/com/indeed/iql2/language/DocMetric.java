@@ -1810,7 +1810,7 @@ public abstract class DocMetric extends AbstractPositional {
             if (!validationHelper.containsField(dataset, fieldName)) {
                 errorCollector.error(ErrorMessages.missingField(dataset, fieldName, this));
             }
-            CommandValidator.validate(query, datasetsMetadata, errorCollector);
+            CommandValidator.validate(query, validationHelper.limits, datasetsMetadata, errorCollector);
         }
 
         @Override

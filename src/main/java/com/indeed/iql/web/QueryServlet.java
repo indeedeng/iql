@@ -251,7 +251,7 @@ public class QueryServlet {
                 } else if (iqlStatement instanceof ShowStatement) {
                     handleShowStatement(queryRequestParams, resp);
                 } else if (iqlStatement instanceof ExplainStatement) {
-                    handleExplainStatement((ExplainStatement) iqlStatement, queryRequestParams, resp, clock);
+                    handleExplainStatement((ExplainStatement) iqlStatement, queryRequestParams, clientInfo, resp, clock);
                 } else {
                     throw new IqlKnownException.ParseErrorException("Query parsing failed: unknown statement type");
                 }
@@ -702,15 +702,16 @@ public class QueryServlet {
         }
     }
 
-    private void handleExplainStatement(ExplainStatement explainStatement, QueryRequestParams queryRequestParams, HttpServletResponse resp, WallClock clock) throws IOException {
+    private void handleExplainStatement(ExplainStatement explainStatement, QueryRequestParams queryRequestParams, final ClientInfo clientInfo, HttpServletResponse resp, WallClock clock) throws IOException {
         if(queryRequestParams.version == 1 && !queryRequestParams.legacyMode) {
             throw new IqlKnownException.ParseErrorException("IQL 1 doesn't support EXPLAIN statements");
         }
         if (queryRequestParams.json) {
             resp.setHeader("Content-Type", "application/json");
         }
+        final Limits limits = accessControl.getLimitsForIdentity(clientInfo.username, clientInfo.client);
         final ExplainQueryExecution explainQueryExecution = new ExplainQueryExecution(
-                metadataCache.get(), resp.getWriter(), explainStatement.selectQuery, queryRequestParams.version, queryRequestParams.json, clock, defaultIQL2Options);
+                metadataCache.get(), resp.getWriter(), explainStatement.selectQuery, queryRequestParams.version, queryRequestParams.json, clock, defaultIQL2Options, limits);
         explainQueryExecution.processExplain();
     }
 
