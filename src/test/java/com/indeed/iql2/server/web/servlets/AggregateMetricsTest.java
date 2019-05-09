@@ -432,7 +432,7 @@ public class AggregateMetricsTest extends BasicTest {
     @Test
     public void testOperatorsAssoc() throws Exception {
         // test that operators have right associativity
-        // for '*', '-' associativity does not matter, but for '-', '/' does
+        // for '*', '+' associativity does not matter, but for '-', '/' does
 
         QueryServletTestUtils.testAll(ImmutableList.of(ImmutableList.of("", "500500", "-1001000", "0")),
                 "from big yesterday today where field <= 1000 select field, field - field - field - field, field - field + field - field");
