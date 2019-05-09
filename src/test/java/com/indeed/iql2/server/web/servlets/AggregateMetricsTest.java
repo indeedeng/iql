@@ -488,4 +488,14 @@ public class AggregateMetricsTest extends BasicTest {
                         "select logloss(label=1, score, 100), logloss(label=0, score, 100)"
         );
     }
+
+    @Test
+    public void testAggregateBinOpStat() throws Exception {
+        final String query = "from organic yesterday today select oji, oji/100, (oji/100)/oji, (oji/10)/(oji/100)";
+        final List<List<String>> expected = ImmutableList.of(ImmutableList.of("", "2653", "26.53", "0.01", "10"));
+        QueryServletTestUtils.testOriginalIQL1(expected, query);
+        // TODO: IQL-932
+        //QueryServletTestUtils.testIQL1LegacyMode(expected, query);
+        QueryServletTestUtils.testIQL2(expected, query);
+    }
 }

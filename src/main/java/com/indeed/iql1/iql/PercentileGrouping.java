@@ -20,6 +20,7 @@ import com.indeed.iql1.ez.EZImhotepSession;
 import com.indeed.iql1.ez.EZImhotepSession.FTGSCallback;
 import com.indeed.iql1.ez.Field;
 import com.indeed.iql1.ez.GroupKey;
+import com.indeed.iql1.ez.SingleStatReference;
 import com.indeed.iql1.ez.StatReference;
 import com.indeed.iql1.ez.Stats.Stat;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
@@ -69,10 +70,7 @@ public class PercentileGrouping extends Grouping {
         if(groupKeys.isEmpty()) {   // we don't have any parent groups probably because all docs were filtered out
             return Collections.<GroupStats>emptyList().iterator();
         }
-        final StatReference countStatRef = session.pushStat(countStat);
-        final long[] counts = getCounts(countStatRef, session);
-
-        final Int2ObjectMap<Int2LongMap> groupToPositionToStats = getPercentileStats(session, groupKeys, countStatRef, counts);
+        final Int2ObjectMap<Int2LongMap> groupToPositionToStats = getPercentileStats(session, groupKeys);
 
         final List<GroupStats> result = Lists.newArrayList();
 
@@ -105,7 +103,10 @@ public class PercentileGrouping extends Grouping {
         return result.iterator();
     }
 
-    private Int2ObjectMap<Int2LongMap> getPercentileStats(final EZImhotepSession session, final Int2ObjectMap<GroupKey> groupKeys, final StatReference countStatRef, final long[] counts) throws ImhotepOutOfMemoryException {
+    private Int2ObjectMap<Int2LongMap> getPercentileStats(final EZImhotepSession session, final Int2ObjectMap<GroupKey> groupKeys) throws ImhotepOutOfMemoryException {
+        final int initialStackDepth = session.getStackDepth();
+        final SingleStatReference countStatRef = session.pushSingleStat(countStat);
+        final long[] counts = getCounts(countStatRef, session);
         final Set<Field> uniqueFields = Sets.newHashSet(fields);
 
         final Int2ObjectMap<Int2LongMap> groupToPositionToStats = new Int2ObjectOpenHashMap<>();
@@ -150,7 +151,8 @@ public class PercentileGrouping extends Grouping {
             }
         }
 
-        session.popStat();
+        countStatRef.invalidate();
+        session.popStat(initialStackDepth);
         return groupToPositionToStats;
     }
 
