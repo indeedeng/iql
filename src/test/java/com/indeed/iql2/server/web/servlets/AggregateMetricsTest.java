@@ -430,6 +430,20 @@ public class AggregateMetricsTest extends BasicTest {
     }
 
     @Test
+    public void testOperatorsAssoc() throws Exception {
+        // test that operators have right associativity
+        // for '*', '-' associativity does not matter, but for '-', '/' does
+
+        QueryServletTestUtils.testAll(ImmutableList.of(ImmutableList.of("", "500500", "-1001000", "0")),
+                "from big yesterday today where field <= 1000 select field, field - field - field - field, field - field + field - field");
+        // This is error in IQL1. Won't fix
+        QueryServletTestUtils.testOriginalIQL1(ImmutableList.of(ImmutableList.of("", "500500", "50050")),
+                "from big yesterday today where field <= 1000 select field, field/10/10/10");
+        QueryServletTestUtils.testIQL2AndLegacy(ImmutableList.of(ImmutableList.of("", "500500", "500.5")),
+                "from big yesterday today where field <= 1000 select field, field/10/10/10");
+    }
+
+    @Test
     public void testStdev() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("", "289.0"));
@@ -493,9 +507,6 @@ public class AggregateMetricsTest extends BasicTest {
     public void testAggregateBinOpStat() throws Exception {
         final String query = "from organic yesterday today select oji, oji/100, (oji/100)/oji, (oji/10)/(oji/100)";
         final List<List<String>> expected = ImmutableList.of(ImmutableList.of("", "2653", "26.53", "0.01", "10"));
-        QueryServletTestUtils.testOriginalIQL1(expected, query);
-        // TODO: IQL-932
-        //QueryServletTestUtils.testIQL1LegacyMode(expected, query);
-        QueryServletTestUtils.testIQL2(expected, query);
+        QueryServletTestUtils.testAll(expected, query);
     }
 }
