@@ -13,6 +13,7 @@
  */
  package com.indeed.iql1.ez;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.indeed.flamdex.query.Query;
@@ -43,11 +44,9 @@ import org.apache.log4j.Logger;
 import javax.annotation.Nullable;
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -63,7 +62,6 @@ public class EZImhotepSession implements Closeable {
     private static final Logger log = Logger.getLogger(EZImhotepSession.class);
 
     private final ImhotepSessionHolder session;
-    private final Deque<StatReference> statStack = new ArrayDeque<>();
     private final Limits limits;
     private int stackDepth = 0;
     private int numGroups = 2;
@@ -117,27 +115,20 @@ public class EZImhotepSession implements Closeable {
             statReference = new ConstantDivideSingleStatReference(statReference, statAsConstAggregate.getValue());
         }
 
-        statStack.push(statReference);
         return statReference;
     }
 
-    private CompositeStatReference pushStatComposite(Stats.AggregateBinOpStat stat) throws ImhotepOutOfMemoryException {
-        final int initialDepth = stackDepth;
-        stackDepth = session.pushStats(stat.pushes());
-        if (initialDepth + 2 != stackDepth) {
-            throw new RuntimeException("Bug! Did not change stack depth by exactly 2.");
+    private CompositeStatReference pushStatComposite(final Stats.AggregateBinOpStat stat) throws ImhotepOutOfMemoryException {
+        final StatReference stat1 = pushStatGeneric(stat.statLeft);
+        final StatReference stat2 = pushStatGeneric(stat.statRight);
+        return new CompositeStatReference(stat1, stat2);
+    }
+
+    public void popStat(final int newStackDepth) {
+        while (stackDepth > newStackDepth) {
+            stackDepth = session.popStat();
         }
-        final SingleStatReference stat1 = new SingleStatReference(initialDepth, stat.toString());
-        final SingleStatReference stat2 = new SingleStatReference(initialDepth + 1, stat.toString());
-        final CompositeStatReference statReference = new CompositeStatReference(stat1, stat2);
-        statStack.push(statReference);
-        return statReference;
-    }
-
-    public void popStat() {
-        stackDepth = session.popStat();
-        final StatReference poppedStat = statStack.pop();
-        poppedStat.invalidate();
+        Preconditions.checkState(stackDepth == newStackDepth, "Error in managing imhotep session stats");
     }
 
     public int getStackDepth() {
@@ -787,18 +778,22 @@ public class EZImhotepSession implements Closeable {
     }
 
     private Int2ObjectMap<PriorityQueue<ScoredObject<String>>> getStringGroupTermsTopK(StringField field, int k, Stats.Stat stat, boolean bottom) throws ImhotepOutOfMemoryException {
+        final int initialStackDepth = stackDepth;
         final StatReference statRef = pushStat(stat);
         final GetGroupTermsCallbackTopK callback = new GetGroupTermsCallbackTopK(stackDepth, statRef, k, bottom);
         ftgsIterate(field, callback);
-        popStat();
+        statRef.invalidate();
+        popStat(initialStackDepth);
         return callback.stringTermListsMap;
     }
 
     private Int2ObjectMap<PriorityQueue<ScoredLong>> getIntGroupTermsTopK(IntField field, int k, Stats.Stat stat, boolean bottom) throws ImhotepOutOfMemoryException {
+        final int initialStackDepth = stackDepth;
         final StatReference statRef = pushStat(stat);
         final GetGroupTermsCallbackTopK callback = new GetGroupTermsCallbackTopK(stackDepth, statRef, k, bottom);
         ftgsIterate(field, callback);
-        popStat();
+        statRef.invalidate();
+        popStat(initialStackDepth);
         return callback.intTermListsMap;
     }
 

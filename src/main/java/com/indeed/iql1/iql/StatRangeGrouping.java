@@ -78,6 +78,7 @@ public final class StatRangeGrouping extends Grouping {
                     " rows in memory. Please optimize the query.");
         }
 
+        final int initialStackDepth = session.getStackDepth();
         final SingleStatReference statRef = session.pushSingleStat(stat);
         boolean noGutters = this.noGutters;
         // Special case for Time regroups:
@@ -89,7 +90,8 @@ public final class StatRangeGrouping extends Grouping {
             noGutters = groupKeys.size() > 1;
         }
         final Int2ObjectMap<GroupKey> ret = session.metricRegroup(statRef, minValue, maxValue, intervalSize, noGutters, stringFormatter, groupKeys);
-        session.popStat();
+        statRef.invalidate();
+        session.popStat(initialStackDepth);
         return ret;
     }
 }
