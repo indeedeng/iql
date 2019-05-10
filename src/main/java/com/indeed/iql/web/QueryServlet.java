@@ -52,6 +52,7 @@ import com.indeed.iql1.sql.ast2.GroupByClause;
 import com.indeed.iql1.sql.ast2.IQL1SelectStatement;
 import com.indeed.iql1.sql.ast2.SelectClause;
 import com.indeed.iql1.sql.parser.SelectStatementParser;
+import com.indeed.iql2.ComparisonTools;
 import com.indeed.iql2.IQL2Options;
 import com.indeed.iql2.execution.QueryOptions;
 import com.indeed.iql2.server.web.servlets.query.EventStreamProgressCallback;
@@ -396,8 +397,9 @@ public class QueryServlet {
 
                     queryInfo.queryStartTimestamp = selectQuery.get().queryStartTimestamp.getMillis();   // ignore time spent waiting
 
+                    final Optional<String> comparisonWarning = ComparisonTools.checkCompatibility(selectStatement, metadataCache.get(), imhotepClient, clock, limits);
                     // actually process
-                    runSelectStatementIQL1(selectQuery, queryRequestParams, writer, strictCloser);
+                    runSelectStatementIQL1(selectQuery, queryRequestParams, writer, comparisonWarning, strictCloser);
                 } finally {
                     Closeables2.closeQuietly(selectQuery, log);
                 }
@@ -412,6 +414,7 @@ public class QueryServlet {
             final SharedReference<SelectQuery> selectQuery,
             final QueryRequestParams args,
             final PrintWriter outputStream,
+            final Optional<String> comparisonWarning,
             final StrictCloser strictCloser
     ) throws IOException {
         final QueryInfo queryInfo = selectQuery.get().queryInfo;
@@ -456,7 +459,11 @@ public class QueryServlet {
         final DateTime newestShard = getLatestShardVersion(iqlQuery.getShards());
         queryMetadata.addItem("IQL-Newest-Shard", newestShard, args.returnNewestShardVersion);
 
-        ArrayList<String> warningList = new ArrayList<>();
+        final List<String> warningList = new ArrayList<>();
+        if (comparisonWarning.isPresent()) {
+            // TODO: uncomment when we are ready.
+            //warningList.add("Compatibility warning: " + comparisonWarning.get());
+        }
         iqlQuery.addDeprecatedDatasetWarningIfNecessary(warningList);
 
         final List<Interval> timeIntervalsMissingShards= iqlQuery.getTimeIntervalsMissingShards();
