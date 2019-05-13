@@ -532,7 +532,7 @@ aliases
     ;
 
 dataset [boolean useLegacy]
-    : index=identifier ({!$ctx.useLegacy}? '(' whereContents[$ctx.useLegacy] ')')? start=dateTime end=dateTime (AS name=identifier)? aliases?
+    : index=identifier ({!$ctx.useLegacy}? '(' whereContents[$ctx.useLegacy] ')')? startTime=dateTime endTime=dateTime (AS name=identifier)? aliases?
     ;
 
 datasetOptTime [boolean useLegacy]

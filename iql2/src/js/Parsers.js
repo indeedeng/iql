@@ -146,8 +146,8 @@ class Parser {
         if (parsed.fromContents().datasetOptTime().length === 0) {
             const dataset = parsed.fromContents().dataset();
             result.dataset = getText(dataset.index);
-            result.start = getText(dataset.start);
-            result.end = getText(dataset.end);
+            result.start = getText(dataset.startTime);
+            result.end = getText(dataset.endTime);
         }
 
         return success(result);
