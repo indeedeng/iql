@@ -20,6 +20,7 @@ import com.indeed.iql2.language.query.GroupBys;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.query.fieldresolution.ScopedFieldResolver;
+import com.indeed.iql2.language.util.AVGWarningUtil;
 import com.indeed.util.core.Pair;
 
 import javax.annotation.Nullable;
@@ -27,6 +28,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class AggregateMetrics {
     private AggregateMetrics() {
@@ -278,7 +281,13 @@ public class AggregateMetrics {
 
             @Override
             public void enterAggregateAvg(JQLParser.AggregateAvgContext ctx) {
-                accept(new AggregateMetric.DivideByCount(parseJQLAggregateMetric(ctx.jqlAggregateMetric(), context)));
+                final AggregateMetric metric = parseJQLAggregateMetric(ctx.jqlAggregateMetric(), context);
+                final Set<String> suspiciousOperations = AVGWarningUtil.extractSuspiciousOperations(metric);
+                if (!suspiciousOperations.isEmpty()) {
+                    final String joined = String.join(",", suspiciousOperations);
+                    context.warn.accept("There are suspicious operations inside of AVG. Are you sure you didn't mean AVG([...])? Operations were: " + joined);
+                }
+                accept(new AggregateMetric.DivideByCount(metric));
             }
 
             @Override
