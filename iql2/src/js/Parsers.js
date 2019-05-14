@@ -2,7 +2,9 @@ const antlr4 = require('antlr4');
 const JQLLexer = require('./JQLLexer');
 const JQLParser = require('./JQLParser');
 
-const ErrorListener = require('antlr4').error.ErrorListener;
+let antlr = require('antlr4');
+const ErrorListener = antlr.error.ErrorListener;
+const Errors = antlr.error;
 
 const moment = require('moment');
 
@@ -18,7 +20,7 @@ function success(result) {
     return {success: result, assumeSuccess: () => result};
 }
 
-function CollectingErrorListener() {
+function CollectingErrorListener(input) {
     ErrorListener.call(this);
     this.errors = [];
     this.expected = null;
@@ -29,7 +31,14 @@ CollectingErrorListener.prototype = Object.create(ErrorListener.prototype);
 CollectingErrorListener.prototype.constructor = CollectingErrorListener;
 
 CollectingErrorListener.prototype.syntaxError = function(recognizer, offendingSymbol, line, column, msg, e) {
-    this.errors.push({line: line, col: column, msg: msg});
+    let start = offendingSymbol.start;
+    let stop = offendingSymbol.stop + 1;
+
+    if (e && e.constructor && e.constructor === Errors.NoViableAltException) {
+        start = e.startToken.start;
+    }
+
+    this.errors.push({line: line, col: column, msg: msg, start, stop});
 
     if (recognizer && recognizer._ctx) {
         const parser = recognizer._ctx.parser;
@@ -64,7 +73,7 @@ function runParser(parserName, input, parserArgs) {
     };
 
     const lexer = new JQLLexer.JQLLexer(chars);
-    const errorListener = new CollectingErrorListener();
+    const errorListener = new CollectingErrorListener(input);
     lexer.removeErrorListeners();
     lexer.addErrorListener(errorListener);
     const tokens = new antlr4.CommonTokenStream(lexer);

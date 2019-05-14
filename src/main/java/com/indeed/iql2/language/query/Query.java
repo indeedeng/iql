@@ -390,6 +390,9 @@ public class Query extends AbstractPositional {
         if (actualContext.fromContext == null) {
             throw new IqlKnownException.ParseErrorException("Can't use 'FROM SAME' outside of WHERE or GROUP BY");
         }
+        if ((queryContext.groupByContents() == null) || (queryContext.groupByContents().groupByEntry().size() != 1)) {
+            throw new IllegalArgumentException("Subqueries must have exactly one group by element");
+        }
         final Query query = Query.parseQuery(
                 queryContext,
                 actualContext.partialContext(),
