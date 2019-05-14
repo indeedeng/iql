@@ -9,7 +9,6 @@ import com.indeed.iql2.language.GroupNameSupplier;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import lombok.Data;
-import lombok.Getter;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -28,7 +27,7 @@ public interface BooleanFilterTree {
 
     String apply(final String dataset, final ImhotepSession session, final GroupNameSupplier groupNameSupplier) throws ImhotepOutOfMemoryException;
 
-    static String applyConsolidation(final List<BooleanFilterTree> children, final String dataset, final ImhotepSession session, final GroupNameSupplier groupNameSupplier, Operator operator) throws ImhotepOutOfMemoryException {
+    static String applyConsolidation(final List<BooleanFilterTree> children, final String dataset, final ImhotepSession session, final GroupNameSupplier groupNameSupplier, final Operator operator) throws ImhotepOutOfMemoryException {
         final List<String> childGroups = new ArrayList<>();
         for (final BooleanFilterTree x : children) {
             childGroups.add(x.apply(dataset, session, groupNameSupplier));
@@ -196,6 +195,11 @@ public interface BooleanFilterTree {
         private final String groupsName;
         private final Function<String, ImhotepCommand> command;
 
+        private ComputeGroups(final String groupsName, final Function<String, ImhotepCommand> command) {
+            this.groupsName = groupsName;
+            this.command = command;
+        }
+
         private static ComputeGroups of(final RegroupParams regroupParams, final Function<String, ImhotepCommand> command) {
             return new ComputeGroups(regroupParams.getOutputGroups(), command);
         }
@@ -216,6 +220,10 @@ public interface BooleanFilterTree {
     class Constant implements BooleanFilterTree {
         private final boolean value;
 
+        private Constant(final boolean value) {
+            this.value = value;
+        }
+
         @Override
         public BooleanFilterTree applyQualifieds(final String dataset) {
             return this;
@@ -234,6 +242,12 @@ public interface BooleanFilterTree {
         private final Query query;
         private final boolean isNegated;
 
+        private FieldInQueryPlaceholder(final FieldSet field, final Query query, final boolean isNegated) {
+            this.field = field;
+            this.query = query;
+            this.isNegated = isNegated;
+        }
+
         @Override
         public BooleanFilterTree applyQualifieds(final String dataset) {
             throw new UnsupportedOperationException("Must transform the FieldInQueryPlaceholder out before doing a .applyQualifieds()");
@@ -246,7 +260,7 @@ public interface BooleanFilterTree {
     }
 
     static BooleanFilterTree of(final RegroupParams regroupParams, final Function<String, ImhotepCommand> commandFunction) {
-        return new ComputeGroups(regroupParams.getOutputGroups(), commandFunction);
+        return ComputeGroups.of(regroupParams, commandFunction);
     }
 
     static BooleanFilterTree of(final boolean constant) {
