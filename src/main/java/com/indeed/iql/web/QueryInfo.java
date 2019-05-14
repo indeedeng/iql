@@ -114,11 +114,14 @@ public class QueryInfo {
 
     @Nullable public String sqlQuery;
 
+    @Nullable public Long filesDownloadedMB;
+    @Nullable public Long p2pFilesDownloadedMB;
 
     public void setFromPerformanceStats(PerformanceStats performanceStats) {
         if (performanceStats == null) {
             return;
         }
+
         imhotepcputimems = TimeUnit.NANOSECONDS.toMillis(performanceStats.cpuTime);
         imhoteprammb = performanceStats.maxMemoryUsage / 1024 / 1024;
         imhotepftgsmb = performanceStats.ftgsTempFileSize / 1024 / 1024;
@@ -127,6 +130,8 @@ public class QueryInfo {
         cpuSlotsWaitTimeMs = performanceStats.cpuSlotsWaitTimeMs;
         ioSlotsExecTimeMs = performanceStats.ioSlotsExecTimeMs;
         ioSlotsWaitTimeMs = performanceStats.ioSlotsWaitTimeMs;
+        filesDownloadedMB = performanceStats.customStats.get("downloadedBytes") / 1024 / 1024;
+        p2pFilesDownloadedMB = performanceStats.customStats.get("downloadedBytesP2P") / 1024 / 1024;
     }
 
     public String toJSON() {
