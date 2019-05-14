@@ -43,6 +43,7 @@ public class ApplyFilterTree implements Command {
             final String outputGroupsName = tree.apply(dataset, imhotepSession, new GroupNameSupplier());
             // rename them to DEFAULT_GROUPS
             imhotepSession.regroup(new RegroupParams(outputGroupsName, ImhotepSession.DEFAULT_GROUPS), EMPTY_INT_ARRAY, EMPTY_INT_ARRAY, false);
+            imhotepSession.deleteGroups(outputGroupsName);
         }
     }
 }
