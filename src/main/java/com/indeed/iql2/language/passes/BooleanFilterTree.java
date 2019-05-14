@@ -1,9 +1,11 @@
 package com.indeed.iql2.language.passes;
 
+import com.google.common.collect.Iterables;
 import com.indeed.imhotep.api.ImhotepCommand;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.api.RegroupParams;
+import com.indeed.imhotep.commands.UnconditionalRegroup;
 import com.indeed.imhotep.protobuf.Operator;
 import com.indeed.iql2.language.GroupNameSupplier;
 import com.indeed.iql2.language.query.Query;
@@ -19,6 +21,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public interface BooleanFilterTree {
+
+    int[] EMPTY_INT_ARRAY = {};
+
     /**
      * Return an equivalent {@link BooleanFilterTree} with all Qualifieds either removed or replaced
      * with their child, as appropriate.
@@ -34,6 +39,9 @@ public interface BooleanFilterTree {
         }
         final String outputGroups = childGroups.get(0);
         session.consolidateGroups(childGroups, operator, outputGroups);
+        for (final String childGroup : Iterables.skip(childGroups, 1)) {
+            session.deleteGroups(childGroup);
+        }
         return outputGroups;
     }
 
@@ -65,6 +73,9 @@ public interface BooleanFilterTree {
                     .collect(Collectors.toList());
             if (nonConstants.isEmpty()) {
                 return new Constant(true);
+            }
+            if (nonConstants.size() == 1) {
+                return nonConstants.get(0);
             }
             return new And(nonConstants);
         }
@@ -111,6 +122,9 @@ public interface BooleanFilterTree {
                     .collect(Collectors.toList());
             if (nonConstants.isEmpty()) {
                 return new Constant(false);
+            }
+            if (nonConstants.size() == 1) {
+                return nonConstants.get(0);
             }
             return new Or(nonConstants);
         }
@@ -231,8 +245,9 @@ public interface BooleanFilterTree {
 
         @Override
         public String apply(final String dataset, final ImhotepSession session, final GroupNameSupplier groupNameSupplier) throws ImhotepOutOfMemoryException {
-            // TODO: create imhotep operation
-            throw new UnsupportedOperationException("You need to implement this");
+            final RegroupParams regroupParams = groupNameSupplier.makeRegroupParams();
+            session.regroup(regroupParams, EMPTY_INT_ARRAY, EMPTY_INT_ARRAY, false);
+            return regroupParams.getOutputGroups();
         }
     }
 
@@ -263,8 +278,12 @@ public interface BooleanFilterTree {
         return ComputeGroups.of(regroupParams, commandFunction);
     }
 
-    static BooleanFilterTree of(final boolean constant) {
-        return new Constant(constant);
+    static BooleanFilterTree of(final GroupNameSupplier groupNameSupplier, final boolean constant) {
+        final RegroupParams regroupParams = groupNameSupplier.makeRegroupParams();
+        // constant=true -> don't filter out untargeted (aka everything)
+        // constant=false -> filter out untargeted (aka everything)
+        final boolean filterOutNotTargeted = !constant;
+        return BooleanFilterTree.of(regroupParams, s -> new UnconditionalRegroup(regroupParams, EMPTY_INT_ARRAY, EMPTY_INT_ARRAY, filterOutNotTargeted, null));
     }
 
     static BooleanFilterTree and(final List<BooleanFilterTree> children) {

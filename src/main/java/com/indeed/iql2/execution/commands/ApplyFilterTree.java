@@ -24,9 +24,11 @@ import com.indeed.iql2.language.passes.BooleanFilterTree;
 import java.util.Map;
 
 public class ApplyFilterTree implements Command {
+    private static final int[] EMPTY_INT_ARRAY = {};
+
     public final BooleanFilterTree tree;
 
-    public ApplyFilterTree(BooleanFilterTree tree) {
+    public ApplyFilterTree(final BooleanFilterTree tree) {
         this.tree = tree;
     }
 
@@ -35,18 +37,12 @@ public class ApplyFilterTree implements Command {
         for (final Map.Entry<String, Session.ImhotepSessionInfo> entry : session.sessions.entrySet()) {
             final String dataset = entry.getKey();
             final ImhotepSession imhotepSession = entry.getValue().session.getSession();
+            // substitute out any Qualified(dataset, X) with either true or X depending on the dataset.
             final BooleanFilterTree tree = this.tree.applyQualifieds(dataset);
-            if (tree instanceof BooleanFilterTree.Constant) {
-                if (((BooleanFilterTree.Constant) tree).isValue()) {
-                    // do nothing
-                } else {
-                    // throw everything away :(
-                    imhotepSession.regroup(new int[]{1}, new int[]{0}, true);
-                }
-            } else {
-                final String outputGroupsName = tree.apply(dataset, imhotepSession, new GroupNameSupplier());
-                imhotepSession.regroup(new RegroupParams(outputGroupsName, ImhotepSession.DEFAULT_GROUPS), new int[]{1}, new int[]{1}, true);
-            }
+            // compute the groups and find out what they're named
+            final String outputGroupsName = tree.apply(dataset, imhotepSession, new GroupNameSupplier());
+            // rename them to DEFAULT_GROUPS
+            imhotepSession.regroup(new RegroupParams(outputGroupsName, ImhotepSession.DEFAULT_GROUPS), EMPTY_INT_ARRAY, EMPTY_INT_ARRAY, false);
         }
     }
 }
