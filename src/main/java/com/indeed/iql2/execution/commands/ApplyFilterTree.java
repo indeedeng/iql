@@ -21,6 +21,7 @@ import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.language.GroupNameSupplier;
 import com.indeed.iql2.language.passes.BooleanFilterTree;
 
+import java.util.Collections;
 import java.util.Map;
 
 public class ApplyFilterTree implements Command {
@@ -43,7 +44,7 @@ public class ApplyFilterTree implements Command {
             final String outputGroupsName = tree.apply(dataset, imhotepSession, new GroupNameSupplier());
             // rename them to DEFAULT_GROUPS
             imhotepSession.regroup(new RegroupParams(outputGroupsName, ImhotepSession.DEFAULT_GROUPS), EMPTY_INT_ARRAY, EMPTY_INT_ARRAY, false);
-            imhotepSession.deleteGroups(outputGroupsName);
+            imhotepSession.deleteGroups(Collections.singletonList(outputGroupsName));
         }
     }
 }

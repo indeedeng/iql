@@ -1,6 +1,7 @@
 package com.indeed.iql2.language.passes;
 
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.indeed.imhotep.api.ImhotepCommand;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
@@ -39,9 +40,7 @@ public interface BooleanFilterTree {
         }
         final String outputGroups = childGroups.get(0);
         session.consolidateGroups(childGroups, operator, outputGroups);
-        for (final String childGroup : Iterables.skip(childGroups, 1)) {
-            session.deleteGroups(childGroup);
-        }
+        session.deleteGroups(Lists.newArrayList(Iterables.skip(childGroups, 1)));
         return outputGroups;
     }
 
