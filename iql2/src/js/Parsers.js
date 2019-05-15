@@ -12,8 +12,13 @@ const DEFAULT_UTC_OFFSET = -6;
 
 import autobind from 'autobind-decorator';
 
-function failure(err, expected) {
-    return {errors: err, expected: expected, assumeSuccess: () => {throw err[0].msg}};
+function failure(errors, expected, resultValue) {
+    return {
+        errors,
+        expected,
+        assumeSuccess: () => {throw errors[0].msg},
+        resultValue,
+    };
 }
 
 function success(result) {
@@ -83,9 +88,9 @@ function runParser(parserName, input, parserArgs) {
     parser.addErrorListener(errorListener);
     const result = parser[parserName].apply(parser, parserArgs || []);
     if (errorListener.errors.length > 0) {
-        return failure(errorListener.errors, errorListener.expected);
+        return failure(errorListener.errors, errorListener.expected, result);
     } else if (result.parser._input.index === 0) {
-        return failure("consumed no tokens -- first token likely invalid", []);
+        return failure("consumed no tokens -- first token likely invalid", [], result);
     } else {
         return success(result);
     }
