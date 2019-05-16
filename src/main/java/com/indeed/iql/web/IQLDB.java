@@ -155,11 +155,8 @@ public class IQLDB {
              final int id = (int)row.get("id");
              final String name = (String)row.get("name");
              final Integer parentId = (Integer) row.get("parent_id");
-             // Give multiuser clients higher priority for Imhotep operations
-             // TODO: add priority to tbllimits in the DB
-             final byte priority = (byte) (name.equals(AccessControl.MULTIUSER_CLIENT_DEFAULT_IDENTITY) ? 50 : 0);
              final Limits limits = new Limits(
-                     priority,
+                     (byte) 0,
                      (Integer) row.get("query_document_count_limit_billions"),
                      (Integer) row.get("query_in_memory_rows_limit"),
                      (Integer) row.get("query_ftgs_iql_limit_mb"),

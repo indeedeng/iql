@@ -96,6 +96,7 @@ public class QueryInfo {
     @Nullable public Integer selectCount;
     @Nullable public Integer groupByCount;
     @Nullable public Boolean headOnly;
+    @Nullable public Long priority;
 
     @Nullable public String timingTreeReport;
     @Nullable public Long totalTime;

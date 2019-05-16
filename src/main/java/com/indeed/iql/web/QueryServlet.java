@@ -354,6 +354,7 @@ public class QueryServlet {
             final String query = selectStatement.selectQuery;
             setContentType(resp, queryRequestParams.avoidFileSave, queryRequestParams.csv, queryRequestParams.isEventStream);
             final Limits limits = accessControl.getLimitsForIdentity(clientInfo.username, clientInfo.client);
+            queryInfo.priority = (long) limits.priority;
             final String queryInitiator = (Strings.isNullOrEmpty(clientInfo.username) ? queryRequestParams.remoteAddr : clientInfo.username);
             logQueryToLog4J(queryInfo.queryStringTruncatedForPrint, queryInitiator, -1);
 
@@ -953,6 +954,7 @@ public class QueryServlet {
         logInteger(logEntry, "shards", queryInfo.numShards);
         logSet(logEntry, "imhotepServers", queryInfo.imhotepServers);
         logInteger(logEntry, "numImhotepServers", queryInfo.numImhotepServers);
+        logLong(logEntry, "priority", queryInfo.priority);
         if (queryInfo.totalShardPeriodHours != null) {
             logInteger(logEntry, "shardhours", queryInfo.totalShardPeriodHours);
         }
