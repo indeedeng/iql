@@ -96,6 +96,7 @@ public class QueryInfo {
     @Nullable public Integer selectCount;
     @Nullable public Integer groupByCount;
     @Nullable public Boolean headOnly;
+    @Nullable public Long priority;
 
     @Nullable public String timingTreeReport;
     @Nullable public Long totalTime;
@@ -114,11 +115,14 @@ public class QueryInfo {
 
     @Nullable public String sqlQuery;
 
+    @Nullable public Long imhotepFilesDownloadedMB;
+    @Nullable public Long imhotepP2PFilesDownloadedMB;
 
     public void setFromPerformanceStats(PerformanceStats performanceStats) {
         if (performanceStats == null) {
             return;
         }
+
         imhotepcputimems = TimeUnit.NANOSECONDS.toMillis(performanceStats.cpuTime);
         imhoteprammb = performanceStats.maxMemoryUsage / 1024 / 1024;
         imhotepftgsmb = performanceStats.ftgsTempFileSize / 1024 / 1024;
@@ -127,6 +131,14 @@ public class QueryInfo {
         cpuSlotsWaitTimeMs = performanceStats.cpuSlotsWaitTimeMs;
         ioSlotsExecTimeMs = performanceStats.ioSlotsExecTimeMs;
         ioSlotsWaitTimeMs = performanceStats.ioSlotsWaitTimeMs;
+        final Long downloadedBytes = performanceStats.customStats.get("downloadedBytes");
+        if (downloadedBytes != null) {
+            imhotepFilesDownloadedMB = downloadedBytes / 1024 / 1024;
+        }
+        final Long downloadedBytesP2P = performanceStats.customStats.get("downloadedBytesP2P");
+        if (downloadedBytesP2P != null) {
+            imhotepP2PFilesDownloadedMB = downloadedBytesP2P / 1024 / 1024;
+        }
     }
 
     public String toJSON() {

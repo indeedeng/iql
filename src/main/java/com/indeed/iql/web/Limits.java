@@ -19,6 +19,7 @@ import com.indeed.iql.exceptions.IqlKnownException;
 import javax.annotation.Nullable;
 
 public class Limits {
+    public final byte priority;
     @Nullable public final Integer queryDocumentCountLimitBillions;
     @Nullable public final Integer queryInMemoryRowsLimit;
     @Nullable public final Integer queryFTGSIQLLimitMB;
@@ -26,7 +27,8 @@ public class Limits {
     @Nullable public final Integer concurrentQueriesLimit;
     @Nullable public final Integer concurrentImhotepSessionsLimit;
 
-    public Limits(Integer queryDocumentCountLimitBillions, Integer queryInMemoryRowsLimit, Integer queryFTGSIQLLimitMB, Integer queryFTGSImhotepDaemonLimitMB, Integer concurrentQueriesLimit, Integer concurrentImhotepSessionsLimit) {
+    public Limits(byte priority, Integer queryDocumentCountLimitBillions, Integer queryInMemoryRowsLimit, Integer queryFTGSIQLLimitMB, Integer queryFTGSImhotepDaemonLimitMB, Integer concurrentQueriesLimit, Integer concurrentImhotepSessionsLimit) {
+        this.priority = priority;
         this.queryDocumentCountLimitBillions = queryDocumentCountLimitBillions;
         this.queryInMemoryRowsLimit = queryInMemoryRowsLimit;
         this.queryFTGSIQLLimitMB = queryFTGSIQLLimitMB;

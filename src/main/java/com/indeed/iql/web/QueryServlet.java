@@ -52,6 +52,7 @@ import com.indeed.iql1.sql.ast2.GroupByClause;
 import com.indeed.iql1.sql.ast2.IQL1SelectStatement;
 import com.indeed.iql1.sql.ast2.SelectClause;
 import com.indeed.iql1.sql.parser.SelectStatementParser;
+import com.indeed.iql2.ComparisonTools;
 import com.indeed.iql2.IQL2Options;
 import com.indeed.iql2.execution.QueryOptions;
 import com.indeed.iql2.server.web.servlets.query.EventStreamProgressCallback;
@@ -354,6 +355,7 @@ public class QueryServlet {
             final String query = selectStatement.selectQuery;
             setContentType(resp, queryRequestParams.avoidFileSave, queryRequestParams.csv, queryRequestParams.isEventStream);
             final Limits limits = accessControl.getLimitsForIdentity(clientInfo.username, clientInfo.client);
+            queryInfo.priority = (long) limits.priority;
             final String queryInitiator = (Strings.isNullOrEmpty(clientInfo.username) ? queryRequestParams.remoteAddr : clientInfo.username);
             logQueryToLog4J(queryInfo.queryStringTruncatedForPrint, queryInitiator, -1);
 
@@ -396,8 +398,9 @@ public class QueryServlet {
 
                     queryInfo.queryStartTimestamp = selectQuery.get().queryStartTimestamp.getMillis();   // ignore time spent waiting
 
+                    final Optional<String> comparisonWarning = ComparisonTools.checkCompatibility(selectStatement, metadataCache.get(), imhotepClient, clock, limits);
                     // actually process
-                    runSelectStatementIQL1(selectQuery, queryRequestParams, writer, strictCloser);
+                    runSelectStatementIQL1(selectQuery, queryRequestParams, writer, comparisonWarning, strictCloser);
                 } finally {
                     Closeables2.closeQuietly(selectQuery, log);
                 }
@@ -412,6 +415,7 @@ public class QueryServlet {
             final SharedReference<SelectQuery> selectQuery,
             final QueryRequestParams args,
             final PrintWriter outputStream,
+            final Optional<String> comparisonWarning,
             final StrictCloser strictCloser
     ) throws IOException {
         final QueryInfo queryInfo = selectQuery.get().queryInfo;
@@ -456,7 +460,11 @@ public class QueryServlet {
         final DateTime newestShard = getLatestShardVersion(iqlQuery.getShards());
         queryMetadata.addItem("IQL-Newest-Shard", newestShard, args.returnNewestShardVersion);
 
-        ArrayList<String> warningList = new ArrayList<>();
+        final List<String> warningList = new ArrayList<>();
+        if (comparisonWarning.isPresent()) {
+            // TODO: uncomment when we are ready.
+            //warningList.add("Compatibility warning: " + comparisonWarning.get());
+        }
         iqlQuery.addDeprecatedDatasetWarningIfNecessary(warningList);
 
         final List<Interval> timeIntervalsMissingShards= iqlQuery.getTimeIntervalsMissingShards();
@@ -943,6 +951,8 @@ public class QueryServlet {
         logLong(logEntry, "ftgsMillis", queryInfo.ftgsMillis);
         logLong(logEntry, "pushStatsMillis", queryInfo.pushStatsMillis);
         logLong(logEntry, "getStatsMillis", queryInfo.getStatsMillis);
+        logLong(logEntry, "imhotepFilesDownloadedMB", queryInfo.imhotepFilesDownloadedMB);
+        logLong(logEntry, "imhotepP2PFilesDownloadedMB", queryInfo.imhotepP2PFilesDownloadedMB);
 
         logSet(logEntry, "hash", queryInfo.cacheHashes);
         logString(logEntry, "hostname", hostname);
@@ -953,6 +963,7 @@ public class QueryServlet {
         logInteger(logEntry, "shards", queryInfo.numShards);
         logSet(logEntry, "imhotepServers", queryInfo.imhotepServers);
         logInteger(logEntry, "numImhotepServers", queryInfo.numImhotepServers);
+        logLong(logEntry, "priority", queryInfo.priority);
         if (queryInfo.totalShardPeriodHours != null) {
             logInteger(logEntry, "shardhours", queryInfo.totalShardPeriodHours);
         }
