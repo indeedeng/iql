@@ -943,8 +943,8 @@ public class QueryServlet {
         logLong(logEntry, "ftgsMillis", queryInfo.ftgsMillis);
         logLong(logEntry, "pushStatsMillis", queryInfo.pushStatsMillis);
         logLong(logEntry, "getStatsMillis", queryInfo.getStatsMillis);
-        logLong(logEntry, "filesDownloadedMB", queryInfo.filesDownloadedMB);
-        logLong(logEntry, "p2pFilesDownloadedMB", queryInfo.p2pFilesDownloadedMB);
+        logLong(logEntry, "imhotepFilesDownloadedMB", queryInfo.imhotepFilesDownloadedMB);
+        logLong(logEntry, "imhotepP2PFilesDownloadedMB", queryInfo.imhotepP2PFilesDownloadedMB);
 
         logSet(logEntry, "hash", queryInfo.cacheHashes);
         logString(logEntry, "hostname", hostname);
