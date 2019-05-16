@@ -1445,7 +1445,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public BooleanFilterTree asTree(final GroupNameSupplier groupNameSupplier) {
-            return BooleanFilterTree.of(groupNameSupplier, true);
+            return BooleanFilterTree.of(true);
         }
 
         @Override
@@ -1492,7 +1492,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public BooleanFilterTree asTree(final GroupNameSupplier groupNameSupplier) {
-            return BooleanFilterTree.of(groupNameSupplier, false);
+            return BooleanFilterTree.of(false);
         }
 
         @Override
@@ -1589,7 +1589,7 @@ public abstract class DocFilter extends AbstractPositional {
             if (field.isIntField()) {
                 final long[] terms = this.terms.stream().filter(Term::isIntTerm).mapToLong(Term::getIntTerm).toArray();
                 if (terms.length == 0) {
-                    return BooleanFilterTree.of(groupNameSupplier, false);
+                    return BooleanFilterTree.of(false);
                 } else {
                     return BooleanFilterTree.of(regroupParams, dataset -> new IntOrRegroup(regroupParams, field.datasetFieldName(dataset), terms, 1, 0, 1, null));
                 }

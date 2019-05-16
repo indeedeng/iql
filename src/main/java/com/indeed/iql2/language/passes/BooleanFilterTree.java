@@ -245,7 +245,10 @@ public interface BooleanFilterTree {
         @Override
         public String apply(final String dataset, final ImhotepSession session, final GroupNameSupplier groupNameSupplier) throws ImhotepOutOfMemoryException {
             final RegroupParams regroupParams = groupNameSupplier.makeRegroupParams();
-            session.regroup(regroupParams, EMPTY_INT_ARRAY, EMPTY_INT_ARRAY, false);
+            // constant=true -> don't filter out untargeted (aka everything)
+            // constant=false -> filter out untargeted (aka everything)
+            final boolean filterOutNotTargeted = !value;
+            session.regroup(regroupParams, EMPTY_INT_ARRAY, EMPTY_INT_ARRAY, filterOutNotTargeted);
             return regroupParams.getOutputGroups();
         }
     }
@@ -277,12 +280,8 @@ public interface BooleanFilterTree {
         return ComputeGroups.of(regroupParams, commandFunction);
     }
 
-    static BooleanFilterTree of(final GroupNameSupplier groupNameSupplier, final boolean constant) {
-        final RegroupParams regroupParams = groupNameSupplier.makeRegroupParams();
-        // constant=true -> don't filter out untargeted (aka everything)
-        // constant=false -> filter out untargeted (aka everything)
-        final boolean filterOutNotTargeted = !constant;
-        return BooleanFilterTree.of(regroupParams, s -> new UnconditionalRegroup(regroupParams, EMPTY_INT_ARRAY, EMPTY_INT_ARRAY, filterOutNotTargeted, null));
+    static BooleanFilterTree of(final boolean constant) {
+        return new Constant(constant);
     }
 
     static BooleanFilterTree and(final List<BooleanFilterTree> children) {
