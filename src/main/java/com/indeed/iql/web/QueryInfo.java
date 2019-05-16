@@ -131,8 +131,14 @@ public class QueryInfo {
         cpuSlotsWaitTimeMs = performanceStats.cpuSlotsWaitTimeMs;
         ioSlotsExecTimeMs = performanceStats.ioSlotsExecTimeMs;
         ioSlotsWaitTimeMs = performanceStats.ioSlotsWaitTimeMs;
-        imhotepFilesDownloadedMB = performanceStats.customStats.get("downloadedBytes") / 1024 / 1024;
-        imhotepP2PFilesDownloadedMB = performanceStats.customStats.get("downloadedBytesP2P") / 1024 / 1024;
+        final Long downloadedBytes = performanceStats.customStats.get("downloadedBytes");
+        if (downloadedBytes != null) {
+            imhotepFilesDownloadedMB = downloadedBytes / 1024 / 1024;
+        }
+        final Long downloadedBytesP2P = performanceStats.customStats.get("downloadedBytesP2P");
+        if (downloadedBytesP2P != null) {
+            imhotepP2PFilesDownloadedMB = downloadedBytesP2P / 1024 / 1024;
+        }
     }
 
     public String toJSON() {
