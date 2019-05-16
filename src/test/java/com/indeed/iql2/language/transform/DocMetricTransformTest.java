@@ -227,4 +227,9 @@ public class DocMetricTransformTest {
     public void testRandomMetric() {
         test("random(oji+10, 30)");
     }
+
+    @Test
+    public void testUidToUnixtime() {
+        test("uid_to_unixtime(tk)");
+    }
 }

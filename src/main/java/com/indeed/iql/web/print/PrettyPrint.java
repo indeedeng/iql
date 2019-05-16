@@ -1457,6 +1457,15 @@ public class PrettyPrint {
                         .append("\")");
                 return null;
             }
+
+            @Override
+            public Void visit(final DocMetric.UidToUnixtime uidToUnixtime) {
+                sb.append("uid_to_unixtime")
+                    .append('(')
+                    .append(getText(uidToUnixtime.field))
+                    .append(')');
+                return null;
+            }
         });
 
         appendCommentAfterText(docMetric, sb);

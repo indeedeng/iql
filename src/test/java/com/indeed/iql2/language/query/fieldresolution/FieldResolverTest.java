@@ -298,7 +298,7 @@ public class FieldResolverTest {
         assertEquals(calcExpected, scopedResolver.resolveDocMetric(parseIdentifier("calc"), PLAIN_DOC_METRIC_CALLBACK, CONTEXT));
     }
 
-    @Test(expected = IqlKnownException.UnknownDatasetException.class)
+    @Test
     public void testIncorrectQualifiedDataset() {
         final FieldResolver fieldResolver;
         try {
@@ -311,6 +311,11 @@ public class FieldResolverTest {
             // required for compiler to understand that fieldResolver is always initialized in the next line
             throw new RuntimeException();
         }
-        fieldResolver.setErrorMode(FieldResolver.ErrorMode.IMMEDIATE);
+        try {
+            fieldResolver.setErrorMode(FieldResolver.ErrorMode.IMMEDIATE);
+            Assert.fail();
+        } catch (final IqlKnownException.UnknownDatasetException e) {
+            assertEquals("Dataset not found or not included in query: \"foo\"", e.getMessage());
+        }
     }
 }

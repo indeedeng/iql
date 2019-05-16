@@ -46,6 +46,8 @@ public class AllData {
         datasets.add(ConflictFieldDataset.create());
         datasets.add(LogLossDataset.create());
         datasets.add(MultiYearDataset.create());
+        datasets.add(UidTimestampDataset.create());
+        datasets.add(MultiValuedUidTimestampDataset.create());
 
         final List<Dataset.DatasetShard> shards = new ArrayList<>();
         for (final Dataset allDataset : datasets) {

@@ -19,7 +19,7 @@ repositories {
 }
 
 ext {
-    imhotepVersion = '3.1.176'
+    imhotepVersion = '3.1.180'
     imsVersion = '4.0.14'
 }
 

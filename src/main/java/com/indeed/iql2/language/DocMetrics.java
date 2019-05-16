@@ -255,6 +255,11 @@ public class DocMetrics {
             public  void enterLegacyDocMetricAtomHasStringField(final JQLParser.LegacyDocMetricAtomHasStringFieldContext ctx) {
                 accept(new DocMetric.HasStringField(fieldResolver.resolve(ctx.field)));
             }
+
+            @Override
+            public void enterLegacyDocMetricAtomUidToUnixtime(final JQLParser.LegacyDocMetricAtomUidToUnixtimeContext ctx) {
+                accept(new DocMetric.UidToUnixtime(fieldResolver.resolve(ctx.field)));
+            }
         });
 
         if (ref[0] == null) {
@@ -605,6 +610,12 @@ public class DocMetrics {
             public void enterDocMetricAtomLen(final JQLParser.DocMetricAtomLenContext ctx) {
                 final FieldSet field = fieldResolver.resolve(ctx.singlyScopedField());
                 accept(field.wrap(new DocMetric.StringLen(field)));
+            }
+
+            @Override
+            public void enterDocMetricAtomUidToUnixtime(final JQLParser.DocMetricAtomUidToUnixtimeContext ctx) {
+                final FieldSet field = fieldResolver.resolve(ctx.singlyScopedField());
+                accept(field.wrap(new DocMetric.UidToUnixtime(field)));
             }
         });
 

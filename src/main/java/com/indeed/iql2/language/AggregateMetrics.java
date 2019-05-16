@@ -15,7 +15,6 @@
 package com.indeed.iql2.language;
 
 import com.google.common.collect.Sets;
-import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.GroupBys;
 import com.indeed.iql2.language.query.Query;
@@ -60,8 +59,8 @@ public class AggregateMetrics {
             }
 
             @Override
-            public void enterLegacyAggregateDivByConstant(JQLParser.LegacyAggregateDivByConstantContext ctx) {
-                accept(new AggregateMetric.Divide(parseLegacyAggregateMetric(ctx.legacyAggregateMetric(), context), new AggregateMetric.Constant(Double.parseDouble(ctx.number().getText()))));
+            public void enterLegacyAggregateDivByConstant(final JQLParser.LegacyAggregateDivByConstantContext ctx) {
+                accept(new AggregateMetric.Divide(parsePossibleDimensionAggregateMetric(ctx.legacyDocMetric(), context), new AggregateMetric.Constant(Double.parseDouble(ctx.number().getText()))));
             }
 
             @Override
@@ -70,8 +69,8 @@ public class AggregateMetrics {
             }
 
             @Override
-            public void enterLegacyAggregateDiv(JQLParser.LegacyAggregateDivContext ctx) {
-                AggregateMetric aggDivisor = parsePossibleDimensionAggregateMetric(ctx.legacyDocMetric(1), context);
+            public void enterLegacyAggregateDiv(final JQLParser.LegacyAggregateDivContext ctx) {
+                AggregateMetric aggDivisor = parseLegacyAggregateMetric(ctx.legacyAggregateMetric(1), context);
                 if (aggDivisor instanceof AggregateMetric.DocStats) {
                     final DocMetric docMetric = ((AggregateMetric.DocStats) aggDivisor).docMetric;
                     if (docMetric instanceof DocMetric.Constant) {
@@ -79,7 +78,7 @@ public class AggregateMetrics {
                     }
                 }
                 accept(new AggregateMetric.Divide(
-                        parsePossibleDimensionAggregateMetric(ctx.legacyDocMetric(0), context),
+                        parseLegacyAggregateMetric(ctx.legacyAggregateMetric(0), context),
                         aggDivisor
                 ));
             }

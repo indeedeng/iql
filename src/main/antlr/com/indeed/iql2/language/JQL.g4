@@ -92,6 +92,7 @@ DATASET: 'DATASET' ;
 RANDOM: 'RANDOM' ;
 OPTIONS: 'OPTIONS' ;
 DOCID: 'DOCID' ;
+UID_TO_UNIXTIME : 'UID_TO_UNIXTIME' ;
 
 M: 'M' ;
 Y : 'Y' ;
@@ -150,7 +151,7 @@ identifier
     | PRINTF | EXTRACT | RANDOM | OPTIONS
     | M | Y | TODAYS | TOMORROWS | YESTERDAYS | TIME_UNIT | TIME_INTERVAL_ATOM
     | RELATIVE | DATASET
-    | BACKQUOTED_ID | LEN | DOCID
+    | BACKQUOTED_ID | LEN | DOCID | UID_TO_UNIXTIME
     ;
 identifierTerminal : identifier EOF ;
 
@@ -197,10 +198,10 @@ STRING_LITERAL : SINGLE_QUOTED_STRING | DOUBLE_QUOTED_STRING ;
 legacyAggregateMetric
     : DISTINCT '(' identifier ')' # LegacyAggregateDistinct
     | PERCENTILE '(' identifier ',' number ')' # LegacyAggregatePercentile
-    | legacyAggregateMetric '/' number # LegacyAggregateDivByConstant
-    | legacyDocMetric '/' legacyDocMetric # LegacyAggregateDiv
-    | '(' legacyAggregateMetric ')' # LegacyAggregateParens
     | legacyDocMetric # LegacyImplicitSum
+    | legacyDocMetric '/' number # LegacyAggregateDivByConstant
+    | legacyAggregateMetric '/' legacyAggregateMetric # LegacyAggregateDiv
+    | '(' legacyAggregateMetric ')' # LegacyAggregateParens
     ;
 
 aggregateMetric [boolean useLegacy]
@@ -314,6 +315,7 @@ legacyDocMetricAtom
     | HASINT '(' STRING_LITERAL ')' # LegacyDocMetricAtomHasIntQuoted
     | FLOATSCALE '(' field=identifier (',' mult=number (',' add=number)?)?')' # LegacyDocMetricAtomFloatScale
     | LUCENE '(' queryField=STRING_LITERAL ')' # LegacyDocMetricAtomLucene
+    | UID_TO_UNIXTIME '(' field=identifier ')' # LegacyDocMetricAtomUidToUnixtime
     | identifier # LegacyDocMetricAtomRawField
     ;
 
@@ -337,6 +339,7 @@ jqlDocMetricAtom
     | EXTRACT '(' singlyScopedField ',' regex=STRING_LITERAL (',' groupNumber=NAT)? ')' # DocMetricAtomExtract
     | (LUCENE | QUERY) '(' queryField=STRING_LITERAL ')' # DocMetricAtomLucene
     | LEN '(' singlyScopedField ')' # DocMetricAtomLen
+    | UID_TO_UNIXTIME '(' singlyScopedField ')' # DocMetricAtomUidToUnixtime
     | jqlSyntacticallyAtomicDocMetricAtom # SyntacticallyAtomicDocMetricAtom
     ;
 

@@ -91,6 +91,7 @@ public abstract class DocMetric extends AbstractPositional {
         T visit(SampleMetric random) throws E;
         T visit(Random random) throws E;
         T visit(RandomMetric random) throws E;
+        T visit(UidToUnixtime uidToUnixtime) throws E;
     }
 
     /**
@@ -1810,7 +1811,7 @@ public abstract class DocMetric extends AbstractPositional {
             if (!validationHelper.containsField(dataset, fieldName)) {
                 errorCollector.error(ErrorMessages.missingField(dataset, fieldName, this));
             }
-            CommandValidator.validate(query, datasetsMetadata, errorCollector);
+            CommandValidator.validate(query, validationHelper.limits, datasetsMetadata, errorCollector);
         }
 
         @Override
@@ -1822,6 +1823,39 @@ public abstract class DocMetric extends AbstractPositional {
         @Override
         public DocMetric invert() {
             return null;
+        }
+    }
+
+    @EqualsAndHashCode(callSuper = false)
+    @ToString
+    public static class UidToUnixtime extends DocMetric {
+        public final FieldSet field;
+
+        public UidToUnixtime(final FieldSet field) {
+            this.field = field;
+        }
+
+        @Override
+        public DocMetric transform(final Function<DocMetric, DocMetric> g, final Function<DocFilter, DocFilter> i) {
+            return g.apply(new UidToUnixtime(field)).copyPosition(this);
+        }
+
+        @Override
+        public List<String> getPushes(final String dataset) {
+            return Collections.singletonList("uid_to_unixtime " + field.datasetFieldName(dataset));
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public void validate(final String dataset, final ValidationHelper validationHelper, final ErrorCollector errorCollector) {
+            final String fieldName = field.datasetFieldName(dataset);
+            if(!validationHelper.containsStringField(dataset, fieldName)) {
+                errorCollector.error(ErrorMessages.missingStringField(dataset, fieldName, this));
+            }
         }
     }
 

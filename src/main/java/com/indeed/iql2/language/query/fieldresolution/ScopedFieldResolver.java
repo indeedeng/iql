@@ -70,7 +70,7 @@ public class ScopedFieldResolver {
             return FieldResolver.FAILED_TO_RESOLVE_DATASET;
         }
         if (allMatching.isEmpty()) {
-            fieldResolver.addError(new IqlKnownException.UnknownDatasetException("Dataset not found: \"" + dataset + "\""));
+            fieldResolver.addError(new IqlKnownException.UnknownDatasetException("Dataset not found or not included in query: \"" + dataset + "\""));
             return FieldResolver.FAILED_TO_RESOLVE_DATASET;
         }
         return Iterables.getOnlyElement(allMatching);
