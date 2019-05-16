@@ -51,19 +51,26 @@ public class ComparisonTools {
     // result of comparison of iql1 and legacy mode
     public enum Result {
         // Ok
-        Equal,
+        Equal(null),
         // Errors
-        NotSupportedInLegacy,
-        BothFail,
-        ParsingErrorInLegacy,
-        ParsingErrorInIql1,
+        NotSupportedInLegacy("This query uses syntax that will be deprecated soon"),
+        BothFail(null),
+        ParsingErrorInLegacy("This query will fail to parse after iql1 backend replacement. See list of known incompatibilities for details."),
+        ParsingErrorInIql1(null),
         // Known difference
-        UnquotedTerm,
-        CommentDiff,
-        GroupByHour,
-        TermInParens,
+        UnquotedTerm("Use quotes in around terms and in terms list. Unquoted terms will be deprecated soon"),
+        CommentDiff("Query produce incorrect result because of incorrect comment processing. Delete all comments from query."),
+        GroupByHour("'group by time(number)' syntax will be deprecated soon. Add explicit time units (hours)"),
+        TermInParens("'field = (\"term\")' syntax will be deprecated soon. Rewrite query as 'field=\"term\"'"),
         // Unknown difference
-        Unknown
+        Unknown("This query will produce different result after iql1 backend replacement. See list of known incompatibilities for details.");
+
+        @Nullable
+        public final String message;
+
+        Result(final String message) {
+            this.message = message;
+        }
     }
 
     // parse query as Iql1, convert to legacy mode, validate and return.
@@ -274,29 +281,8 @@ public class ComparisonTools {
             final WallClock clock,
             final Limits limits) {
         try {
-            final Result compatisonResult = compareIql1AndLegacy(selectStatement, datasetsMetadata, imhotepClient, clock, limits);
-            switch (compatisonResult) {
-                case Equal:
-                case ParsingErrorInIql1:
-                case BothFail:
-                    return Optional.empty();
-                case NotSupportedInLegacy:
-                    return Optional.of("This query uses syntax that will be deprecated soon");
-                case ParsingErrorInLegacy:
-                    return Optional.of("This query will fail to parse after iql1 backend replacement. See list of known incompatibilities for details.");
-                case UnquotedTerm:
-                    return Optional.of("Use quotes in around terms and in terms list. Unquoted terms will be deprecated soon");
-                case GroupByHour:
-                    return Optional.of("'group by time(number)' syntax will be deprecated soon. Add explicit time units (hours)");
-                case TermInParens:
-                    return Optional.of("'field = (\"term\")' syntax will be deprecated soon. Rewrite query as 'field=\"term\"'");
-                case CommentDiff:
-                    return Optional.of("Query produce incorrect result because of incorrect comment processing. Delete all comments from query.");
-                case Unknown:
-                    return Optional.of("This query will produce different result after iql1 backend replacement. See list of known incompatibilities for details.");
-                default:
-                    throw new IllegalStateException("Should not be here.");
-            }
+            final Result comparisonResult = compareIql1AndLegacy(selectStatement, datasetsMetadata, imhotepClient, clock, limits);
+            return Optional.ofNullable(comparisonResult.message);
         } catch (final Throwable t) {
             return Optional.of("Failed to compare original iql1 and legacy mode.");
         }
