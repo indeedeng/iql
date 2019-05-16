@@ -489,13 +489,20 @@ class Parser {
         const input = parsedQuery.parser._input.tokenSource._input;
         if (parsedQuery.whereContents() !== null) {
             const whereContents = parsedQuery.whereContents();
-            const elems = whereContents.docFilters;
-            const lastElem = elems[elems.length - 1];
-            const whereEnd = getStartStop(lastElem).stop;
-            const before = input.getText(0, whereEnd);
-            const after = input.getText(whereEnd + 1, input._size);
-            const middle = after.charAt(0) === ' ' ? '' : ' ';
-            return success(before + ' AND ' + filter + middle + after);
+            if (whereContents.docFilters && whereContents.docFilters.length > 0) {
+                const elems = whereContents.docFilters;
+                const lastElem = elems[elems.length - 1];
+                const whereEnd = getStartStop(lastElem).stop;
+                const before = input.getText(0, whereEnd);
+                const after = input.getText(whereEnd + 1, input._size);
+                const middle = after.charAt(0) === ' ' ? '' : ' ';
+                return success(before + ' AND ' + filter + middle + after);
+            } else {
+                const whereEnd = getStartStop(whereContents).stop
+                const before = input.getText(0, whereEnd);
+                const after = input.getText(whereEnd + 1, input._size);
+                return success(before + ' ' + filter + ' ' + after);
+            }
         }
         const end = getStartStop(parsedQuery.fromContents()).stop;
         const before = input.getText(0, end);
