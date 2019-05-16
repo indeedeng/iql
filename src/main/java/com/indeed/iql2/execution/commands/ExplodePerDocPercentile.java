@@ -72,7 +72,7 @@ public class ExplodePerDocPercentile implements Command {
             metricIndexes.put(k, new IntArrayList(new int[]{nextIndex}));
         }
         session.timer.push("compute cutoffs (iterateMultiInt)");
-        Session.iterateMultiInt(session.getSessionsMapRaw(), metricIndexes, Collections.emptyMap(), field, sessionStats, new Session.IntIterateCallback() {
+        Session.iterateMultiInt(session.getDisplayNameSessionMapRaw(), metricIndexes, Collections.emptyMap(), field, sessionStats, new Session.IntIterateCallback() {
             @Override
             public void term(final long term, final long[] stats, final int group) {
                 for (final long stat : stats) {

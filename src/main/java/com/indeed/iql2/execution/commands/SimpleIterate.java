@@ -38,6 +38,7 @@ import com.indeed.iql2.execution.metrics.aggregate.DocumentLevelMetric;
 import com.indeed.iql2.language.SortOrder;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import it.unimi.dsi.fastutil.ints.IntList;
+import javafx.util.Pair;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
@@ -180,7 +181,7 @@ public class SimpleIterate implements Command {
         }
         final AggregateFilter filterOrNull = opts.filter.orElse(null);
 
-        final Map<String, ImhotepSession> sessionsToUse = session.getSessionsMapRaw();
+        final Map<Pair<String, String>, ImhotepSession> sessionsToUse = session.getDisplayNameSessionMapRaw();
 
         final Optional<Session.RemoteTopKParams> topKParams;
         if (sessionsToUse.size() > 1) {
@@ -247,7 +248,7 @@ public class SimpleIterate implements Command {
         final List<RemoteImhotepMultiSession.SessionField> sessionFields = new ArrayList<>();
         for (final Map.Entry<String, Session.ImhotepSessionInfo> entry : session.sessions.entrySet()) {
             final ImhotepSession imhotepSession = entry.getValue().session;
-            final String dataset = imhotepSession.getDatasetName();
+            final String dataset = entry.getValue().displayName;
             if (field.containsDataset(dataset)) {
                 sessionFields.add(new RemoteImhotepMultiSession.SessionField(imhotepSession, field.datasetFieldName(dataset), sessionStats.getOrDefault(dataset, Collections.emptyList())));
             }

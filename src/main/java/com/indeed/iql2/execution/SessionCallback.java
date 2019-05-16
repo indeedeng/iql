@@ -19,5 +19,5 @@ import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.util.logging.TracingTreeTimer;
 
 public interface SessionCallback {
-    void handle(TracingTreeTimer timer, String name, ImhotepSession session) throws ImhotepOutOfMemoryException;
+    void handle(TracingTreeTimer timer, String name, ImhotepSession session, String datasetDisplayName) throws ImhotepOutOfMemoryException;
 }

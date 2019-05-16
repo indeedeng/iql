@@ -62,7 +62,7 @@ public class RandomMetricRegroup implements Command {
 
         session.process(new SessionCallback() {
             @Override
-            public void handle(final TracingTreeTimer timer, final String name, final ImhotepSession session) throws ImhotepOutOfMemoryException {
+            public void handle(final TracingTreeTimer timer, final String name, final ImhotepSession session, final String displayName) throws ImhotepOutOfMemoryException {
                 if (!perDatasetMetrics.containsKey(name)) {
                     return;
                 }

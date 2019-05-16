@@ -55,7 +55,7 @@ public class SampleMetricAction implements Action {
     public void apply(final Session session) throws ImhotepOutOfMemoryException {
         session.process(new SessionCallback() {
             @Override
-            public void handle(final TracingTreeTimer timer, final String name, final ImhotepSession session) throws ImhotepOutOfMemoryException {
+            public void handle(final TracingTreeTimer timer, final String name, final ImhotepSession session, final String datasetDisplayName) throws ImhotepOutOfMemoryException {
                 if (!perDatasetMetric.containsKey(name)) {
                     return;
                 }
