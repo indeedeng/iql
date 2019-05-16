@@ -40,7 +40,7 @@ public interface BooleanFilterTree {
         }
         final String outputGroups = childGroups.get(0);
         session.consolidateGroups(childGroups, operator, outputGroups);
-        session.deleteGroups(Lists.newArrayList(Iterables.skip(childGroups, 1)));
+        session.deleteGroups(childGroups.subList(1, childGroups.size()));
         return outputGroups;
     }
 
