@@ -1,6 +1,5 @@
 package com.indeed.iql2.execution;
 
-import com.indeed.imhotep.AsynchronousRemoteImhotepMultiSession;
 import com.indeed.imhotep.BatchRemoteImhotepMultiSession;
 import com.indeed.imhotep.QueryRemapRule;
 import com.indeed.imhotep.RemoteImhotepMultiSession;
@@ -37,8 +36,8 @@ public class ImhotepSessionHolder implements Closeable {
             final String datasetName,
             final ImhotepSession session
     ) {
-        if (!(session instanceof RemoteImhotepMultiSession) && !(session instanceof AsynchronousRemoteImhotepMultiSession) && !(session instanceof BatchRemoteImhotepMultiSession)) {
-            throw new IllegalStateException("Must have RemoteImhotepMultiSession or AsynchronousRemoteImhotepMultiSession or BatchRemoteImhotepMultiSession");
+        if (!(session instanceof RemoteImhotepMultiSession) && !(session instanceof BatchRemoteImhotepMultiSession)) {
+            throw new IllegalStateException("Must have RemoteImhotepMultiSession or BatchRemoteImhotepMultiSession");
         }
         this.datasetName = datasetName;
         this.session = session;
@@ -234,8 +233,6 @@ public class ImhotepSessionHolder implements Closeable {
     public long getTempFilesBytesWritten() {
         if (session instanceof RemoteImhotepMultiSession) {
             return ((RemoteImhotepMultiSession) session).getTempFilesBytesWritten();
-        } else if (session instanceof AsynchronousRemoteImhotepMultiSession) {
-            return ((AsynchronousRemoteImhotepMultiSession) session).getTempFilesBytesWritten();
         } else if (session instanceof BatchRemoteImhotepMultiSession) {
             return ((BatchRemoteImhotepMultiSession) session).getTempFilesBytesWritten();
         }
@@ -247,9 +244,6 @@ public class ImhotepSessionHolder implements Closeable {
             final boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
         if (session instanceof RemoteImhotepMultiSession) {
             return ((RemoteImhotepMultiSession) session).regroupWithRuleSender(sender, errorOnCollisions);
-        } else if (session instanceof AsynchronousRemoteImhotepMultiSession) {
-            ((AsynchronousRemoteImhotepMultiSession) session).regroupWithRuleSender(sender, errorOnCollisions);
-            return -999;
         } else if (session instanceof BatchRemoteImhotepMultiSession) {
             return ((BatchRemoteImhotepMultiSession) session).regroupWithRuleSender(sender, errorOnCollisions);
         }

@@ -188,15 +188,13 @@ public class Session {
         final List<String> optionsList = new ArrayList<>(optionsSet);
 
         final boolean requestRust = optionsSet.contains(QueryOptions.USE_RUST_DAEMON);
-        final boolean useAsync = optionsSet.contains(QueryOptions.Experimental.ASYNC);
-        final boolean useBatchMode = optionsSet.contains(QueryOptions.Experimental.BATCH);
         final boolean p2pCache = optionsList.contains(QueryOptions.Experimental.P2P_CACHE);
 
         progressCallback.startSession(Optional.of(commands.size()));
         progressCallback.preSessionOpen(datasets);
 
         treeTimer.push("createSubSessions");
-        final long firstStartTimeMillis = createSubSessions(client, requestRust, useAsync, useBatchMode, p2pCache, datasets,
+        final long firstStartTimeMillis = createSubSessions(client, requestRust, p2pCache, datasets,
                 strictCloser, sessions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, username, progressCallback);
         progressCallback.sessionsOpened(sessions);
         treeTimer.pop();
@@ -282,8 +280,6 @@ public class Session {
     private static long createSubSessions(
             final ImhotepClient client,
             final boolean requestRust,
-            final boolean useAsync,
-            final boolean useBatchMode,
             final boolean p2pCache,
             final List<Queries.QueryDataset> sessionRequest,
             final StrictCloser strictCloser,
@@ -334,17 +330,8 @@ public class Session {
             ImhotepSession build = strictCloser.registerOrClose(sessionBuilder.build());
             treeTimer.pop();
 
-            if (useAsync && useBatchMode) {
-                throw new IllegalArgumentException("BATCH with ASYNC not supported yet.");
-            }
-
-            if (useAsync) {
-                build = ((RemoteImhotepMultiSession) build).toAsync();
-            }
-
-            if (useBatchMode) {
-                build = ((RemoteImhotepMultiSession) build).toBatch();
-            }
+            // All requests will use Batch mode.
+            build = ((RemoteImhotepMultiSession) build).toBatch();
 
             // Just in case they have resources, registerOrClose the wrapped session as well.
             // Double close() is supposed to be safe.
