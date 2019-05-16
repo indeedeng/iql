@@ -22,10 +22,10 @@ import com.indeed.common.datastruct.BoundedPriorityQueue;
 import com.indeed.imhotep.RemoteImhotepMultiSession;
 import com.indeed.imhotep.api.FTGAIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
+import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.metrics.aggregate.AggregateStatTree;
 import com.indeed.iql2.Formatter;
 import com.indeed.iql2.execution.AggregateFilter;
-import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.QualifiedPush;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.TermSelects;
@@ -180,7 +180,7 @@ public class SimpleIterate implements Command {
         }
         final AggregateFilter filterOrNull = opts.filter.orElse(null);
 
-        final Map<String, ImhotepSessionHolder> sessionsToUse = session.getSessionsMapRaw();
+        final Map<String, ImhotepSession> sessionsToUse = session.getSessionsMapRaw();
 
         final Optional<Session.RemoteTopKParams> topKParams;
         if (sessionsToUse.size() > 1) {
@@ -246,10 +246,10 @@ public class SimpleIterate implements Command {
 
         final List<RemoteImhotepMultiSession.SessionField> sessionFields = new ArrayList<>();
         for (final Map.Entry<String, Session.ImhotepSessionInfo> entry : session.sessions.entrySet()) {
-            final ImhotepSessionHolder sessionHolder = entry.getValue().session;
-            final String dataset = sessionHolder.getDatasetName();
+            final ImhotepSession imhotepSession = entry.getValue().session;
+            final String dataset = imhotepSession.getDatasetName();
             if (field.containsDataset(dataset)) {
-                sessionFields.add(sessionHolder.buildSessionField(field.datasetFieldName(dataset), sessionStats.getOrDefault(dataset, Collections.emptyList())));
+                sessionFields.add(new RemoteImhotepMultiSession.SessionField(imhotepSession, field.datasetFieldName(dataset), sessionStats.getOrDefault(dataset, Collections.emptyList())));
             }
         }
 

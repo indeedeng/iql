@@ -15,7 +15,7 @@
 package com.indeed.iql2.execution.commands;
 
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.iql2.execution.ImhotepSessionHolder;
+import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.groupkeys.sets.SessionNameGroupKeySet;
 
@@ -33,7 +33,7 @@ public class ExplodeSessionNames implements Command {
         // TODO: Add group() stat to Imhotep and regroup on (group() - 1) * N + 1
         for (final Map.Entry<String, Session.ImhotepSessionInfo> entry : session.sessions.entrySet()) {
             sessionNames.add(entry.getValue().displayName);
-            final ImhotepSessionHolder s = entry.getValue().session;
+            final ImhotepSession s = entry.getValue().session;
 
             session.timer.push("make dumb rules");
             final int[] fromGroups = new int[session.numGroups];

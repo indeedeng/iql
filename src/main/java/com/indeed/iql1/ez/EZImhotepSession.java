@@ -18,6 +18,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.indeed.flamdex.query.Query;
 import com.indeed.imhotep.QueryRemapRule;
+import com.indeed.imhotep.RemoteImhotepMultiSession;
 import com.indeed.imhotep.api.FTGSIterator;
 import com.indeed.imhotep.api.GroupStatsIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
@@ -30,7 +31,6 @@ import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.web.Limits;
 import com.indeed.iql1.iql.ScoredLong;
 import com.indeed.iql1.iql.ScoredObject;
-import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.util.core.io.Closeables2;
 import com.indeed.util.serialization.Stringifier;
@@ -61,13 +61,13 @@ import static com.indeed.iql1.ez.Field.StringField;
 public class EZImhotepSession implements Closeable {
     private static final Logger log = Logger.getLogger(EZImhotepSession.class);
 
-    private final ImhotepSessionHolder session;
+    private final RemoteImhotepMultiSession session;
     private final Limits limits;
     private int stackDepth = 0;
     private int numGroups = 2;
     private boolean closed = false;
 
-    public EZImhotepSession(final ImhotepSessionHolder session, final Limits limits) {
+    public EZImhotepSession(final RemoteImhotepMultiSession session, final Limits limits) {
         this.session = session;
         this.limits = limits;
     }
@@ -209,8 +209,8 @@ public class EZImhotepSession implements Closeable {
     }
 
     private FTGSIterator getFtgsSubsetIterator(final Field field, final List<?> terms) throws ImhotepOutOfMemoryException {
-        final Map<FieldSet, long[]> intFields = Maps.newHashMap();
-        final Map<FieldSet, String[]> stringFields = Maps.newHashMap();
+        final Map<String, long[]> intFields = Maps.newHashMap();
+        final Map<String, String[]> stringFields = Maps.newHashMap();
         if (field.isIntField()) {
             final long[] intTermsSubset = new long[terms.size()];
             for(int i = 0; i < intTermsSubset.length; i++) {
@@ -228,14 +228,14 @@ public class EZImhotepSession implements Closeable {
                 }
             }
             Arrays.sort(intTermsSubset);
-            intFields.put(FieldSet.of(session.getDatasetName(), field.fieldName, true), intTermsSubset);
+            intFields.put(field.fieldName, intTermsSubset);
         } else {
             final String[] stringTermsSubset = new String[terms.size()];
             for(int i = 0; i < stringTermsSubset.length; i++) {
                 stringTermsSubset[i] = (String)terms.get(i);
             }
             Arrays.sort(stringTermsSubset);
-            stringFields.put(FieldSet.of(session.getDatasetName(), field.fieldName, false), stringTermsSubset);
+            stringFields.put(field.fieldName, stringTermsSubset);
         }
 
         return session.getSubsetFTGSIterator(intFields, stringFields, null);
@@ -388,7 +388,7 @@ public class EZImhotepSession implements Closeable {
     private int regroupWithProtos(final GroupMultiRemapMessage[] rawRuleMessages) throws ImhotepOutOfMemoryException {
         final RequestTools.GroupMultiRemapRuleSender ruleSender =
                 RequestTools.GroupMultiRemapRuleSender.createFromMessages(Arrays.asList(rawRuleMessages).iterator(), true);
-        return session.regroupWithSender(ruleSender, true);
+        return session.regroupWithRuleSender(ruleSender, true);
     }
 
     // @deprecated due to inefficiency. use splitAll()

@@ -14,7 +14,7 @@
 
 package com.indeed.iql2.execution.progress;
 
-import com.indeed.iql2.execution.ImhotepSessionHolder;
+import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.commands.Command;
 import com.indeed.iql2.language.query.Queries;
@@ -37,7 +37,7 @@ public interface ProgressCallback {
     void preSessionOpen(List<Queries.QueryDataset> datasets);
 
     // Provided separately in order to allow early termination.
-    void sessionOpened(ImhotepSessionHolder session);
+    void sessionOpened(ImhotepSession session);
 
     void sessionsOpened(Map<String, Session.ImhotepSessionInfo> sessions);
 

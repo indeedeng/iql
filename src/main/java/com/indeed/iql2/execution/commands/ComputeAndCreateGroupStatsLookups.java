@@ -171,7 +171,7 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
 
 
         final List<RemoteImhotepMultiSession.SessionField> sessionFields = field.datasets().stream()
-                .map(x -> session.sessions.get(x).session.buildSessionField(field.datasetFieldName(x), sessionStats.getOrDefault(x, Collections.emptyList())))
+                .map(x -> new RemoteImhotepMultiSession.SessionField(session.sessions.get(x).session, field.datasetFieldName(x), sessionStats.getOrDefault(x, Collections.emptyList())))
                 .collect(Collectors.toList());
 
         final int numFilters = filters.size();

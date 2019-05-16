@@ -16,7 +16,7 @@ package com.indeed.iql2.execution.actions;
 
 import com.google.common.collect.ImmutableMap;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.iql2.execution.ImhotepSessionHolder;
+import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.SessionCallback;
 import com.indeed.iql2.language.DocMetric;
@@ -55,7 +55,7 @@ public class SampleMetricAction implements Action {
     public void apply(final Session session) throws ImhotepOutOfMemoryException {
         session.process(new SessionCallback() {
             @Override
-            public void handle(final TracingTreeTimer timer, final String name, final ImhotepSessionHolder session) throws ImhotepOutOfMemoryException {
+            public void handle(final TracingTreeTimer timer, final String name, final ImhotepSession session) throws ImhotepOutOfMemoryException {
                 if (!perDatasetMetric.containsKey(name)) {
                     return;
                 }
