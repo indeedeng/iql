@@ -814,7 +814,7 @@ public class SelectQueryExecution {
                 final Query q,
                 final int[] totalBytesWritten) {
             final Set<Term> terms = new HashSet<>();
-            timer.push("Execute sub-query", "Execute sub-query: \"" + q + "\"");
+            timer.push("Execute sub-query", "Execute sub-query: \"" + QueryInfo.truncateQuery(q.getRawInput()) + "\"");
             try {
                 final CSVParser csvParser = new CSVParser();
                 // TODO: This use of ProgressCallbacks looks wrong.
@@ -883,7 +883,7 @@ public class SelectQueryExecution {
     // increment query limit so that we know that whether it filters the response data size
     public static Query incrementQueryLimit(final Query query) {
         final Optional<Integer> newRowLimit = query.rowLimit.map(limit -> limit + 1);
-        return new Query(query.datasets, query.filter, query.groupBys, query.selects, query.formatStrings, query.options, newRowLimit, query.useLegacy);
+        return new Query(query.datasets, query.filter, query.groupBys, query.selects, query.formatStrings, query.options, newRowLimit, query.useLegacy).copyPosition(query);
     }
 
     public static class DatasetWithMissingShards {
