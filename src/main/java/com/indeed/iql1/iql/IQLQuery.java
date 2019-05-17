@@ -21,6 +21,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.io.CharStreams;
 import com.google.common.util.concurrent.UncheckedTimeoutException;
+import com.indeed.imhotep.RemoteImhotepMultiSession;
 import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.ShardInfo;
 import com.indeed.imhotep.StrictCloser;
@@ -40,7 +41,6 @@ import com.indeed.iql1.ez.GroupKey;
 import com.indeed.iql1.ez.StatReference;
 import com.indeed.iql1.ez.Stats;
 import com.indeed.iql1.sql.IQLTranslator;
-import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.DocFilter;
 import com.indeed.iql2.language.DocMetric;
@@ -188,8 +188,7 @@ public final class IQLQuery implements Closeable {
         try (final TracingTreeTimer timer = new TracingTreeTimer()) {
             timer.push("Imhotep session creation");
             final ImhotepSession imhotepSession = sessionBuilder.build();
-            final ImhotepSessionHolder sessionHolder = new ImhotepSessionHolder(dataset, imhotepSession);
-            session = new EZImhotepSession(sessionHolder, limits);
+            session = new EZImhotepSession(imhotepSession, limits);
             strictCloser.registerOrClose(session);
 
             final long numDocs = imhotepSession.getNumDocs();

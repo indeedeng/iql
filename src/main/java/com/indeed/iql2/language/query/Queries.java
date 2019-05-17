@@ -89,7 +89,6 @@ public class Queries {
     public static class QueryDataset {
         public final String dataset;
         public final String start;
-        public final String displayName;
         public final String end;
         public final String name;
 
@@ -98,14 +97,12 @@ public class Queries {
         public QueryDataset(
                 final String dataset,
                 final String start,
-                final String displayName,
                 final String end,
                 final String name,
                 final List<Shard> shards
         ) {
             this.dataset = dataset;
             this.start = start;
-            this.displayName = displayName;
             this.end = end;
             this.name = name;
             this.shards = shards;
@@ -118,7 +115,6 @@ public class Queries {
             result.add(new QueryDataset(
                     dataset.dataset.unwrap(),
                     dataset.startInclusive.unwrap().toString(),
-                    dataset.getDisplayName(),
                     dataset.endExclusive.unwrap().toString(),
                     dataset.alias.orElse(dataset.dataset).unwrap(),
                     dataset.shards

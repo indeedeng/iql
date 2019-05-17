@@ -14,7 +14,7 @@
 
 package com.indeed.iql2.execution.progress;
 
-import com.indeed.iql2.execution.ImhotepSessionHolder;
+import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.commands.Command;
 import com.indeed.iql2.language.query.Queries;
@@ -43,7 +43,7 @@ public class SessionOpenedOnlyProgressCallback implements ProgressCallback {
     }
 
     @Override
-    public void sessionOpened(final ImhotepSessionHolder session) {
+    public void sessionOpened(final ImhotepSession session) {
         wrapped.sessionOpened(session);
     }
 
