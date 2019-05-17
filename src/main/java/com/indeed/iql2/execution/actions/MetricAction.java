@@ -49,7 +49,7 @@ public class MetricAction implements Action {
         // TODO: Parallelize
         session.process(new SessionCallback() {
             @Override
-            public void handle(final TracingTreeTimer timer, final String name, final ImhotepSession session, final String datasetDisplayName) throws ImhotepOutOfMemoryException {
+            public void handle(final TracingTreeTimer timer, final String name, final ImhotepSession session) throws ImhotepOutOfMemoryException {
                 if (scope.contains(name)) {
                     timer.push("metricFilter");
                     session.metricFilter(perDatasetPushes.get(name), 1, 1, targetGroup, negativeGroup, positiveGroup);

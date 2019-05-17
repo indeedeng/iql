@@ -32,7 +32,7 @@ public class ExplodeSessionNames implements Command {
         final List<String> sessionNames = new ArrayList<>();
         // TODO: Add group() stat to Imhotep and regroup on (group() - 1) * N + 1
         for (final Map.Entry<String, Session.ImhotepSessionInfo> entry : session.sessions.entrySet()) {
-            sessionNames.add(entry.getValue().displayName);
+            sessionNames.add(entry.getValue().name);
             final ImhotepSession s = entry.getValue().session;
 
             session.timer.push("make dumb rules");

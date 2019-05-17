@@ -58,10 +58,10 @@ public class IterateHandlers {
         }
 
         session.timer.push("get subset");
-        final Map<Pair<String, String>, ImhotepSession> sessionsSubset = Maps.newHashMap();
+        final Map<String, ImhotepSession> sessionsSubset = Maps.newHashMap();
         for (final String s : scope) {
             // session session sessions session
-            sessionsSubset.put(new Pair<>(s, session.sessions.get(s).displayName), session.sessions.get(s).session);
+            sessionsSubset.put(s, session.sessions.get(s).session);
         }
         session.timer.pop();
 

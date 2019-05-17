@@ -47,8 +47,8 @@ public class ExplodeRandom implements Command {
 
         session.process(new SessionCallback() {
             @Override
-            public void handle(final TracingTreeTimer timer, final String name, final ImhotepSession session, final String datasetDisplayName) throws ImhotepOutOfMemoryException {
-                final List<String> stat = randomDocMetric.getPushes(datasetDisplayName);
+            public void handle(final TracingTreeTimer timer, final String name, final ImhotepSession session) throws ImhotepOutOfMemoryException {
+                final List<String> stat = randomDocMetric.getPushes(name);
                 timer.push("metricRegroup");
                 session.metricRegroup(stat, 0, k + 1, 1, true);
                 timer.pop();

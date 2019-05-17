@@ -181,7 +181,7 @@ public class SimpleIterate implements Command {
         }
         final AggregateFilter filterOrNull = opts.filter.orElse(null);
 
-        final Map<Pair<String, String>, ImhotepSession> sessionsToUse = session.getDisplayNameSessionMapRaw();
+        final Map<String, ImhotepSession> sessionsToUse = session.getSessionsMapRaw();
 
         final Optional<Session.RemoteTopKParams> topKParams;
         if (sessionsToUse.size() > 1) {
@@ -248,7 +248,7 @@ public class SimpleIterate implements Command {
         final List<RemoteImhotepMultiSession.SessionField> sessionFields = new ArrayList<>();
         for (final Map.Entry<String, Session.ImhotepSessionInfo> entry : session.sessions.entrySet()) {
             final ImhotepSession imhotepSession = entry.getValue().session;
-            final String dataset = entry.getValue().displayName;
+            final String dataset = entry.getValue().name;
             if (field.containsDataset(dataset)) {
                 sessionFields.add(new RemoteImhotepMultiSession.SessionField(imhotepSession, field.datasetFieldName(dataset), sessionStats.getOrDefault(dataset, Collections.emptyList())));
             }

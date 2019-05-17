@@ -179,6 +179,7 @@ public class Session {
             final ProgressCallback progressCallback,
             final Long imhotepLocalTempFileSizeLimit,
             final Long imhotepDaemonTempFileSizeLimit,
+            final byte priority,
             final String username,
             final FieldType defaultFieldType,
             final ResultFormat resultFormat,
@@ -189,16 +190,15 @@ public class Session {
         final List<String> optionsList = new ArrayList<>(optionsSet);
 
         final boolean requestRust = optionsSet.contains(QueryOptions.USE_RUST_DAEMON);
-        final boolean useAsync = optionsSet.contains(QueryOptions.Experimental.ASYNC);
-        final boolean useBatchMode = optionsSet.contains(QueryOptions.Experimental.BATCH);
         final boolean p2pCache = optionsList.contains(QueryOptions.Experimental.P2P_CACHE);
 
         progressCallback.startSession(Optional.of(commands.size()));
         progressCallback.preSessionOpen(datasets);
 
         treeTimer.push("createSubSessions");
-        final long firstStartTimeMillis = createSubSessions(client, requestRust, useAsync, useBatchMode, p2pCache, datasets,
-                strictCloser, sessions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, username, progressCallback);
+        final long firstStartTimeMillis = createSubSessions(client, requestRust, p2pCache, datasets,
+                strictCloser, sessions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, priority,
+                username, progressCallback);
         progressCallback.sessionsOpened(sessions);
         treeTimer.pop();
 
@@ -275,7 +275,7 @@ public class Session {
     private void ensureNoStats() {
         for (final ImhotepSessionInfo session : sessions.values()) {
             if (session.session.getNumStats() != 0) {
-                throw new IllegalStateException("At start of command execution, session " + session.displayName + " does not have zero stats!");
+                throw new IllegalStateException("At start of command execution, session " + session.name + " does not have zero stats!");
             }
         }
     }
@@ -283,8 +283,6 @@ public class Session {
     private static long createSubSessions(
             final ImhotepClient client,
             final boolean requestRust,
-            final boolean useAsync,
-            final boolean useBatchMode,
             final boolean p2pCache,
             final List<Queries.QueryDataset> sessionRequest,
             final StrictCloser strictCloser,
@@ -292,6 +290,7 @@ public class Session {
             final TracingTreeTimer treeTimer,
             final Long imhotepLocalTempFileSizeLimit,
             final Long imhotepDaemonTempFileSizeLimit,
+            final byte priority,
             final String username,
             final ProgressCallback progressCallback
     ) throws ImhotepOutOfMemoryException {
@@ -300,7 +299,7 @@ public class Session {
             final Queries.QueryDataset dataset = sessionRequest.get(i);
             final String imhotepDataset = dataset.dataset;
             Preconditions.checkNotNull(imhotepDataset, "Dataset does not exist: %s", dataset.name);
-            treeTimer.push("session", "session:" + dataset.displayName);
+            treeTimer.push("session", "session:" + dataset.name);
 
             treeTimer.push("get dataset info");
             treeTimer.push("getDatasetShardInfo");
@@ -321,7 +320,9 @@ public class Session {
             }
             final ImhotepClient.SessionBuilder sessionBuilder = client
                 .sessionBuilder(imhotepDataset, startDateTime, endDateTime)
-                .username("IQL2:" + username)
+                .clientName("IQL2")
+                .username(username)
+                .priority(priority)
                 .shardsOverride(chosenShards)
                 .localTempFileSizeLimit(imhotepLocalTempFileSizeLimit)
                 .daemonTempFileSizeLimit(imhotepDaemonTempFileSizeLimit)
@@ -335,17 +336,8 @@ public class Session {
             ImhotepSession imhotepSession = strictCloser.registerOrClose(sessionBuilder.build());
             treeTimer.pop();
 
-            if (useAsync && useBatchMode) {
-                throw new IllegalArgumentException("BATCH with ASYNC not supported yet.");
-            }
-
-            if (useAsync) {
-                imhotepSession = ((RemoteImhotepMultiSession) imhotepSession).toAsync();
-            }
-
-            if (useBatchMode) {
-                imhotepSession = ((RemoteImhotepMultiSession) imhotepSession).toBatch();
-            }
+            // All requests will use Batch mode.
+            imhotepSession = ((RemoteImhotepMultiSession) imhotepSession).toBatch();
 
             // Just in case they have resources, registerOrClose the wrapped session as well.
             // Double close() is supposed to be safe.
@@ -363,7 +355,7 @@ public class Session {
                 imhotepSession.metricFilter(Collections.singletonList(timeField), (int) (startDateTime.getMillis() / 1000), (int)((endDateTime.getMillis() - 1) / 1000), false);
                 treeTimer.pop();
             }
-            sessions.put(dataset.name, new ImhotepSessionInfo(imhotepSession, dataset.displayName, sessionIntFields, sessionStringFields, startDateTime, endDateTime, timeField));
+            sessions.put(dataset.name, new ImhotepSessionInfo(imhotepSession, dataset.name, sessionIntFields, sessionStringFields, startDateTime, endDateTime, timeField));
             if (i == 0) {
                 firstStartTimeMillis = startDateTime.getMillis();
             }
@@ -559,12 +551,12 @@ public class Session {
         final long maxPossibleGroups = (long) (oldNumGroups * Math.ceil(((double) end - start) / unitSize));
         int newNumGroups = 0;
         for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
-            timer.push("session", "session:" + sessionInfo.displayName);
+            timer.push("session", "session:" + sessionInfo.name);
 
             final ImhotepSession session = sessionInfo.session;
             final String fieldName;
             if (fieldOverride.isPresent()) {
-                fieldName = fieldOverride.get().datasetFieldName(sessionInfo.displayName);
+                fieldName = fieldOverride.get().datasetFieldName(sessionInfo.name);
             } else {
                 fieldName = sessionInfo.timeFieldName;
             }
@@ -600,7 +592,7 @@ public class Session {
         final BitSet anyPresent = new BitSet();
         // TODO: Parallelize?
         for (Map.Entry<String, ImhotepSession> imhotepSessionEntry : getSessionsMapRaw().entrySet()) {
-            timer.push("session", "session:" + getSessionsMap().get(imhotepSessionEntry.getKey()).displayName);
+            timer.push("session", "session:" + getSessionsMap().get(imhotepSessionEntry.getKey()).name);
 
             final ImhotepSession session = imhotepSessionEntry.getValue();
 
@@ -640,14 +632,6 @@ public class Session {
         return sessionMap;
     }
 
-    public Map<Pair<String, String>, ImhotepSession> getDisplayNameSessionMapRaw() {
-        final Map<Pair<String, String>, ImhotepSession> sessionMap = Maps.newHashMap();
-        for (final Map.Entry<String, ImhotepSessionInfo> entry : sessions.entrySet()) {
-            sessionMap.put(new Pair<>(entry.getKey(), entry.getValue().displayName), entry.getValue().session);
-        }
-        return sessionMap;
-    }
-
     private Map<String, ImhotepSessionInfo> getSessionsMap() {
         return Maps.newHashMap(sessions);
     }
@@ -656,7 +640,7 @@ public class Session {
         boolean hasIntField = false;
         boolean hasStrField = false;
         for (final ImhotepSessionInfo session : sessions.values()) {
-            final String dataset = session.displayName;
+            final String dataset = session.name;
             if (!field.containsDataset(dataset)) {
                 continue;
             }
@@ -751,7 +735,7 @@ public class Session {
             final RequestTools.GroupMultiRemapRuleSender sender =
                     ((SingleFieldRegroupTools.SingleFieldRulesBuilder.Cached) builder).createSender();
             for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
-                timer.push("session", "session: " + sessionInfo.displayName);
+                timer.push("session", "session: " + sessionInfo.name);
                 RemoteImhotepMultiSession.regroupWithSender(sessionInfo.session, sender, errorOnCollisions);
                 timer.pop();
             }
@@ -770,7 +754,7 @@ public class Session {
             // to convert messages only once for each unique real field name.
             final Map<String, List<ImhotepSessionInfo>> realFieldToSessions = new HashMap<>();
             for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
-                final String realField = field.datasetFieldName(sessionInfo.displayName);
+                final String realField = field.datasetFieldName(sessionInfo.name);
                 if (!realFieldToSessions.containsKey(realField)) {
                     realFieldToSessions.put(realField, new ArrayList<>());
                 }
@@ -786,7 +770,7 @@ public class Session {
                                 rule -> SingleFieldRegroupTools.marshal(rule, realFieldOptions));
                 final RequestTools.GroupMultiRemapRuleSender sender = RequestTools.GroupMultiRemapRuleSender.cacheMessages(messages);
                 for (final ImhotepSessionInfo sessionInfo : entry.getValue()) {
-                    timer.push("session", "session:" + sessionInfo.displayName);
+                    timer.push("session", "session:" + sessionInfo.name);
                     RemoteImhotepMultiSession.regroupWithSender(sessionInfo.session, sender, errorOnCollisions);
                     timer.pop();
                 }
@@ -808,7 +792,7 @@ public class Session {
         // TODO: Parallelize
         timer.push("remapGroups");
         for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
-            timer.push("session","session:" + sessionInfo.displayName);
+            timer.push("session","session:" + sessionInfo.name);
             sessionInfo.session.regroup(fromGroups, toGroups, true);
             timer.pop();
         }
@@ -821,7 +805,7 @@ public class Session {
         for (final String s : scope) {
             if (sessions.containsKey(s)) {
                 final ImhotepSessionInfo sessionInfo = sessions.get(s);
-                timer.push("session", "session:" + sessionInfo.displayName);
+                timer.push("session", "session:" + sessionInfo.name);
                 sessionInfo.session.intOrRegroup(field, terms, targetGroup, negativeGroup, positiveGroup);
                 timer.pop();
             }
@@ -835,7 +819,7 @@ public class Session {
         for (final String dataset : field.datasets()) {
             if (sessions.containsKey(dataset)) {
                 final ImhotepSessionInfo sessionInfo = sessions.get(dataset);
-                timer.push("session", "session:" + sessionInfo.displayName);
+                timer.push("session", "session:" + sessionInfo.name);
                 sessionInfo.session.stringOrRegroup(field.datasetFieldName(dataset), terms, targetGroup, negativeGroup, positiveGroup);
                 timer.pop();
             }
@@ -848,7 +832,7 @@ public class Session {
         timer.push("regroup");
         for (final String s : scope) {
             if (sessions.containsKey(s)) {
-                timer.push("session", "session:" + sessions.get(s).displayName);
+                timer.push("session", "session:" + sessions.get(s).name);
                 // remapping just one group, leaving other groups as-is
                 sessions.get(s).session.regroup(new int[]{fromGroup}, new int[]{toGroup}, false);
                 timer.pop();
@@ -864,7 +848,7 @@ public class Session {
             final String dataset = entry.getKey();
             if (field.containsDataset(dataset)) {
                 final Session.ImhotepSessionInfo v = entry.getValue();
-                timer.push("session", "session:" + entry.getValue().displayName);
+                timer.push("session", "session:" + entry.getValue().name);
                 v.session.regexRegroup(field.datasetFieldName(dataset), regex, targetGroup, negativeGroup, positiveGroup);
                 timer.pop();
             }
@@ -878,7 +862,7 @@ public class Session {
         for (final Map.Entry<String, ImhotepSessionInfo> entry : sessions.entrySet()) {
             final String dataset = entry.getKey();
             if (field.containsDataset(dataset)) {
-                timer.push("session", "session:" + entry.getValue().displayName);
+                timer.push("session", "session:" + entry.getValue().name);
                 entry.getValue().session.randomRegroup(field.datasetFieldName(dataset), isIntField, seed, probability, targetGroup, negativeGroup, positiveGroup);
                 timer.pop();
             }
@@ -895,7 +879,7 @@ public class Session {
 
         final ImhotepSessionInfo info = sessions.get(dataset);
         final ImhotepSession session = info.session;
-        timer.push("getSimpleDistinct", "getSimpleDistinct session:" + info.displayName);
+        timer.push("getSimpleDistinct", "getSimpleDistinct session:" + info.name);
         try (final GroupStatsIterator iterator = session.getDistinct(field.getOnlyField(), field.isIntField())) {
             timer.pop();
             final int size = Math.min(iterator.getNumGroups(), result.length);
@@ -912,7 +896,7 @@ public class Session {
         // TODO: Parallelize, use different timers per thread and somehow merge them back into the parent without
         //       overcounting parallel time?
         for (final Map.Entry<String, ImhotepSessionInfo> entry : sessions.entrySet()) {
-            sessionCallback.handle(timer, entry.getKey(), entry.getValue().session, entry.getValue().displayName);
+            sessionCallback.handle(timer, entry.getKey(), entry.getValue().session);
         }
     }
 
@@ -967,7 +951,7 @@ public class Session {
     /**
      * {@code metricIndexes} must be disjoint across sessions.
      */
-    public static void iterateMultiInt(Map<Pair<String, String>, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, FieldSet field, final Map<String, List<List<String>>> sessionStats, IntIterateCallback callback, TracingTreeTimer timer,
+    public static void iterateMultiInt(Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, FieldSet field, final Map<String, List<List<String>>> sessionStats, IntIterateCallback callback, TracingTreeTimer timer,
                                        final Set<String> options) throws IOException, ImhotepOutOfMemoryException {
         iterateMultiInt(sessions, metricIndexes, presenceIndexes, field, sessionStats, Optional.empty(), Optional.empty(), Optional.empty(), callback, timer, options);
     }
@@ -976,7 +960,7 @@ public class Session {
      * {@code metricIndexes} must be disjoint across sessions.
      */
     public static void iterateMultiInt(
-            Map<Pair<String, String>, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes,
+            Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes,
             FieldSet field, Map<String, List<List<String>>> sessionStats, Optional<RemoteTopKParams> topKParams, Optional<Integer> ftgsRowLimit,
             Optional<long[]> termSubset, IntIterateCallback callback, TracingTreeTimer timer,
             final Set<String> options) throws IOException, ImhotepOutOfMemoryException {
@@ -1002,14 +986,14 @@ public class Session {
             // TODO: Parallelize
             final PriorityQueue<SessionIntIterationState> pq = new PriorityQueue<>(sessions.size(), comparator);
             timer.push("request remote FTGS iterator");
-            for (final Pair<String, String> sessionName : sessions.keySet()) {
+            for (final String sessionName : sessions.keySet()) {
                 final ImhotepSession session = sessions.get(sessionName);
-                final List<List<String>> stats = sessionStats.getOrDefault(sessionName.getKey(), Collections.emptyList());
-                timer.push("session", "session:" + sessionName.getKey() + ", field:" + field.datasetFieldName(sessionName.getValue()));
-                final IntList sessionMetricIndexes = Objects.firstNonNull(metricIndexes.get(sessionName.getKey()), new IntArrayList());
-                final Integer presenceIndex = presenceIndexes.get(sessionName.getKey());
+                final List<List<String>> stats = sessionStats.getOrDefault(sessionName, Collections.emptyList());
+                timer.push("session", "session:" + sessionName + ", field:" + field.datasetFieldName(sessionName));
+                final IntList sessionMetricIndexes = Objects.firstNonNull(metricIndexes.get(sessionName), new IntArrayList());
+                final Integer presenceIndex = presenceIndexes.get(sessionName);
                 final Optional<SessionIntIterationState> constructed = SessionIntIterationState.construct(
-                        closer, session, sessionName.getValue(), stats, field, sessionMetricIndexes, presenceIndex, topKParams, ftgsRowLimit,
+                        closer, session, sessionName, stats, field, sessionMetricIndexes, presenceIndex, topKParams, ftgsRowLimit,
                         termSubset
                 );
                 if (constructed.isPresent()) {
@@ -1077,7 +1061,7 @@ public class Session {
 
     // do simple processing if possible
     private static boolean iterateSimpleInt(
-            final Map<Pair<String, String>, ImhotepSession> sessions,
+            final Map<String, ImhotepSession> sessions,
             final Map<String, IntList> metricIndexes,
             final Map<String, Integer> presenceIndexes,
             final FieldSet field,
@@ -1093,12 +1077,12 @@ public class Session {
         }
 
         final ImhotepSession session = Iterables.getOnlyElement(sessions.values());
-        final String datasetDisplayName = Iterables.getOnlyElement(sessions.keySet()).getValue();
-        timer.push("request remote FTGS iterator for single session", "request remote FTGS iterator for single session: " + datasetDisplayName + "." + field.datasetFieldName(datasetDisplayName));
+        final String dataset = Iterables.getOnlyElement(sessions.keySet());
+        timer.push("request remote FTGS iterator for single session", "request remote FTGS iterator for single session: " + dataset + "." + field.datasetFieldName(dataset));
 
         try (final FTGSIterator ftgs =
-                     createFTGSIterator(session, datasetDisplayName, field, true,
-                             sessionStats.getOrDefault(datasetDisplayName, Collections.emptyList()), topKParams, ftgsRowLimit,
+                     createFTGSIterator(session, dataset, field, true,
+                             sessionStats.getOrDefault(dataset, Collections.emptyList()), topKParams, ftgsRowLimit,
                              termSubset, Optional.empty(), callback.needSorted())) {
             timer.pop();
 
@@ -1137,7 +1121,7 @@ public class Session {
     // check if simple processing is possible
     // simple means one ImhotepSession, no presence indexes and stat indexes are the same as in session's FTGSIterator
     private static boolean isSimple(
-            final Map<Pair<String, String>, ImhotepSession> sessions,
+            final Map<String, ImhotepSession> sessions,
             final Map<String, IntList> metricIndexes,
             final Map<String, Integer> presenceIndexes,
             final Set<String> options
@@ -1146,7 +1130,7 @@ public class Session {
             return false;
         }
 
-        if (!Iterables.getOnlyElement(sessions.keySet()).getKey().equals(Iterables.getOnlyElement(metricIndexes.keySet()))) {
+        if (!Iterables.getOnlyElement(sessions.keySet()).equals(Iterables.getOnlyElement(metricIndexes.keySet()))) {
             throw new IllegalStateException("Names for session and metric indexes don't match");
         }
 
@@ -1246,7 +1230,7 @@ public class Session {
     /**
      * {@code metricIndexes} must be disjoint across sessions.
      */
-    public static void iterateMultiString(Map<Pair<String, String>, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, FieldSet field, final Map<String, List<List<String>>> sessionStats, StringIterateCallback callback, TracingTreeTimer timer,
+    public static void iterateMultiString(Map<String, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, FieldSet field, final Map<String, List<List<String>>> sessionStats, StringIterateCallback callback, TracingTreeTimer timer,
                                           final Set<String> options) throws IOException, ImhotepOutOfMemoryException {
         iterateMultiString(sessions, metricIndexes, presenceIndexes, field, sessionStats, Optional.empty(), Optional.empty(), Optional.empty(), callback, timer, options);
     }
@@ -1255,7 +1239,7 @@ public class Session {
      * {@code metricIndexes} must be disjoint across sessions.
      */
     public static void iterateMultiString(
-            Map<Pair<String, String>, ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, FieldSet field,
+            Map<String , ImhotepSession> sessions, Map<String, IntList> metricIndexes, Map<String, Integer> presenceIndexes, FieldSet field,
             Map<String, List<List<String>>> sessionStats,
             Optional<RemoteTopKParams> topKParams, Optional<Integer> limit, Optional<String[]> termSubset, StringIterateCallback callback, TracingTreeTimer timer,
             final Set<String> options) throws IOException, ImhotepOutOfMemoryException {
@@ -1281,13 +1265,13 @@ public class Session {
             timer.push("request remote FTGS iterator");
             // TODO: Parallelize
             final PriorityQueue<SessionStringIterationState> pq = new PriorityQueue<>(sessions.size(), comparator);
-            for (final Pair<String, String> sessionName : sessions.keySet()) {
-                timer.push("session", "session:" + sessionName + ", field:" + field.datasetFieldName(sessionName.getKey()));
+            for (final String sessionName : sessions.keySet()) {
+                timer.push("session", "session:" + sessionName + ", field:" + field.datasetFieldName(sessionName));
                 final ImhotepSession session = sessions.get(sessionName);
-                final List<List<String>> stats = sessionStats.getOrDefault(sessionName.getKey(), Collections.emptyList());
-                final IntList sessionMetricIndexes = Objects.firstNonNull(metricIndexes.get(sessionName.getKey()), new IntArrayList());
-                final Integer presenceIndex = presenceIndexes.get(sessionName.getKey());
-                final Optional<SessionStringIterationState> constructed = SessionStringIterationState.construct(closer, session, sessionName.getValue(), field, stats, sessionMetricIndexes, presenceIndex, topKParams, limit, termSubset);
+                final List<List<String>> stats = sessionStats.getOrDefault(sessionName, Collections.emptyList());
+                final IntList sessionMetricIndexes = Objects.firstNonNull(metricIndexes.get(sessionName), new IntArrayList());
+                final Integer presenceIndex = presenceIndexes.get(sessionName);
+                final Optional<SessionStringIterationState> constructed = SessionStringIterationState.construct(closer, session, sessionName, field, stats, sessionMetricIndexes, presenceIndex, topKParams, limit, termSubset);
                 if (constructed.isPresent()) {
                     pq.add(constructed.get());
                 }
@@ -1321,7 +1305,7 @@ public class Session {
     }
 
     private static boolean iterateSimpleString(
-            final Map<Pair<String, String>, ImhotepSession> sessions,
+            final Map<String, ImhotepSession> sessions,
             final Map<String, IntList> metricIndexes,
             final Map<String, Integer> presenceIndexes,
             final FieldSet field,
@@ -1338,12 +1322,12 @@ public class Session {
         }
 
         final ImhotepSession session = Iterables.getOnlyElement(sessions.values());
-        final String datasetDisplayName = Iterables.getOnlyElement(sessions.keySet()).getValue();
-        timer.push("request remote FTGS iterator for single session", "request remote FTGS iterator for single session: " + datasetDisplayName + "." + field.datasetFieldName(datasetDisplayName));
+        final String dataset = Iterables.getOnlyElement(sessions.keySet());
+        timer.push("request remote FTGS iterator for single session", "request remote FTGS iterator for single session: " + dataset + "." + field.datasetFieldName(dataset));
 
         try (final FTGSIterator ftgs =
-                     createFTGSIterator(session, datasetDisplayName, field, false,
-                             sessionStats.getOrDefault(datasetDisplayName, Collections.emptyList()), topKParams, ftgsRowLimit,
+                     createFTGSIterator(session, dataset, field, false,
+                             sessionStats.getOrDefault(dataset, Collections.emptyList()), topKParams, ftgsRowLimit,
                              Optional.empty(), termSubset, callback.needSorted())) {
             timer.pop();
 
@@ -1468,7 +1452,7 @@ public class Session {
 
     public static class ImhotepSessionInfo {
         public final ImhotepSession session;
-        public final String displayName;
+        public final String name;
         public final Collection<String> intFields;
         public final Collection<String> stringFields;
         public final DateTime startTime;
@@ -1476,9 +1460,9 @@ public class Session {
         public final String timeFieldName;
 
         @VisibleForTesting
-        ImhotepSessionInfo(ImhotepSession session, String displayName, Collection<String> intFields, Collection<String> stringFields, DateTime startTime, DateTime endTime, String timeFieldName) {
+        ImhotepSessionInfo(ImhotepSession session, String name, Collection<String> intFields, Collection<String> stringFields, DateTime startTime, DateTime endTime, String timeFieldName) {
             this.session = session;
-            this.displayName = displayName;
+            this.name = name;
             this.intFields = Collections.unmodifiableCollection(intFields);
             this.stringFields = Collections.unmodifiableCollection(stringFields);
             this.startTime = startTime;

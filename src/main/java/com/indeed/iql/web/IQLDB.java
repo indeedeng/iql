@@ -156,6 +156,7 @@ public class IQLDB {
              final String name = (String)row.get("name");
              final Integer parentId = (Integer) row.get("parent_id");
              final Limits limits = new Limits(
+                     (byte) 0,
                      (Integer) row.get("query_document_count_limit_billions"),
                      (Integer) row.get("query_in_memory_rows_limit"),
                      (Integer) row.get("query_ftgs_iql_limit_mb"),
@@ -196,6 +197,7 @@ public class IQLDB {
                 parent.parentId,
                 objectToResolve.name,
                 new Limits(
+                        limits.priority != 0 ? limits.priority : parentLimits.priority,
                         nullToDefault(limits.queryDocumentCountLimitBillions, parentLimits.queryDocumentCountLimitBillions),
                         nullToDefault(limits.queryInMemoryRowsLimit, parentLimits.queryInMemoryRowsLimit),
                         nullToDefault(limits.queryFTGSIQLLimitMB, parentLimits.queryFTGSIQLLimitMB),

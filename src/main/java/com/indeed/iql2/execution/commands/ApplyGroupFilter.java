@@ -52,7 +52,7 @@ public class ApplyGroupFilter implements Command {
         final long[][] stats = new long[metricIndexes.size()][];
         session.process(new SessionCallback() {
             @Override
-            public void handle(final TracingTreeTimer timer, final String name, final ImhotepSession session, final String datasetDisplayName) throws ImhotepOutOfMemoryException {
+            public void handle(final TracingTreeTimer timer, final String name, final ImhotepSession session) throws ImhotepOutOfMemoryException {
                 for (final Map.Entry<QualifiedPush, Integer> entry : metricIndexes.entrySet()) {
                     if (!entry.getKey().sessionName.equals(name)) {
                         continue;

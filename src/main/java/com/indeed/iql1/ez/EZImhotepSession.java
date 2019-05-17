@@ -31,7 +31,6 @@ import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.web.Limits;
 import com.indeed.iql1.iql.ScoredLong;
 import com.indeed.iql1.iql.ScoredObject;
-import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.util.core.io.Closeables2;
 import com.indeed.util.serialization.Stringifier;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;

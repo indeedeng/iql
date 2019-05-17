@@ -42,7 +42,7 @@ public class QueryAction implements Action {
     public void apply(Session session) throws ImhotepOutOfMemoryException {
         session.process(new SessionCallback() {
             @Override
-            public void handle(TracingTreeTimer timer, String name, ImhotepSession session, final String datasetDisplayName) throws ImhotepOutOfMemoryException {
+            public void handle(TracingTreeTimer timer, String name, ImhotepSession session) throws ImhotepOutOfMemoryException {
                 if (!perDatasetQuery.containsKey(name)) {
                     return;
                 }
