@@ -38,7 +38,6 @@ import com.indeed.iql2.execution.metrics.aggregate.DocumentLevelMetric;
 import com.indeed.iql2.language.SortOrder;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import it.unimi.dsi.fastutil.ints.IntList;
-import javafx.util.Pair;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;

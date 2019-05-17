@@ -31,6 +31,7 @@ import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.web.Limits;
 import com.indeed.iql1.iql.ScoredLong;
 import com.indeed.iql1.iql.ScoredObject;
+import com.indeed.iql2.execution.Session;
 import com.indeed.util.core.io.Closeables2;
 import com.indeed.util.serialization.Stringifier;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
@@ -60,13 +61,13 @@ import static com.indeed.iql1.ez.Field.StringField;
 public class EZImhotepSession implements Closeable {
     private static final Logger log = Logger.getLogger(EZImhotepSession.class);
 
-    private final RemoteImhotepMultiSession session;
+    private final ImhotepSession session;
     private final Limits limits;
     private int stackDepth = 0;
     private int numGroups = 2;
     private boolean closed = false;
 
-    public EZImhotepSession(final RemoteImhotepMultiSession session, final Limits limits) {
+    public EZImhotepSession(final ImhotepSession session, final Limits limits) {
         this.session = session;
         this.limits = limits;
     }
@@ -159,7 +160,7 @@ public class EZImhotepSession implements Closeable {
      * Returns -1 if tempFileSizeBytesLeft was set to null or if the session is not a RemoteImhotepMultiSession.
      */
     public long getTempFilesBytesWritten() {
-        return session.getTempFilesBytesWritten();
+        return Session.getTempFilesBytesWritten(session);
     }
 
     public void ftgsIterate(final Field field, final FTGSCallback callback) throws ImhotepOutOfMemoryException {
@@ -387,7 +388,7 @@ public class EZImhotepSession implements Closeable {
     private int regroupWithProtos(final GroupMultiRemapMessage[] rawRuleMessages) throws ImhotepOutOfMemoryException {
         final RequestTools.GroupMultiRemapRuleSender ruleSender =
                 RequestTools.GroupMultiRemapRuleSender.createFromMessages(Arrays.asList(rawRuleMessages).iterator(), true);
-        return session.regroupWithRuleSender(ruleSender, true);
+        return Session.regroupWithSender(session, ruleSender, true);
     }
 
     // @deprecated due to inefficiency. use splitAll()

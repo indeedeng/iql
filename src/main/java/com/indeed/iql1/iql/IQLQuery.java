@@ -188,7 +188,7 @@ public final class IQLQuery implements Closeable {
         try (final TracingTreeTimer timer = new TracingTreeTimer()) {
             timer.push("Imhotep session creation");
             final ImhotepSession imhotepSession = sessionBuilder.build();
-            session = new EZImhotepSession((RemoteImhotepMultiSession) imhotepSession, limits);
+            session = new EZImhotepSession(imhotepSession, limits);
             strictCloser.registerOrClose(session);
 
             final long numDocs = imhotepSession.getNumDocs();
