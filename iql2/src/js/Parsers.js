@@ -495,13 +495,14 @@ class Parser {
                 const whereEnd = getStartStop(lastElem).stop;
                 const before = input.getText(0, whereEnd);
                 const after = input.getText(whereEnd + 1, input._size);
-                const middle = after.charAt(0) === ' ' ? '' : ' ';
+                const middle = /\s/.test(after.charAt(0)) ? '' : ' ';
                 return success(before + ' AND ' + filter + middle + after);
             } else {
                 const whereEnd = getStartStop(whereContents).stop
                 const before = input.getText(0, whereEnd);
                 const after = input.getText(whereEnd + 1, input._size);
-                return success(before + ' ' + filter + ' ' + after);
+                const middle = /\s/.test(after.charAt(0)) ? '' : ' ';
+                return success(before + ' ' + filter + middle + after);
             }
         }
         const end = getStartStop(parsedQuery.fromContents()).stop;
