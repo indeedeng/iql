@@ -188,9 +188,9 @@ public class Session {
         final Map<String, ImhotepSessionInfo> sessions = Maps.newLinkedHashMap();
 
         final List<String> optionsList = new ArrayList<>(optionsSet);
-
         final boolean requestRust = optionsSet.contains(QueryOptions.USE_RUST_DAEMON);
         final boolean p2pCache = optionsList.contains(QueryOptions.Experimental.P2P_CACHE);
+        final boolean ftgsPooledConnection = optionsList.contains(QueryOptions.Experimental.FTGS_POOLED_CONNECTION);
 
         progressCallback.startSession(Optional.of(commands.size()));
         progressCallback.preSessionOpen(datasets);
@@ -198,7 +198,7 @@ public class Session {
         treeTimer.push("createSubSessions");
         final long firstStartTimeMillis = createSubSessions(client, requestRust, p2pCache, datasets,
                 strictCloser, sessions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, priority,
-                username, progressCallback);
+                username, ftgsPooledConnection, progressCallback);
         progressCallback.sessionsOpened(sessions);
         treeTimer.pop();
 
@@ -292,6 +292,7 @@ public class Session {
             final Long imhotepDaemonTempFileSizeLimit,
             final byte priority,
             final String username,
+            final boolean ftgsPooledConnection,
             final ProgressCallback progressCallback
     ) throws ImhotepOutOfMemoryException {
         long firstStartTimeMillis = 0;
@@ -327,7 +328,8 @@ public class Session {
                 .localTempFileSizeLimit(imhotepLocalTempFileSizeLimit)
                 .daemonTempFileSizeLimit(imhotepDaemonTempFileSizeLimit)
                 .allowSessionForwarding(requestRust)
-                .allowPeerToPeerCache(p2pCache);
+                .allowPeerToPeerCache(p2pCache)
+                .allowFtgsPooledConnection(ftgsPooledConnection);
             treeTimer.pop();
             // TODO: message should be "build session builder (xxx shards on yyy daemons)"
             // but we can't get information about daemons count now
