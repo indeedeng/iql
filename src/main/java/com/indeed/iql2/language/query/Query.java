@@ -403,6 +403,7 @@ public class Query extends AbstractPositional {
                 false,
                 false
         );
+        query.copyPosition(queryContext);
         return query;
     }
 
