@@ -997,7 +997,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
-            ValidationUtil.compileRegex(regex);
+            ValidationUtil.validateRegex(regex, errorCollector);
             if (!validationHelper.containsStringField(dataset, field.datasetFieldName(dataset))) {
                 errorCollector.error(ErrorMessages.missingStringField(dataset, field.datasetFieldName(dataset), this));
             }
@@ -1037,7 +1037,7 @@ public abstract class DocFilter extends AbstractPositional {
 
         @Override
         public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
-            ValidationUtil.compileRegex(regex);
+            ValidationUtil.validateRegex(regex, errorCollector);
             final String fieldName = field.datasetFieldName(dataset);
             if (!validationHelper.containsStringField(dataset, fieldName)) {
                 errorCollector.error(ErrorMessages.missingStringField(dataset, fieldName, this));

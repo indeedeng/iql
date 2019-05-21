@@ -18,8 +18,6 @@ import com.google.common.base.Objects;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Sets;
 import com.indeed.flamdex.query.Query;
-import com.indeed.imhotep.automaton.Automaton;
-import com.indeed.imhotep.automaton.RegExp;
 import com.indeed.imhotep.automaton.RegexTooComplexException;
 import com.indeed.imhotep.matcher.StringTermMatcher;
 import com.indeed.imhotep.matcher.StringTermMatchers;
@@ -264,6 +262,14 @@ public class ValidationUtil {
                             + "\nThe supported regex syntax can be seen here: http://www.brics.dk/automaton/doc/index.html?dk/brics/automaton/RegExp.html",
                     e
             );
+        }
+    }
+
+    public static void validateRegex(final String regex, final ErrorCollector errorCollector) {
+        try {
+            compileRegex(regex);
+        } catch (final Exception e) {
+            errorCollector.error(e.getMessage());
         }
     }
 }
