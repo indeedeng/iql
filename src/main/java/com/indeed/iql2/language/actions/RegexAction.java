@@ -42,7 +42,7 @@ public class RegexAction implements Action {
 
     @Override
     public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {
-        ValidationUtil.compileRegex(regex);
+        ValidationUtil.validateRegex(regex, errorCollector);
         for (final String dataset : field.datasets()) {
             final String fieldName = field.datasetFieldName(dataset);
             if (!validationHelper.containsStringField(dataset, fieldName)) {

@@ -594,7 +594,7 @@ public class QueryServletTestUtils extends BasicTest {
             runQuery(client, query, version, EVENT_STREAM, options, Collections.emptySet());
             Assert.fail("No exception returned in expectException");
         } catch (final Exception e) {
-            Assert.assertTrue(exceptionMessagePredicate.test(e.getMessage()));
+            Assert.assertTrue("Thrown exception message \"" + e.getMessage() + "\" failed to match predicate", exceptionMessagePredicate.test(e.getMessage()));
         }
     }
 
