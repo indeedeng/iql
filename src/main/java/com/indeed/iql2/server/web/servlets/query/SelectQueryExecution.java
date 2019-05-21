@@ -816,7 +816,7 @@ public class SelectQueryExecution {
             final Set<Term> terms = new HashSet<>();
             timer.push("Execute sub-query", "Execute sub-query: \"" + QueryInfo.truncateQuery(q.getRawInput()) + "\"");
             try {
-                final CSVParser csvParser = new CSVParser();
+                final CSVParser csvParser = new CSVParser(',', '"', '\0');
                 // TODO: This use of ProgressCallbacks looks wrong.
                 final SelectExecutionInformation execInfo = new ParsedQueryExecution(false, inputStream, new Consumer<String>() {
                     @Override
