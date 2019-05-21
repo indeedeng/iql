@@ -190,13 +190,14 @@ public class Session {
         final List<String> optionsList = new ArrayList<>(optionsSet);
 
         final boolean requestRust = optionsSet.contains(QueryOptions.USE_RUST_DAEMON);
+        final boolean useBatchMode = optionsSet.contains(QueryOptions.Experimental.BATCH);
         final boolean p2pCache = optionsList.contains(QueryOptions.Experimental.P2P_CACHE);
 
         progressCallback.startSession(Optional.of(commands.size()));
         progressCallback.preSessionOpen(datasets);
 
         treeTimer.push("createSubSessions");
-        final long firstStartTimeMillis = createSubSessions(client, requestRust, p2pCache, datasets,
+        final long firstStartTimeMillis = createSubSessions(client, requestRust, useBatchMode, p2pCache, datasets,
                 strictCloser, sessions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, priority,
                 username, progressCallback);
         progressCallback.sessionsOpened(sessions);
@@ -283,6 +284,7 @@ public class Session {
     private static long createSubSessions(
             final ImhotepClient client,
             final boolean requestRust,
+            final boolean useBatchMode,
             final boolean p2pCache,
             final List<Queries.QueryDataset> sessionRequest,
             final StrictCloser strictCloser,
@@ -336,8 +338,9 @@ public class Session {
             ImhotepSession imhotepSession = strictCloser.registerOrClose(sessionBuilder.build());
             treeTimer.pop();
 
-            // All requests will use Batch mode.
-            imhotepSession = ((RemoteImhotepMultiSession) imhotepSession).toBatch();
+            if (useBatchMode) {
+                imhotepSession = ((RemoteImhotepMultiSession) imhotepSession).toBatch();
+            }
 
             treeTimer.pop();
 

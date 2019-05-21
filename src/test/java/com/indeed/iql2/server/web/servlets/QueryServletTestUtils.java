@@ -88,7 +88,8 @@ public class QueryServletTestUtils extends BasicTest {
         } else {
             OPTIONS_TO_TEST = ImmutableList.of(
                     ImmutableSet.of(),
-                    ImmutableSet.of(QueryOptions.PARANOID)
+                    ImmutableSet.of(QueryOptions.PARANOID),
+                    ImmutableSet.of(QueryOptions.Experimental.BATCH)
             );
         }
     }
