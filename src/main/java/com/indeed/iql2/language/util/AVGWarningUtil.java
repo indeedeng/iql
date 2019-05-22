@@ -1,224 +1,279 @@
 package com.indeed.iql2.language.util;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
-import com.google.common.collect.Sets;
 import com.indeed.iql2.language.AggregateMetric;
+import lombok.Data;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class AVGWarningUtil {
     private static final boolean ALLOW_CONSTANT_DIVIDE = true;
-    private static final boolean ALLOW_AGG_ONLY_FEATURE = true;
 
-    private static class SuspiciousOperationExtractor implements AggregateMetric.Visitor<Set<String>, RuntimeException> {
+    @Data
+    private static class State {
+        boolean usesAggOnly = false;
+        final Set<String> confusingAggOnly = new HashSet<>(); // Aggregate only but people might be confused
+        final Set<String> hasDiff = new HashSet<>(); // Can be parsed as both agg metric and doc metric, and the result is different
+
+        State merge(final State other) {
+            usesAggOnly |= other.usesAggOnly;
+            confusingAggOnly.addAll(other.confusingAggOnly);
+            hasDiff.addAll(other.hasDiff);
+            return this;
+        }
+
+        static State empty() {
+            return new State();
+        }
+
+        static State hasDiff(final String operator) {
+            final State state = empty();
+            state.hasDiff.add(operator);
+            return state;
+        }
+
+        static State confusing(final String operator) {
+            final State state = empty();
+            state.confusingAggOnly.add(operator);
+            return state;
+        }
+
+        static State aggOnly() {
+            final State state = empty();
+            state.usesAggOnly = true;
+            return state;
+        }
+    }
+
+    private static class SuspiciousOperationExtractor implements AggregateMetric.Visitor<State, RuntimeException> {
+        private State recurse(final AggregateMetric children) {
+            return children.visit(this);
+        }
+
         @Override
-        public Set<String> visit(final AggregateMetric.Add add) {
+        public State visit(final AggregateMetric.Add add) {
             return add.metrics.stream()
-                    .map(operand -> operand.visit(this))
-                    .flatMap(Set::stream)
-                    .collect(Collectors.toSet());
+                    .map(this::recurse)
+                    .reduce(State.empty(), State::merge);
         }
 
         @Override
-        public Set<String> visit(final AggregateMetric.Log log) {
+        public State visit(final AggregateMetric.Log log) {
             // log(a+b) != log(a)+log(b)
-            return Collections.singleton("LOG");
+            return State.hasDiff("LOG").merge(recurse(log.m1));
         }
 
         @Override
-        public Set<String> visit(final AggregateMetric.Negate negate) {
+        public State visit(final AggregateMetric.Negate negate) {
             return negate.m1.visit(this);
         }
 
         @Override
-        public Set<String> visit(final AggregateMetric.Abs abs) {
+        public State visit(final AggregateMetric.Abs abs) {
             // abs(a+b) != abs(a) + abs(b)
-            return Collections.singleton("ABS");
+            return State.hasDiff("ABS").merge(recurse(abs.m1));
         }
 
         @Override
-        public Set<String> visit(final AggregateMetric.Floor floor) {
+        public State visit(final AggregateMetric.Floor floor) {
             // This is also aggregate-only function but it's probably not the intention of the user.
-            return Collections.singleton("FLOOR");
+            return State.confusing("FLOOR").merge(recurse(floor.m1));
         }
 
         @Override
-        public Set<String> visit(final AggregateMetric.Ceil ceil) {
+        public State visit(final AggregateMetric.Ceil ceil) {
             // This is also aggregate-only function but it's probably not the intention of the user.
-            return Collections.singleton("CEIL");
+            return State.confusing("CEIL").merge(recurse(ceil.m1));
         }
 
         @Override
-        public Set<String> visit(final AggregateMetric.Round round) {
+        public State visit(final AggregateMetric.Round round) {
             // This is also aggregate-only function but it's probably not the intention of the user.
-            return Collections.singleton("ROUND");
+            return State.confusing("ROUND").merge(recurse(round.m1));
         }
 
         @Override
-        public Set<String> visit(final AggregateMetric.Subtract subtract) {
-            return Sets.union(subtract.m1.visit(this), subtract.m2.visit(this));
+        public State visit(final AggregateMetric.Subtract subtract) {
+            return recurse(subtract.m1).merge(recurse(subtract.m2));
         }
 
         @Override
-        public Set<String> visit(final AggregateMetric.Multiply multiply) {
+        public State visit(final AggregateMetric.Multiply multiply) {
             // const * (a+b) = (const * a) + (const * b) (unless overflowed)
             if (multiply.m1 instanceof AggregateMetric.Constant) {
-                return multiply.m2.visit(this);
+                return recurse(multiply.m2);
             }
             if (multiply.m2 instanceof AggregateMetric.Constant) {
-                return multiply.m1.visit(this);
+                return recurse(multiply.m1);
             }
-            return Collections.singleton("multiplication");
+            return State.hasDiff("multiplication")
+                    .merge(recurse(multiply.m1))
+                    .merge(recurse(multiply.m2));
         }
 
         @Override
-        public Set<String> visit(final AggregateMetric.Divide divide) {
-            final ImmutableSet.Builder<String> builder = ImmutableSet.<String>builder()
-                    .addAll(divide.m1.visit(this));
+        public State visit(final AggregateMetric.Divide divide) {
+            final State state = recurse(divide.m1);
             if (!ALLOW_CONSTANT_DIVIDE || !(divide.m2 instanceof AggregateMetric.Constant)) {
-                builder.add("division");
-                builder.addAll(divide.m2.visit(this));
+                state.hasDiff.add("division");
+                state.merge(recurse(divide.m2));
             }
-            return builder.build();
+            return state;
         }
 
         @Override
-        public Set<String> visit(final AggregateMetric.Modulus modulus) {
-            return ImmutableSet.<String>builder()
-                    .addAll(modulus.m1.visit(this))
-                    .add("modulo")
-                    .addAll(modulus.m2.visit(this))
-                    .build();
+        public State visit(final AggregateMetric.Modulus modulus) {
+            return State.hasDiff("modulo")
+                    .merge(recurse(modulus.m1))
+                    .merge(recurse(modulus.m2));
         }
 
         @Override
-        public Set<String> visit(final AggregateMetric.Power power) {
-            return ImmutableSet.<String>builder()
-                    .addAll(power.m1.visit(this))
-                    .add("exponentiation")
-                    .addAll(power.m2.visit(this))
-                    .build();
+        public State visit(final AggregateMetric.Power power) {
+            return State.hasDiff("exponentiation")
+                    .merge(recurse(power.m1))
+                    .merge(recurse(power.m2));
         }
 
         @Override
-        public Set<String> visit(final AggregateMetric.Parent parent) {
-            return ALLOW_AGG_ONLY_FEATURE ? Collections.emptySet() : Collections.singleton("PARENT");
+        public State visit(final AggregateMetric.Parent parent) {
+            return State.aggOnly().merge(recurse(parent.metric));
         }
 
         @Override
-        public Set<String> visit(final AggregateMetric.Lag lag) {
-            return ALLOW_AGG_ONLY_FEATURE ? Collections.emptySet() : Collections.singleton("LAG");
+        public State visit(final AggregateMetric.Lag lag) {
+            return State.aggOnly().merge(recurse(lag.metric));
         }
 
         @Override
-        public Set<String> visit(final AggregateMetric.IterateLag iterateLag) {
-            return ALLOW_AGG_ONLY_FEATURE ? Collections.emptySet() : Collections.singleton("LAG");
+        public State visit(final AggregateMetric.IterateLag iterateLag) {
+            return State.aggOnly().merge(recurse(iterateLag.metric));
         }
 
         @Override
-        public Set<String> visit(final AggregateMetric.Window window) {
-            return ALLOW_AGG_ONLY_FEATURE ? Collections.emptySet() : Collections.singleton("WINDOW_SUM");
+        public State visit(final AggregateMetric.Window window) {
+            return State.aggOnly().merge(recurse(window.metric));
         }
 
         @Override
-        public Set<String> visit(final AggregateMetric.Qualified qualified) {
-            return qualified.metric.visit(this);
+        public State visit(final AggregateMetric.Qualified qualified) {
+            return recurse(qualified.metric);
         }
 
         @Override
-        public Set<String> visit(final AggregateMetric.DocStatsPushes docStatsPushes) {
+        public State visit(final AggregateMetric.DocStatsPushes docStatsPushes) {
             // This should came from extractPrecomputed.
-            return Collections.emptySet();
+            return State.empty();
         }
 
         @Override
-        public Set<String> visit(final AggregateMetric.DocStats docStats) {
-            // This should be the result of explicit [] or variance, log loss, COUNT(), etc.
-            return Collections.emptySet();
+        public State visit(final AggregateMetric.DocStats docStats) {
+            // Can be the result of explicit [] or variance, log loss, COUNT(), etc., or auto promotion from doc metric.
+            // We distinguish agg only features by checking the original string
+            final String docStatString = docStats.getRawInput();
+            final String docMetricString = docStats.docMetric.getRawInput();
+            if ((docStatString == null) || !docStatString.equals(docMetricString)) {
+                return State.aggOnly();
+            }
+            return State.empty();
         }
 
         @Override
-        public Set<String> visit(final AggregateMetric.Constant constant) {
+        public State visit(final AggregateMetric.Constant constant) {
             // AggregateConstant(a) != [a]
-            return Collections.singleton("constant");
+            return State.hasDiff("constant");
         }
 
         @Override
-        public Set<String> visit(final AggregateMetric.Percentile percentile) {
-            return ALLOW_AGG_ONLY_FEATURE ? Collections.emptySet() : Collections.singleton("PERCENTILE");
+        public State visit(final AggregateMetric.Percentile percentile) {
+            return State.aggOnly();
         }
 
         @Override
-        public Set<String> visit(final AggregateMetric.Running running) {
-            return ALLOW_AGG_ONLY_FEATURE ? Collections.emptySet() : Collections.singleton("RUNNING");
+        public State visit(final AggregateMetric.Running running) {
+            return State.aggOnly().merge(recurse(running.metric));
         }
 
         @Override
-        public Set<String> visit(final AggregateMetric.Distinct distinct) {
-            return ALLOW_AGG_ONLY_FEATURE ? Collections.emptySet() : Collections.singleton("DISTINCT");
+        public State visit(final AggregateMetric.Distinct distinct) {
+            return State.aggOnly();
         }
 
         @Override
-        public Set<String> visit(final AggregateMetric.Named named) {
+        public State visit(final AggregateMetric.Named named) {
             return named.metric.visit(this);
         }
 
         @Override
-        public Set<String> visit(final AggregateMetric.NeedsSubstitution needsSubstitution) {
+        public State visit(final AggregateMetric.NeedsSubstitution needsSubstitution) {
             // Aliases are aggregate metric and people should aware of that.
-            return Collections.emptySet();
+            return State.empty();
         }
 
         @Override
-        public Set<String> visit(final AggregateMetric.GroupStatsLookup groupStatsLookup) {
+        public State visit(final AggregateMetric.GroupStatsLookup groupStatsLookup) {
             // This should only be generated by extractPrecomputed.
-            return Collections.emptySet();
+            return State.empty();
         }
 
         @Override
-        public Set<String> visit(final AggregateMetric.SumAcross sumAcross) {
-            return ALLOW_AGG_ONLY_FEATURE ? Collections.emptySet() : Collections.singleton("SUM_OVER");
+        public State visit(final AggregateMetric.SumAcross sumAcross) {
+            return State.aggOnly().merge(recurse(sumAcross.metric));
         }
 
         @Override
-        public Set<String> visit(final AggregateMetric.IfThenElse ifThenElse) {
+        public State visit(final AggregateMetric.IfThenElse ifThenElse) {
             // We also have DocMetric.IfThenElse.
-            return Collections.singleton("IF-THEN-ELSE");
+            return State.hasDiff("IF-THEN-ELSE")
+                    .merge(recurse(ifThenElse.falseCase))
+                    .merge(recurse(ifThenElse.falseCase));
         }
 
         @Override
-        public Set<String> visit(final AggregateMetric.FieldMin fieldMin) {
-            return ALLOW_AGG_ONLY_FEATURE ? Collections.emptySet() : Collections.singleton("FIELD_MIN");
+        public State visit(final AggregateMetric.FieldMin fieldMin) {
+            return State.aggOnly()
+                    .merge(fieldMin.metric.map(this::recurse).orElse(State.empty()));
         }
 
         @Override
-        public Set<String> visit(final AggregateMetric.FieldMax fieldMax) {
-            return ALLOW_AGG_ONLY_FEATURE ? Collections.emptySet() : Collections.singleton("FIELD_MAX");
+        public State visit(final AggregateMetric.FieldMax fieldMax) {
+            return State.aggOnly()
+                    .merge(fieldMax.metric.map(this::recurse).orElse(State.empty()));
         }
 
         @Override
-        public Set<String> visit(final AggregateMetric.Min min) {
+        public State visit(final AggregateMetric.Min min) {
             // We also have DocMetric.MIN.
-            return Collections.singleton("MIN");
+            return min.metrics.stream()
+                    .map(this::recurse)
+                    .reduce(State.hasDiff("MIN"), State::merge);
         }
 
         @Override
-        public Set<String> visit(final AggregateMetric.Max max) {
+        public State visit(final AggregateMetric.Max max) {
             // We also have DocMetric.Max.
-            return Collections.singleton("MAX");
+            return max.metrics.stream()
+                    .map(this::recurse)
+                    .reduce(State.hasDiff("MAX"), State::merge);
         }
 
         @Override
-        public Set<String> visit(final AggregateMetric.DivideByCount divideByCount) {
-            return ALLOW_AGG_ONLY_FEATURE ? Collections.emptySet() : Collections.singleton("AVG");
+        public State visit(final AggregateMetric.DivideByCount divideByCount) {
+            return State.aggOnly().merge(recurse(divideByCount.metric));
         }
-
     }
 
     public static Set<String> extractSuspiciousOperations(final AggregateMetric aggregateMetric) {
-        return ImmutableSortedSet.copyOf(aggregateMetric.visit(new SuspiciousOperationExtractor()));
+        final State state = aggregateMetric.visit(new SuspiciousOperationExtractor());
+        if (state.usesAggOnly) {
+            // If there is any use of agg-only feature, it's user's intention.
+            return Collections.emptySet();
+        }
+        return ImmutableSortedSet.<String>naturalOrder()
+                .addAll(state.confusingAggOnly)
+                .addAll(state.hasDiff)
+                .build();
     }
 }

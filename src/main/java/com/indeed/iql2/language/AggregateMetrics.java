@@ -22,6 +22,7 @@ import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.query.fieldresolution.ScopedFieldResolver;
 import com.indeed.iql2.language.util.AVGWarningUtil;
 import com.indeed.util.core.Pair;
+import org.antlr.v4.runtime.misc.Interval;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -29,7 +30,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class AggregateMetrics {
     private AggregateMetrics() {
@@ -162,7 +162,7 @@ public class AggregateMetrics {
                     accept(alias);
                     return;
                 }
-                accept(parsePossibleDimensionAggregateMetric(ctx.jqlSyntacticallyAtomicDocMetricAtom(),  context));
+                accept(parsePossibleDimensionAggregateMetric(ctx.jqlSyntacticallyAtomicDocMetricAtom(), context));
             }
         });
 
@@ -284,8 +284,11 @@ public class AggregateMetrics {
                 final AggregateMetric metric = parseJQLAggregateMetric(ctx.jqlAggregateMetric(), context);
                 final Set<String> suspiciousOperations = AVGWarningUtil.extractSuspiciousOperations(metric);
                 if (!suspiciousOperations.isEmpty()) {
+                    final String rawText = ctx.start.getInputStream().getText(new Interval(ctx.start.getStartIndex(), ctx.stop.getStopIndex()));
                     final String joined = String.join(",", suspiciousOperations);
-                    context.warn.accept("There are suspicious operations inside of AVG. Are you sure you didn't mean AVG([...])? Operations were: " + joined);
+                    context.warn.accept(
+                            "There are suspicious operations inside of " + rawText + ". Are you sure you didn't mean AVG([...])? Operations were: " + joined
+                    );
                 }
                 accept(new AggregateMetric.DivideByCount(metric));
             }

@@ -8,16 +8,16 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class AverageWarningTest {
-    private static List<String> getWarningMessage(final List<String> operations) {
+    private static List<String> getWarningMessage(final String avgStr, final List<String> operations) {
         return ImmutableList.of(
-                "There are suspicious operations inside of AVG. Are you sure you didn't mean AVG([...])? Operations were: "
+                "There are suspicious operations inside of " + avgStr + ". Are you sure you didn't mean AVG([...])? Operations were: "
                         + operations.stream().distinct().sorted().collect(Collectors.joining(","))
         );
     }
 
     private void testWarning(final List<String> operations, final String select) throws Exception {
         QueryServletTestUtils.testWarning(
-                getWarningMessage(operations),
+                getWarningMessage(select, operations),
                 "from organic yesterday today select " + select,
                 QueryServletTestUtils.LanguageVersion.IQL2
         );
@@ -71,7 +71,7 @@ public class AverageWarningTest {
         );
         testWarning(
                 ImmutableList.of("IF-THEN-ELSE"),
-                "avg(if [oji=2]>0 then 0 else 1)"
+                "avg(if (true) then oji else ojc)"
         );
     }
 
@@ -80,5 +80,6 @@ public class AverageWarningTest {
         testNoWarning("avg(oji + ojc - (-ojc))");
         testNoWarning("avg(ojc * 2 + 3 * oji)");
         testNoWarning("avg(distinct(oji))");
+        testNoWarning("avg([oji] / [ojc])");
     }
 }
