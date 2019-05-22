@@ -212,7 +212,11 @@ public class GroupBys {
                 final Optional<String> timeFormat;
                 if (ctx.groupByTime().timeFormat != null) {
                     final String format = ctx.groupByTime().timeFormat.getText();
-                    timeFormat = Optional.of(ParserCommon.unquote(format, ctx.useLegacy));
+                    if ("default".equalsIgnoreCase(format)) {
+                        timeFormat = Optional.empty();
+                    } else {
+                        timeFormat = Optional.of(ParserCommon.unquote(format, ctx.useLegacy));
+                    }
                 } else {
                     timeFormat = Optional.empty();
                 }
