@@ -67,7 +67,7 @@ public class AVGWarningUtil {
 
         @Override
         public State visit(final AggregateMetric.Negate negate) {
-            return negate.m1.visit(this);
+            return recurse(negate.m1);
         }
 
         @Override
