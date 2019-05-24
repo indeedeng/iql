@@ -329,7 +329,7 @@ public class Session {
                 .daemonTempFileSizeLimit(imhotepDaemonTempFileSizeLimit)
                 .allowSessionForwarding(requestRust)
                 .allowPeerToPeerCache(p2pCache)
-                .allowFtgsPooledConnection(ftgsPooledConnection);
+                .useFtgsPooledConnection(ftgsPooledConnection);
             treeTimer.pop();
             // TODO: message should be "build session builder (xxx shards on yyy daemons)"
             // but we can't get information about daemons count now
