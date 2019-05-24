@@ -36,8 +36,15 @@ CollectingErrorListener.prototype = Object.create(ErrorListener.prototype);
 CollectingErrorListener.prototype.constructor = CollectingErrorListener;
 
 CollectingErrorListener.prototype.syntaxError = function(recognizer, offendingSymbol, line, column, msg, e) {
-    let start = offendingSymbol.start;
-    let stop = offendingSymbol.stop + 1;
+    let start;
+    let stop;
+    if (offendingSymbol) {
+        start = offendingSymbol.start;
+        stop = offendingSymbol.stop + 1;
+    } else {
+        start = column;
+        stop = column + 1;
+    }
 
     if (e && e.constructor && e.constructor === Errors.NoViableAltException) {
         start = e.startToken.start;
