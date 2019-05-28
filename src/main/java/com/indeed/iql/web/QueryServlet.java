@@ -938,8 +938,8 @@ public class QueryServlet {
         logLong(logEntry, "cpuSlotsWaitTimeMs", queryInfo.cpuSlotsWaitTimeMs);
         logLong(logEntry, "ioSlotsExecTimeMs", queryInfo.ioSlotsExecTimeMs);
         logLong(logEntry, "ioSlotsWaitTimeMs", queryInfo.ioSlotsWaitTimeMs);
-        logLong(logEntry, "p2pIOSlotsExecTimeMs", queryInfo.p2pIOSlotsExecTimeMs);
-        logLong(logEntry, "p2pIOSlotsWaitTimeMs", queryInfo.p2pIOSlotsWaitTimeMs);
+        logLong(logEntry, "p2pIoSlotsExecTimeMs", queryInfo.p2pIOSlotsExecTimeMs);
+        logLong(logEntry, "p2pIoSlotsWaitTimeMs", queryInfo.p2pIOSlotsWaitTimeMs);
 
         logLong(logEntry, "cacheCheckMillis", queryInfo.cacheCheckMillis);
         logLong(logEntry, "lockWaitMillis", queryInfo.lockWaitMillis);
