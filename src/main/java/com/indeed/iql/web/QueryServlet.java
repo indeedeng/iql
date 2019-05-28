@@ -497,12 +497,14 @@ public class QueryServlet {
             // read metadata from cache
             try {
                 final InputStream metadataCacheStream = queryCache.getInputStream(cacheFileName + METADATA_FILE_SUFFIX);
-                final QueryMetadata cachedMetadata = QueryMetadata.fromStream(metadataCacheStream);
-                queryMetadata.mergeIn(cachedMetadata);
-                queryMetadata.renameItem("IQL-Query-Info", "IQL-Cached-Query-Info");
-                queryMetadata.setPendingHeaders();
+                if (metadataCacheStream != null) {
+                    final QueryMetadata cachedMetadata = QueryMetadata.fromStream(metadataCacheStream);
+                    queryMetadata.mergeIn(cachedMetadata);
+                    queryMetadata.renameItem("IQL-Query-Info", "IQL-Cached-Query-Info");
+                    queryMetadata.setPendingHeaders();
+                }
             } catch (Exception e) {
-                log.info("Failed to load metadata cache from " + cacheFileName + METADATA_FILE_SUFFIX, e);
+                log.warn("Failed to load metadata cache from " + cacheFileName + METADATA_FILE_SUFFIX, e);
             }
 
             queryInfo.rows = IQLQuery.copyStream(cacheInputStream, outputStream, Integer.MAX_VALUE, args.isEventStream);
