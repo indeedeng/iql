@@ -388,7 +388,7 @@ public class SelectQueryExecution {
         final ListMultimap<String, List<Shard>> allShardsUsed = query.allShardsUsed();
         final List<DatasetWithMissingShards> datasetsWithMissingShards = query.allMissingShards();
         queryMetadata.addItem("IQL-Newest-Shard", ISODateTimeFormat.dateTime().print(newestStaticShard(allShardsUsed).orElse(-1L)), returnNewestShardVersionHeader);
-        for(DatasetWithMissingShards datasetWithMissingShards : datasetsWithMissingShards) {
+        for (DatasetWithMissingShards datasetWithMissingShards : datasetsWithMissingShards) {
             warnings.addAll(QueryServlet.missingShardsToWarnings(datasetWithMissingShards.dataset,
                     datasetWithMissingShards.start, datasetWithMissingShards.end, datasetWithMissingShards.timeIntervalsMissingShards));
         }
@@ -484,7 +484,7 @@ public class SelectQueryExecution {
          * If in headOnly mode, finish execution and return the HEAD result.
          * Otherwise, if cache enabled and query is cached, finish execution and return the cached result.
          * Otherwise, return null.
-         *
+         * <p>
          * Work that is not heavy and does not use Imhotep goes into this method.
          *
          * @return non-null execution information if query execution finished. null otherwise.
@@ -526,7 +526,6 @@ public class SelectQueryExecution {
                 return selectExecutionInformation;
             }
 
-
             if (cacheEnabled && isCached) {
                 timer.push("read cache");
                 if (isTopLevelQuery) {
@@ -534,11 +533,13 @@ public class SelectQueryExecution {
                     // read metadata from cache
                     try {
                         final InputStream metadataCacheStream = queryCache.getInputStream(cacheKey.cacheFileName + METADATA_FILE_SUFFIX);
-                        final QueryMetadata cachedMetadata = QueryMetadata.fromStream(metadataCacheStream);
-                        queryMetadata.mergeIn(cachedMetadata);
-                        queryMetadata.renameItem("IQL-Query-Info", "IQL-Cached-Query-Info");
+                        if (metadataCacheStream != null) {
+                            final QueryMetadata cachedMetadata = QueryMetadata.fromStream(metadataCacheStream);
+                            queryMetadata.mergeIn(cachedMetadata);
+                            queryMetadata.renameItem("IQL-Query-Info", "IQL-Cached-Query-Info");
+                        }
                     } catch (final Exception e) {
-                        log.info("Failed to load metadata cache from " + cacheKey.cacheFileName + METADATA_FILE_SUFFIX, e);
+                        log.warn("Failed to load metadata cache from " + cacheKey.cacheFileName + METADATA_FILE_SUFFIX, e);
                     }
                     queryMetadata.setPendingHeaders();
                 }
@@ -727,7 +728,7 @@ public class SelectQueryExecution {
                     return selectExecutionInformation;
                 } catch (final Exception e) {
                     if (cacheFile != null) {
-                        if(!cacheFile.delete()) {
+                        if (!cacheFile.delete()) {
                             log.info("Failed to delete: " + cacheFile.getPath());
                         }
                     }
@@ -843,7 +844,7 @@ public class SelectQueryExecution {
         }
 
         private void finalizeQueryExecution(SelectExecutionInformation selectExecutionInformation, final int rowsWritten) {
-            if(!isTopLevelQuery) {
+            if (!isTopLevelQuery) {
                 return;
             }
             extractCompletedQueryInfoData(selectExecutionInformation, warnings, rowsWritten);
@@ -874,10 +875,10 @@ public class SelectQueryExecution {
     }
 
     private static Long mbToBytes(Integer megabytes) {
-        if(megabytes == null) {
+        if (megabytes == null) {
             return 0L;
         }
-        return megabytes <= 0 ? (long)megabytes : (long)megabytes * 1024 * 1024;
+        return megabytes <= 0 ? (long) megabytes : (long) megabytes * 1024 * 1024;
     }
 
     // increment query limit so that we know that whether it filters the response data size
