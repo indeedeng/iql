@@ -29,6 +29,13 @@ function CollectingErrorListener(input) {
     ErrorListener.call(this);
     this.errors = [];
     this.expected = null;
+    let charsSoFar = 0;
+    this.lineStarts = input.split('\n').map(x => {
+        const start = charsSoFar;
+        charsSoFar += x.length + 1;
+        return start;
+    });
+
     return this;
 }
 
@@ -42,8 +49,9 @@ CollectingErrorListener.prototype.syntaxError = function(recognizer, offendingSy
         start = offendingSymbol.start;
         stop = offendingSymbol.stop + 1;
     } else {
-        start = column;
-        stop = column + 1;
+        const lineStart = this.lineStarts[line - 1];
+        start = lineStart + column;
+        stop = lineStart + column + 1;
     }
 
     if (e && e.constructor && e.constructor === Errors.NoViableAltException) {
