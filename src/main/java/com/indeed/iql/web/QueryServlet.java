@@ -99,6 +99,7 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TimeZone;
@@ -739,7 +740,8 @@ public class QueryServlet {
         queryInfo.datasetFields = Sets.newHashSet(parsedQuery.dataset + "." + parsedQuery.field);
         final PrintWriter outputStream = resp.getWriter();
         final String dataset = parsedQuery.dataset;
-        final String fieldName = parsedQuery.field;
+        final Map<String, String> datasetAliases = metadataCache.get().getDatasetToDimensionAliasFields().getOrDefault(dataset, Collections.emptyMap());
+        final String fieldName = datasetAliases.getOrDefault(parsedQuery.field, parsedQuery.field);
         final List<String> topTerms = topTermsCache.getTopTerms(dataset, fieldName);
         FieldMetadata field = metadataCache.getDataset(dataset).getField(fieldName, true);
         final boolean hadDescription;
