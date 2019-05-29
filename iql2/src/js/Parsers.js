@@ -29,6 +29,13 @@ function CollectingErrorListener(input) {
     ErrorListener.call(this);
     this.errors = [];
     this.expected = null;
+    let charsSoFar = 0;
+    this.lineStarts = input.split('\n').map(x => {
+        const start = charsSoFar;
+        charsSoFar += x.length + 1;
+        return start;
+    });
+
     return this;
 }
 
@@ -36,8 +43,16 @@ CollectingErrorListener.prototype = Object.create(ErrorListener.prototype);
 CollectingErrorListener.prototype.constructor = CollectingErrorListener;
 
 CollectingErrorListener.prototype.syntaxError = function(recognizer, offendingSymbol, line, column, msg, e) {
-    let start = offendingSymbol.start;
-    let stop = offendingSymbol.stop + 1;
+    let start;
+    let stop;
+    if (offendingSymbol) {
+        start = offendingSymbol.start;
+        stop = offendingSymbol.stop + 1;
+    } else {
+        const lineStart = this.lineStarts[line - 1];
+        start = lineStart + column;
+        stop = lineStart + column + 1;
+    }
 
     if (e && e.constructor && e.constructor === Errors.NoViableAltException) {
         start = e.startToken.start;
