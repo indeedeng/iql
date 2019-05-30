@@ -1,7 +1,8 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
-import com.indeed.imhotep.exceptions.GenericImhotepKnownException;
+import com.indeed.iql.testutil.ExceptionMatcher;
+import org.hamcrest.Matchers;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.junit.Test;
@@ -165,5 +166,33 @@ public class DocMetricsTest extends BasicTest {
     @Test
     public void testMultiValuedUidToTimestamp() throws Exception {
         QueryServletTestUtils.expectException("from multiValuedUidTimestamp yesterday today select UID_TO_UNIXTIME(uid)", QueryServletTestUtils.LanguageVersion.IQL2, x -> x.contains("Can only compute uid_to_timestamp on single valued fields containing UIDs"));
+    }
+
+    @Test
+    public void testExtract() throws Exception {
+        final List<List<String>> expected = ImmutableList.of(ImmutableList.of("", "450"));
+        QueryServletTestUtils.testIQL2(expected, "from stringAsInt1 yesterday today select extract(leadingZeroes, '(.*)')");
+        QueryServletTestUtils.testIQL2(expected, "from stringAsInt1 yesterday today select extract(leadingZeroes, '0*(.*)')");
+        QueryServletTestUtils.testIQL2(ImmutableList.of(ImmutableList.of("", "0")), "from stringAsInt1 yesterday today select extract(leadingZeroes, '(0)+')");
+        QueryServletTestUtils.testIQL2(expected, "from stringAsInt1 yesterday today select extract(leadingZeroes, '(?:0)*(.*)')");
+
+        QueryServletTestUtils.expectException(
+                "from stringAsInt1 yesterday today select extract(leadingZeroes, '.*')",
+                QueryServletTestUtils.LanguageVersion.IQL2,
+                QueryServletTestUtils.Options.create(),
+                ExceptionMatcher.withType(IllegalArgumentException.class)
+                        .withMessage(Matchers.containsString(
+                                "Regex for extract should contain exactly one captured group, but got 0 captures. Pattern: `.*`"
+                        ))
+        );
+        QueryServletTestUtils.expectException(
+                "from stringAsInt1 yesterday today select extract(leadingZeroes, '(0+)(.*)')",
+                QueryServletTestUtils.LanguageVersion.IQL2,
+                QueryServletTestUtils.Options.create(),
+                ExceptionMatcher.withType(IllegalArgumentException.class)
+                        .withMessage(Matchers.containsString(
+                                "Regex for extract should contain exactly one captured group, but got 2 captures. Consider using non-capturing groups (?:pattern). Pattern: `(0+)(.*)`"
+                        ))
+        );
     }
 }
