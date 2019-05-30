@@ -51,87 +51,46 @@ import static com.indeed.iql2.language.DocMetrics.negateMetric;
 public abstract class DocMetric extends AbstractPositional {
     public interface Visitor<T, E extends Throwable> {
         T visit(Log log) throws E;
-
         T visit(PerDatasetDocMetric perDatasetDocMetric) throws E;
-
         T visit(Count count) throws E;
-
         T visit(DocId count) throws E;
-
         T visit(Field field) throws E;
-
         T visit(Exponentiate exponentiate) throws E;
-
         T visit(Negate negate) throws E;
-
         T visit(Abs abs) throws E;
-
         T visit(Signum signum) throws E;
-
         T visit(Add add) throws E;
-
         T visit(Subtract subtract) throws E;
-
         T visit(Multiply multiply) throws E;
-
         T visit(Divide divide) throws E;
-
         T visit(Modulus modulus) throws E;
-
         T visit(Min min) throws E;
-
         T visit(Max max) throws E;
-
         T visit(MetricEqual metricEqual) throws E;
-
         T visit(MetricNotEqual metricNotEqual) throws E;
-
         T visit(MetricLt metricLt) throws E;
-
         T visit(MetricLte metricLte) throws E;
-
         T visit(MetricGt metricGt) throws E;
-
         T visit(MetricGte metricGte) throws E;
-
         T visit(RegexMetric regexMetric) throws E;
-
         T visit(FloatScale floatScale) throws E;
-
         T visit(Constant constant) throws E;
-
         T visit(HasIntField hasIntField) throws E;
-
         T visit(HasStringField hasStringField) throws E;
-
         T visit(IntTermCount intTermCount) throws E;
-
         T visit(StrTermCount stringTermCount) throws E;
-
         T visit(HasInt hasInt) throws E;
-
         T visit(HasString hasString) throws E;
-
         T visit(IfThenElse ifThenElse) throws E;
-
         T visit(Qualified qualified) throws E;
-
         T visit(Extract extract) throws E;
-
         T visit(Lucene lucene) throws E;
-
         T visit(FieldEqualMetric equalMetric) throws E;
-
         T visit(StringLen hasStringField) throws E;
-
         T visit(Sample random) throws E;
-
         T visit(SampleMetric random) throws E;
-
         T visit(Random random) throws E;
-
         T visit(RandomMetric random) throws E;
-
         T visit(UidToUnixtime uidToUnixtime) throws E;
     }
 
@@ -1467,12 +1426,11 @@ public abstract class DocMetric extends AbstractPositional {
             try {
                 final Pattern compiled = Pattern.compile(regex);
                 final int numCaptureGroups = compiled.matcher("").groupCount();
-                if (numCaptureGroups != 1) {
-                    final String suggestion = (numCaptureGroups == 0) ? "" : "Consider using non-capturing groups (?:pattern). ";
+                if (numCaptureGroups < groupNumber) {
                     errorCollector.error(String.format(
-                            "Regex for extract should contain exactly one captured group, but got %d captures. %sPattern: `%s`",
+                            "Regex for extract should contain at least %d captured group, but got %d captured groups. Pattern: `%s`",
+                            groupNumber,
                             numCaptureGroups,
-                            suggestion,
                             regex
                     ));
                 }
