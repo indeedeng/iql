@@ -14,6 +14,7 @@ public class AllData {
         datasets.add(DimensionDataset.createDataset());
         datasets.add(DistinctDataset.createDataset());
         datasets.add(ExtractDataset.createDataset());
+        datasets.add(ExtremeValueDataset.create());
         datasets.add(FieldEqualDataset.create());
         datasets.add(FieldInQueryDataset.createAll());
         datasets.add(FloatScaleDataset.createDataset());
