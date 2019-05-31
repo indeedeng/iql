@@ -38,14 +38,14 @@ public class ExtractTest extends BasicTest {
     }
 
     @Test
-    public void testInvalidExtract() throws Exception {
+    public void testInvalidExtract() {
         QueryServletTestUtils.expectException(
                 "from stringAsInt1 yesterday today select extract(leadingZeroes, '.*')",
                 QueryServletTestUtils.LanguageVersion.IQL2,
                 QueryServletTestUtils.Options.create(),
                 ExceptionMatcher.withType(IllegalArgumentException.class)
                         .withMessage(Matchers.containsString(
-                                "Regex for extract should contain at least 1 captured group, but got 0 captured groups. Pattern: `.*`"
+                                "Regex for extract should contain at least 1 capturing group, but got 0 capturing groups. Pattern: `.*`"
                         ))
         );
         QueryServletTestUtils.expectException(
@@ -54,7 +54,7 @@ public class ExtractTest extends BasicTest {
                 QueryServletTestUtils.Options.create(),
                 ExceptionMatcher.withType(IllegalArgumentException.class)
                         .withMessage(Matchers.containsString(
-                                "Regex for extract should contain at least 3 captured group, but got 2 captured groups. Pattern: `(0+)(.*)`"
+                                "Regex for extract should contain at least 3 capturing group, but got 2 capturing groups. Pattern: `(0+)(.*)`"
                         ))
         );
     }

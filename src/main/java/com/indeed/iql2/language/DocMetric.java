@@ -1425,12 +1425,12 @@ public abstract class DocMetric extends AbstractPositional {
         public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
             try {
                 final Pattern compiled = Pattern.compile(regex);
-                final int numCaptureGroups = compiled.matcher("").groupCount();
-                if (numCaptureGroups < groupNumber) {
+                final int numCapturingGroups = compiled.matcher("").groupCount();
+                if (numCapturingGroups < groupNumber) {
                     errorCollector.error(String.format(
-                            "Regex for extract should contain at least %d captured group, but got %d captured groups. Pattern: `%s`",
+                            "Regex for extract should contain at least %d capturing group, but got %d capturing groups. Pattern: `%s`",
                             groupNumber,
-                            numCaptureGroups,
+                            numCapturingGroups,
                             regex
                     ));
                 }
