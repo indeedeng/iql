@@ -383,6 +383,7 @@ public class QueryServlet {
 
             if ((queryRequestParams.version == 2) || forceRunLegacyMode || switchToLegacy) {
                 // IQL2
+                queryInfo.engine = (queryRequestParams.version == 2) ? "iql2" : "iql2legacy";
 
                 final Set<String> iql2Options = Sets.newHashSet(defaultIQL2Options.getOptions());
                 if (queryRequestParams.cacheReadDisabled && queryRequestParams.cacheWriteDisabled) {
@@ -401,6 +402,7 @@ public class QueryServlet {
                 selectQueryExecution.processSelect(runningQueriesManager);
             } else {
                 // IQL1
+                queryInfo.engine = "iql1";
                 final IQL1SelectStatement iql1SelectStatement = SelectStatementParser.parseSelectStatement(query, new DateTime(clock.currentTimeMillis()), metadataCache.get());
                 setQueryInfoFromSelectStatement(iql1SelectStatement, queryInfo, clientInfo);
 
@@ -481,7 +483,7 @@ public class QueryServlet {
 
         final List<String> warningList = new ArrayList<>();
         if (comparisonWarning.isPresent()) {
-            warningList.add("Compatibility warning: " + comparisonWarning.get());
+            warningList.add("Deprecation warning: " + comparisonWarning.get());
         }
         iqlQuery.addDeprecatedDatasetWarningIfNecessary(warningList);
 
@@ -924,6 +926,7 @@ public class QueryServlet {
         final QueryLogEntry logEntry = new QueryLogEntry();
         logEntry.setProperty("v", 0);
         logEntry.setProperty("iqlversion",queryInfo.iqlVersion);
+        setIfNotEmpty(logEntry, "engine", queryInfo.engine);
         logEntry.setProperty("username", clientInfo.username);
         logEntry.setProperty("client", clientInfo.client);
         logEntry.setProperty("raddr", Strings.nullToEmpty(remoteAddr));

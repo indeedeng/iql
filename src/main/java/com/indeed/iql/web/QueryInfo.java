@@ -63,6 +63,7 @@ public class QueryInfo {
     }
     public long queryStartTimestamp;
     public final int iqlVersion;
+    public String engine;
     public int queryLength;
     public final String hostname;
     @Nullable public Set<String> datasets;

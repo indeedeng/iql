@@ -7,7 +7,7 @@ import org.junit.Test;
 public class ComparisonToolsTest {
     private static void testWarning(final String query, final ComparisonTools.Result warning) throws Exception {
         QueryServletTestUtils.testWarning(
-                ImmutableList.of("Compatibility warning: " + warning.message),
+                ImmutableList.of("Deprecation warning: " + warning.message),
                 query,
                 QueryServletTestUtils.LanguageVersion.ORIGINAL_IQL1
         );
