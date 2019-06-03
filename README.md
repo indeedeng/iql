@@ -2,6 +2,15 @@ iql
 =======
 Web interface for making IQL queries against an Imhotep cluster.
 
+## Branches
+master - stable version that works on AWS. If you are outside Indeed, this is the recommended branch to use.
+
+internal - internal version that has many more changes but does not compile publicly due to a missing dependency on 
+ImhotepMetadataService library which is not yet open source.
+
+noims - branched from internal and can build in open source due to the ImhotepMetadataService dependency being removed. 
+Not tested on AWS.
+
 ## Documentation
 See the [overview](http://indeedeng.github.io/imhotep/docs/overview/) to learn about IQL syntax. 
 
