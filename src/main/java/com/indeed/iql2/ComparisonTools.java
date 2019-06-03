@@ -7,6 +7,7 @@ import com.indeed.iql.language.SelectStatement;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql.web.Limits;
 import com.indeed.iql.web.QueryInfo;
+import com.indeed.iql.web.SelectQuery;
 import com.indeed.iql1.iql.IQLQuery;
 import com.indeed.iql1.sql.IQLTranslator;
 import com.indeed.iql1.sql.ast2.IQL1SelectStatement;
@@ -38,6 +39,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -74,15 +76,15 @@ public class ComparisonTools {
     }
 
     // parse query as Iql1, convert to legacy mode, validate and return.
-    // returns null if not a select query (describe, explain, ...)
     // throws exception if conversion fails or validation fails.
-    @Nullable
+    // sets query hash if possible
     public static Query parseIQL1AndConvertToLegacyMode(
             final String query,
             final DatasetsMetadata datasetsMetadata,
             final ImhotepClient imhotepClient,
             final WallClock clock,
-            final Limits limits) throws IQLQuery.Iql1ConvertException {
+            final Limits limits,
+            final AtomicReference<String> queryHash) throws IQLQuery.Iql1ConvertException {
 
         final QueryInfo queryInfo = new QueryInfo("hostname", query,
                 1, clock.currentTimeMillis(), null);
@@ -110,6 +112,9 @@ public class ComparisonTools {
         if (!errors.isEmpty()) {
             throw new IqlKnownException.ParseErrorException("Errors found when validating query: " + errors);
         }
+
+        final String hash = SelectQuery.getQueryHash(query, iql1Query.getShards(), false);
+        queryHash.set(hash);
         return convertedQuery;
     }
 
@@ -208,11 +213,12 @@ public class ComparisonTools {
             final DatasetsMetadata datasetsMetadata,
             final ImhotepClient imhotepClient,
             final WallClock clock,
-            final Limits limits) {
+            final Limits limits,
+            final AtomicReference<String> queryHash) {
         Query iql1 = null;
         final String query = selectStatement.selectQuery;
         try {
-            iql1 = parseIQL1AndConvertToLegacyMode(query, datasetsMetadata, imhotepClient, clock, limits);
+            iql1 = parseIQL1AndConvertToLegacyMode(query, datasetsMetadata, imhotepClient, clock, limits, queryHash);
         } catch (final IQLQuery.Iql1ConvertException e) {
             return Result.NotSupportedInLegacy;
         } catch (final Throwable ignored) {
@@ -279,9 +285,10 @@ public class ComparisonTools {
             final DatasetsMetadata datasetsMetadata,
             final ImhotepClient imhotepClient,
             final WallClock clock,
-            final Limits limits) {
+            final Limits limits,
+            final AtomicReference<String> queryHash) {
         try {
-            final Result comparisonResult = compareIql1AndLegacy(selectStatement, datasetsMetadata, imhotepClient, clock, limits);
+            final Result comparisonResult = compareIql1AndLegacy(selectStatement, datasetsMetadata, imhotepClient, clock, limits, queryHash);
             return Optional.ofNullable(comparisonResult.message);
         } catch (final Throwable t) {
             return Optional.of("Failed to compare original iql1 and legacy mode.");
