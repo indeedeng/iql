@@ -1,9 +1,5 @@
 grammar JQL;
 
-@header {
-package com.indeed.iql2.language;
-}
-
 LAG : 'LAG' ;
 RUNNING : 'RUNNING' ;
 PARENT : 'PARENT' ;

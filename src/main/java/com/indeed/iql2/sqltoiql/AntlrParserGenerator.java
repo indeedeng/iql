@@ -16,8 +16,8 @@ package com.indeed.iql2.sqltoiql;
 
 
 import com.google.common.collect.ImmutableList;
-import com.indeed.iql2.sqltoiql.antlr.SQLiteLexer;
-import com.indeed.iql2.sqltoiql.antlr.SQLiteParser;
+import com.indeed.iql2.language.SQLiteLexer;
+import com.indeed.iql2.language.SQLiteParser;
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;

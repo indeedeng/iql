@@ -120,3 +120,7 @@ tasks.withType(JavaCompile) {
 javadoc {
     options.encoding = 'UTF-8'
 }
+
+generateGrammarSource {
+    arguments += ["-package", "com.indeed.iql2.language"]
+}
