@@ -15,7 +15,7 @@
 package com.indeed.iql2.sqltoiql;
 
 
-import com.indeed.iql2.sqltoiql.antlr.SQLiteParser;
+import com.indeed.iql2.language.SQLiteParser;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.junit.Assert;
 import org.junit.Test;
