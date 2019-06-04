@@ -30,25 +30,26 @@ import java.util.function.Function;
 @ToString
 public class GetGroupPercentiles implements Command {
     public final FieldSet field;
-    public final double[] percentiles;
+    public final double percentile;
 
-    public GetGroupPercentiles(final FieldSet field, final double[] percentiles) {
+    public GetGroupPercentiles(final FieldSet field, final double percentile) {
         this.field = field;
-        this.percentiles = percentiles;
+        this.percentile = percentile;
     }
 
     @Override
-    public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {
+    public void validate(final ValidationHelper validationHelper, final ErrorCollector errorCollector) {
         ValidationUtil.validateIntField(field, validationHelper, errorCollector, this);
-        for (final double percentile : percentiles) {
-            if ((percentile < 0) || (percentile > 100.0)) {
-                errorCollector.error("Percentile must be in [0, 100] range, user value is " + percentile);
-            }
+        if ((percentile < 0) || (percentile > 100.0)) {
+            errorCollector.error("Percentile must be in [0, 100] range, user value is " + percentile);
         }
     }
 
     @Override
-    public com.indeed.iql2.execution.commands.Command toExecutionCommand(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet, List<String> options) {
-        return new com.indeed.iql2.execution.commands.GetGroupPercentiles(field, percentiles);
+    public com.indeed.iql2.execution.commands.Command toExecutionCommand(
+            final Function<String, PerGroupConstant> namedMetricLookup,
+            final GroupKeySet groupKeySet,
+            final List<String> options) {
+        return new com.indeed.iql2.execution.commands.GetGroupPercentiles(field, percentile);
     }
 }
