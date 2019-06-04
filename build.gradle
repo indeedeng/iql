@@ -124,3 +124,8 @@ javadoc {
 generateGrammarSource {
     arguments += ["-package", "com.indeed.iql2.language"]
 }
+
+task startTestImhotep(type:JavaExec) {
+    main = "com.indeed.iql2.server.web.servlets.dataset.AllData"
+    classpath = sourceSets.test.runtimeClasspath
+}
