@@ -771,7 +771,7 @@ public abstract class AggregateFilter extends AbstractPositional {
 
         @Override
         public void validate(Set<String> scope, ValidationHelper validationHelper, ErrorCollector errorCollector) {
-            ValidationUtil.compileRegex(regex);
+            ValidationUtil.validateRegex(regex, errorCollector);
             Preconditions.checkState(field.datasets().equals(scope));
             for (final String dataset : scope) {
                 final String fieldName = field.datasetFieldName(dataset);

@@ -23,6 +23,7 @@ import com.indeed.util.serialization.Stringifier;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 
 import java.text.DecimalFormat;
+import java.util.Optional;
 
 import static com.indeed.iql1.ez.Stats.Stat;
 
@@ -30,13 +31,14 @@ import static com.indeed.iql1.ez.Stats.Stat;
  * @author jplaisance
  */
 public final class StatRangeGrouping extends Grouping {
-    private final Stat stat;
-    private final long minValue;
-    private final long maxValue;
-    private final long intervalSize;
-    private final boolean noGutters;
+    public final Stat stat;
+    public final long minValue;
+    public final long maxValue;
+    public final long intervalSize;
+    public final boolean noGutters;
     private final Stringifier<Long> stringFormatter;
-    private final boolean isTimeGrouping;
+    public final boolean isTimeGrouping;
+    public final Optional<String> timeFormat;
     private final long expectedBucketCount;
     private final DecimalFormat df = new DecimalFormat("###,###");
     private final Limits limits;
@@ -44,7 +46,7 @@ public final class StatRangeGrouping extends Grouping {
 
     public StatRangeGrouping(final Stat stat, final long minValue, final long maxValue, final long intervalSize,
                              final boolean noGutters, Stringifier<Long> stringFormatter, boolean isTimeGrouping,
-                             final Limits limits) {
+                             final Optional<String> timeFormat, final Limits limits) {
         this.limits = limits;
         if(intervalSize <= 0) {
             throw new IqlKnownException.ParseErrorException("Bucket size has to be positive for stat: " + stat.toString());
@@ -56,6 +58,7 @@ public final class StatRangeGrouping extends Grouping {
         this.noGutters = noGutters;
         this.stringFormatter = stringFormatter;
         this.isTimeGrouping = isTimeGrouping;
+        this.timeFormat = timeFormat;
 
         expectedBucketCount = (maxValue - minValue) / intervalSize;
         if(!limits.satisfiesQueryInMemoryRowsLimit(expectedBucketCount) || expectedBucketCount < 0) {
@@ -75,6 +78,7 @@ public final class StatRangeGrouping extends Grouping {
                     " rows in memory. Please optimize the query.");
         }
 
+        final int initialStackDepth = session.getStackDepth();
         final SingleStatReference statRef = session.pushSingleStat(stat);
         boolean noGutters = this.noGutters;
         // Special case for Time regroups:
@@ -86,7 +90,8 @@ public final class StatRangeGrouping extends Grouping {
             noGutters = groupKeys.size() > 1;
         }
         final Int2ObjectMap<GroupKey> ret = session.metricRegroup(statRef, minValue, maxValue, intervalSize, noGutters, stringFormatter, groupKeys);
-        session.popStat();
+        statRef.invalidate();
+        session.popStat(initialStackDepth);
         return ret;
     }
 }

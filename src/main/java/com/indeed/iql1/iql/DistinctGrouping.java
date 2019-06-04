@@ -38,8 +38,8 @@ import java.util.List;
 
 public class DistinctGrouping extends Grouping {
     // Fields to get distinct term counts for and their positions in the stats list
-    private final List<Field> fields = Lists.newArrayList();
-    private final IntList distinctProjectionPositions = new IntArrayList();
+    public final List<Field> fields = Lists.newArrayList();
+    public final IntList distinctProjectionPositions = new IntArrayList();
 
     public void addField(Field field, int projectionPosition) {
         fields.add(field);

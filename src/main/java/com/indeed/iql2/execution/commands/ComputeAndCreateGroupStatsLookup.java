@@ -14,7 +14,6 @@
 
 package com.indeed.iql2.execution.commands;
 
-import com.google.common.base.Preconditions;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.Session;
 import com.indeed.util.core.Pair;
@@ -51,9 +50,7 @@ public class ComputeAndCreateGroupStatsLookup implements Command {
         } else if(computation instanceof ComputeFieldExtremeValue) {
             results = ((ComputeFieldExtremeValue)computation).evaluate(session);
         } else if (computation instanceof GetGroupPercentiles) {
-            final long[][] percentiles = ((GetGroupPercentiles)computation).evaluate(session);
-            Preconditions.checkState(percentiles.length == 1, "Only one percentile expected");
-            longResults = percentiles[0];
+            longResults = ((GetGroupPercentiles)computation).evaluate(session);
         } else if (computation instanceof GetGroupStats) {
             final double[][] groupStats = ((GetGroupStats)computation).evaluate(session);
             results = Arrays.copyOf(groupStats[0], session.numGroups + 1);

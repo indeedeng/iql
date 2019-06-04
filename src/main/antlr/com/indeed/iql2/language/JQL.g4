@@ -1,9 +1,5 @@
 grammar JQL;
 
-@header {
-package com.indeed.iql2.language;
-}
-
 LAG : 'LAG' ;
 RUNNING : 'RUNNING' ;
 PARENT : 'PARENT' ;
@@ -92,6 +88,7 @@ DATASET: 'DATASET' ;
 RANDOM: 'RANDOM' ;
 OPTIONS: 'OPTIONS' ;
 DOCID: 'DOCID' ;
+UID_TO_UNIXTIME : 'UID_TO_UNIXTIME' ;
 
 M: 'M' ;
 Y : 'Y' ;
@@ -150,7 +147,7 @@ identifier
     | PRINTF | EXTRACT | RANDOM | OPTIONS
     | M | Y | TODAYS | TOMORROWS | YESTERDAYS | TIME_UNIT | TIME_INTERVAL_ATOM
     | RELATIVE | DATASET
-    | BACKQUOTED_ID | LEN | DOCID
+    | BACKQUOTED_ID | LEN | DOCID | UID_TO_UNIXTIME
     ;
 identifierTerminal : identifier EOF ;
 
@@ -197,10 +194,10 @@ STRING_LITERAL : SINGLE_QUOTED_STRING | DOUBLE_QUOTED_STRING ;
 legacyAggregateMetric
     : DISTINCT '(' identifier ')' # LegacyAggregateDistinct
     | PERCENTILE '(' identifier ',' number ')' # LegacyAggregatePercentile
-    | legacyAggregateMetric '/' number # LegacyAggregateDivByConstant
-    | legacyDocMetric '/' legacyDocMetric # LegacyAggregateDiv
-    | '(' legacyAggregateMetric ')' # LegacyAggregateParens
     | legacyDocMetric # LegacyImplicitSum
+    | legacyDocMetric '/' number # LegacyAggregateDivByConstant
+    | legacyAggregateMetric '/' legacyAggregateMetric # LegacyAggregateDiv
+    | '(' legacyAggregateMetric ')' # LegacyAggregateParens
     ;
 
 aggregateMetric [boolean useLegacy]
@@ -314,6 +311,7 @@ legacyDocMetricAtom
     | HASINT '(' STRING_LITERAL ')' # LegacyDocMetricAtomHasIntQuoted
     | FLOATSCALE '(' field=identifier (',' mult=number (',' add=number)?)?')' # LegacyDocMetricAtomFloatScale
     | LUCENE '(' queryField=STRING_LITERAL ')' # LegacyDocMetricAtomLucene
+    | UID_TO_UNIXTIME '(' field=identifier ')' # LegacyDocMetricAtomUidToUnixtime
     | identifier # LegacyDocMetricAtomRawField
     ;
 
@@ -337,6 +335,7 @@ jqlDocMetricAtom
     | EXTRACT '(' singlyScopedField ',' regex=STRING_LITERAL (',' groupNumber=NAT)? ')' # DocMetricAtomExtract
     | (LUCENE | QUERY) '(' queryField=STRING_LITERAL ')' # DocMetricAtomLucene
     | LEN '(' singlyScopedField ')' # DocMetricAtomLen
+    | UID_TO_UNIXTIME '(' singlyScopedField ')' # DocMetricAtomUidToUnixtime
     | jqlSyntacticallyAtomicDocMetricAtom # SyntacticallyAtomicDocMetricAtom
     ;
 
@@ -441,7 +440,7 @@ jqlDocFilter
     | singlyScopedField '=' jqlTermVal # DocFieldIs
     | singlyScopedField '!=' jqlTermVal # DocFieldIsnt
     | singlyScopedField not=NOT? IN '(' (terms += jqlTermVal)? (',' terms += jqlTermVal)* ')' # DocFieldIn
-    | singlyScopedField not=NOT? IN '(' queryNoSelect ')' # DocFieldInQuery
+    | singlyScopedField not=NOT? IN leftParen='(' queryNoSelect rightParen=')' # DocFieldInQuery
     | jqlDocMetric op=('='|'!='|'<'|'<='|'>'|'>=') jqlDocMetric # DocMetricInequality
     | (LUCENE | QUERY) '(' STRING_LITERAL ')' # Lucene
     | BETWEEN '(' metric=jqlDocMetric ',' lowerBound=integer ',' upperBound=integer ')' # DocBetween
@@ -465,7 +464,7 @@ groupByElement [boolean useLegacy]
     | QUANTILES '(' field=identifier ',' NAT ')' # QuantilesGroupBy
     | topTermsGroupByElem[$ctx.useLegacy] # TopTermsGroupBy
     | field=identifier not=NOT? IN '(' (terms += termVal[$ctx.useLegacy])? (',' terms += termVal[$ctx.useLegacy])* ')' (withDefault=WITH DEFAULT)? # GroupByFieldIn
-    | field=identifier not=NOT? IN '(' queryNoSelect ')' (withDefault=WITH DEFAULT)? # GroupByFieldInQuery
+    | field=identifier not=NOT? IN leftParen='(' queryNoSelect rightParen=')' (withDefault=WITH DEFAULT)? # GroupByFieldInQuery
     | groupByMetric[$ctx.useLegacy] # MetricGroupBy
     | groupByTime[$ctx.useLegacy] # TimeGroupBy
     | groupByField[$ctx.useLegacy] # FieldGroupBy
@@ -529,12 +528,12 @@ aliases
     ;
 
 dataset [boolean useLegacy]
-    : index=identifier ({!$ctx.useLegacy}? '(' whereContents[$ctx.useLegacy] ')')? start=dateTime end=dateTime (AS name=identifier)? aliases?
+    : index=identifier ({!$ctx.useLegacy}? leftParen='(' whereContents[$ctx.useLegacy] rightParen=')')? startTime=dateTime endTime=dateTime (AS name=identifier)? aliases?
     ;
 
 datasetOptTime [boolean useLegacy]
     : dataset[$ctx.useLegacy] # FullDataset
-    | index=identifier ({!$ctx.useLegacy}? '(' whereContents[$ctx.useLegacy] ')')? (AS name=identifier)? aliases? # PartialDataset
+    | index=identifier ({!$ctx.useLegacy}? leftParen='(' whereContents[$ctx.useLegacy] rightParen=')')? (AS name=identifier)? aliases? # PartialDataset
     ;
 
 fromContents [boolean useLegacy]
@@ -573,5 +572,5 @@ query [boolean useLegacy]
 queryNoSelect
     : FROM (same=SAME | fromContents[false])
       (WHERE whereContents[false])?
-      GROUP BY groupByContents[false]
+      (GROUP BY groupByContents[false])?
     ;

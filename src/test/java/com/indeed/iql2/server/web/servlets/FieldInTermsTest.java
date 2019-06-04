@@ -76,13 +76,8 @@ public class FieldInTermsTest extends BasicTest {
     @Test
     public void testGroupByEmptySubset() throws Exception {
         final String query = "from organic yesterday today group by tk in () select count()";
-        QueryServletTestUtils.testOriginalIQL1(Collections.emptyList(), query);
+        QueryServletTestUtils.testIQL1(Collections.emptyList(), query);
 
-        // IQL-744
-        QueryServletTestUtils.expectException(
-                query,
-                QueryServletTestUtils.LanguageVersion.IQL1_LEGACY_MODE,
-                s -> s.contains("IqlKnownException$ParseErrorException"));
         QueryServletTestUtils.expectException(
                 query,
                 QueryServletTestUtils.LanguageVersion.IQL2,

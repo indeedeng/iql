@@ -52,6 +52,7 @@ import com.indeed.iql1.sql.ast2.GroupByClause;
 import com.indeed.iql1.sql.ast2.IQL1SelectStatement;
 import com.indeed.iql1.sql.ast2.SelectClause;
 import com.indeed.iql1.sql.parser.SelectStatementParser;
+import com.indeed.iql2.ComparisonTools;
 import com.indeed.iql2.IQL2Options;
 import com.indeed.iql2.execution.QueryOptions;
 import com.indeed.iql2.server.web.servlets.query.EventStreamProgressCallback;
@@ -98,12 +99,14 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 /**
@@ -151,6 +154,7 @@ public class QueryServlet {
     private final IQL2Options defaultIQL2Options;
     private final IQLEnv iqlEnv;
     private final SQLToIQLParser sqlToIQLParser;
+    private final int switchToLegacyRatio;
 
     @Autowired
     public QueryServlet(@Nullable final File tmpDir,
@@ -166,6 +170,7 @@ public class QueryServlet {
                         final FieldFrequencyCache fieldFrequencyCache,
                         final WallClock clock,
                         final IQL2Options defaultIQL2Options,
+                        final int switchToLegacyRatio,
                         final IQLEnv iqlEnv) {
         this.tmpDir = tmpDir;
         this.imhotepClient = imhotepClient;
@@ -182,6 +187,7 @@ public class QueryServlet {
         this.defaultIQL2Options = defaultIQL2Options;
         this.iqlEnv = iqlEnv;
         this.sqlToIQLParser = new SQLToIQLParser(new AntlrParserGenerator());
+        this.switchToLegacyRatio = switchToLegacyRatio;
     }
 
     @RequestMapping("/query")
@@ -214,7 +220,7 @@ public class QueryServlet {
                 query = sqlToIQLParser.parse(query);
             }
 
-            final QueryInfo queryInfo = new QueryInfo(query, queryRequestParams.version, System.currentTimeMillis(), sqlQuery);
+            final QueryInfo queryInfo = new QueryInfo(hostname, query, queryRequestParams.version, System.currentTimeMillis(), sqlQuery);
 
             try {
                 if (Strings.isNullOrEmpty(client) && Strings.isNullOrEmpty(userName)) {
@@ -251,7 +257,7 @@ public class QueryServlet {
                 } else if (iqlStatement instanceof ShowStatement) {
                     handleShowStatement(queryRequestParams, resp);
                 } else if (iqlStatement instanceof ExplainStatement) {
-                    handleExplainStatement((ExplainStatement) iqlStatement, queryRequestParams, resp, clock);
+                    handleExplainStatement((ExplainStatement) iqlStatement, queryRequestParams, clientInfo, resp, clock);
                 } else {
                     throw new IqlKnownException.ParseErrorException("Query parsing failed: unknown statement type");
                 }
@@ -354,13 +360,30 @@ public class QueryServlet {
             final String query = selectStatement.selectQuery;
             setContentType(resp, queryRequestParams.avoidFileSave, queryRequestParams.csv, queryRequestParams.isEventStream);
             final Limits limits = accessControl.getLimitsForIdentity(clientInfo.username, clientInfo.client);
+            queryInfo.priority = (long) limits.priority;
             final String queryInitiator = (Strings.isNullOrEmpty(clientInfo.username) ? queryRequestParams.remoteAddr : clientInfo.username);
             logQueryToLog4J(queryInfo.queryStringTruncatedForPrint, queryInitiator, -1);
 
             final QueryMetadata queryMetadata = new QueryMetadata(resp);
+            final boolean forceRunLegacyMode = (queryRequestParams.legacyMode != null) && queryRequestParams.legacyMode;
+            final boolean forceRunOriginalIql1 = (queryRequestParams.legacyMode != null) && !queryRequestParams.legacyMode;
 
-            if (queryRequestParams.version == 2 || queryRequestParams.legacyMode) {
+            Optional<String> comparisonWarning = Optional.empty();
+            boolean switchToLegacy = false;
+            if (queryRequestParams.version == 1) {
+                final AtomicReference<String> queryHash = new AtomicReference<>();
+                comparisonWarning = ComparisonTools.checkCompatibility(selectStatement, metadataCache.get(), imhotepClient, clock, limits, queryHash);
+                if (!comparisonWarning.isPresent() && !forceRunLegacyMode && !forceRunOriginalIql1 && (queryHash.get() != null)) {
+                    // We are in good situation:
+                    // There are no warnings, no explicit demand how to run query and hash is available.
+                    final int bucket = Math.abs(queryHash.get().hashCode()) % 100;
+                    switchToLegacy = bucket < switchToLegacyRatio;
+                }
+            }
+
+            if ((queryRequestParams.version == 2) || forceRunLegacyMode || switchToLegacy) {
                 // IQL2
+                queryInfo.engine = (queryRequestParams.version == 2) ? "iql2" : "iql2legacy";
 
                 final Set<String> iql2Options = Sets.newHashSet(defaultIQL2Options.getOptions());
                 if (queryRequestParams.cacheReadDisabled && queryRequestParams.cacheWriteDisabled) {
@@ -379,7 +402,8 @@ public class QueryServlet {
                 selectQueryExecution.processSelect(runningQueriesManager);
             } else {
                 // IQL1
-                final IQL1SelectStatement iql1SelectStatement = SelectStatementParser.parseSelectStatement(query, new DateTime(clock.currentTimeMillis()), metadataCache);
+                queryInfo.engine = "iql1";
+                final IQL1SelectStatement iql1SelectStatement = SelectStatementParser.parseSelectStatement(query, new DateTime(clock.currentTimeMillis()), metadataCache.get());
                 setQueryInfoFromSelectStatement(iql1SelectStatement, queryInfo, clientInfo);
 
                 final PrintWriter writer = resp.getWriter();
@@ -397,7 +421,7 @@ public class QueryServlet {
                     queryInfo.queryStartTimestamp = selectQuery.get().queryStartTimestamp.getMillis();   // ignore time spent waiting
 
                     // actually process
-                    runSelectStatementIQL1(selectQuery, queryRequestParams, writer, strictCloser);
+                    runSelectStatementIQL1(selectQuery, queryRequestParams, writer, comparisonWarning, strictCloser);
                 } finally {
                     Closeables2.closeQuietly(selectQuery, log);
                 }
@@ -412,6 +436,7 @@ public class QueryServlet {
             final SharedReference<SelectQuery> selectQuery,
             final QueryRequestParams args,
             final PrintWriter outputStream,
+            final Optional<String> comparisonWarning,
             final StrictCloser strictCloser
     ) throws IOException {
         final QueryInfo queryInfo = selectQuery.get().queryInfo;
@@ -420,7 +445,7 @@ public class QueryServlet {
         final String queryForHashing = parsedQuery.toHashKeyString();
 
         final IQLQuery iqlQuery = IQLTranslator.translate(parsedQuery, imhotepClient,
-                args.imhotepUserName, metadataCache, selectQuery.get().limits, queryInfo, strictCloser);
+                args.imhotepUserName, metadataCache.get(), selectQuery.get().limits, queryInfo, strictCloser);
 
         queryInfo.numShards = iqlQuery.getShards().size();
         queryInfo.datasetFields = iqlQuery.getDatasetFields();
@@ -456,7 +481,10 @@ public class QueryServlet {
         final DateTime newestShard = getLatestShardVersion(iqlQuery.getShards());
         queryMetadata.addItem("IQL-Newest-Shard", newestShard, args.returnNewestShardVersion);
 
-        ArrayList<String> warningList = new ArrayList<>();
+        final List<String> warningList = new ArrayList<>();
+        if (comparisonWarning.isPresent()) {
+            warningList.add("Deprecation warning: " + comparisonWarning.get());
+        }
         iqlQuery.addDeprecatedDatasetWarningIfNecessary(warningList);
 
         final List<Interval> timeIntervalsMissingShards= iqlQuery.getTimeIntervalsMissingShards();
@@ -489,12 +517,14 @@ public class QueryServlet {
             // read metadata from cache
             try {
                 final InputStream metadataCacheStream = queryCache.getInputStream(cacheFileName + METADATA_FILE_SUFFIX);
-                final QueryMetadata cachedMetadata = QueryMetadata.fromStream(metadataCacheStream);
-                queryMetadata.mergeIn(cachedMetadata);
-                queryMetadata.renameItem("IQL-Query-Info", "IQL-Cached-Query-Info");
-                queryMetadata.setPendingHeaders();
+                if (metadataCacheStream != null) {
+                    final QueryMetadata cachedMetadata = QueryMetadata.fromStream(metadataCacheStream);
+                    queryMetadata.mergeIn(cachedMetadata);
+                    queryMetadata.renameItem("IQL-Query-Info", "IQL-Cached-Query-Info");
+                    queryMetadata.setPendingHeaders();
+                }
             } catch (Exception e) {
-                log.info("Failed to load metadata cache from " + cacheFileName + METADATA_FILE_SUFFIX, e);
+                log.warn("Failed to load metadata cache from " + cacheFileName + METADATA_FILE_SUFFIX, e);
             }
 
             queryInfo.rows = IQLQuery.copyStream(cacheInputStream, outputStream, Integer.MAX_VALUE, args.isEventStream);
@@ -702,15 +732,16 @@ public class QueryServlet {
         }
     }
 
-    private void handleExplainStatement(ExplainStatement explainStatement, QueryRequestParams queryRequestParams, HttpServletResponse resp, WallClock clock) throws IOException {
-        if(queryRequestParams.version == 1 && !queryRequestParams.legacyMode) {
+    private void handleExplainStatement(ExplainStatement explainStatement, QueryRequestParams queryRequestParams, final ClientInfo clientInfo, HttpServletResponse resp, WallClock clock) throws IOException {
+        if((queryRequestParams.version == 1) && !((queryRequestParams.legacyMode != null) && queryRequestParams.legacyMode)) {
             throw new IqlKnownException.ParseErrorException("IQL 1 doesn't support EXPLAIN statements");
         }
         if (queryRequestParams.json) {
             resp.setHeader("Content-Type", "application/json");
         }
+        final Limits limits = accessControl.getLimitsForIdentity(clientInfo.username, clientInfo.client);
         final ExplainQueryExecution explainQueryExecution = new ExplainQueryExecution(
-                metadataCache.get(), resp.getWriter(), explainStatement.selectQuery, queryRequestParams.version, queryRequestParams.json, clock, defaultIQL2Options);
+                metadataCache.get(), resp.getWriter(), explainStatement.selectQuery, queryRequestParams.version, queryRequestParams.json, clock, defaultIQL2Options, limits);
         explainQueryExecution.processExplain();
     }
 
@@ -728,7 +759,8 @@ public class QueryServlet {
         queryInfo.datasetFields = Sets.newHashSet(parsedQuery.dataset + "." + parsedQuery.field);
         final PrintWriter outputStream = resp.getWriter();
         final String dataset = parsedQuery.dataset;
-        final String fieldName = parsedQuery.field;
+        final Map<String, String> datasetAliases = metadataCache.get().getDatasetToDimensionAliasFields().getOrDefault(dataset, Collections.emptyMap());
+        final String fieldName = datasetAliases.getOrDefault(parsedQuery.field, parsedQuery.field);
         final List<String> topTerms = topTermsCache.getTopTerms(dataset, fieldName);
         FieldMetadata field = metadataCache.getDataset(dataset).getField(fieldName, true);
         final boolean hadDescription;
@@ -894,6 +926,7 @@ public class QueryServlet {
         final QueryLogEntry logEntry = new QueryLogEntry();
         logEntry.setProperty("v", 0);
         logEntry.setProperty("iqlversion",queryInfo.iqlVersion);
+        setIfNotEmpty(logEntry, "engine", queryInfo.engine);
         logEntry.setProperty("username", clientInfo.username);
         logEntry.setProperty("client", clientInfo.client);
         logEntry.setProperty("raddr", Strings.nullToEmpty(remoteAddr));
@@ -942,6 +975,8 @@ public class QueryServlet {
         logLong(logEntry, "ftgsMillis", queryInfo.ftgsMillis);
         logLong(logEntry, "pushStatsMillis", queryInfo.pushStatsMillis);
         logLong(logEntry, "getStatsMillis", queryInfo.getStatsMillis);
+        logLong(logEntry, "imhotepFilesDownloadedMB", queryInfo.imhotepFilesDownloadedMB);
+        logLong(logEntry, "imhotepP2PFilesDownloadedMB", queryInfo.imhotepP2PFilesDownloadedMB);
 
         logSet(logEntry, "hash", queryInfo.cacheHashes);
         logString(logEntry, "hostname", hostname);
@@ -952,6 +987,7 @@ public class QueryServlet {
         logInteger(logEntry, "shards", queryInfo.numShards);
         logSet(logEntry, "imhotepServers", queryInfo.imhotepServers);
         logInteger(logEntry, "numImhotepServers", queryInfo.numImhotepServers);
+        logLong(logEntry, "priority", queryInfo.priority);
         if (queryInfo.totalShardPeriodHours != null) {
             logInteger(logEntry, "shardhours", queryInfo.totalShardPeriodHours);
         }
@@ -1091,7 +1127,10 @@ public class QueryServlet {
         public final boolean isEventStream;
         public final boolean getTotals;
         public final boolean skipValidation;
-        public final boolean legacyMode;
+        // true - force run of legacy mode
+        // false - force run of original iql1
+        // null - decided based on query hash.
+        public final Boolean legacyMode;
         public final String imhotepUserName;
         public final String username;
         public final String requestURL;
@@ -1115,8 +1154,11 @@ public class QueryServlet {
             remoteAddr = req.getRemoteAddr();
             sql = req.getParameter("sql") != null;
             version = sql ? 2 : ServletUtil.getIQLVersionBasedOnParam(req);
-            legacyMode = req.getParameter("legacymode") != null;
-
+            if (req.getParameter("legacymode") != null) {
+                legacyMode = "1".equals(req.getParameter("legacymode"));
+            } else {
+                legacyMode = null;
+            }
         }
     }
 }

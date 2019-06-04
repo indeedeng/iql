@@ -16,7 +16,7 @@ package com.indeed.iql2.execution.commands;
 
 import com.google.common.collect.Sets;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.iql2.execution.ImhotepSessionHolder;
+import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.iql2.execution.QualifiedPush;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.commands.misc.IterateHandler;
@@ -33,11 +33,11 @@ import java.util.Set;
 
 public class GetGroupPercentiles implements Command {
     public final FieldSet field;
-    public final double[] percentiles;
+    public final double percentile;
 
-    public GetGroupPercentiles(FieldSet field, double[] percentiles) {
+    public GetGroupPercentiles(final FieldSet field, final double percentile) {
         this.field = field;
-        this.percentiles = percentiles;
+        this.percentile = percentile;
     }
 
     @Override
@@ -46,16 +46,15 @@ public class GetGroupPercentiles implements Command {
         throw new IllegalStateException("Call evaluate() method instead");
     }
 
-    public long[][] evaluate(final Session session) throws ImhotepOutOfMemoryException, IOException {
+    public long[] evaluate(final Session session) throws ImhotepOutOfMemoryException, IOException {
         return IterateHandlers.executeSingle(session, field, iterateHandler(session));
     }
 
-    public IterateHandler<long[][]> iterateHandler(Session session) throws ImhotepOutOfMemoryException {
+    public IterateHandler<long[]> iterateHandler(final Session session) throws ImhotepOutOfMemoryException {
         session.timer.push("compute counts");
-        final double[] percentiles = this.percentiles;
         final long[] counts = new long[session.numGroups + 1];
         for (final String dataset : field.datasets()) {
-            final ImhotepSessionHolder s = session.sessions.get(dataset).session;
+            final ImhotepSession s = session.sessions.get(dataset).session;
             final long[] stats = s.getGroupStats(Collections.singletonList("hasintfield " + field.datasetFieldName(dataset)));
             for (int i = 0; i < stats.length; i++) {
                 counts[i] += stats[i];
@@ -64,27 +63,24 @@ public class GetGroupPercentiles implements Command {
         session.timer.pop();
 
         session.timer.push("compute boundaries");
-        final double[][] requiredCounts = new double[counts.length][];
+        final double[] requiredCounts = new double[counts.length];
         for (int i = 1; i < counts.length; i++) {
-            requiredCounts[i] = new double[percentiles.length];
-            for (int j = 0; j < percentiles.length; j++) {
-                requiredCounts[i][j] = (percentiles[j] / 100.0) * (double)counts[i];
-            }
+            requiredCounts[i] = (percentile / 100.0) * (double)counts[i];
         }
         session.timer.pop();
         return new IterateHandlerImpl(session.numGroups, requiredCounts);
     }
 
-    private class IterateHandlerImpl implements IterateHandler<long[][]> {
+    private class IterateHandlerImpl implements IterateHandler<long[]> {
         private final IntSet relevantIndexes = new IntArraySet();
-        private final long[][] results;
+        private final long[] results;
         private final long[] runningCounts;
-        private final double[][] requiredCounts;
+        private final double[] requiredCounts;
 
-        IterateHandlerImpl(int numGroups, double[][] requiredCounts) {
+        IterateHandlerImpl(final int numGroups, final double[] requiredCounts) {
             this.requiredCounts = requiredCounts;
-            this.results = new long[percentiles.length][numGroups + 1];
-            this.runningCounts = new long[numGroups + 1];
+            results = new long[numGroups + 1];
+            runningCounts = new long[numGroups + 1];
         }
 
         @Override
@@ -103,7 +99,7 @@ public class GetGroupPercentiles implements Command {
         }
 
         @Override
-        public void register(Map<QualifiedPush, Integer> metricIndexes, GroupKeySet groupKeySet) {
+        public void register(final Map<QualifiedPush, Integer> metricIndexes, final GroupKeySet groupKeySet) {
             for (final String name : field.datasets()) {
                 relevantIndexes.add(metricIndexes.get(new QualifiedPush(name, Collections.singletonList("count()"))));
             }
@@ -120,7 +116,7 @@ public class GetGroupPercentiles implements Command {
         }
 
         @Override
-        public long[][] finish() {
+        public long[] finish() {
             return results;
         }
 
@@ -134,12 +130,9 @@ public class GetGroupPercentiles implements Command {
                 }
                 final long newCount = oldCount + termCount;
 
-                final double[] groupRequiredCountsArray = requiredCounts[group];
-                for (int i = 0; i < percentiles.length; i++) {
-                    final double minRequired = groupRequiredCountsArray[i];
-                    if (newCount >= minRequired && oldCount < minRequired) {
-                        results[i][group] = term;
-                    }
+                final double minRequired = requiredCounts[group];
+                if ((newCount >= minRequired) && (oldCount < minRequired)) {
+                    results[group] = term;
                 }
 
                 runningCounts[group] = newCount;

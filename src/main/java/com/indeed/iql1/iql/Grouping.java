@@ -41,7 +41,7 @@ public abstract class Grouping {
         final int statCount = statRefs.size();
         final double[][] statGroupValues = new double[statCount][];
         for (int i = 0; i < statCount; i++) {
-            statGroupValues[i] = statRefs.get(i).getGroupStats();
+            statGroupValues[i] = statRefs.get(i).getGroupStats(session);
         }
         final int groupCount = getGroupCount(statGroupValues);
         final List<GroupStats> ret = Lists.newArrayListWithCapacity(Math.max(groupCount, groupKeys.size()));

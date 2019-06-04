@@ -87,6 +87,22 @@ public class Dataset extends AbstractPositional {
         this.missingShardIntervals = (shardResolutionResult != null) ? shardResolutionResult.missingShardTimeIntervals : null;
     }
 
+    // Use only in IQL1 -> IQL2 conversion
+    public static Dataset createForQueryConversion(
+            final String dataset,
+            final DateTime start,
+            final DateTime end,
+            final ShardResolver.ShardResolutionResult shardResolutionResult
+    ) {
+        return new Dataset(
+                Positioned.unpositioned(dataset),
+                Positioned.unpositioned(start),
+                Positioned.unpositioned(end),
+                Optional.empty(),
+                Collections.emptyMap(),
+                shardResolutionResult);
+    }
+
     public String getDisplayName() {
         return alias.orElse(dataset).unwrap();
     }
@@ -110,8 +126,8 @@ public class Dataset extends AbstractPositional {
             Query.Context context) {
         ScopedFieldResolver fieldResolver = context.fieldResolver;
         final Positioned<String> dataset = fieldResolver.resolveImhotepDataset(datasetContext.index);
-        final Positioned<DateTime> start = parseDateTime(datasetContext.start, datasetContext.useLegacy, context.clock);
-        final Positioned<DateTime> end = parseDateTime(datasetContext.end, datasetContext.useLegacy, context.clock);
+        final Positioned<DateTime> start = parseDateTime(datasetContext.startTime, datasetContext.useLegacy, context.clock);
+        final Positioned<DateTime> end = parseDateTime(datasetContext.endTime, datasetContext.useLegacy, context.clock);
         final Optional<Positioned<String>> name = Optional.ofNullable(datasetContext.name).map(Identifiers::parseIdentifier);
 
         final ShardResolver.ShardResolutionResult resolutionResult = getShards(context, dataset.unwrap(), start.unwrap(), end.unwrap(), name.map(Positioned::unwrap));
@@ -231,7 +247,7 @@ public class Dataset extends AbstractPositional {
         if (dateTimeContext.DATETIME_TOKEN() != null) {
             return createDateTime(dateTimeContext.DATETIME_TOKEN().getText().replaceAll(" ", "T"));
         } else if (dateTimeContext.STRING_LITERAL() != null) {
-            final String unquoted = ParserCommon.unquote(dateTimeContext.STRING_LITERAL().getText());
+            final String unquoted = ParserCommon.unquote(dateTimeContext.STRING_LITERAL().getText(), useLegacy);
 
             // unquoted literal must be parseable by dateTimeTerminal or relativeTimeTerminal
 

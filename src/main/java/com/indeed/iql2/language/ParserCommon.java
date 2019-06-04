@@ -26,9 +26,13 @@ public class ParserCommon {
         DateTimeZone.setDefault(DateTimeZone.forOffsetHours(-6));
     }
 
+    public static String unquote(final String text, final boolean useLegacy) {
+        return useLegacy ? unquoteLegacy(text) : unquote(text);
+    }
+
     // TODO: Shouldn't this unescape things like \n and whatnot..?
     // TODO: Should this really be used for regexes?
-    public static String unquote(String text) {
+    public static String unquote(final String text) {
         if (!((text.startsWith("\"") && text.endsWith("\"")) || (text.startsWith("\'") && text.endsWith("\'")))) {
             return text;
         }
@@ -37,5 +41,24 @@ public class ParserCommon {
         } catch (final Throwable t) {
             throw new IqlKnownException.ParseErrorException("Can't process string value " + text, t);
         }
+    }
+
+    public static String unquoteLegacy(final String text) {
+        if (text.startsWith("\'") && text.endsWith("\'")) {
+            // for string with single quotes we just delete quotes
+            return text.substring(1, text.length() - 1);
+        }
+
+        if (text.startsWith("\"") && text.endsWith("\"")) {
+            // for string with double quotes we do un-escaping
+            try {
+                return StringEscapeUtils.unescapeJava(text.substring(1, text.length() - 1));
+            } catch (final Throwable t) {
+                throw new IqlKnownException.ParseErrorException("Can't process string value " + text, t);
+            }
+        }
+
+        // quotes not found
+        return text;
     }
 }

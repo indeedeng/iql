@@ -55,11 +55,11 @@ public class ExplodePerDocPercentile implements Command {
         final Map<String, List<List<String>>> sessionStats = new HashMap<>();
         final long[] counts = new long[session.numGroups + 1];
         for (final Session.ImhotepSessionInfo s : session.sessions.values()) {
-            final long[] stats = s.session.getGroupStats(Collections.singletonList("hasintfield " + field.datasetFieldName(s.displayName)));
+            final long[] stats = s.session.getGroupStats(Collections.singletonList("hasintfield " + field.datasetFieldName(s.name)));
             for (int i = 0; i < stats.length; i++) {
                 counts[i] += stats[i];
             }
-            sessionStats.put(s.displayName, Collections.singletonList(Collections.singletonList("count()")));
+            sessionStats.put(s.name, Collections.singletonList(Collections.singletonList("count()")));
         }
         session.timer.pop();
 

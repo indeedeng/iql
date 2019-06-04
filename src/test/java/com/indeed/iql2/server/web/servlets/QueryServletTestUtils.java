@@ -109,14 +109,15 @@ public class QueryServletTestUtils extends BasicTest {
                 options.queryCache,
                 runningQueriesManager,
                 executorService,
-                new AccessControl(Collections.emptySet(), Collections.emptySet(),
-                        null, new Limits(50, options.subQueryTermLimit.intValue(), 1000, 1000, 2, 8),
+                new AccessControl(Collections.emptySet(), Collections.emptySet(), Collections.emptySet(),
+                        null, new Limits((byte)0, 50, options.subQueryTermLimit.intValue(), 1000, 1000, 2, 8),
                         Collections.emptySet(), Collections.emptySet()),
                 options.maxCacheQuerySizeLimitBytes,
                 MetricStatsEmitter.NULL_EMITTER,
 				new FieldFrequencyCache(null),
                 options.wallClock,
                 defaultOptions,
+                0,
                 IQLEnv.DEVELOPER
         );
     }
@@ -261,12 +262,16 @@ public class QueryServletTestUtils extends BasicTest {
 
         public Options copy() {
             final Options copy = new Options();
+            copy.dataset = dataset;
             copy.tmpDir = tmpDir;
             copy.subQueryTermLimit = subQueryTermLimit;
             copy.queryCache = queryCache;
             copy.imsClient = imsClient;
             copy.skipTestDimension = skipTestDimension;
             copy.wallClock = wallClock;
+            copy.maxCacheQuerySizeLimitBytes = maxCacheQuerySizeLimitBytes;
+            copy.skipCsv = skipCsv;
+            copy.onlyCsv = onlyCsv;
             return copy;
         }
 
@@ -593,7 +598,7 @@ public class QueryServletTestUtils extends BasicTest {
             runQuery(client, query, version, EVENT_STREAM, options, Collections.emptySet());
             Assert.fail("No exception returned in expectException");
         } catch (final Exception e) {
-            Assert.assertTrue(exceptionMessagePredicate.test(e.getMessage()));
+            Assert.assertTrue("Thrown exception message \"" + e.getMessage() + "\" failed to match predicate", exceptionMessagePredicate.test(e.getMessage()));
         }
     }
 

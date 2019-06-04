@@ -29,7 +29,6 @@ import com.indeed.iql2.language.precomputed.Precomputed;
 import com.indeed.iql2.language.query.Dataset;
 import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.Query;
-import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -44,7 +43,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public class ExtractPrecomputed {
     private ExtractPrecomputed() {
@@ -116,7 +114,7 @@ public class ExtractPrecomputed {
             final AggregateMetric select = query.selects.get(i);
             selects.add(processor.apply(select));
         }
-        return new Extracted(new Query(query.datasets, query.filter, groupBys, selects, query.formatStrings, query.options, query.rowLimit, query.useLegacy), processor.computedNames, Optional.ofNullable(totals));
+        return new Extracted(new Query(query.datasets, query.filter, groupBys, selects, query.formatStrings, query.options, query.rowLimit, query.useLegacy).copyPosition(query), processor.computedNames, Optional.ofNullable(totals));
     }
 
     public static Map<Integer, List<ComputationInfo>> computationStages(Map<ComputationInfo, String> extracted) {
@@ -295,28 +293,28 @@ public class ExtractPrecomputed {
                     }
                     return handlePrecomputed(new Precomputed.PrecomputedSumAcrossGroupBy(totalized.traverse1(this), apply(new AggregateMetric.IfThenElse(new AggregateFilter.IsDefaultGroup(), new AggregateMetric.Constant(0), sumAcross.metric))));
                 }
-            } else if (input instanceof AggregateMetric.FieldMin){
+            } else if (input instanceof AggregateMetric.FieldMin) {
                 final AggregateMetric.FieldMin fieldMin = (AggregateMetric.FieldMin) input;
                 return handlePrecomputed(
-                    new Precomputed.PrecomputedFieldExtremeValue(
-                        fieldMin.field,
-                        apply(new AggregateMetric.Negate(getOrDefaultToAggregateAvg(fieldMin.metric, fieldMin.field))),
-                        fieldMin.filter.map(x -> x.traverse1(this)),
-                        FieldExtremeType.FIELD_MIN
-                    )
+                        new Precomputed.PrecomputedFieldExtremeValue(
+                                fieldMin.field,
+                                apply(getOrDefaultToAggregateAvg(fieldMin.metric)),
+                                fieldMin.filter.map(x -> x.traverse1(this)),
+                                FieldExtremeType.FIELD_MIN
+                        )
                 );
             } else if (input instanceof AggregateMetric.FieldMax) {
                 final AggregateMetric.FieldMax fieldMax = (AggregateMetric.FieldMax) input;
                 return handlePrecomputed(
-                    new Precomputed.PrecomputedFieldExtremeValue(
-                        fieldMax.field,
-                        apply(new AggregateMetric.Negate(getOrDefaultToAggregateAvg(fieldMax.metric, fieldMax.field))),
-                        fieldMax.filter.map(x -> x.traverse1(this)),
-                        FieldExtremeType.FIELD_MAX
-                    )
+                        new Precomputed.PrecomputedFieldExtremeValue(
+                                fieldMax.field,
+                                apply(getOrDefaultToAggregateAvg(fieldMax.metric)),
+                                fieldMax.filter.map(x -> x.traverse1(this)),
+                                FieldExtremeType.FIELD_MAX
+                        )
                 );
             } else if (input instanceof AggregateMetric.DivideByCount) {
-                final AggregateMetric docMetric = apply(((AggregateMetric.DivideByCount)input).metric);
+                final AggregateMetric docMetric = apply(((AggregateMetric.DivideByCount) input).metric);
                 final Set<String> datasets = new HashSet<>();
                 docMetric.transform(new Function<AggregateMetric, AggregateMetric>() {
                     @Nullable
@@ -327,7 +325,7 @@ public class ExtractPrecomputed {
                         } else if (metric instanceof AggregateMetric.GroupStatsLookup) {
                             for (Map.Entry<ComputationType, Map<ComputationInfo, String>> computations : computedNames.entrySet()) {
                                 for (Map.Entry<ComputationInfo, String> computationEntry : computations.getValue().entrySet()) {
-                                    if (computationEntry.getValue().equals(((AggregateMetric.GroupStatsLookup)metric).name)) {
+                                    if (computationEntry.getValue().equals(((AggregateMetric.GroupStatsLookup) metric).name)) {
                                         datasets.addAll(computationEntry.getKey().scope);
                                     }
                                 }
@@ -354,18 +352,9 @@ public class ExtractPrecomputed {
         }
 
         private AggregateMetric getOrDefaultToAggregateAvg(
-            final Optional<AggregateMetric> metric,
-            final FieldSet field
+                final Optional<AggregateMetric> metric
         ) {
-            if (metric.isPresent()) {
-                return metric.get();
-            } else {
-                final List<AggregateMetric> metrics =
-                    field.datasets().stream().map(dataset -> {
-                        return new AggregateMetric.DocStatsPushes(dataset, new DocMetric.Field(field));
-                    }).collect(Collectors.toList());
-                return new AggregateMetric.DivideByCount(AggregateMetric.Add.create(metrics));
-            }
+            return metric.<AggregateMetric>map(AggregateMetric.Negate::new).orElseGet(() -> new AggregateMetric.Constant(0));
         }
 
         private AggregateMetric handlePrecomputed(Precomputed precomputed) {
@@ -375,7 +364,7 @@ public class ExtractPrecomputed {
                 depth = this.depth;
             } else {
                 // we do the post aggregation after FTGS and before filter, so it should be in the same depth with GROUP BY
-                depth = this.depth-1;
+                depth = this.depth - 1;
             }
             final Set<String> scope = this.scope;
 

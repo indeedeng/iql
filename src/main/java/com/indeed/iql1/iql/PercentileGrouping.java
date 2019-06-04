@@ -20,6 +20,7 @@ import com.indeed.iql1.ez.EZImhotepSession;
 import com.indeed.iql1.ez.EZImhotepSession.FTGSCallback;
 import com.indeed.iql1.ez.Field;
 import com.indeed.iql1.ez.GroupKey;
+import com.indeed.iql1.ez.SingleStatReference;
 import com.indeed.iql1.ez.StatReference;
 import com.indeed.iql1.ez.Stats.Stat;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
@@ -45,9 +46,9 @@ import java.util.Set;
 public class PercentileGrouping extends Grouping {
     private final Stat countStat;
 
-    private final List<Field> fields = Lists.newArrayList();
-    private final DoubleList percentiles = new DoubleArrayList();
-    private final IntList fieldProjectionPositions = new IntArrayList();
+    public final List<Field> fields = Lists.newArrayList();
+    public final DoubleList percentiles = new DoubleArrayList();
+    public final IntList fieldProjectionPositions = new IntArrayList();
 
     public PercentileGrouping(final Stat countStat) {
         this.countStat = countStat;
@@ -69,10 +70,7 @@ public class PercentileGrouping extends Grouping {
         if(groupKeys.isEmpty()) {   // we don't have any parent groups probably because all docs were filtered out
             return Collections.<GroupStats>emptyList().iterator();
         }
-        final StatReference countStatRef = session.pushStat(countStat);
-        final long[] counts = getCounts(countStatRef);
-
-        final Int2ObjectMap<Int2LongMap> groupToPositionToStats = getPercentileStats(session, groupKeys, countStatRef, counts);
+        final Int2ObjectMap<Int2LongMap> groupToPositionToStats = getPercentileStats(session, groupKeys);
 
         final List<GroupStats> result = Lists.newArrayList();
 
@@ -105,7 +103,10 @@ public class PercentileGrouping extends Grouping {
         return result.iterator();
     }
 
-    private Int2ObjectMap<Int2LongMap> getPercentileStats(final EZImhotepSession session, final Int2ObjectMap<GroupKey> groupKeys, final StatReference countStatRef, final long[] counts) throws ImhotepOutOfMemoryException {
+    private Int2ObjectMap<Int2LongMap> getPercentileStats(final EZImhotepSession session, final Int2ObjectMap<GroupKey> groupKeys) throws ImhotepOutOfMemoryException {
+        final int initialStackDepth = session.getStackDepth();
+        final SingleStatReference countStatRef = session.pushSingleStat(countStat);
+        final long[] counts = getCounts(countStatRef, session);
         final Set<Field> uniqueFields = Sets.newHashSet(fields);
 
         final Int2ObjectMap<Int2LongMap> groupToPositionToStats = new Int2ObjectOpenHashMap<>();
@@ -150,7 +151,8 @@ public class PercentileGrouping extends Grouping {
             }
         }
 
-        session.popStat();
+        countStatRef.invalidate();
+        session.popStat(initialStackDepth);
         return groupToPositionToStats;
     }
 
@@ -173,8 +175,8 @@ public class PercentileGrouping extends Grouping {
         return ret;
     }
 
-    private static long[] getCounts(final StatReference countStatRef) throws ImhotepOutOfMemoryException {
-        final double[] doubleGroupStats = countStatRef.getGroupStats();
+    private static long[] getCounts(final StatReference countStatRef, final EZImhotepSession session) throws ImhotepOutOfMemoryException {
+        final double[] doubleGroupStats = countStatRef.getGroupStats(session);
         final long[] groupStats = new long[doubleGroupStats.length];
         for (int i = 0; i < doubleGroupStats.length; ++i) {
             groupStats[i] = Math.round(doubleGroupStats[i]);

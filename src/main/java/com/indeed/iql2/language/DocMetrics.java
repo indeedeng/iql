@@ -186,7 +186,7 @@ public class DocMetrics {
             public void enterLegacyDocMetricAtomHasString(final JQLParser.LegacyDocMetricAtomHasStringContext ctx) {
                 final String term;
                 if (ctx.quotedTerm != null) {
-                    term = ParserCommon.unquote(ctx.quotedTerm.getText());
+                    term = ParserCommon.unquoteLegacy(ctx.quotedTerm.getText());
                 } else if (ctx.idTerm != null) {
                     term = Identifiers.extractIdentifier(ctx.idTerm);
                 } else if (ctx.numTerm != null) {
@@ -201,7 +201,7 @@ public class DocMetrics {
             public void enterLegacyDocMetricAtomHasntString(final JQLParser.LegacyDocMetricAtomHasntStringContext ctx) {
                 final String term;
                 if (ctx.quotedTerm != null) {
-                    term = ParserCommon.unquote(ctx.quotedTerm.getText());
+                    term = ParserCommon.unquoteLegacy(ctx.quotedTerm.getText());
                 } else {
                     throw new IllegalStateException("Did not handle term value in: " + ctx.getText());
                 }
@@ -243,7 +243,7 @@ public class DocMetrics {
 
             @Override
             public void enterLegacyDocMetricAtomLucene(final JQLParser.LegacyDocMetricAtomLuceneContext ctx) {
-                accept(new DocMetric.Lucene(ParserCommon.unquote(ctx.queryField.getText()), datasetsMetadata, fieldResolver));
+                accept(new DocMetric.Lucene(ParserCommon.unquoteLegacy(ctx.queryField.getText()), datasetsMetadata, fieldResolver));
             }
 
             @Override
@@ -254,6 +254,11 @@ public class DocMetrics {
             @Override
             public  void enterLegacyDocMetricAtomHasStringField(final JQLParser.LegacyDocMetricAtomHasStringFieldContext ctx) {
                 accept(new DocMetric.HasStringField(fieldResolver.resolve(ctx.field)));
+            }
+
+            @Override
+            public void enterLegacyDocMetricAtomUidToUnixtime(final JQLParser.LegacyDocMetricAtomUidToUnixtimeContext ctx) {
+                accept(new DocMetric.UidToUnixtime(fieldResolver.resolve(ctx.field)));
             }
         });
 
@@ -606,6 +611,12 @@ public class DocMetrics {
                 final FieldSet field = fieldResolver.resolve(ctx.singlyScopedField());
                 accept(field.wrap(new DocMetric.StringLen(field)));
             }
+
+            @Override
+            public void enterDocMetricAtomUidToUnixtime(final JQLParser.DocMetricAtomUidToUnixtimeContext ctx) {
+                final FieldSet field = fieldResolver.resolve(ctx.singlyScopedField());
+                accept(field.wrap(new DocMetric.UidToUnixtime(field)));
+            }
         });
 
         if (ref[0] == null) {
@@ -654,17 +665,18 @@ public class DocMetrics {
         return null;
     }
 
+    // This class is used only in legacy mode
     public static class HasTermQuote {
         private final String field;
         private final String term;
 
-        private HasTermQuote(String field, String term) {
+        private HasTermQuote(final String field, final String term) {
             this.field = field;
             this.term = term;
         }
 
-        public static HasTermQuote create(String s) {
-            final String unquoted = ParserCommon.unquote(s);
+        public static HasTermQuote create(final String s) {
+            final String unquoted = ParserCommon.unquoteLegacy(s);
             final int colon = unquoted.indexOf(':');
             if (colon == -1) {
                 throw new IqlKnownException.ParseErrorException("Exprected format is : 'field:term', real string is : '" + s + "'");

@@ -47,9 +47,7 @@ public class IterateAndExplode implements Command {
         Preconditions.checkState(validationHelper.datasets().equals(field.datasets()));
         ValidationUtil.validateField(field, validationHelper, errorCollector, this);
 
-        if (fieldOpts.topK.isPresent()) {
-            fieldOpts.topK.get().metric.validate(validationHelper.datasets(), validationHelper, errorCollector);
-        }
+        fieldOpts.topK.ifPresent(topK -> topK.validate(validationHelper, errorCollector));
 
         if (fieldOpts.filter.isPresent()) {
             fieldOpts.filter.get().validate(validationHelper.datasets(), validationHelper, errorCollector);

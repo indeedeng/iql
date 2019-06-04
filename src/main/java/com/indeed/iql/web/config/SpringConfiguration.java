@@ -249,6 +249,17 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
         return env.getProperty("row.limit", Integer.class, 1000000);
     }
 
+    // TODO: delete after rollout legacy mode on 100%
+    // returns int in range [0, 100] that represents percentage of queries to be switched to legacy mode in iql1
+    @Bean
+    public int switchToLegacyRatio() {
+        final int ratio = env.getProperty("iql.legacy.mode.ratio", Integer.class, 0);
+        if ((ratio < 0) || (ratio > 100)) {
+            return 0;
+        }
+        return ratio;
+    }
+
     @Bean
     public Long maxCachedQuerySizeLimitBytes() {
         final long limitInMegabytes = env.getProperty("iql.max.cached.query.size.mb.limit", Long.class, Long.MAX_VALUE);
@@ -290,16 +301,20 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
         @SuppressWarnings("unchecked")
         final List<String> multiuserClients = (List<String>)env.getProperty("multiuser.clients", List.class, Collections.emptyList());
         @SuppressWarnings("unchecked")
+        final List<String> interactiveClients = (List<String>)env.getProperty("interactive.clients", List.class, Collections.emptyList());
+        @SuppressWarnings("unchecked")
         final Set<String> privilegedDatasets = (Set<String>)env.getProperty("privileged.datasets", Set.class, Collections.emptySet());
         @SuppressWarnings("unchecked")
         final Set<String> privilegedDatasetsUsers = (Set<String>)env.getProperty("privileged.datasets.users", Set.class, Collections.emptySet());
 
-        return new AccessControl(bannedUserList, multiuserClients, iqldb(), getDefaultLimits(), privilegedDatasets, privilegedDatasetsUsers);
+        return new AccessControl(bannedUserList, multiuserClients, interactiveClients, iqldb(), getDefaultLimits(),
+                privilegedDatasets, privilegedDatasetsUsers);
     }
 
     private Limits getDefaultLimits() {
         final Long queryDocumentCountLimit = env.getProperty("query.document.count.limit", Long.class);
         return new Limits(
+                (byte) 0,
                 queryDocumentCountLimit != null ? (int) (queryDocumentCountLimit / 1_000_000_000) : null,
                 env.getProperty("row.limit", Integer.class),
                 env.getProperty("imhotep.local.temp.file.size.mb.limit", Integer.class),

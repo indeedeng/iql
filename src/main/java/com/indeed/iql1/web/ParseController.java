@@ -76,7 +76,7 @@ public class ParseController {
             if (!(parsedQuery instanceof SelectStatement)) {
                 throw new RuntimeException("The query is not recognized as a select statement: " + query);
             }
-            return SelectStatementParser.parseSelectStatement(query, new DateTime(wallClock.currentTimeMillis()), metadata);
+            return SelectStatementParser.parseSelectStatement(query, new DateTime(wallClock.currentTimeMillis()), metadata.get());
         } catch (final Throwable e) {
             QueryServlet.handleError(resp, !Strings.isNullOrEmpty(json), e, false, false);
             return null;

@@ -15,19 +15,21 @@
 package com.indeed.iql2.language;
 
 import com.google.common.collect.Sets;
-import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.GroupBys;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.query.fieldresolution.ScopedFieldResolver;
+import com.indeed.iql2.language.util.AVGWarningUtil;
 import com.indeed.util.core.Pair;
+import org.antlr.v4.runtime.misc.Interval;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public class AggregateMetrics {
     private AggregateMetrics() {
@@ -60,8 +62,8 @@ public class AggregateMetrics {
             }
 
             @Override
-            public void enterLegacyAggregateDivByConstant(JQLParser.LegacyAggregateDivByConstantContext ctx) {
-                accept(new AggregateMetric.Divide(parseLegacyAggregateMetric(ctx.legacyAggregateMetric(), context), new AggregateMetric.Constant(Double.parseDouble(ctx.number().getText()))));
+            public void enterLegacyAggregateDivByConstant(final JQLParser.LegacyAggregateDivByConstantContext ctx) {
+                accept(new AggregateMetric.Divide(parsePossibleDimensionAggregateMetric(ctx.legacyDocMetric(), context), new AggregateMetric.Constant(Double.parseDouble(ctx.number().getText()))));
             }
 
             @Override
@@ -70,8 +72,8 @@ public class AggregateMetrics {
             }
 
             @Override
-            public void enterLegacyAggregateDiv(JQLParser.LegacyAggregateDivContext ctx) {
-                AggregateMetric aggDivisor = parsePossibleDimensionAggregateMetric(ctx.legacyDocMetric(1), context);
+            public void enterLegacyAggregateDiv(final JQLParser.LegacyAggregateDivContext ctx) {
+                AggregateMetric aggDivisor = parseLegacyAggregateMetric(ctx.legacyAggregateMetric(1), context);
                 if (aggDivisor instanceof AggregateMetric.DocStats) {
                     final DocMetric docMetric = ((AggregateMetric.DocStats) aggDivisor).docMetric;
                     if (docMetric instanceof DocMetric.Constant) {
@@ -79,7 +81,7 @@ public class AggregateMetrics {
                     }
                 }
                 accept(new AggregateMetric.Divide(
-                        parsePossibleDimensionAggregateMetric(ctx.legacyDocMetric(0), context),
+                        parseLegacyAggregateMetric(ctx.legacyAggregateMetric(0), context),
                         aggDivisor
                 ));
             }
@@ -160,7 +162,7 @@ public class AggregateMetrics {
                     accept(alias);
                     return;
                 }
-                accept(parsePossibleDimensionAggregateMetric(ctx.jqlSyntacticallyAtomicDocMetricAtom(),  context));
+                accept(parsePossibleDimensionAggregateMetric(ctx.jqlSyntacticallyAtomicDocMetricAtom(), context));
             }
         });
 
@@ -279,7 +281,16 @@ public class AggregateMetrics {
 
             @Override
             public void enterAggregateAvg(JQLParser.AggregateAvgContext ctx) {
-                accept(new AggregateMetric.DivideByCount(parseJQLAggregateMetric(ctx.jqlAggregateMetric(), context)));
+                final AggregateMetric metric = parseJQLAggregateMetric(ctx.jqlAggregateMetric(), context);
+                final Set<String> suspiciousOperations = AVGWarningUtil.extractSuspiciousOperations(metric);
+                if (!suspiciousOperations.isEmpty()) {
+                    final String rawText = ctx.start.getInputStream().getText(new Interval(ctx.start.getStartIndex(), ctx.stop.getStopIndex()));
+                    final String joined = String.join(",", suspiciousOperations);
+                    context.warn.accept(
+                            "There are suspicious operations inside of " + rawText + ". Are you sure you didn't mean AVG([...])? Operations were: " + joined
+                    );
+                }
+                accept(new AggregateMetric.DivideByCount(metric));
             }
 
             @Override

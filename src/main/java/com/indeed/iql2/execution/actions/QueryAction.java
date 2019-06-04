@@ -17,7 +17,7 @@ package com.indeed.iql2.execution.actions;
 import com.indeed.flamdex.query.Query;
 import com.indeed.imhotep.QueryRemapRule;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.iql2.execution.ImhotepSessionHolder;
+import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.SessionCallback;
 import com.indeed.util.logging.TracingTreeTimer;
@@ -31,7 +31,7 @@ public class QueryAction implements Action {
     public final int positiveGroup;
     public final int negativeGroup;
 
-    public QueryAction(Map<String, Query> perDatasetQuery, int targetGroup, int positiveGroup, int negativeGroup) {
+    public QueryAction(final Map<String, Query> perDatasetQuery, final int targetGroup, final int positiveGroup, final int negativeGroup) {
         this.perDatasetQuery = perDatasetQuery;
         this.targetGroup = targetGroup;
         this.positiveGroup = positiveGroup;
@@ -39,10 +39,10 @@ public class QueryAction implements Action {
     }
 
     @Override
-    public void apply(Session session) throws ImhotepOutOfMemoryException {
+    public void apply(final Session session) throws ImhotepOutOfMemoryException {
         session.process(new SessionCallback() {
             @Override
-            public void handle(TracingTreeTimer timer, String name, ImhotepSessionHolder session) throws ImhotepOutOfMemoryException {
+            public void handle(final TracingTreeTimer timer, final String name, final ImhotepSession session) throws ImhotepOutOfMemoryException {
                 if (!perDatasetQuery.containsKey(name)) {
                     return;
                 }

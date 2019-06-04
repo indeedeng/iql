@@ -311,7 +311,7 @@ public class Query extends AbstractPositional {
                 for (final JQLParser.FormattedAggregateMetricContext formattedMetric : selectSet.formattedAggregateMetric()) {
                     metrics.add(formattedMetric.aggregateMetric());
                     if (formattedMetric.STRING_LITERAL() != null) {
-                        formatString = Optional.of(ParserCommon.unquote(formattedMetric.STRING_LITERAL().getText()));
+                        formatString = Optional.of(ParserCommon.unquote(formattedMetric.STRING_LITERAL().getText(), useLegacy));
                     } else if (selectSet.precision != null) {
                         formatString = Optional.of(String.format(FORMAT_STRING_TEMPLATE, selectSet.precision.getText()));
                     } else {
@@ -361,7 +361,7 @@ public class Query extends AbstractPositional {
             final TracingTreeTimer timer,
             ShardResolver shardResolver
     ) {
-        final List<String> options = queryContext.options.stream().map(x -> ParserCommon.unquote(x.getText())).collect(Collectors.toList());
+        final List<String> options = queryContext.options.stream().map(x -> ParserCommon.unquote(x.getText(), queryContext.useLegacy)).collect(Collectors.toList());
         options.addAll(defaultOptions);
         if (QueryOptions.Experimental.hasHosts(options)) {
             shardResolver = new RemappingShardResolver(shardResolver, QueryOptions.Experimental.parseHostMappingMethod(options), QueryOptions.Experimental.parseHosts(options));
@@ -390,6 +390,9 @@ public class Query extends AbstractPositional {
         if (actualContext.fromContext == null) {
             throw new IqlKnownException.ParseErrorException("Can't use 'FROM SAME' outside of WHERE or GROUP BY");
         }
+        if ((queryContext.groupByContents() == null) || (queryContext.groupByContents().groupByEntry().size() != 1)) {
+            throw new IqlKnownException.ParseErrorException("Subqueries must have exactly one group by element");
+        }
         final Query query = Query.parseQuery(
                 queryContext,
                 actualContext.partialContext(),
@@ -400,6 +403,7 @@ public class Query extends AbstractPositional {
                 false,
                 false
         );
+        query.copyPosition(queryContext);
         return query;
     }
 
@@ -578,7 +582,7 @@ public class Query extends AbstractPositional {
                         final String fieldName = groupByField.field.getOnlyField();
                         if (filterField.equals(fieldName) && !groupByField.isTopK()) {
                             final GroupBy.GroupByFieldIn groupByFieldIn =
-                                    new GroupBy.GroupByFieldIn(groupByField.field, fieldIn.terms, groupByField.withDefault);
+                                    new GroupBy.GroupByFieldIn(groupByField.field, fieldIn.terms, groupByField.withDefault, true);
                             groupByFieldIn.copyPosition(groupByField);
                             groupBys.set(j, new GroupByEntry(groupByFieldIn, groupByEntry.filter, groupByEntry.alias));
                             foundRewriteGroupBy = true;

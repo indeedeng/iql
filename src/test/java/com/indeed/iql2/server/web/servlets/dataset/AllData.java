@@ -14,6 +14,7 @@ public class AllData {
         datasets.add(DimensionDataset.createDataset());
         datasets.add(DistinctDataset.createDataset());
         datasets.add(ExtractDataset.createDataset());
+        datasets.add(ExtremeValueDataset.create());
         datasets.add(FieldEqualDataset.create());
         datasets.add(FieldInQueryDataset.createAll());
         datasets.add(FloatScaleDataset.createDataset());
@@ -29,6 +30,7 @@ public class AllData {
         datasets.add(RegroupEmptyFieldDataset.createDataset());
         datasets.add(StringAsIntFieldDataset.create());
         datasets.add(StringLenDataset.create());
+        datasets.add(StringEscapeDataset.create());
         datasets.add(SubQueryLimitDataset.createDataset());
         datasets.add(TimeRegroupDatasets.dayOfWeekDataset());
         datasets.add(TimeRegroupDatasets.multiMonthDataset());
@@ -45,6 +47,8 @@ public class AllData {
         datasets.add(ConflictFieldDataset.create());
         datasets.add(LogLossDataset.create());
         datasets.add(MultiYearDataset.create());
+        datasets.add(UidTimestampDataset.create());
+        datasets.add(MultiValuedUidTimestampDataset.create());
 
         final List<Dataset.DatasetShard> shards = new ArrayList<>();
         for (final Dataset allDataset : datasets) {

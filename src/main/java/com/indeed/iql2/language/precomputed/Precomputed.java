@@ -93,8 +93,8 @@ public interface Precomputed {
         }
 
         @Override
-        public Precomputation commands(List<Dataset> datasets) {
-            return Precomputation.noContext(new GetGroupPercentiles(field, new double[]{percentile}));
+        public Precomputation commands(final List<Dataset> datasets) {
+            return Precomputation.noContext(new GetGroupPercentiles(field, percentile));
         }
 
         @Override

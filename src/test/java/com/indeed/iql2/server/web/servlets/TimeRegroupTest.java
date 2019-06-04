@@ -38,6 +38,7 @@ public class TimeRegroupTest extends BasicTest {
 
         QueryServletTestUtils.testAll(expected, "from organic yesterday today group by time(1h) select count(), oji, ojc, distinct(tk)");
         QueryServletTestUtils.testAll(expected, "from organic yesterday today group by time(24b) select count(), oji, ojc, distinct(tk)");
+        QueryServletTestUtils.testIQL2(expected, "from organic yesterday today group by time(1h, DEFAULT, unixtime) select count(), oji, ojc, distinct(tk)");
         // Remove DISTINCT to allow streaming, rather than regroup.
         QueryServletTestUtils.testAll(QueryServletTestUtils.withoutLastColumn(expected), "from organic yesterday today group by time(1h) select count(), oji, ojc");
         QueryServletTestUtils.testAll(QueryServletTestUtils.withoutLastColumn(expected), "from organic yesterday today group by time(24b) select count(), oji, ojc");
@@ -138,7 +139,6 @@ public class TimeRegroupTest extends BasicTest {
             expected.add(ImmutableList.of(String.format("[2015-01-01 %02d:00:00, 2015-01-01 %02d:00:00)", i, i + 1), "1", "1"));
         }
         expected.add(ImmutableList.of(String.format("[2015-01-01 %02d:00:00, 2015-01-01 %02d:00:00)", 6, 7), "1", "0"));
-
 
         QueryServletTestUtils.testIQL2(expected, "from organic 24h 17h as o1, organic 6h today as o2 group by time(1h relative) select o1.count(), o2.count()");
     }
@@ -263,8 +263,8 @@ public class TimeRegroupTest extends BasicTest {
         QueryServletTestUtils.expectExceptionAll("FROM organic 2015-01-01 2015-03-01 group by time(1w) select count()", containsTimeBucketErrorMessage.and(e -> e.contains("increase the time range by 4 days or reduce the time range by 3 days")));
         QueryServletTestUtils.expectExceptionAll("FROM organic 10d today group by time(3d) select count()", containsTimeBucketErrorMessage.and(e -> e.contains("increase the time range by 2 days or reduce the time range by 1 days")));
         QueryServletTestUtils.expectExceptionAll("FROM organic 2015-01-01T0:0:0 2015-01-01T0:0:3  group by time(2s) select count()", containsTimeBucketErrorMessage.and(e -> e.contains("increase the time range by 1 seconds or reduce the time range by 1 seconds")));
-        QueryServletTestUtils.expectExceptionAll("FROM organic 10s today group by time(3b) select count()" , containsTimeBucketErrorMessage.and(e -> e.contains("increase the time range by 2 seconds or reduce the time range by 1 seconds")));
-        QueryServletTestUtils.expectExceptionAll("FROM organic 100s today group by time(7b) select count()" , containsTimeBucketErrorMessage.and(e -> e.contains("increase the time range by 12 seconds or reduce the time range by 2 seconds")));
+        QueryServletTestUtils.expectExceptionAll("FROM organic 10s today group by time(3b) select count()", containsTimeBucketErrorMessage.and(e -> e.contains("increase the time range by 2 seconds or reduce the time range by 1 seconds")));
+        QueryServletTestUtils.expectExceptionAll("FROM organic 100s today group by time(7b) select count()", containsTimeBucketErrorMessage.and(e -> e.contains("increase the time range by 12 seconds or reduce the time range by 2 seconds")));
     }
 
     @Test
@@ -317,15 +317,24 @@ public class TimeRegroupTest extends BasicTest {
     @Test
     public void GroupByInferredTimeRelativeBucket() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
-        expected.add(ImmutableList.of("[2015-02-01 00:00:00, 2015-02-15 00:00:00)","2")); expected.add(ImmutableList.of("[2015-02-15 00:00:00, 2015-03-01 00:00:00)", "0"));
+        expected.add(ImmutableList.of("[2015-02-01 00:00:00, 2015-02-15 00:00:00)", "2"));
+        expected.add(ImmutableList.of("[2015-02-15 00:00:00, 2015-03-01 00:00:00)", "0"));
         QueryServletTestUtils.testIQL2(expected, "from multiyeardataset 2015-02-01 2015-03-01, multiyeardataset 2019-02-01 2019-03-01 as multiyear1 group by time(2b relative) select count()"); // infered time 1 day instead of 1 week
     }
 
     @Test
-    public void TestGroupByTimeField() throws  Exception {
+    public void TestGroupByTimeField() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("[2015-01-01 03:00:00, 2015-01-01 13:30:00)", "0"));
         expected.add(ImmutableList.of("[2015-01-01 13:30:00, 2015-01-02 00:00:00)", "0"));
         QueryServletTestUtils.testIQL2(expected, "from organic 2015-01-01 03:00:00 2015-01-02 00:00:00 group by time(2b,'YYYY-MM-dd HH:mm:ss', ojc) select count()", true);
+    }
+
+    @Test
+    public void TestGroupByTimeFieldDefaultFormat() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("[2015-01-01 03:00:00, 2015-01-01 13:30:00)", "0"));
+        expected.add(ImmutableList.of("[2015-01-01 13:30:00, 2015-01-02 00:00:00)", "0"));
+        QueryServletTestUtils.testIQL2(expected, "from organic 2015-01-01 03:00:00 2015-01-02 00:00:00 group by time(2b, DEFAULT, ojc) select count()", true);
     }
 }

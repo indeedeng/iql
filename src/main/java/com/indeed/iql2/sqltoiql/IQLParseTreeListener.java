@@ -15,7 +15,7 @@
 package com.indeed.iql2.sqltoiql;
 
 
-import com.indeed.iql2.sqltoiql.antlr.SQLiteParser;
+import com.indeed.iql2.language.SQLiteParser;
 import org.apache.log4j.Logger;
 
 import java.time.LocalDateTime;

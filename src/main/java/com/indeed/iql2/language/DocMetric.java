@@ -91,6 +91,7 @@ public abstract class DocMetric extends AbstractPositional {
         T visit(SampleMetric random) throws E;
         T visit(Random random) throws E;
         T visit(RandomMetric random) throws E;
+        T visit(UidToUnixtime uidToUnixtime) throws E;
     }
 
     /**
@@ -106,8 +107,10 @@ public abstract class DocMetric extends AbstractPositional {
 
     @Override
     public abstract boolean equals(final Object other);
+
     @Override
     public abstract int hashCode();
+
     @Override
     public abstract String toString();
 
@@ -534,7 +537,7 @@ public abstract class DocMetric extends AbstractPositional {
                 if (i > 0) {
                     sb.append(", ");
                 }
-                sb.append('m').append(i+1).append('=').append(metrics.get(i));
+                sb.append('m').append(i + 1).append('=').append(metrics.get(i));
             }
             sb.append('}');
             return sb.toString();
@@ -569,7 +572,7 @@ public abstract class DocMetric extends AbstractPositional {
             long constant = 0;
             for (final DocMetric metric : unwraped) {
                 if (metric instanceof Constant) {
-                    constant += ((Constant)metric).value;
+                    constant += ((Constant) metric).value;
                 } else if (metric instanceof Count) {
                     constant++;
                 } else {
@@ -714,7 +717,7 @@ public abstract class DocMetric extends AbstractPositional {
             Long min = null;
             for (final DocMetric metric : unwraped) {
                 if (metric instanceof Constant) {
-                    final long value =((Constant)metric).value;
+                    final long value = ((Constant) metric).value;
                     min = (min == null) ? value : Math.min(min, value);
                 } else if (metric instanceof Count) {
                     min = (min == null) ? 1 : Math.min(min, 1);
@@ -771,7 +774,7 @@ public abstract class DocMetric extends AbstractPositional {
             Long max = null;
             for (final DocMetric metric : unwraped) {
                 if (metric instanceof Constant) {
-                    final long value =((Constant)metric).value;
+                    final long value = ((Constant) metric).value;
                     max = (max == null) ? value : Math.max(max, value);
                 } else if (metric instanceof Count) {
                     max = (max == null) ? 1 : Math.max(max, 1);
@@ -1043,7 +1046,7 @@ public abstract class DocMetric extends AbstractPositional {
 
         @Override
         public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
-            ValidationUtil.compileRegex(regex);
+            ValidationUtil.validateRegex(regex, errorCollector);
             final String fieldName = field.datasetFieldName(dataset);
             if (!validationHelper.containsStringField(dataset, fieldName)) {
                 errorCollector.error(ErrorMessages.missingStringField(dataset, fieldName, this));
@@ -1421,8 +1424,17 @@ public abstract class DocMetric extends AbstractPositional {
         @Override
         public void validate(String dataset, ValidationHelper validationHelper, ErrorCollector errorCollector) {
             try {
-                Pattern.compile(regex);
-            } catch (PatternSyntaxException e) {
+                final Pattern compiled = Pattern.compile(regex);
+                final int numCapturingGroups = compiled.matcher("").groupCount();
+                if (numCapturingGroups < groupNumber) {
+                    errorCollector.error(String.format(
+                            "Regex for extract should contain at least %d capturing group, but got %d capturing groups. Pattern: `%s`",
+                            groupNumber,
+                            numCapturingGroups,
+                            regex
+                    ));
+                }
+            } catch (final PatternSyntaxException e) {
                 errorCollector.error("Invalid pattern: " + regex);
             }
         }
@@ -1501,7 +1513,7 @@ public abstract class DocMetric extends AbstractPositional {
         @Override
         public void validate(final String dataset, final ValidationHelper validationHelper, final ErrorCollector errorCollector) {
             final String fieldName = field.datasetFieldName(dataset);
-            if(!validationHelper.containsStringField(dataset, fieldName)) {
+            if (!validationHelper.containsStringField(dataset, fieldName)) {
                 errorCollector.error(ErrorMessages.missingStringField(dataset, fieldName, this));
             }
         }
@@ -1534,14 +1546,14 @@ public abstract class DocMetric extends AbstractPositional {
         @Override
         public void validate(final String dataset, final ValidationHelper validationHelper, final ErrorCollector errorCollector) {
             final String fieldName = field.datasetFieldName(dataset);
-            if(!validationHelper.containsIntOrAliasField(dataset, fieldName)) {
+            if (!validationHelper.containsIntOrAliasField(dataset, fieldName)) {
                 if (validationHelper.containsStringField(dataset, fieldName)) {
                     // IntTermCount(stringField), maybe not what user wants.
                     final String warning =
-                        "Suspicious use of INTTERMCOUNT. Did you mean STRTERMCOUNT?" +
-                        " Using operator INTTERMCOUNT over string field \"" + field + "\" in dataset \"" + dataset + "\"." +
-                        " Only string terms that can be converted to integer value will be counted." +
-                        " If you want to get all terms count in a string field use STRTERMCOUNT operator instead";
+                            "Suspicious use of INTTERMCOUNT. Did you mean STRTERMCOUNT?" +
+                                    " Using operator INTTERMCOUNT over string field \"" + field + "\" in dataset \"" + dataset + "\"." +
+                                    " Only string terms that can be converted to integer value will be counted." +
+                                    " If you want to get all terms count in a string field use STRTERMCOUNT operator instead";
                     errorCollector.warn(warning);
                 } else {
                     // field not found, error.
@@ -1578,12 +1590,12 @@ public abstract class DocMetric extends AbstractPositional {
         @Override
         public void validate(final String dataset, final ValidationHelper validationHelper, final ErrorCollector errorCollector) {
             final String fieldName = field.datasetFieldName(dataset);
-            if(!validationHelper.containsStringField(dataset, fieldName)) {
+            if (!validationHelper.containsStringField(dataset, fieldName)) {
                 if (validationHelper.containsIntOrAliasField(dataset, fieldName)) {
                     // StrTermCount(intField) is 0.
                     final String warning =
                             "Using operator STRTERMCOUNT over int field \"" + field + "\" in dataset \"" + dataset + "\"." +
-                            " Result is always zero.";
+                                    " Result is always zero.";
                     errorCollector.warn(warning);
                 } else {
                     // field not found, error.
@@ -1810,7 +1822,7 @@ public abstract class DocMetric extends AbstractPositional {
             if (!validationHelper.containsField(dataset, fieldName)) {
                 errorCollector.error(ErrorMessages.missingField(dataset, fieldName, this));
             }
-            CommandValidator.validate(query, datasetsMetadata, errorCollector);
+            CommandValidator.validate(query, validationHelper.limits, datasetsMetadata, errorCollector);
         }
 
         @Override
@@ -1822,6 +1834,39 @@ public abstract class DocMetric extends AbstractPositional {
         @Override
         public DocMetric invert() {
             return null;
+        }
+    }
+
+    @EqualsAndHashCode(callSuper = false)
+    @ToString
+    public static class UidToUnixtime extends DocMetric {
+        public final FieldSet field;
+
+        public UidToUnixtime(final FieldSet field) {
+            this.field = field;
+        }
+
+        @Override
+        public DocMetric transform(final Function<DocMetric, DocMetric> g, final Function<DocFilter, DocFilter> i) {
+            return g.apply(new UidToUnixtime(field)).copyPosition(this);
+        }
+
+        @Override
+        public List<String> getPushes(final String dataset) {
+            return Collections.singletonList("uid_to_unixtime " + field.datasetFieldName(dataset));
+        }
+
+        @Override
+        public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public void validate(final String dataset, final ValidationHelper validationHelper, final ErrorCollector errorCollector) {
+            final String fieldName = field.datasetFieldName(dataset);
+            if (!validationHelper.containsStringField(dataset, fieldName)) {
+                errorCollector.error(ErrorMessages.missingStringField(dataset, fieldName, this));
+            }
         }
     }
 

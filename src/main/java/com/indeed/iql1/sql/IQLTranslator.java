@@ -22,8 +22,8 @@ import com.indeed.imhotep.StrictCloser;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetMetadata;
+import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql.metadata.FieldMetadata;
-import com.indeed.iql.metadata.ImhotepMetadataCache;
 import com.indeed.iql.web.Limits;
 import com.indeed.iql.web.QueryInfo;
 import com.indeed.iql1.ez.EZImhotepSession;
@@ -79,6 +79,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Matcher;
@@ -130,7 +131,7 @@ public final class IQLTranslator {
             IQL1SelectStatement parse,
             ImhotepClient client,
             String username,
-            ImhotepMetadataCache metadata,
+            final DatasetsMetadata datasetsMetadata,
             Limits limits,
             QueryInfo queryInfo,
             StrictCloser strictCloser
@@ -141,10 +142,10 @@ public final class IQLTranslator {
 
         final FromClause fromClause = parse.from;
         final String dataset = fromClause.getDataset();
-        if (!metadata.get().getMetadata(dataset).isPresent()) {
+        if (!datasetsMetadata.getMetadata(dataset).isPresent()) {
             throw new IqlKnownException.UnknownDatasetException("Dataset not found: \"" + dataset + "\"");
         }
-        final DatasetMetadata datasetMetadata = metadata.getDataset(dataset);
+        final DatasetMetadata datasetMetadata = datasetsMetadata.getMetadata(dataset).get();
         final List<Stat> stats = Lists.newArrayList();
 
         final Set<String> fieldNames = Sets.newHashSet();
@@ -189,7 +190,7 @@ public final class IQLTranslator {
         handleDiffGrouping(groupings, stats, limits);
 
         return new IQLQuery(client, stats, fromClause.getDataset(), fromClause.getStart(), fromClause.getEnd(),
-                conditions, groupings, parse.limit, username, limits, fieldNames, datasetMetadata, queryInfo, strictCloser);
+                conditions, groupings, parse.limit, username, limits, fieldNames, datasetsMetadata, datasetMetadata, queryInfo, strictCloser);
     }
 
     private static void ensureDistinctSelectDoesntMatchGroupings(List<Grouping> groupings, DistinctGrouping distinctGrouping) {
@@ -363,12 +364,28 @@ public final class IQLTranslator {
      * @throws IqlKnownException.UnknownFieldException if field is not found.
      */
     @Nonnull
-    private static Field getField(String name, DatasetMetadata datasetMetadata) {
+    public static Field getField(final String name, final DatasetMetadata datasetMetadata) {
         final FieldMetadata fieldMetadata = datasetMetadata.getField(name, true);
         if(fieldMetadata == null) {
             throw new IqlKnownException.UnknownFieldException("Unknown field: " + name);
         }
         return fieldMetadata.isIntField() ? Field.intField(name) : Field.stringField(name);
+    }
+
+    private static Field.IntField getIntField(final String name, final DatasetMetadata datasetMetadata) {
+        final Field field = getField(name, datasetMetadata);
+        if (!(field instanceof Field.IntField)) {
+            throw new IqlKnownException.FieldTypeMismatchException("Expected int field, found string field: " + name);
+        }
+        return (Field.IntField) field;
+    }
+
+    private static Field.StringField getStringField(final String name, final DatasetMetadata datasetMetadata) {
+        final Field field = getField(name, datasetMetadata);
+        if (!(field instanceof Field.StringField)) {
+            throw new IqlKnownException.FieldTypeMismatchException("Expected string field, found int field: " + name);
+        }
+        return (Field.StringField) field;
     }
 
     private static class StatMatcher extends Expression.Matcher<Stat> {
@@ -510,8 +527,9 @@ public final class IQLTranslator {
                     if(Strings.isNullOrEmpty(field) || value == null) {
                         throw new IqlKnownException.ParseErrorException("incorrect usage in hasstr(). Examples: hasstr(rcv,jsv) or hasstr(\"rcv:jsv\")");
                     }
+                    final Field f = getField(field, datasetMetadata);
                     fieldNames.add(field);
-                    return hasString(field, value);
+                    return hasString(f, value);
                 }
             });
             builder.put("hasint", new Function<List<Expression>, Stat>() {
@@ -541,8 +559,9 @@ public final class IQLTranslator {
                     if(Strings.isNullOrEmpty(field)) {
                         throw new IqlKnownException.ParseErrorException("incorrect usage in hasint(). " + usageExamples);
                     }
+                    final Field f = getField(field, datasetMetadata);
                     fieldNames.add(field);
-                    return hasInt(field, value);
+                    return hasInt(f, value);
                 }
             });
             builder.put("hasstrfield", new Function<List<Expression>, Stat>() {
@@ -554,8 +573,9 @@ public final class IQLTranslator {
                     if(Strings.isNullOrEmpty(field)) {
                         throw new IqlKnownException.ParseErrorException("incorrect usage in hasstrfield(). Example: hasstrfield(\"rcv\")");
                     }
+                    final Field f = getField(field, datasetMetadata);
                     fieldNames.add(field);
-                    return hasStringField(field);
+                    return hasStringField(f);
                 }
             });
             builder.put("hasintfield", new Function<List<Expression>, Stat>() {
@@ -567,26 +587,27 @@ public final class IQLTranslator {
                     if(Strings.isNullOrEmpty(field)) {
                         throw new IqlKnownException.ParseErrorException("incorrect usage in hasintfield(). Example: hasintfield(\"sjc\")");
                     }
+                    final Field f = getField(field, datasetMetadata);
                     fieldNames.add(field);
-                    return hasIntField(field);
+                    return hasIntField(f);
                 }
             });
             builder.put("floatscale", new Function<List<Expression>, Stat>() {
                 public Stat apply(final List<Expression> input) {
-                    if (input.size() == 3) {
-                    	final String name = getName(input.get(0));
-                    	fieldNames.add(name);
-                    	return floatScale(name, parseLong(input.get(1)), parseLong(input.get(2)));
-                    } else if (input.size() == 2) {
-                    	final String name = getName(input.get(0));
-                    	fieldNames.add(name);
-                    	return floatScale(name, parseLong(input.get(1)), 0);
-                    } else if(input.size() == 1) {
-                    	final String name = getName(input.get(0));
-                    	fieldNames.add(name);
-                    	return floatScale(name, 1, 0);
-                    } else {
+                    if (input.isEmpty() || (input.size() > 3)) {
                         throw new IqlKnownException.ParseErrorException("floatscale() requires 1, 2, or 3 arguments");
+                    }
+                    final String name = getName(input.get(0));
+                    final Field field = getField(name, datasetMetadata);
+                    fieldNames.add(name);
+                    if (input.size() == 3) {
+                        return floatScale(field, parseLong(input.get(1)), parseLong(input.get(2)));
+                    } else if (input.size() == 2) {
+                        return floatScale(field, parseLong(input.get(1)), 0);
+                    } else if(input.size() == 1) {
+                        return floatScale(field, 1, 0);
+                    } else {
+                        throw new IllegalStateException("???");
                     }
                 }
             });
@@ -597,7 +618,7 @@ public final class IQLTranslator {
                     }
                     final String luceneQuery = getStr(input.get(0));
                     final com.indeed.flamdex.query.Query flamdexQuery = parseLuceneQuery(luceneQuery, datasetMetadata);
-                    return lucene(flamdexQuery);
+                    return lucene(luceneQuery, flamdexQuery);
                 }
             });
             statLookup = builder.build();
@@ -630,12 +651,13 @@ public final class IQLTranslator {
                         if(field == null) {
                             throw new IqlKnownException.UnknownFieldException("Field not found: " + fieldName);
                         }
+                        final Field f = getField(fieldName, datasetMetadata);
                         fieldNames.add(fieldName);
                         if(field.isIntField() && right instanceof NumberExpression) {
                             long value = parseLong(right);
-                            return hasInt(fieldName, value);
+                            return hasInt(f, value);
                         } else {
-                            return hasString(fieldName, getStr(right));
+                            return hasString(f, getStr(right));
                         }
                         // if it got here, it's not a has[str/int] operation
                     }
@@ -694,8 +716,9 @@ public final class IQLTranslator {
             if(!datasetMetadata.hasField(name)) {
                 throw new IqlKnownException.UnknownFieldException("Unknown field name in a stat: " + name);
             }
+            final Field field = getField(name, datasetMetadata);
             fieldNames.add(name);
-            return intField(name);
+            return intField(field);
         }
 
         protected Stat numberExpression(final String value) {
@@ -728,7 +751,7 @@ public final class IQLTranslator {
                     }
                     final String queryString = getStr(input.get(0));
                     final com.indeed.flamdex.query.Query luceneQuery = parseLuceneQuery(queryString, datasetMetadata);
-                    return new QueryCondition(luceneQuery, negation);
+                    return new QueryCondition(queryString, luceneQuery, negation);
                 }
             };
             builder.put("lucene", luceneQueryHandler);
@@ -773,7 +796,7 @@ public final class IQLTranslator {
                         // generate a new salt
                         salt = String.valueOf(System.nanoTime() % Integer.MAX_VALUE);
                     }
-                    return new SampleCondition(field, (double) numerator / denominator, salt, negation);
+                    return new SampleCondition(field, numerator, denominator, salt, negation);
                     // we can also do it through a predicate condition but that requires FTGS instead of a regroup
                 }
             });
@@ -801,7 +824,7 @@ public final class IQLTranslator {
                                 strings[index++] = getStr(expression);
                             }
                             Arrays.sort(strings);   // looks like terms being sorted is a pre-requisite of stringOrRegroup()
-                            return Lists.newArrayList(new StringInCondition(Field.stringField(name.name), usingNegation, false, strings));
+                            return Lists.newArrayList(new StringInCondition(getStringField(name.name, datasetMetadata), usingNegation, false, strings));
                         } else if (datasetMetadata.hasIntField(name.name)) {
                             fieldNames.add(name.name);
                             final long[] ints = new long[values.expressions.size()];
@@ -813,7 +836,7 @@ public final class IQLTranslator {
                                 ints[index++] = parseLong(expression);
                             }
                             Arrays.sort(ints); // looks like terms being sorted is a pre-requisite of intOrRegroup()
-                            return Lists.newArrayList(new IntInCondition(Field.intField(name.name), usingNegation, ints));
+                            return Lists.newArrayList(new IntInCondition(getIntField(name.name, datasetMetadata), usingNegation, ints));
                         } else {
                             throw new IqlKnownException.UnknownFieldException("Unknown field: " + name.name);
                         }
@@ -857,7 +880,7 @@ public final class IQLTranslator {
                     final String regexp = getStr(right);
                     // validate the provided regex
                     ValidationUtil.compileRegex(regexp);
-                    return Collections.singletonList(new RegexCondition(Field.stringField(fieldName), regexp,
+                    return Collections.singletonList(new RegexCondition(getStringField(fieldName, datasetMetadata), regexp,
                         usingNegation));
                 case AND:
                     final List<Condition> ret = Lists.newArrayList();
@@ -925,14 +948,14 @@ public final class IQLTranslator {
             if (datasetMetadata.hasStringField(name.name)) {
                 final String value = getStr(right);
                 final String[] strings = new String[] { value };
-                return Lists.newArrayList(new StringInCondition(Field.stringField(name.name), usingNegation, true, strings));
+                return Lists.newArrayList(new StringInCondition(getStringField(name.name, datasetMetadata), usingNegation, true, strings));
             } else if (datasetMetadata.hasIntField(name.name)) {
                 final long[] ints = new long[1];
                 if(!(right instanceof NumberExpression)) {
                     throw new IqlKnownException.FieldTypeMismatchException(name.name + " is an integer field and has to be compared to an integer. Instead was given: " + right.toString());
                 }
                 ints[0] = parseLong(right);
-                return Lists.newArrayList(new IntInCondition(Field.intField(name.name), usingNegation, ints));
+                return Lists.newArrayList(new IntInCondition(getIntField(name.name, datasetMetadata), usingNegation, ints));
             } else {
                 throw new IqlKnownException.UnknownFieldException("Unknown field: " + name.name);
             }
@@ -1060,7 +1083,7 @@ public final class IQLTranslator {
                                 noGutters = "true".equalsIgnoreCase(noGuttersStr) || "1".equals(noGuttersStr);
                             }
                             return new StatRangeGrouping(input.get(0).match(statMatcher), min, max, interval, noGutters,
-                                    new LongStringifier(), false, limits);
+                                    new LongStringifier(), false, Optional.empty(), limits);
                         } else if (input.size() == 8) {
                             throw new IqlKnownException.ParseErrorException("DEPRECATED: queries using buckets() with 8 args should be rewritten as 2 buckets() groupings with 4 args each");
                         } else {
@@ -1116,9 +1139,10 @@ public final class IQLTranslator {
             if (timeField != null) {
                 stat = timeField.match(statMatcher);
             } else {
-                stat = intField(DatasetMetadata.TIME_FIELD_NAME);
+                final Field.IntField field = getIntField(DatasetMetadata.TIME_FIELD_NAME, datasetMetadata);
+                stat = intField(field);
             }
-            return new StatRangeGrouping(stat, min, max, interval, false, stringifier, true, limits);
+            return new StatRangeGrouping(stat, min, max, interval, false, stringifier, true, Optional.ofNullable(format), limits);
         }
 
 

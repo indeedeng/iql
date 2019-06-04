@@ -19,7 +19,7 @@ repositories {
 }
 
 ext {
-    imhotepVersion = '3.1.176'
+    imhotepVersion = '3.1.183'
     imsVersion = '4.0.14'
 }
 
@@ -119,4 +119,8 @@ tasks.withType(JavaCompile) {
 
 javadoc {
     options.encoding = 'UTF-8'
+}
+
+generateGrammarSource {
+    arguments += ["-package", "com.indeed.iql2.language"]
 }

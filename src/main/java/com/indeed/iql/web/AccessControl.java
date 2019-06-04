@@ -31,19 +31,24 @@ import java.util.Set;
 
 public class AccessControl {
     private static final Logger log = Logger.getLogger(AccessControl.class);
+    public static final String MULTIUSER_CLIENT_DEFAULT_IDENTITY = "defaultuser";
+    public static final String SINGLEUSER_CLIENT_DEFAULT_IDENTITY = "defaultclient";
 
     private final Set<String> bannedUsers;
     private final Set<String> multiuserClients;
+    private final Set<String> interactiveClients;
     @Nullable private final IQLDB iqldb;
     private final Limits defaultLimits;
     private final Set<String> privilegedDatasets;
     private final Set<String> privilegedDatasetsUsers;
     private Map<String, Limits> identityToLimits = Maps.newHashMap();
 
-    public AccessControl(Collection<String> bannedUsers, Collection<String> multiuserClients, @Nullable IQLDB iqldb, Limits defaultLimits,
+    public AccessControl(Collection<String> bannedUsers, Collection<String> multiuserClients,
+                         Collection<String> interactiveClients, @Nullable IQLDB iqldb, Limits defaultLimits,
                          Set<String> privilegedDatasets, Set<String> privilegedDatasetsUsers) {
         this.bannedUsers = Sets.newHashSet(bannedUsers);
         this.multiuserClients = Sets.newHashSet(multiuserClients);
+        this.interactiveClients = Sets.newHashSet(interactiveClients);
         this.iqldb = iqldb;
         this.defaultLimits = defaultLimits;
         this.privilegedDatasets = Sets.newHashSet(privilegedDatasets);
@@ -63,6 +68,17 @@ public class AccessControl {
     }
 
     public Limits getLimitsForIdentity(String username, String client) {
+        final Limits dbBasedLimits = getDBLimitsForIdentity(username, client);
+        // TODO: move priority to the DB tbllimits
+        final boolean isInteractiveClient = interactiveClients.contains(client);
+        final byte priority = (byte) (isInteractiveClient ? 50 : 0);
+        return new Limits(priority, dbBasedLimits.queryDocumentCountLimitBillions, dbBasedLimits.queryInMemoryRowsLimit,
+                dbBasedLimits.queryFTGSIQLLimitMB, dbBasedLimits.queryFTGSImhotepDaemonLimitMB,
+                dbBasedLimits.concurrentQueriesLimit, dbBasedLimits.concurrentImhotepSessionsLimit);
+    }
+
+
+    private Limits getDBLimitsForIdentity(String username, String client) {
         // We have 2 limits sub-hierarchies
         final boolean isMultiuserClient = isMultiuserClient(client);
 
@@ -74,7 +90,7 @@ public class AccessControl {
         }
 
         // Try to use the default permissions from the DB
-        final String defaultLimitsGroup = isMultiuserClient ? "defaultuser" : "defaultclient";
+        final String defaultLimitsGroup = isMultiuserClient ? MULTIUSER_CLIENT_DEFAULT_IDENTITY : SINGLEUSER_CLIENT_DEFAULT_IDENTITY;
         limits = identityToLimits.get(defaultLimitsGroup);
         if(limits != null) {
             return limits;

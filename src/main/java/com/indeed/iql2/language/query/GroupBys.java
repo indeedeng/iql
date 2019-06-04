@@ -146,7 +146,7 @@ public class GroupBys {
                 } else {
                     final ImmutableSet<Term> terms = ImmutableSet.copyOf(ctx.terms.stream().map(Term::parseTerm).iterator());
                     final boolean withDefault = ctx.withDefault != null;
-                    accept(new GroupBy.GroupByFieldIn(field, terms, withDefault), aggregatedContext);
+                    accept(new GroupBy.GroupByFieldIn(field, terms, withDefault, ctx.useLegacy), aggregatedContext);
                 }
             }
 
@@ -212,12 +212,10 @@ public class GroupBys {
                 final Optional<String> timeFormat;
                 if (ctx.groupByTime().timeFormat != null) {
                     final String format = ctx.groupByTime().timeFormat.getText();
-                    if (format.startsWith("\'") && format.endsWith("\'")) {
-                        timeFormat = Optional.of(ParserCommon.unquote(format));
-                    } else if (format.startsWith("\"") && format.endsWith("\"")) {
-                        timeFormat = Optional.of(ParserCommon.unquote(format));
+                    if ("default".equalsIgnoreCase(format)) {
+                        timeFormat = Optional.empty();
                     } else {
-                        timeFormat = Optional.of(format);
+                        timeFormat = Optional.of(ParserCommon.unquote(format, ctx.useLegacy));
                     }
                 } else {
                     timeFormat = Optional.empty();

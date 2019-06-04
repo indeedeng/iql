@@ -21,10 +21,10 @@ import com.indeed.iql1.ez.Field;
  * @author jplaisance
  */
 public final class StringInCondition implements Condition {
-    private final Field.StringField stringField;
-    private final boolean equality;   // true = equality, false = IN clause
-    private final String[] values;
-    private final boolean negation;
+    public final Field.StringField stringField;
+    public final boolean equality;   // true = equality, false = IN clause
+    public final String[] values;
+    public final boolean negation;
 
     public StringInCondition(Field.StringField stringField, boolean negation, boolean isEquality, final String... values) {
         this.stringField = stringField;

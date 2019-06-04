@@ -14,8 +14,8 @@
 
 package com.indeed.iql2.server.web.servlets.query;
 
+import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.iql.exceptions.OutputStreamFlushException;
-import com.indeed.iql2.execution.ImhotepSessionHolder;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.commands.Command;
 import com.indeed.iql2.execution.progress.ProgressCallback;
@@ -70,7 +70,7 @@ public class EventStreamProgressCallback implements ProgressCallback {
     }
 
     @Override
-    public void sessionOpened(final ImhotepSessionHolder session) {
+    public void sessionOpened(final ImhotepSession session) {
         if (!isStream) {
             return;
         }

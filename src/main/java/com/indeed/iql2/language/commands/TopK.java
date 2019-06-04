@@ -14,12 +14,15 @@
 
 package com.indeed.iql2.language.commands;
 
+import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.AggregateMetric;
 import com.indeed.iql2.language.SortOrder;
+import com.indeed.iql2.language.util.ValidationHelper;
+import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import com.indeed.iql2.language.DocFilter;
@@ -59,5 +62,18 @@ public class TopK {
 
     public TopK traverse1(final Function<AggregateMetric, AggregateMetric> f) {
             return new TopK(limit, Optional.of(f.apply(metric)), sortOrder);
+    }
+
+    public void validate(final ValidationHelper validationHelper, final ErrorCollector errorCollector) {
+        metric.validate(validationHelper.datasets(), validationHelper, errorCollector);
+        if (limit.isPresent()) {
+            final long limitValue = limit.get();
+            // arbitrarily subtracting 1 because boundaries are easy to get screwy and this number is
+            // already too massive to be reasonable.
+            final int groupLimit = Objects.firstNonNull(validationHelper.limits.queryInMemoryRowsLimit, 1_000_000);
+            if ((limitValue <= 0) || (limitValue > groupLimit)) {
+                errorCollector.error("The K in Top K must be in [1, " + groupLimit + "). Value was: " + limitValue);
+            }
+        }
     }
 }

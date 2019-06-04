@@ -134,7 +134,7 @@ public class Term {
 
             public void enterLegacyStringTerm(final JQLParser.LegacyStringTermContext ctx) {
                 if (ctx.STRING_LITERAL() != null) {
-                    accept(term(ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
+                    accept(term(ParserCommon.unquoteLegacy(ctx.STRING_LITERAL().getText())));
                 } else if (ctx.identifier() != null) {
                     accept(term(ctx.identifier().getText()));
                 }

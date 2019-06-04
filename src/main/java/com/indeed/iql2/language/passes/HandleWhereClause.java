@@ -37,7 +37,7 @@ public class HandleWhereClause {
 
     public static Result handleWhereClause(Query query) {
         if (query.filter.isPresent()) {
-            final Query newQuery = new Query(query.datasets, Optional.empty(), query.groupBys, query.selects, query.formatStrings, query.options, query.rowLimit, query.useLegacy);
+            final Query newQuery = new Query(query.datasets, Optional.empty(), query.groupBys, query.selects, query.formatStrings, query.options, query.rowLimit, query.useLegacy).copyPosition(query);
 
             if (query.options.contains(QueryOptions.Experimental.PWHERE)) {
                 final DocFilter constantFolded = ConstantFolding.apply(query.filter.get());
@@ -49,7 +49,6 @@ public class HandleWhereClause {
                 final List<Action> optimizedActions = Actions.optimizeConsecutiveQueryActions(naiveActions);
                 return new Result(newQuery, Collections.singletonList(new ExecutionStep.FilterActions(ImmutableList.copyOf(optimizedActions))));
             }
-
         } else {
             return new Result(query, Collections.emptyList());
         }

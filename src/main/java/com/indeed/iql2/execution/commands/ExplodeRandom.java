@@ -15,7 +15,7 @@
 package com.indeed.iql2.execution.commands;
 
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
-import com.indeed.iql2.execution.ImhotepSessionHolder;
+import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.SessionCallback;
 import com.indeed.iql2.execution.groupkeys.sets.RandomGroupKeySet;
@@ -47,8 +47,8 @@ public class ExplodeRandom implements Command {
 
         session.process(new SessionCallback() {
             @Override
-            public void handle(final TracingTreeTimer timer, final String name, final ImhotepSessionHolder session) throws ImhotepOutOfMemoryException {
-                final List<String> stat = randomDocMetric.getPushes(session.getDatasetName());
+            public void handle(final TracingTreeTimer timer, final String name, final ImhotepSession session) throws ImhotepOutOfMemoryException {
+                final List<String> stat = randomDocMetric.getPushes(name);
                 timer.push("metricRegroup");
                 session.metricRegroup(stat, 0, k + 1, 1, true);
                 timer.pop();
