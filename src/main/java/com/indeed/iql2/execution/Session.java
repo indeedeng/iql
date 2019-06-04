@@ -39,6 +39,7 @@ import com.indeed.imhotep.api.GroupStatsIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.api.PerformanceStats;
+import com.indeed.imhotep.api.RegroupParams;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.io.RequestTools;
 import com.indeed.imhotep.io.SingleFieldRegroupTools;
@@ -1483,9 +1484,9 @@ public class Session {
 
     public static int regroupWithSender(final ImhotepSession imhotepSession, final RequestTools.GroupMultiRemapRuleSender sender, final boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
         if (imhotepSession instanceof RemoteImhotepMultiSession) {
-            return ((RemoteImhotepMultiSession) imhotepSession).regroupWithRuleSender(sender, errorOnCollisions);
+            return ((RemoteImhotepMultiSession) imhotepSession).regroupWithRuleSender(RegroupParams.DEFAULT, sender, errorOnCollisions);
         } else if (imhotepSession instanceof BatchRemoteImhotepMultiSession) {
-            return ((BatchRemoteImhotepMultiSession) imhotepSession).regroupWithRuleSender(sender, errorOnCollisions);
+            return ((BatchRemoteImhotepMultiSession) imhotepSession).regroupWithRuleSender(RegroupParams.DEFAULT, sender, errorOnCollisions);
         }
         throw new IllegalStateException("Must have RemoteImhotepMultiSession or BatchRemoteImhotepMultiSession");
     }
