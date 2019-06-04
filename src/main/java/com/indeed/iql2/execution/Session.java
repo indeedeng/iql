@@ -324,7 +324,7 @@ public class Session {
             }
             final ImhotepClient.SessionBuilder sessionBuilder = client
                 .sessionBuilder(imhotepDataset, startDateTime, endDateTime)
-                .clientName(clientName)
+                .clientName("IQL:" + clientName)
                 .username(username)
                 .priority(priority)
                 .shardsOverride(chosenShards)
