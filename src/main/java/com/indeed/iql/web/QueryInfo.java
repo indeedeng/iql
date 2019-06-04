@@ -78,6 +78,8 @@ public class QueryInfo {
     @Nullable public Long cpuSlotsWaitTimeMs;
     @Nullable public Long ioSlotsExecTimeMs;
     @Nullable public Long ioSlotsWaitTimeMs;
+    @Nullable public Long p2pIOSlotsExecTimeMs;
+    @Nullable public Long p2pIOSlotsWaitTimeMs;
     @Nullable public Long queryId;
     @Nullable public Set<String> sessionIDs;
     @Nullable public Integer numShards;
@@ -132,6 +134,8 @@ public class QueryInfo {
         cpuSlotsWaitTimeMs = performanceStats.cpuSlotsWaitTimeMs;
         ioSlotsExecTimeMs = performanceStats.ioSlotsExecTimeMs;
         ioSlotsWaitTimeMs = performanceStats.ioSlotsWaitTimeMs;
+        p2pIOSlotsExecTimeMs = performanceStats.p2pIOSlotsExecTimeMs;
+        p2pIOSlotsWaitTimeMs = performanceStats.p2pIOSlotsWaitTimeMs;
         final Long downloadedBytes = performanceStats.customStats.get("downloadedBytes");
         if (downloadedBytes != null) {
             imhotepFilesDownloadedMB = downloadedBytes / 1024 / 1024;
