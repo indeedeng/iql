@@ -69,7 +69,7 @@ public class RegexTest {
     public void testExpensive() throws Exception {
         QueryServletTestUtils.expectExceptionAll(
                 "from organic yesterday today where tk =~ \".*ios.*|.*software.*|.*web.*|.*java.*|.*hadoop.*|.*spark.*|.*nlp.*|.*algorithm.*|.*python.*|.*matlab.*|.*swift.*|.*android.*\" select count()",
-                ex -> ex.contains("RegexTooComplexException"));
+                ex -> ex.contains("The provided regex is too complex."));
     }
 
     @Test

@@ -24,6 +24,7 @@ import com.indeed.iql2.language.query.Dataset;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.util.core.Pair;
+import org.apache.log4j.Logger;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -34,7 +35,15 @@ import java.util.Map;
  * @author zheli
  */
 public class CommandValidator {
+    private static final Logger log = Logger.getLogger(CommandValidator.class);
+
     private CommandValidator() {
+    }
+
+    private static class ValidateThrewExceptionException extends RuntimeException {
+        public ValidateThrewExceptionException(final Throwable cause) {
+            super(cause);
+        }
     }
 
     public static void validate(
@@ -46,7 +55,12 @@ public class CommandValidator {
         final List<Command> commands = query.commands();
         final ValidationHelper validationHelper = buildValidationHelper(query.datasets, query.nameToIndex(), datasetsMetadata, query.useLegacy, limits);
         for (final Command command : commands) {
-            command.validate(validationHelper, errorCollector);
+            try {
+                command.validate(validationHelper, errorCollector);
+            } catch (final Exception e) {
+                log.error("Validate threw an exception!", new ValidateThrewExceptionException(e));
+                errorCollector.error(e.getMessage());
+            }
         }
 
         if (!commands.isEmpty()) {

@@ -126,8 +126,8 @@ public class Dataset extends AbstractPositional {
             Query.Context context) {
         ScopedFieldResolver fieldResolver = context.fieldResolver;
         final Positioned<String> dataset = fieldResolver.resolveImhotepDataset(datasetContext.index);
-        final Positioned<DateTime> start = parseDateTime(datasetContext.start, datasetContext.useLegacy, context.clock);
-        final Positioned<DateTime> end = parseDateTime(datasetContext.end, datasetContext.useLegacy, context.clock);
+        final Positioned<DateTime> start = parseDateTime(datasetContext.startTime, datasetContext.useLegacy, context.clock);
+        final Positioned<DateTime> end = parseDateTime(datasetContext.endTime, datasetContext.useLegacy, context.clock);
         final Optional<Positioned<String>> name = Optional.ofNullable(datasetContext.name).map(Identifiers::parseIdentifier);
 
         final ShardResolver.ShardResolutionResult resolutionResult = getShards(context, dataset.unwrap(), start.unwrap(), end.unwrap(), name.map(Positioned::unwrap));

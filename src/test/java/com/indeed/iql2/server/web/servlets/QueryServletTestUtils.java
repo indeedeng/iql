@@ -89,6 +89,7 @@ public class QueryServletTestUtils extends BasicTest {
             OPTIONS_TO_TEST = ImmutableList.of(
                     ImmutableSet.of(),
                     ImmutableSet.of(QueryOptions.PARANOID),
+                    ImmutableSet.of(QueryOptions.Experimental.BATCH),
                     ImmutableSet.of(QueryOptions.Experimental.FTGS_POOLED_CONNECTION)
             );
         }
@@ -115,6 +116,7 @@ public class QueryServletTestUtils extends BasicTest {
 				new FieldFrequencyCache(null),
                 options.wallClock,
                 defaultOptions,
+                0,
                 IQLEnv.DEVELOPER
         );
     }
@@ -595,7 +597,7 @@ public class QueryServletTestUtils extends BasicTest {
             runQuery(client, query, version, EVENT_STREAM, options, Collections.emptySet());
             Assert.fail("No exception returned in expectException");
         } catch (final Exception e) {
-            Assert.assertTrue(exceptionMessagePredicate.test(e.getMessage()));
+            Assert.assertTrue("Thrown exception message \"" + e.getMessage() + "\" failed to match predicate", exceptionMessagePredicate.test(e.getMessage()));
         }
     }
 

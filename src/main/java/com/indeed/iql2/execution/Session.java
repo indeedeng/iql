@@ -39,6 +39,7 @@ import com.indeed.imhotep.api.GroupStatsIterator;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.api.PerformanceStats;
+import com.indeed.imhotep.api.RegroupParams;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.io.RequestTools;
 import com.indeed.imhotep.io.SingleFieldRegroupTools;
@@ -189,6 +190,7 @@ public class Session {
 
         final List<String> optionsList = new ArrayList<>(optionsSet);
         final boolean requestRust = optionsSet.contains(QueryOptions.USE_RUST_DAEMON);
+        final boolean useBatchMode = optionsSet.contains(QueryOptions.Experimental.BATCH);
         final boolean p2pCache = optionsList.contains(QueryOptions.Experimental.P2P_CACHE);
         final boolean ftgsPooledConnection = optionsList.contains(QueryOptions.Experimental.FTGS_POOLED_CONNECTION);
 
@@ -196,7 +198,7 @@ public class Session {
         progressCallback.preSessionOpen(datasets);
 
         treeTimer.push("createSubSessions");
-        final long firstStartTimeMillis = createSubSessions(client, requestRust, p2pCache, datasets,
+        final long firstStartTimeMillis = createSubSessions(client, requestRust, useBatchMode, p2pCache, datasets,
                 strictCloser, sessions, treeTimer, imhotepLocalTempFileSizeLimit, imhotepDaemonTempFileSizeLimit, priority,
                 username, ftgsPooledConnection, progressCallback);
         progressCallback.sessionsOpened(sessions);
@@ -283,6 +285,7 @@ public class Session {
     private static long createSubSessions(
             final ImhotepClient client,
             final boolean requestRust,
+            final boolean useBatchMode,
             final boolean p2pCache,
             final List<Queries.QueryDataset> sessionRequest,
             final StrictCloser strictCloser,
@@ -338,8 +341,9 @@ public class Session {
             ImhotepSession imhotepSession = strictCloser.registerOrClose(sessionBuilder.build());
             treeTimer.pop();
 
-            // All requests will use Batch mode.
-            imhotepSession = ((RemoteImhotepMultiSession) imhotepSession).toBatch();
+            if (useBatchMode) {
+                imhotepSession = ((RemoteImhotepMultiSession) imhotepSession).toBatch();
+            }
 
             treeTimer.pop();
 
@@ -1482,9 +1486,9 @@ public class Session {
 
     public static int regroupWithSender(final ImhotepSession imhotepSession, final RequestTools.GroupMultiRemapRuleSender sender, final boolean errorOnCollisions) throws ImhotepOutOfMemoryException {
         if (imhotepSession instanceof RemoteImhotepMultiSession) {
-            return ((RemoteImhotepMultiSession) imhotepSession).regroupWithRuleSender(sender, errorOnCollisions);
+            return ((RemoteImhotepMultiSession) imhotepSession).regroupWithRuleSender(RegroupParams.DEFAULT, sender, errorOnCollisions);
         } else if (imhotepSession instanceof BatchRemoteImhotepMultiSession) {
-            return ((BatchRemoteImhotepMultiSession) imhotepSession).regroupWithRuleSender(sender, errorOnCollisions);
+            return ((BatchRemoteImhotepMultiSession) imhotepSession).regroupWithRuleSender(RegroupParams.DEFAULT, sender, errorOnCollisions);
         }
         throw new IllegalStateException("Must have RemoteImhotepMultiSession or BatchRemoteImhotepMultiSession");
     }

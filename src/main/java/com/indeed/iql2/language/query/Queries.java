@@ -270,9 +270,9 @@ public class Queries {
             final JQLParser.DatasetContext datasetCtx = queryContext.fromContents().dataset();
             dataset = datasetCtx.index.getText();
             start = parsed.datasets.get(0).startInclusive.unwrap().toString();
-            startRawString = removeQuotes(getText(queryInputStream, datasetCtx.start, seenComments));
+            startRawString = removeQuotes(getText(queryInputStream, datasetCtx.startTime, seenComments));
             end = parsed.datasets.get(0).endExclusive.unwrap().toString();
-            endRawString = removeQuotes(getText(queryInputStream, datasetCtx.end, seenComments));
+            endRawString = removeQuotes(getText(queryInputStream, datasetCtx.endTime, seenComments));
         } else {
             dataset = "";
             start = "";
@@ -307,8 +307,8 @@ public class Queries {
     private static SplitQuery.Dataset extractDataset(final JQLParser.DatasetContext datasetContext, final CharStream queryInputStream) {
         final String start, end;
         if (datasetContext.start != null) {
-            start = getText(queryInputStream, datasetContext.start);
-            end = getText(queryInputStream, datasetContext.end);
+            start = getText(queryInputStream, datasetContext.startTime);
+            end = getText(queryInputStream, datasetContext.endTime);
         } else {
             start = "";
             end = "";

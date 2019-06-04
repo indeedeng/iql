@@ -82,7 +82,7 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
             } else if (computation instanceof GetGroupPercentiles) {
                 final GetGroupPercentiles getGroupPercentiles = (GetGroupPercentiles) computation;
                 fields.add(getGroupPercentiles.field);
-                handlerables.add(new NameIt<>(session, p -> longToDouble(p[0]), getGroupPercentiles.iterateHandler(session), name));
+                handlerables.add(new NameIt<>(session, p -> longToDouble(p), getGroupPercentiles.iterateHandler(session), name));
             } else if (computation instanceof GetGroupStats) {
                 final double[][] groupStats = ((GetGroupStats)computation).evaluate(session);
                 final double[] results = Arrays.copyOf(groupStats[0], session.numGroups + 1);

@@ -18,6 +18,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.indeed.flamdex.MemoryFlamdex;
 import com.indeed.flamdex.writer.FlamdexDocument;
+import com.indeed.imhotep.client.Host;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.service.ShardMasterAndImhotepDaemonClusterRunner;
 import com.indeed.ims.client.DatasetInterface;
@@ -32,6 +33,7 @@ import it.unimi.dsi.fastutil.longs.LongList;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -49,6 +51,9 @@ import java.util.stream.Collectors;
  * for other queries use: eg: testAll(dataset, query), it will check the normal shards and dimension shards
  */
 public class Dataset {
+    static final String DIMENSION_SHARDMASTER = "DIMENSION_SHARDMASTER";
+    static final String NORMAL_SHARDMASTER = "NORMAL_SHARDMASTER";
+
     public final List<DatasetShard> shards;
     private final ImsClientInterface dimensionImsClient;
 
@@ -113,23 +118,46 @@ public class Dataset {
 
     public ImhotepClient getNormalClient() {
         if (normalClient == null) {
-            try {
-                normalClient = makeClient(getShards());
-            } catch (final Exception e) {
-                throw Throwables.propagate(e);
+            final String propertiesShardmaster = System.getProperty(NORMAL_SHARDMASTER);
+            if (propertiesShardmaster != null) {
+                normalClient = new ImhotepClient(parseHostStrings(propertiesShardmaster));
+            } else {
+                try {
+                    normalClient = makeClient(getShards());
+                } catch (final Exception e) {
+                    throw Throwables.propagate(e);
+                }
             }
         }
         return normalClient;
+    }
+
+    private static List<Host> parseHostStrings(final String raw) {
+        final String[] hostStrings = raw.split(",");
+        final List<Host> hosts = Arrays.stream(hostStrings)
+                .map(x -> {
+                    final String[] split = x.split(":");
+                    final String hostname = split[0];
+                    final int port = Integer.parseInt(split[1]);
+                    return new Host(hostname, port);
+                })
+                .collect(Collectors.toList());
+        return hosts;
     }
 
     private ImhotepClient dimensionsClient;
 
     public ImhotepClient getDimensionsClient() {
         if (dimensionsClient == null) {
-            try {
-                dimensionsClient = makeClient(getDimensionShards());
-            } catch (final Exception e) {
-                throw Throwables.propagate(e);
+            final String propertiesShardmaster = System.getProperty(DIMENSION_SHARDMASTER);
+            if (propertiesShardmaster != null) {
+                dimensionsClient = new ImhotepClient(parseHostStrings(propertiesShardmaster));
+            } else {
+                try {
+                    dimensionsClient = makeClient(getDimensionShards());
+                } catch (final Exception e) {
+                    throw Throwables.propagate(e);
+                }
             }
         }
         return dimensionsClient;

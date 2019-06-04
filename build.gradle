@@ -19,7 +19,7 @@ repositories {
 }
 
 ext {
-    imhotepVersion = '3.1.180'
+    imhotepVersion = '3.1.186'
     imsVersion = '4.0.14'
 }
 
@@ -119,4 +119,13 @@ tasks.withType(JavaCompile) {
 
 javadoc {
     options.encoding = 'UTF-8'
+}
+
+generateGrammarSource {
+    arguments += ["-package", "com.indeed.iql2.language"]
+}
+
+task startTestImhotep(type:JavaExec) {
+    main = "com.indeed.iql2.server.web.servlets.dataset.AllData"
+    classpath = sourceSets.test.runtimeClasspath
 }

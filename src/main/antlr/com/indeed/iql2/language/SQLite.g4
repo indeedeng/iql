@@ -30,10 +30,6 @@
  */
 grammar SQLite;
 
-@header {
-package com.indeed.iql2.sqltoiql.antlr;
-}
-
 parse
  : ( sql_stmt_list | error )* EOF
  ;

@@ -1,5 +1,8 @@
 package com.indeed.iql2.server.web.servlets.dataset;
 
+import com.google.common.base.Joiner;
+import com.indeed.imhotep.client.Host;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,6 +17,7 @@ public class AllData {
         datasets.add(DimensionDataset.createDataset());
         datasets.add(DistinctDataset.createDataset());
         datasets.add(ExtractDataset.createDataset());
+        datasets.add(ExtremeValueDataset.create());
         datasets.add(FieldEqualDataset.create());
         datasets.add(FieldInQueryDataset.createAll());
         datasets.add(FloatScaleDataset.createDataset());
@@ -54,5 +58,13 @@ public class AllData {
             shards.addAll(allDataset.shards);
         }
         DATASET = new Dataset(shards);
+    }
+
+    public static void main(final String[] args) {
+        final List<Host> normalHosts = DATASET.getNormalClient().getServerHosts();
+        final String joinedNormalHosts = Joiner.on(",").join(normalHosts);
+        final List<Host> dimensionHosts = DATASET.getDimensionsClient().getServerHosts();
+        final String joinedDimensionHosts = Joiner.on(",").join(dimensionHosts);
+        System.out.println("-D" + Dataset.NORMAL_SHARDMASTER + "=" + joinedNormalHosts + " " + "-D" + Dataset.DIMENSION_SHARDMASTER + "=" + joinedDimensionHosts);
     }
 }

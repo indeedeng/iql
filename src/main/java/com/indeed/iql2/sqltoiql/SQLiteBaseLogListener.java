@@ -14,9 +14,9 @@
 
 package com.indeed.iql2.sqltoiql;
 
-import com.indeed.iql2.sqltoiql.antlr.SQLiteBaseListener;
-import com.indeed.iql2.sqltoiql.antlr.SQLiteListener;
-import com.indeed.iql2.sqltoiql.antlr.SQLiteParser;
+import com.indeed.iql2.language.SQLiteBaseListener;
+import com.indeed.iql2.language.SQLiteListener;
+import com.indeed.iql2.language.SQLiteParser;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ErrorNode;
 import org.antlr.v4.runtime.tree.TerminalNode;

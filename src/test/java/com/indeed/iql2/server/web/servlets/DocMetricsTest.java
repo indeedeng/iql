@@ -1,7 +1,6 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
-import com.indeed.imhotep.exceptions.GenericImhotepKnownException;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.junit.Test;

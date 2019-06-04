@@ -1,9 +1,5 @@
 grammar JQL;
 
-@header {
-package com.indeed.iql2.language;
-}
-
 LAG : 'LAG' ;
 RUNNING : 'RUNNING' ;
 PARENT : 'PARENT' ;
@@ -444,7 +440,7 @@ jqlDocFilter
     | singlyScopedField '=' jqlTermVal # DocFieldIs
     | singlyScopedField '!=' jqlTermVal # DocFieldIsnt
     | singlyScopedField not=NOT? IN '(' (terms += jqlTermVal)? (',' terms += jqlTermVal)* ')' # DocFieldIn
-    | singlyScopedField not=NOT? IN '(' queryNoSelect ')' # DocFieldInQuery
+    | singlyScopedField not=NOT? IN leftParen='(' queryNoSelect rightParen=')' # DocFieldInQuery
     | jqlDocMetric op=('='|'!='|'<'|'<='|'>'|'>=') jqlDocMetric # DocMetricInequality
     | (LUCENE | QUERY) '(' STRING_LITERAL ')' # Lucene
     | BETWEEN '(' metric=jqlDocMetric ',' lowerBound=integer ',' upperBound=integer ')' # DocBetween
@@ -468,7 +464,7 @@ groupByElement [boolean useLegacy]
     | QUANTILES '(' field=identifier ',' NAT ')' # QuantilesGroupBy
     | topTermsGroupByElem[$ctx.useLegacy] # TopTermsGroupBy
     | field=identifier not=NOT? IN '(' (terms += termVal[$ctx.useLegacy])? (',' terms += termVal[$ctx.useLegacy])* ')' (withDefault=WITH DEFAULT)? # GroupByFieldIn
-    | field=identifier not=NOT? IN '(' queryNoSelect ')' (withDefault=WITH DEFAULT)? # GroupByFieldInQuery
+    | field=identifier not=NOT? IN leftParen='(' queryNoSelect rightParen=')' (withDefault=WITH DEFAULT)? # GroupByFieldInQuery
     | groupByMetric[$ctx.useLegacy] # MetricGroupBy
     | groupByTime[$ctx.useLegacy] # TimeGroupBy
     | groupByField[$ctx.useLegacy] # FieldGroupBy
@@ -532,12 +528,12 @@ aliases
     ;
 
 dataset [boolean useLegacy]
-    : index=identifier ({!$ctx.useLegacy}? '(' whereContents[$ctx.useLegacy] ')')? start=dateTime end=dateTime (AS name=identifier)? aliases?
+    : index=identifier ({!$ctx.useLegacy}? leftParen='(' whereContents[$ctx.useLegacy] rightParen=')')? startTime=dateTime endTime=dateTime (AS name=identifier)? aliases?
     ;
 
 datasetOptTime [boolean useLegacy]
     : dataset[$ctx.useLegacy] # FullDataset
-    | index=identifier ({!$ctx.useLegacy}? '(' whereContents[$ctx.useLegacy] ')')? (AS name=identifier)? aliases? # PartialDataset
+    | index=identifier ({!$ctx.useLegacy}? leftParen='(' whereContents[$ctx.useLegacy] rightParen=')')? (AS name=identifier)? aliases? # PartialDataset
     ;
 
 fromContents [boolean useLegacy]
@@ -576,5 +572,5 @@ query [boolean useLegacy]
 queryNoSelect
     : FROM (same=SAME | fromContents[false])
       (WHERE whereContents[false])?
-      GROUP BY groupByContents[false]
+      (GROUP BY groupByContents[false])?
     ;
