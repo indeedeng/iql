@@ -513,7 +513,7 @@ class Parser {
                 const middle = /\s/.test(after.charAt(0)) ? '' : ' ';
                 return success(before + ' AND ' + filter + middle + after);
             } else {
-                const whereEnd = getStartStop(whereContents).stop
+                const whereEnd = getStartStop(whereContents).stop;
                 const before = input.getText(0, whereEnd);
                 const after = input.getText(whereEnd + 1, input._size);
                 const middle = /\s/.test(after.charAt(0)) ? '' : ' ';
@@ -543,15 +543,20 @@ class Parser {
         if (parsedQuery.groupByContents() !== null) {
             const groupByContents = parsedQuery.groupByContents();
             const elems = groupByContents.groupByEntry();
-            const lastElem = elems[elems.length - 1];
-            const groupByEnd = getStartStop(lastElem).stop;
-            const before = input.getText(0, groupByEnd);
-            const after = input.getText(groupByEnd + 1, input._size);
-            let middle = '';
-            if (after.charAt(0) !== ' ') {
-                middle = ' ';
+            if (elems.length > 0) {
+                const lastElem = elems[elems.length - 1];
+                const groupByEnd = getStartStop(lastElem).stop;
+                const before = input.getText(0, groupByEnd);
+                const after = input.getText(groupByEnd + 1, input._size);
+                const middle = /\s/.test(after.charAt(0)) ? '' : ' ';
+                return success(before + ', ' + groupBy + middle + after);
+            } else {
+                const groupByEnd = getStartStop(groupByContents).stop;
+                const before = input.getText(0, groupByEnd);
+                const after = input.getText(groupByEnd + 1, input._size);
+                const middle = /\s/.test(after.charAt(0)) ? '' : ' ';
+                return success(before + ' ' + groupBy + middle + after);
             }
-            return success(before + ', ' + groupBy + middle + after);
         }
         const prevElem = parsedQuery.whereContents() !== null ? parsedQuery.whereContents() : parsedQuery.fromContents();
         const end = getStartStop(prevElem).stop;
