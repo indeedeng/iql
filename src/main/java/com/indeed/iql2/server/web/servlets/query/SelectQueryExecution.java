@@ -660,6 +660,7 @@ public class SelectQueryExecution {
                             mbToBytes(limits.queryFTGSImhotepDaemonLimitMB),
                             limits.priority,
                             clientInfo.username,
+                            clientInfo.client,
                             (version == 2) ? FieldType.Integer : FieldType.String,
                             resultFormat,
                             version
