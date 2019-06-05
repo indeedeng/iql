@@ -418,7 +418,7 @@ legacyDocFilter
     | field=identifier '=' legacyTermVal # LegacyDocFieldIs
     | (negate='-')? field=identifier ':' legacyTermVal # LegacyDocLuceneFieldIs
     | field=identifier '!=' legacyTermVal # LegacyDocFieldIsnt
-    | field=identifier not=NOT? IN '(' (terms += legacyTermVal)? (',' terms += legacyTermVal)* ')' # LegacyDocFieldIn
+    | field=identifier not=NOT? IN '(' (terms += legacyTermVal (',' terms += legacyTermVal)* )? ')' # LegacyDocFieldIn
     | legacyDocMetric op=('='|'!='|'<'|'<='|'>'|'>=') legacyDocMetric # LegacyDocMetricInequality
     | (LUCENE | QUERY) '(' STRING_LITERAL ')' # LegacyLucene
     | BETWEEN '(' metric=legacyDocMetric ',' lowerBound=integer ',' upperBound=integer ')' # LegacyDocBetween
@@ -439,7 +439,7 @@ jqlDocFilter
     | singlyScopedField '!=' singlyScopedField # DocNotFieldEqual
     | singlyScopedField '=' jqlTermVal # DocFieldIs
     | singlyScopedField '!=' jqlTermVal # DocFieldIsnt
-    | singlyScopedField not=NOT? IN '(' (terms += jqlTermVal)? (',' terms += jqlTermVal)* ')' # DocFieldIn
+    | singlyScopedField not=NOT? IN '(' (terms += jqlTermVal (',' terms += jqlTermVal)* )? ')' # DocFieldIn
     | singlyScopedField not=NOT? IN leftParen='(' queryNoSelect rightParen=')' # DocFieldInQuery
     | jqlDocMetric op=('='|'!='|'<'|'<='|'>'|'>=') jqlDocMetric # DocMetricInequality
     | (LUCENE | QUERY) '(' STRING_LITERAL ')' # Lucene
@@ -463,7 +463,7 @@ groupByElement [boolean useLegacy]
     : DAYOFWEEK (hasParens='(' ')')? # DayOfWeekGroupBy
     | QUANTILES '(' field=identifier ',' NAT ')' # QuantilesGroupBy
     | topTermsGroupByElem[$ctx.useLegacy] # TopTermsGroupBy
-    | field=identifier not=NOT? IN '(' (terms += termVal[$ctx.useLegacy])? (',' terms += termVal[$ctx.useLegacy])* ')' (withDefault=WITH DEFAULT)? # GroupByFieldIn
+    | field=identifier not=NOT? IN '(' (terms += termVal[$ctx.useLegacy] (',' terms += termVal[$ctx.useLegacy])* )? ')' (withDefault=WITH DEFAULT)? # GroupByFieldIn
     | field=identifier not=NOT? IN leftParen='(' queryNoSelect rightParen=')' (withDefault=WITH DEFAULT)? # GroupByFieldInQuery
     | groupByMetric[$ctx.useLegacy] # MetricGroupBy
     | groupByTime[$ctx.useLegacy] # TimeGroupBy
