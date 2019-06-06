@@ -341,10 +341,10 @@ public class PrettyPrint {
             }
 
             @Override
-            public Void visit(GroupBy.GroupByMonth groupByMonth) {
+            public Void visit(GroupBy.GroupByUnevenTimePeriod groupByUnevenTimePeriod) {
                 context = context.withMetricAggregate();
                 sb.append("time(1month");
-                timeFieldAndFormat(groupByMonth.timeField, groupByMonth.timeFormat);
+                timeFieldAndFormat(groupByUnevenTimePeriod.timeField, groupByUnevenTimePeriod.timeFormat);
                 sb.append(')');
                 return null;
             }

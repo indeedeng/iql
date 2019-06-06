@@ -13,8 +13,40 @@ import java.util.List;
  * @author jwolfe
  */
 public class TimeRegroupDatasets {
+
+    public static final DateTimeFormatter FORMATTER = ISODateTimeFormat.dateTimeParser().withZone(BasicTest.TIME_ZONE);
+
+    static Dataset multiYearDataset() {
+        final List<Dataset.DatasetShard> shards = new ArrayList<>();
+        shards.add(makeShard("2015-01-01T00:00:00", "index20150101"));
+        shards.add(makeShard("2015-02-01T00:00:00", "index20150201"));
+        shards.add(makeShard("2015-03-01T00:00:00", "index20150301"));
+        shards.add(makeShard("2015-04-01T00:00:00", "index20150401"));
+        shards.add(makeShard("2015-05-01T00:00:00", "index20150501"));
+        shards.add(makeShard("2015-06-01T00:00:00", "index20150601"));
+        shards.add(makeShard("2015-07-01T00:00:00", "index20150701"));
+        shards.add(makeShard("2015-08-01T00:00:00", "index20150801"));
+        shards.add(makeShard("2015-09-01T00:00:00", "index20150901"));
+        shards.add(makeShard("2015-10-01T00:00:00", "index20151001"));
+        shards.add(makeShard("2015-11-01T00:00:00", "index20151101"));
+        shards.add(makeShard("2015-12-01T00:00:00", "index20151201"));
+        shards.add(makeShard("2016-01-01T00:00:00", "index20160101"));
+        shards.add(makeShard("2016-02-01T00:00:00", "index20160201"));
+        shards.add(makeShard("2016-03-01T00:00:00", "index20160301"));
+        shards.add(makeShard("2016-04-01T00:00:00", "index20160401"));
+        shards.add(makeShard("2016-05-01T00:00:00", "index20160501"));
+        return new Dataset(shards);
+    }
+
+    private static Dataset.DatasetShard makeShard(final String startDate, final String shardName) {
+        final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
+        final FlamdexDocument doc = new FlamdexDocument();
+        doc.addIntTerm("unixtime", DateTime.parse(startDate, FORMATTER).getMillis() / 1000);
+        flamdex.addDocument(doc);
+        return new Dataset.DatasetShard("multiYear", shardName, flamdex);
+    }
+
     static Dataset multiMonthDataset() {
-        final DateTimeFormatter formatter = ISODateTimeFormat.dateTimeParser().withZone(BasicTest.TIME_ZONE);
         // 10 documents in January 2015 with month = 1
         // 100 documents in February 2015 with month = 2
         // 1 document in March 2015 with month = 3
@@ -24,7 +56,7 @@ public class TimeRegroupDatasets {
             for (int i = 0; i < 10; i++) {
                 final FlamdexDocument doc = new FlamdexDocument();
                 doc.addIntTerm("month", 1);
-                doc.addIntTerm("unixtime", DateTime.parse("2015-01-01T00:00:00", formatter).getMillis() / 1000);
+                doc.addIntTerm("unixtime", DateTime.parse("2015-01-01T00:00:00", FORMATTER).getMillis() / 1000);
                 doc.addIntTerm("fakeField", 0);
                 flamdex.addDocument(doc);
             }
@@ -36,7 +68,7 @@ public class TimeRegroupDatasets {
             for (int i = 0; i < 100; i++) {
                 final FlamdexDocument doc = new FlamdexDocument();
                 doc.addIntTerm("month", 2);
-                doc.addIntTerm("unixtime", DateTime.parse("2015-02-01T00:00:00", formatter).getMillis() / 1000);
+                doc.addIntTerm("unixtime", DateTime.parse("2015-02-01T00:00:00", FORMATTER).getMillis() / 1000);
                 doc.addIntTerm("fakeField", 0);
                 flamdex.addDocument(doc);
             }
@@ -48,7 +80,7 @@ public class TimeRegroupDatasets {
             for (int i = 0; i < 1; i++) {
                 final FlamdexDocument doc = new FlamdexDocument();
                 doc.addIntTerm("month", 3);
-                doc.addIntTerm("unixtime", DateTime.parse("2015-03-01T00:00:00", formatter).getMillis() / 1000);
+                doc.addIntTerm("unixtime", DateTime.parse("2015-03-01T00:00:00", FORMATTER).getMillis() / 1000);
                 doc.addIntTerm("fakeField", 0);
                 flamdex.addDocument(doc);
             }

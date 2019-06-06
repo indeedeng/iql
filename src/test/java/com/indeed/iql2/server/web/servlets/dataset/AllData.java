@@ -37,6 +37,7 @@ public class AllData {
         datasets.add(SubQueryLimitDataset.createDataset());
         datasets.add(TimeRegroupDatasets.dayOfWeekDataset());
         datasets.add(TimeRegroupDatasets.multiMonthDataset());
+        datasets.add(TimeRegroupDatasets.multiYearDataset());
         datasets.add(TSVEscapeDataset.createDataset());
         datasets.add(CSVEscapeDataset.createDataset());
         datasets.add(ValidationDataset.createDataset());

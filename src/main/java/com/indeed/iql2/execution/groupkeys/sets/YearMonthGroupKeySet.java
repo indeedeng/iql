@@ -20,6 +20,7 @@ import com.google.common.cache.LoadingCache;
 import com.indeed.iql2.Formatter;
 import com.indeed.iql2.execution.groupkeys.GroupKey;
 import com.indeed.iql2.execution.groupkeys.StringGroupKey;
+import com.indeed.iql2.language.query.UnevenGroupByPeriod;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.joda.time.DateTime;
@@ -32,8 +33,9 @@ import java.util.Locale;
 @ToString
 public class YearMonthGroupKeySet implements GroupKeySet {
     private final GroupKeySet previous;
-    private final int numMonths;
-    private final DateTime startMonth;
+    private final int numPeriods;
+    private final DateTime start;
+    private final UnevenGroupByPeriod groupByType;
     private final String formatString;
 
     @EqualsAndHashCode.Exclude
@@ -42,20 +44,23 @@ public class YearMonthGroupKeySet implements GroupKeySet {
 
     public YearMonthGroupKeySet(
             final GroupKeySet previous,
-            final int numMonths,
-            final DateTime startMonth,
+            final int numPeriods,
+            final DateTime start,
+            final UnevenGroupByPeriod groupByType,
             final String formatString,
             final Formatter formatter) {
         this.previous = previous;
-        this.numMonths = numMonths;
-        this.startMonth = startMonth;
+        this.numPeriods = numPeriods;
+        this.start = start;
+        this.groupByType = groupByType;
         this.formatString = formatString;
         final DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern(formatString).withLocale(Locale.US);
         buildGroupKey = CacheBuilder.newBuilder()
                 .build(new CacheLoader<DateTime, StringGroupKey>() {
                     @Override
-                    public StringGroupKey load(final DateTime month) {
-                        return StringGroupKey.fromTimeRange(dateTimeFormatter, month.getMillis(), month.plusMonths(1).getMillis(), formatter);
+                    public StringGroupKey load(final DateTime start) {
+                        final DateTime end = groupByType.plusPeriods(start, 1);
+                        return StringGroupKey.fromTimeRange(dateTimeFormatter, start.getMillis(), end.getMillis(), formatter);
                     }
                 });
     }
@@ -66,24 +71,24 @@ public class YearMonthGroupKeySet implements GroupKeySet {
     }
 
     @Override
-    public int parentGroup(int group) {
-        return 1 + (group - 1) / numMonths;
+    public int parentGroup(final int group) {
+        return 1 + (group - 1) / numPeriods;
     }
 
     @Override
-    public GroupKey groupKey(int group) {
-        final int monthOffset = (group - 1) % numMonths;
-        final DateTime month = startMonth.plusMonths(monthOffset);
-        return buildGroupKey.getUnchecked(month);
+    public GroupKey groupKey(final int group) {
+        final int monthOffset = (group - 1) % numPeriods;
+        final DateTime periodStart = groupByType.plusPeriods(start, monthOffset);
+        return buildGroupKey.getUnchecked(periodStart);
     }
 
     @Override
     public int numGroups() {
-        return previous.numGroups() * numMonths;
+        return previous.numGroups() * numPeriods;
     }
 
     @Override
-    public boolean isPresent(int group) {
+    public boolean isPresent(final int group) {
         return group > 0 && group <= numGroups() && previous.isPresent(parentGroup(group));
     }
 }

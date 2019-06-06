@@ -44,7 +44,7 @@ public abstract class GroupBy extends AbstractPositional {
         T visit(GroupByTime groupByTime) throws E;
         T visit(GroupByTimeBuckets groupByTimeBuckets) throws E;
         T visit(GroupByInferredTime groupByInferredTime) throws E;
-        T visit(GroupByMonth groupByMonth) throws E;
+        T visit(GroupByUnevenTimePeriod groupByUnevenTimePeriod) throws E;
         T visit(GroupByFieldIn groupByFieldIn) throws E;
         T visit(GroupByFieldInQuery groupByFieldInQuery) throws E;
         T visit(GroupByField groupByField) throws E;
@@ -284,36 +284,40 @@ public abstract class GroupBy extends AbstractPositional {
 
     @EqualsAndHashCode(callSuper = false)
     @ToString
-    public static class GroupByMonth extends GroupBy {
+    public static class GroupByUnevenTimePeriod extends GroupBy {
+
         public final Optional<FieldSet> timeField;
         public final Optional<String> timeFormat;
+        private final UnevenGroupByPeriod groupByType;
 
-        public GroupByMonth(final Optional<FieldSet> timeField, final Optional<String> timeFormat) {
+        public GroupByUnevenTimePeriod(final Optional<FieldSet> timeField, final Optional<String> timeFormat, final UnevenGroupByPeriod groupByType) {
             this.timeField = timeField;
             this.timeFormat = timeFormat;
+            this.groupByType = groupByType;
         }
 
         @Override
-        public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
+        public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
         }
 
         @Override
-        public GroupBy transform(Function<GroupBy, GroupBy> groupBy, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
-            return groupBy.apply(new GroupByMonth(timeField, timeFormat))
+        public GroupBy transform(final Function<GroupBy, GroupBy> groupBy, final Function<AggregateMetric, AggregateMetric> f, final Function<DocMetric, DocMetric> g, final Function<AggregateFilter, AggregateFilter> h, final Function<DocFilter, DocFilter> i) {
+            return groupBy.apply(new GroupByUnevenTimePeriod(timeField, timeFormat, groupByType))
                     .copyPosition(this);
         }
 
         @Override
-        public GroupBy traverse1(Function<AggregateMetric, AggregateMetric> f) {
+        public GroupBy traverse1(final Function<AggregateMetric, AggregateMetric> f) {
             return this;
         }
 
         @Override
-        public ExecutionStep executionStep(List<Dataset> datasets) {
-            return new ExecutionStep.ExplodeMonthOfYear(
+        public ExecutionStep executionStep(final List<Dataset> datasets) {
+            return new ExecutionStep.ExplodeUnevenTimePeriod(
                     timeField,
-                    timeFormat
+                    timeFormat,
+                    groupByType
             );
         }
 

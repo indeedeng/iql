@@ -224,6 +224,28 @@ public class TimeRegroupTest extends BasicTest {
     }
 
     @Test
+    public void testQuarterRegroup() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("[2015-01-01 00:00:00, 2015-04-01 00:00:00)", "3"));
+        expected.add(ImmutableList.of("[2015-04-01 00:00:00, 2015-07-01 00:00:00)", "3"));
+        expected.add(ImmutableList.of("[2015-07-01 00:00:00, 2015-10-01 00:00:00)", "3"));
+        expected.add(ImmutableList.of("[2015-10-01 00:00:00, 2016-01-01 00:00:00)", "3"));
+        expected.add(ImmutableList.of("[2016-01-01 00:00:00, 2016-04-01 00:00:00)", "3"));
+        expected.add(ImmutableList.of("[2016-04-01 00:00:00, 2016-07-01 00:00:00)", "2"));
+        QueryServletTestUtils.testIQL2(expected, "from multiYear 2015-01-01 2016-07-01  group by time(1q) select count()");
+        QueryServletTestUtils.testIQL2(expected, "from multiYear 2015-01-01 2016-07-01  group by time(1 quarter) select count()");
+    }
+
+    @Test
+    public void testYearRegroup() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("[2015-01-01 00:00:00, 2016-01-01 00:00:00)", "12"));
+        expected.add(ImmutableList.of("[2016-01-01 00:00:00, 2017-01-01 00:00:00)", "5"));
+        QueryServletTestUtils.testIQL2(expected, "from multiYear 2015-01-01 2017-01-01  group by time(1y) select count()");
+        QueryServletTestUtils.testIQL2(expected, "from multiYear 2015-01-01 2017-01-01  group by time(1 year) select count()");
+    }
+
+    @Test
     public void testGroupByDayOfWeek() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("Monday", "18", "146"));

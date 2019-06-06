@@ -16,6 +16,7 @@ package com.indeed.iql2.language.commands;
 
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
+import com.indeed.iql2.language.query.UnevenGroupByPeriod;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
@@ -28,13 +29,15 @@ import java.util.function.Function;
 
 @EqualsAndHashCode
 @ToString
-public class ExplodeMonthOfYear implements Command {
+public class ExplodeUnevenTimePeriod implements Command {
     private final Optional<FieldSet> timeField;
     private final Optional<String> timeFormat;
+    private final UnevenGroupByPeriod groupByType;
 
-    public ExplodeMonthOfYear(final Optional<FieldSet> timeField, final Optional<String> timeFormat) {
+    public ExplodeUnevenTimePeriod(final Optional<FieldSet> timeField, final Optional<String> timeFormat, final UnevenGroupByPeriod groupByType) {
         this.timeField = timeField;
         this.timeFormat = timeFormat;
+        this.groupByType = groupByType;
     }
 
     @Override
@@ -44,6 +47,6 @@ public class ExplodeMonthOfYear implements Command {
 
     @Override
     public com.indeed.iql2.execution.commands.Command toExecutionCommand(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet, List<String> options) {
-        return new com.indeed.iql2.execution.commands.ExplodeMonthOfYear(timeField, timeFormat);
+        return new com.indeed.iql2.execution.commands.ExplodeUnevenTimePeriod(timeField, timeFormat, groupByType);
     }
 }
