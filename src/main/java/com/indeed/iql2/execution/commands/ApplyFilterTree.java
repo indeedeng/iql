@@ -37,7 +37,7 @@ public class ApplyFilterTree implements Command {
     public void execute(final Session session) throws ImhotepOutOfMemoryException {
         for (final Map.Entry<String, Session.ImhotepSessionInfo> entry : session.sessions.entrySet()) {
             final String dataset = entry.getKey();
-            final ImhotepSession imhotepSession = entry.getValue().session.getSession();
+            final ImhotepSession imhotepSession = entry.getValue().session;
             // substitute out any Qualified(dataset, X) with either true or X depending on the dataset.
             final BooleanFilterTree tree = this.tree.applyQualifieds(dataset);
             // compute the groups and find out what they're named
