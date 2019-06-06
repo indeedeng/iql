@@ -628,7 +628,6 @@ public class Session {
         }
 
         numGroups = groupKeySet.numGroups();
-        log.debug("numGroups = " + numGroups);
         timer.push("numGroups =" + numGroups);
         timer.pop();
         this.groupKeySet = new MaskingGroupKeySet(groupKeySet, anyPresent);
@@ -645,7 +644,6 @@ public class Session {
     public void assumeDense(final GroupKeySet groupKeySet, final int depthChange) {
         timer.push("assumeDense");
         numGroups = groupKeySet.numGroups();
-        log.debug("numGroups = " + numGroups);
         timer.push("numGroups =" + numGroups);
         timer.pop();
         this.groupKeySet = groupKeySet;
@@ -698,7 +696,7 @@ public class Session {
 
     public static long[] getGroupStats(final ImhotepSession session, final List<String> pushes, final TracingTreeTimer t) throws ImhotepOutOfMemoryException {
         final String pushesString = String.join(", ", pushes);
-        t.push("pushStats: " + truncate(pushesString));
+        t.push("getGroupStats: " + truncate(pushesString));
         final long[] result = session.getGroupStats(pushes);
         t.pop();
         return result;

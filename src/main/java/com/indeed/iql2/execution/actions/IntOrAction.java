@@ -21,7 +21,6 @@ import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -59,13 +58,7 @@ public class IntOrAction implements Action {
                 } else {
                     if (sortedTerms == null) {
                         session.timer.push("sort terms");
-                        sortedTerms = new long[this.terms.size()];
-                        int i = 0;
-                        for (final long term : this.terms) {
-                            sortedTerms[i] = term;
-                            i++;
-                        }
-                        Arrays.sort(sortedTerms);
+                        sortedTerms = terms.stream().mapToLong(x -> x).sorted().toArray();
                         session.timer.pop();
                     }
                     session.intOrRegroup(fieldName, sortedTerms, targetGroup, negativeGroup, positiveGroup, Collections.singleton(dataset));
