@@ -1680,8 +1680,7 @@ public abstract class DocMetric extends AbstractPositional {
         @Override
         public List<String> getPushes(final String dataset) {
             final String datasetField = field.datasetFieldName(dataset);
-            final String percentages = makePercentages(max);
-            return Collections.singletonList("random " + (isIntField ? "int" : "str") + " [" + percentages + "] " + datasetField + " \"" + salt + "\"");
+            return Collections.singletonList("random_uniform " + (isIntField ? "int" : "str") + " " + max + " " + datasetField + " \"" + salt + "\"");
         }
 
         @Override
@@ -1768,8 +1767,7 @@ public abstract class DocMetric extends AbstractPositional {
         @Override
         public List<String> getPushes(final String dataset) {
             final List<String> result = new ArrayList<>(metric.getPushes(dataset));
-            final String percentages = makePercentages(max);
-            result.add("random_metric [" + percentages + "] \"" + salt + "\"");
+            result.add("random_uniform_metric " + max + " \"" + salt + "\"");
             return result;
         }
 
@@ -1868,19 +1866,5 @@ public abstract class DocMetric extends AbstractPositional {
                 errorCollector.error(ErrorMessages.missingStringField(dataset, fieldName, this));
             }
         }
-    }
-
-    private static String makePercentages(final int max) {
-        final StringBuilder percentages = new StringBuilder();
-        final DecimalFormat decimalFormat = new DecimalFormat();
-        // DecimalFormat.DOUBLE_FRACTION_DIGITS is 340
-        decimalFormat.setMaximumFractionDigits(340);
-        for (int i = 1; i < max; i++) {
-            if (percentages.length() > 0) {
-                percentages.append(',');
-            }
-            percentages.append(decimalFormat.format(((double) i) / max));
-        }
-        return percentages.toString();
     }
 }
