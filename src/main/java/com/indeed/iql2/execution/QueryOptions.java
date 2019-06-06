@@ -57,6 +57,8 @@ public class QueryOptions {
 
         public static final String BATCH = "batch";
 
+        public static final String PWHERE = "where2";
+
         public static final String P2P_CACHE = "p2pcache";
 
         public static final String FTGS_POOLED_CONNECTION = "ftgspooledconnection";

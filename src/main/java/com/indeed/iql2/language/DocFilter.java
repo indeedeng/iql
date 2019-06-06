@@ -21,6 +21,15 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.indeed.flamdex.query.BooleanOp;
 import com.indeed.flamdex.query.Query;
+import com.indeed.imhotep.QueryRemapRule;
+import com.indeed.imhotep.api.RegroupParams;
+import com.indeed.imhotep.commands.IntOrRegroup;
+import com.indeed.imhotep.commands.QueryRegroup;
+import com.indeed.imhotep.commands.RandomMetricRegroup;
+import com.indeed.imhotep.commands.RandomRegroup;
+import com.indeed.imhotep.commands.RegexRegroup;
+import com.indeed.imhotep.commands.StringOrRegroup;
+import com.indeed.imhotep.commands.UntargetedMetricFilter;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.actions.Action;
@@ -33,6 +42,7 @@ import com.indeed.iql2.language.actions.SampleAction;
 import com.indeed.iql2.language.actions.SampleMetricAction;
 import com.indeed.iql2.language.actions.StringOrAction;
 import com.indeed.iql2.language.actions.UnconditionalAction;
+import com.indeed.iql2.language.passes.BooleanFilterTree;
 import com.indeed.iql2.language.passes.ExtractQualifieds;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.query.fieldresolution.ScopedFieldResolver;
@@ -94,6 +104,7 @@ public abstract class DocFilter extends AbstractPositional {
     public abstract DocMetric asZeroOneMetric(String dataset);
 
     public abstract List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier);
+    public abstract BooleanFilterTree asTree(GroupNameSupplier groupNameSupplier);
 
     public abstract <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E;
 
@@ -169,6 +180,15 @@ public abstract class DocFilter extends AbstractPositional {
         }
 
         @Override
+        public BooleanFilterTree asTree(final GroupNameSupplier groupNameSupplier) {
+            final RegroupParams regroupParams = groupNameSupplier.makeRegroupParams();
+            return BooleanFilterTree.of(regroupParams, dataset -> {
+                final Query query = Query.newTermQuery(term.toFlamdex(field.datasetFieldName(dataset), field.isIntField()));
+                return new QueryRegroup(regroupParams, new QueryRemapRule(1, query, 0, 1), null);
+            });
+        }
+
+        @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
         }
@@ -208,6 +228,15 @@ public abstract class DocFilter extends AbstractPositional {
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             return new Not(FieldIs.create(field, term)).getExecutionActions(scope, target, positive, negative, groupSupplier);
+        }
+
+        @Override
+        public BooleanFilterTree asTree(final GroupNameSupplier groupNameSupplier) {
+            final RegroupParams regroupParams = groupNameSupplier.makeRegroupParams();
+            return BooleanFilterTree.of(regroupParams, dataset -> {
+                final Query query = Query.newTermQuery(term.toFlamdex(field.datasetFieldName(dataset), field.isIntField()));
+                return new QueryRegroup(regroupParams, new QueryRemapRule(1, query, 1, 0), null);
+            });
         }
 
         @Override
@@ -254,6 +283,11 @@ public abstract class DocFilter extends AbstractPositional {
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             return Collections.singletonList(new FieldInQueryPlaceholderAction(field, query, isNegated, datasetsMetadata, target, positive, negative));
+        }
+
+        @Override
+        public BooleanFilterTree asTree(final GroupNameSupplier groupNameSupplier) {
+            return BooleanFilterTree.fieldInQueryPlaceholder(field, query, isNegated);
         }
 
         @Override
@@ -320,6 +354,22 @@ public abstract class DocFilter extends AbstractPositional {
         }
 
         @Override
+        public BooleanFilterTree asTree(final GroupNameSupplier groupNameSupplier) {
+            final RegroupParams regroupParams = groupNameSupplier.makeRegroupParams();
+            if (metric instanceof DocMetric.Field) {
+                final FieldSet field = ((DocMetric.Field) metric).field;
+                return BooleanFilterTree.of(regroupParams, dataset -> {
+                    final Query query = Query.newRangeQuery(field.datasetFieldName(dataset), lowerBound, upperBound, isUpperInclusive);
+                    return new QueryRegroup(regroupParams, new QueryRemapRule(1, query, 0, 1), null);
+                });
+            } else {
+                return BooleanFilterTree.of(regroupParams, dataset ->
+                    new UntargetedMetricFilter(regroupParams, metric.getPushes(dataset), lowerBound, isUpperInclusive ? upperBound : (upperBound - 1), false, null)
+                );
+            }
+        }
+
+        @Override
         public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
         }
@@ -351,6 +401,20 @@ public abstract class DocFilter extends AbstractPositional {
                 return Collections.singletonList(new MetricAction(ImmutableSet.copyOf(qualifications), this, target, positive, negative));
             } else {
                 return Collections.singletonList(new MetricAction(ImmutableSet.copyOf(scope.keySet()), this, target, positive, negative));
+            }
+        }
+
+        @Override
+        public BooleanFilterTree asTree(final GroupNameSupplier groupNameSupplier) {
+            final RegroupParams regroupParams = groupNameSupplier.makeRegroupParams();
+            final BooleanFilterTree unqualifiedTree = BooleanFilterTree.of(regroupParams, dataset -> new UntargetedMetricFilter(regroupParams, asZeroOneMetric(dataset).getPushes(dataset), 1, 1, false, null));
+            final Set<String> qualifications = Sets.union(ExtractQualifieds.extractDocMetricDatasets(m1), ExtractQualifieds.extractDocMetricDatasets(m2));
+            if (qualifications.size() > 1) {
+                throw new IqlKnownException.ParseErrorException("DocFilter cannot have multiple different qualifications! docFilter = [" + this + "], qualifications = [" + qualifications + "]");
+            } else if (qualifications.size() == 1) {
+                return BooleanFilterTree.qualified(qualifications, unqualifiedTree);
+            } else {
+                return unqualifiedTree;
             }
         }
 
@@ -837,6 +901,14 @@ public abstract class DocFilter extends AbstractPositional {
         }
 
         @Override
+        public BooleanFilterTree asTree(final GroupNameSupplier groupNameSupplier) {
+            final List<BooleanFilterTree> children = filters.stream()
+                    .map(filter -> filter.asTree(groupNameSupplier))
+                    .collect(Collectors.toList());
+            return BooleanFilterTree.and(children);
+        }
+
+        @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
         }
@@ -924,6 +996,14 @@ public abstract class DocFilter extends AbstractPositional {
         }
 
         @Override
+        public BooleanFilterTree asTree(final GroupNameSupplier groupNameSupplier) {
+            final List<BooleanFilterTree> children = filters.stream()
+                    .map(filter -> filter.asTree(groupNameSupplier))
+                    .collect(Collectors.toList());
+            return BooleanFilterTree.or(children);
+        }
+
+        @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
         }
@@ -951,6 +1031,11 @@ public abstract class DocFilter extends AbstractPositional {
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             return filter.getExecutionActions(scope, target, negative, positive, groupSupplier);
+        }
+
+        @Override
+        public BooleanFilterTree asTree(final GroupNameSupplier groupNameSupplier) {
+            return BooleanFilterTree.not(filter.asTree(groupNameSupplier));
         }
 
         @Override
@@ -988,6 +1073,12 @@ public abstract class DocFilter extends AbstractPositional {
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             return Collections.singletonList(new RegexAction(field, regex, target, positive, negative));
+        }
+
+        @Override
+        public BooleanFilterTree asTree(final GroupNameSupplier groupNameSupplier) {
+            final RegroupParams regroupParams = groupNameSupplier.makeRegroupParams();
+            return BooleanFilterTree.of(regroupParams, dataset -> new RegexRegroup(regroupParams, field.datasetFieldName(dataset), regex, 1, 0, 1, null));
         }
 
         @Override
@@ -1031,6 +1122,12 @@ public abstract class DocFilter extends AbstractPositional {
         }
 
         @Override
+        public BooleanFilterTree asTree(final GroupNameSupplier groupNameSupplier) {
+            final RegroupParams regroupParams = groupNameSupplier.makeRegroupParams();
+            return BooleanFilterTree.of(regroupParams, dataset -> new RegexRegroup(regroupParams, field.datasetFieldName(dataset), regex, 1, 1, 0, null));
+        }
+
+        @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
         }
@@ -1069,6 +1166,12 @@ public abstract class DocFilter extends AbstractPositional {
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             return Collections.singletonList(new MetricAction(ImmutableSet.copyOf(scope.keySet()), this, target, positive, negative));
+        }
+
+        @Override
+        public BooleanFilterTree asTree(final GroupNameSupplier groupNameSupplier) {
+            final RegroupParams regroupParams = groupNameSupplier.makeRegroupParams();
+            return BooleanFilterTree.of(regroupParams, dataset -> new UntargetedMetricFilter(regroupParams, asZeroOneMetric(dataset).getPushes(dataset), 1, 1, false, null));
         }
 
         @Override
@@ -1116,6 +1219,11 @@ public abstract class DocFilter extends AbstractPositional {
                 restrictedScope.put(dataset, scope.get(dataset));
             }
             return filter.getExecutionActions(restrictedScope, target, positive, negative, groupSupplier);
+        }
+
+        @Override
+        public BooleanFilterTree asTree(final GroupNameSupplier groupNameSupplier) {
+            return BooleanFilterTree.qualified(Sets.newHashSet(scope), filter.asTree(groupNameSupplier));
         }
 
         @Override
@@ -1172,6 +1280,15 @@ public abstract class DocFilter extends AbstractPositional {
         }
 
         @Override
+        public BooleanFilterTree asTree(final GroupNameSupplier groupNameSupplier) {
+            final RegroupParams regroupParams = groupNameSupplier.makeRegroupParams();
+            return BooleanFilterTree.of(regroupParams, dataset -> {
+                final Query flamdexQuery = ParserUtil.getFlamdexQuery(query, dataset, datasetsMetadata, fieldResolver);
+                return new QueryRegroup(regroupParams, new QueryRemapRule(1, flamdexQuery, 0, 1), null);
+            });
+        }
+
+        @Override
         public <T, E extends Throwable> T visit(Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
         }
@@ -1219,6 +1336,12 @@ public abstract class DocFilter extends AbstractPositional {
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             Preconditions.checkState(scope.keySet().equals(field.datasets()));
             return Collections.singletonList(new SampleAction(field, numerator, denominator, seed, target, positive, negative));
+        }
+
+        @Override
+        public BooleanFilterTree asTree(final GroupNameSupplier groupNameSupplier) {
+            final RegroupParams regroupParams = groupNameSupplier.makeRegroupParams();
+            return BooleanFilterTree.of(regroupParams, dataset -> new RandomRegroup(regroupParams, field.datasetFieldName(dataset), field.isIntField(), seed, 1 - ((double) numerator / denominator), 1, 0, 1, null));
         }
 
         @Override
@@ -1285,6 +1408,12 @@ public abstract class DocFilter extends AbstractPositional {
         }
 
         @Override
+        public BooleanFilterTree asTree(final GroupNameSupplier groupNameSupplier) {
+            final RegroupParams regroupParams = groupNameSupplier.makeRegroupParams();
+            return BooleanFilterTree.of(regroupParams, dataset -> new RandomMetricRegroup(regroupParams, metric.getPushes(dataset), seed, 1 - ((double) numerator / denominator), 1, 0, 1, null));
+        }
+
+        @Override
         public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
         }
@@ -1312,6 +1441,11 @@ public abstract class DocFilter extends AbstractPositional {
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             return Collections.singletonList(new UnconditionalAction(ImmutableSet.copyOf(scope.keySet()), target, positive));
+        }
+
+        @Override
+        public BooleanFilterTree asTree(final GroupNameSupplier groupNameSupplier) {
+            return BooleanFilterTree.of(true);
         }
 
         @Override
@@ -1354,6 +1488,11 @@ public abstract class DocFilter extends AbstractPositional {
         @Override
         public List<Action> getExecutionActions(Map<String, String> scope, int target, int positive, int negative, GroupSupplier groupSupplier) {
             return Collections.singletonList(new UnconditionalAction(ImmutableSet.copyOf(scope.keySet()), target, negative));
+        }
+
+        @Override
+        public BooleanFilterTree asTree(final GroupNameSupplier groupNameSupplier) {
+            return BooleanFilterTree.of(false);
         }
 
         @Override
@@ -1443,6 +1582,24 @@ public abstract class DocFilter extends AbstractPositional {
         }
 
         @Override
+        public BooleanFilterTree asTree(final GroupNameSupplier groupNameSupplier) {
+            final RegroupParams regroupParams = groupNameSupplier.makeRegroupParams();
+            // Some of terms cannot be represented as int.
+            // We did a warning about it in validate
+            if (field.isIntField()) {
+                final long[] terms = this.terms.stream().filter(Term::isIntTerm).mapToLong(Term::getIntTerm).toArray();
+                if (terms.length == 0) {
+                    return BooleanFilterTree.of(false);
+                } else {
+                    return BooleanFilterTree.of(regroupParams, dataset -> new IntOrRegroup(regroupParams, field.datasetFieldName(dataset), terms, 1, 0, 1, null));
+                }
+            } else {
+                final List<String> terms = this.terms.stream().map(Term::asString).collect(Collectors.toList());
+                return BooleanFilterTree.of(regroupParams, dataset -> new StringOrRegroup(regroupParams, field.datasetFieldName(dataset), terms, 1, 0, 1, null));
+            }
+        }
+
+        @Override
         public <T, E extends Throwable> T visit(final Visitor<T, E> visitor) throws E {
             return visitor.visit(this);
         }
@@ -1502,6 +1659,12 @@ public abstract class DocFilter extends AbstractPositional {
                 negative = tmp;
             }
             return Collections.singletonList(new StringOrAction(field, ImmutableSet.copyOf(fakeTerms), target, positive, negative));
+        }
+
+        @Override
+        public BooleanFilterTree asTree(final GroupNameSupplier groupNameSupplier) {
+            final RegroupParams regroupParams = groupNameSupplier.makeRegroupParams();
+            return BooleanFilterTree.of(regroupParams, dataset -> new StringOrRegroup(regroupParams, field.datasetFieldName(dataset), Collections.singletonList("fakeTerm"), 1, 0, 1, null));
         }
 
         @Override

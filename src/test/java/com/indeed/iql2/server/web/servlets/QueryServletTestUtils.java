@@ -90,6 +90,7 @@ public class QueryServletTestUtils extends BasicTest {
                     ImmutableSet.of(),
                     ImmutableSet.of(QueryOptions.PARANOID),
                     ImmutableSet.of(QueryOptions.Experimental.BATCH),
+                    ImmutableSet.of(QueryOptions.Experimental.PWHERE),
                     ImmutableSet.of(QueryOptions.Experimental.FTGS_POOLED_CONNECTION)
             );
         }

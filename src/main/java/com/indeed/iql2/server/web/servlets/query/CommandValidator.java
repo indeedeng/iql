@@ -26,7 +26,6 @@ import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.util.core.Pair;
 import org.apache.log4j.Logger;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -73,7 +72,7 @@ public class CommandValidator {
         }
     }
 
-    private static ValidationHelper buildValidationHelper(
+    public static ValidationHelper buildValidationHelper(
             final List<Dataset> relevantDatasets,
             final Map<String, String> nameToActualDataset,
             final DatasetsMetadata datasetsMetadata,
@@ -92,6 +91,6 @@ public class CommandValidator {
             relevantDatasetToMetadata.put(aliasDataset, datasetMetadata);
             datasetsTimeRange.put(aliasDataset,new Pair<>(relevantDataset.startInclusive.unwrap().getMillis(), relevantDataset.endExclusive.unwrap().getMillis()));
         }
-        return new ValidationHelper(new DatasetsMetadata(relevantDatasetToMetadata), limits, datasetsTimeRange, Collections.emptyMap(), Collections.emptyMap(), useLegacy);
+        return new ValidationHelper(new DatasetsMetadata(relevantDatasetToMetadata), limits, datasetsTimeRange, useLegacy);
     }
 }

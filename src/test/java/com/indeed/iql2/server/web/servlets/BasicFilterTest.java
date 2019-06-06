@@ -63,4 +63,16 @@ public class BasicFilterTest extends BasicTest {
         QueryServletTestUtils.testIQL2AndLegacy(ImmutableList.of(ImmutableList.of("", "129", "129", "151", "1")),
                 "from organic yesterday today select hasint(oji, 10), hasstr(oji, \"10\"), oji != \"1\", oji = \"5\"", true);
     }
+
+    @Test
+    public void testConstantFilters() throws Exception {
+        QueryServletTestUtils.testIQL2(
+                ImmutableList.of(ImmutableList.of("", "151")),
+                "from organic yesterday today where true"
+        );
+        QueryServletTestUtils.testIQL2(
+                ImmutableList.of(ImmutableList.of("", "0")),
+                "from organic yesterday today where false"
+        );
+    }
 }
