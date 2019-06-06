@@ -21,7 +21,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.io.CharStreams;
 import com.google.common.util.concurrent.UncheckedTimeoutException;
-import com.indeed.imhotep.RemoteImhotepMultiSession;
 import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.ShardInfo;
 import com.indeed.imhotep.StrictCloser;
@@ -29,6 +28,7 @@ import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.client.ImhotepClient;
+import com.indeed.imhotep.utils.tempfiles.TempFile;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql.metadata.DatasetsMetadata;
@@ -58,6 +58,7 @@ import com.indeed.iql2.language.query.fieldresolution.ScopedFieldResolver;
 import com.indeed.iql2.language.query.shardresolution.ShardResolver;
 import com.indeed.util.core.io.Closeables2;
 import com.indeed.util.logging.TracingTreeTimer;
+import com.indeed.util.tempfiles.IQLTempFiles;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
@@ -67,13 +68,11 @@ import org.joda.time.format.PeriodFormat;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -396,11 +395,11 @@ public final class IQLQuery implements Closeable {
 
     public static class WriteResults {
         public final int rowsWritten;
-        public final File unsortedFile;
+        public final TempFile unsortedFile;
         public final Iterator<GroupStats> resultCacheIterator;
         public final boolean exceedsLimit;
 
-        public WriteResults(int rowsWritten, File unsortedFile, Iterator<GroupStats> resultCacheIterator, boolean exceedsLimit) {
+        public WriteResults(int rowsWritten, TempFile unsortedFile, Iterator<GroupStats> resultCacheIterator, boolean exceedsLimit) {
             this.rowsWritten = rowsWritten;
             this.unsortedFile = unsortedFile;
             this.resultCacheIterator = resultCacheIterator;
@@ -409,7 +408,7 @@ public final class IQLQuery implements Closeable {
     }
 
     @Nonnull
-    public WriteResults outputResults(final Iterator<GroupStats> rows, PrintWriter httpOutStream, final boolean csv, final boolean progress, final int rowLimit, int groupingColumns, int selectColumns, boolean cacheDisabled) {
+    public WriteResults outputResults(final Iterator<GroupStats> rows, PrintWriter httpOutStream, final boolean csv, final boolean progress, final int rowLimit, int groupingColumns, int selectColumns, boolean cacheDisabled, final String queryHash) {
         if(cacheDisabled) { // just stream the rows out. don't have to worry about keeping a copy at all
             final int rowsWritten = writeRowsToStream(rows, httpOutStream, csv, rowLimit, progress);
             return new WriteResults(rowsWritten, null, null, rows.hasNext());
@@ -433,12 +432,12 @@ public final class IQLQuery implements Closeable {
             final boolean exceedsRowLimit = rowsLoaded >= rowLimit && rows.hasNext();
             return new WriteResults(rowsWritten, null, resultsCache.iterator(), exceedsRowLimit);
         } else {    // have to work with the files on the hard drive to avoid OOM
-            File unsortedFile = null;
+            TempFile unsortedFile = null;
             try {
-                unsortedFile = File.createTempFile(TEMP_FILE_PREFIX, null);
+                unsortedFile = IQLTempFiles.getInstance().createForIQL1(queryHash);
                 // TODO: Use LimitedBufferedOutputStream or mark as skipped on limit
                 final PrintWriter fileOutputStream = new PrintWriter(new OutputStreamWriter(
-                        new BufferedOutputStream(new FileOutputStream(unsortedFile)), Charsets.UTF_8));
+                        unsortedFile.bufferedOutputStream(), Charsets.UTF_8));
                 final long started = System.currentTimeMillis();
                 int rowsWritten = 0;
                 // flush cache
@@ -451,13 +450,17 @@ public final class IQLQuery implements Closeable {
                 log.trace("Stored on disk to " + unsortedFile.getPath() + " in " + (System.currentTimeMillis() - started) + "ms");
 
                 // send the results out to the client
-                copyStream(new FileInputStream(unsortedFile), httpOutStream, rowLimit, progress);
+                copyStream(unsortedFile.inputStream(), httpOutStream, rowLimit, progress);
 
                 final boolean exceedsRowLimit = rowsWritten >= rowLimit && rows.hasNext();
                 return new WriteResults(rowsWritten, unsortedFile, null, exceedsRowLimit);
             } catch (final Exception e) {
-                if ((unsortedFile != null) && !unsortedFile.delete()) {
-                    log.warn("Failed to delete temporary file " + unsortedFile.toString());
+                if (unsortedFile != null) {
+                    try {
+                        unsortedFile.removeFile();
+                    } catch (final Exception removeException) {
+                        log.warn("Failed to delete temporary file " + unsortedFile.getPath(), removeException);
+                    }
                 }
                 throw Throwables.propagate(e);
             }

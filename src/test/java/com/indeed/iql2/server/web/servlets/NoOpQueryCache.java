@@ -14,10 +14,10 @@
 
 package com.indeed.iql2.server.web.servlets;
 
+import com.indeed.imhotep.utils.tempfiles.TempFile;
 import com.indeed.iql.cache.CompletableOutputStream;
 import com.indeed.iql.cache.QueryCache;
 
-import java.io.File;
 import java.io.InputStream;
 
 public class NoOpQueryCache implements QueryCache {
@@ -47,8 +47,7 @@ public class NoOpQueryCache implements QueryCache {
     }
 
     @Override
-    public void writeFromFile(String cachedFileName, File localFile) {
-
+    public void writeFromFile(String cachedFileName, TempFile localFile) {
     }
 
     @Override

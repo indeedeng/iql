@@ -15,7 +15,6 @@
 
 import com.google.common.base.Strings;
 import com.indeed.iql.web.filters.LargePostFilter;
-import com.indeed.iql1.iql.IQLQuery;
 import com.indeed.iql.web.filters.NoCacheFilter;
 import org.apache.log4j.Logger;
 import org.springframework.web.WebApplicationInitializer;
@@ -28,9 +27,7 @@ import javax.servlet.FilterRegistration;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRegistration;
-import java.io.File;
 import java.util.EnumSet;
-
 
 /**
  * @author vladimir
@@ -63,41 +60,11 @@ public class WebApp  extends AbstractAnnotationConfigDispatcherServletInitialize
 
         servletContext.addFilter("largepost", LargePostFilter.class)
             .addMappingForUrlPatterns(EnumSet.of(DispatcherType.REQUEST), false, "/*");
-
-        cleanupTempFiles();
     }
 
     @Override
     protected Class<?>[] getServletConfigClasses() {
         return new Class<?>[] {SpringConfiguration.class};
-    }
-
-    private static void cleanupTempFiles() {
-        final String tempDirPath = System.getProperty("java.io.tmpdir");
-        final File tempDir = new File(tempDirPath);
-        final File[] files = tempDir.listFiles();
-        if(files == null) {
-            return;
-        }
-        int deletedCount = 0;
-        for(final File tempFile : files) {
-            final String fileName = tempFile.getName();
-            if(tempFile.isFile() && (
-                    fileName.startsWith(IQLQuery.TEMP_FILE_PREFIX) || // IQL temp file
-                    fileName.startsWith("query") && fileName.endsWith(".cache.tmp") || // IQL2 temp file
-                    fileName.startsWith("ftgs") && fileName.endsWith(".tmp") ||  // Imhotep FTGS temp file
-                    fileName.startsWith("batchGroupStatsIterator") && fileName.endsWith(".tmp") || // Batch Request temp file
-                    fileName.startsWith("groupStatsIterator") && fileName.endsWith(".tmp") // GetGroupStats temp file
-            )) {
-                if(!tempFile.delete()) {
-                    log.warn("Failed to delete temp file: " + tempFile);
-                }
-                deletedCount++;
-            }
-        }
-        if(deletedCount > 0) {
-            log.info("Cleaned up " + deletedCount + " temp files");
-        }
     }
 
     protected void initWebapp(ServletContext servletContext) {

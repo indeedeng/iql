@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.Ints;
+import com.indeed.imhotep.utils.tempfiles.TempFile;
 import com.indeed.iql.cache.CompletableOutputStream;
 import com.indeed.iql.cache.QueryCache;
 import com.indeed.util.io.Files;
@@ -26,7 +27,6 @@ import it.unimi.dsi.fastutil.bytes.ByteArrayList;
 import it.unimi.dsi.fastutil.bytes.ByteList;
 
 import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
@@ -89,8 +89,8 @@ public class InMemoryQueryCache implements QueryCache {
     }
 
     @Override
-    public void writeFromFile(String cachedFileName, File localFile) throws IOException {
-        final String[] lines = Files.readTextFileOrDie(localFile.getAbsolutePath());
+    public void writeFromFile(String cachedFileName, TempFile localFile) throws IOException {
+        final String[] lines = Files.readTextFileOrDie(localFile.getPath().toString());
         cachedValues.put(cachedFileName, Joiner.on('\n').join(lines) + '\n');
         writesTracked.add(cachedFileName);
     }
