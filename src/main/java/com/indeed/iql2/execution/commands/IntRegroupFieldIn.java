@@ -48,7 +48,7 @@ public class IntRegroupFieldIn implements Command {
         for (int i = 0; i < terms.length; i++) {
             terms[i] = intTerms.getLong(i);
         }
-        for (int group = 1; group <= session.numGroups; group++) {
+        for (int group = 1; group <= session.getNumGroups(); group++) {
             final int[] positiveGroups = new int[numTerms];
             final int baseGroup = 1 + (group - 1) * (numTerms + (withDefault ? 1 : 0));
             for (int i = 0; i < numTerms; i++) {

@@ -107,7 +107,7 @@ public class Session {
 
     public GroupKeySet groupKeySet = DumbGroupKeySet.empty();
     public final Map<String, SavedGroupStats> savedGroupStats = Maps.newHashMap();
-    public int currentDepth = 0;
+    private int currentDepth = 0;
     // Here metric totals will be saved in case of no-regroup query.
     // Saving it to not calculate this stats twice (as totals and as query results)
     private double[] statsTotals;
@@ -124,7 +124,7 @@ public class Session {
 
     // Does not count group zero.
     // Exactly equivalent to maxGroup.
-    public int numGroups = 1;
+    private int numGroups = 1;
 
     private static final String DEFAULT_FORMAT_STRING = "#.#######";
     private static final ThreadLocal<DecimalFormat> DEFAULT_DECIMAL_FORMAT = ThreadLocal.withInitial(() -> new DecimalFormat(DEFAULT_FORMAT_STRING));
@@ -149,6 +149,14 @@ public class Session {
         this.defaultFieldType = defaultFieldType;
         this.iqlVersion = iqlVersion;
         this.formatter = Formatter.forFormat(resultFormat);
+    }
+
+    public int getNumGroups() {
+        return numGroups;
+    }
+
+    public int getCurrentDepth() {
+        return currentDepth;
     }
 
     public static class CreateSessionResult {
@@ -257,7 +265,7 @@ public class Session {
             tempFileBytesWritten += Session.getTempFilesBytesWritten(sessionInfo.session);
         }
 
-        treeTimer.push("get performance stats");
+        treeTimer.push("close sessions and get performance stats");
         final PerformanceStats.Builder performanceStats = PerformanceStats.builder();
         try {
             // Close sessions and get performance stats
@@ -336,10 +344,11 @@ public class Session {
                 .allowPeerToPeerCache(p2pCache)
                 .useFtgsPooledConnection(ftgsPooledConnection);
             treeTimer.pop();
-            // TODO: message should be "build session builder (xxx shards on yyy daemons)"
-            // but we can't get information about daemons count now
-            // need to add method to RemoteImhotepMultiSession or to session builder.
-            treeTimer.push("build session builder", "build session builder (" + chosenShards.size() + " shards)");
+            final String sessionInfo = "build session builder ("
+                    + chosenShards.size() + " shards, "
+                    + chosenShards.stream().map(Shard::getServer).distinct().count() + " servers, " +
+                    + chosenShards.stream().map(Shard::getOwner).distinct().count() + " shard owner servers)";
+            treeTimer.push("build session builder", sessionInfo );
             ImhotepSession imhotepSession = strictCloser.registerOrClose(sessionBuilder.build());
             treeTimer.pop();
 
@@ -383,7 +392,7 @@ public class Session {
     private void evaluateCommand(final com.indeed.iql2.language.commands.Command lCommand,
                                  final List<String> options) throws ImhotepOutOfMemoryException, IOException {
         final String commandTreeString = lCommand.toString();
-        timer.push("evaluateCommand " + lCommand.getClass().getSimpleName(), "evaluateCommand " + (commandTreeString.length() > 500 ? (commandTreeString.substring(0, 500) + "[...](log truncated)") : commandTreeString));
+        timer.push("evaluateCommand " + lCommand.getClass().getSimpleName(), "evaluateCommand " + truncate(commandTreeString));
         try {
             final Command command = lCommand.toExecutionCommand(this::namedMetricLookup, groupKeySet, options);
             progressCallback.startCommand(this, command, false);
@@ -395,6 +404,10 @@ public class Session {
         } finally {
             timer.pop();
         }
+    }
+
+    private static String truncate(final String string) {
+        return (string.length() > 500) ? (string.substring(0, 500) + "[...](log truncated)") : string;
     }
 
     private void evaluateCommandToOutput(final com.indeed.iql2.language.commands.Command lCommand,
@@ -615,18 +628,26 @@ public class Session {
         }
 
         numGroups = groupKeySet.numGroups();
-        log.debug("numGroups = " + numGroups);
+        timer.push("numGroups =" + numGroups);
+        timer.pop();
         this.groupKeySet = new MaskingGroupKeySet(groupKeySet, anyPresent);
         currentDepth += 1;
         timer.pop();
     }
 
-    public void assumeDense(GroupKeySet groupKeySet) {
+    // accept new GroupKeySet after regroup and assume it dense.
+    public void assumeDense(final GroupKeySet groupKeySet) {
+        assumeDense(groupKeySet, 1);
+    }
+
+    // accept new GroupKeySet and assume it dense. Change depth by depthChange
+    public void assumeDense(final GroupKeySet groupKeySet, final int depthChange) {
         timer.push("assumeDense");
         numGroups = groupKeySet.numGroups();
-        log.debug("numGroups = " + numGroups);
+        timer.push("numGroups =" + numGroups);
+        timer.pop();
         this.groupKeySet = groupKeySet;
-        currentDepth += 1;
+        currentDepth += depthChange;
         timer.pop();
     }
 
@@ -673,18 +694,30 @@ public class Session {
         return FieldType.String.equals(getFieldType(field));
     }
 
-    private PerGroupConstant namedMetricLookup(String name) {
+    public static long[] getGroupStats(final ImhotepSession session, final List<String> pushes, final TracingTreeTimer t) throws ImhotepOutOfMemoryException {
+        final String pushesString = String.join(", ", pushes);
+        t.push("getGroupStats: " + truncate(pushesString));
+        final long[] result = session.getGroupStats(pushes);
+        t.pop();
+        return result;
+    }
+
+    private PerGroupConstant namedMetricLookup(final String name) {
         final SavedGroupStats savedStat = savedGroupStats.get(name);
         final int depthChange = currentDepth - savedStat.depth;
         final double[] stats = new double[numGroups + 1];
-        for (int group = 1; group <= numGroups; group++) {
-            GroupKeySet groupKeySet = this.groupKeySet;
-            int index = group;
-            for (int i = 0; i < depthChange; i++) {
-                index = groupKeySet.parentGroup(index);
-                groupKeySet = groupKeySet.previous();
+        if (depthChange == 0) {
+            System.arraycopy(savedStat.stats, 1, stats, 1, numGroups);
+        } else {
+            for (int group = 1; group <= numGroups; group++) {
+                GroupKeySet groupKeySet = this.groupKeySet;
+                int index = group;
+                for (int i = 0; i < depthChange; i++) {
+                    index = groupKeySet.parentGroup(index);
+                    groupKeySet = groupKeySet.previous();
+                }
+                stats[group] = savedStat.stats[index];
             }
-            stats[group] = savedStat.stats[index];
         }
         return new PerGroupConstant(stats);
     }

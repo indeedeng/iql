@@ -39,7 +39,7 @@ public class StringOrAction implements Action {
     }
 
     @Override
-    public void apply(Session session) throws ImhotepOutOfMemoryException {
+    public void apply(final Session session) throws ImhotepOutOfMemoryException {
         session.timer.push("sort terms");
         final String[] termsArr = terms.toArray(new String[terms.size()]);
         Arrays.sort(termsArr);

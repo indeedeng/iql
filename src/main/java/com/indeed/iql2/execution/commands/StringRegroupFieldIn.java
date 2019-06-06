@@ -47,7 +47,7 @@ public class StringRegroupFieldIn implements Command {
         final SingleFieldRegroupTools.SingleFieldRulesBuilder rules = session.createRuleBuilder(field, false, false);
         final int numTerms = terms.size();
         final String[] termsArray = terms.toArray(new String[0]) ;
-        for (int group = 1; group <= session.numGroups; group++) {
+        for (int group = 1; group <= session.getNumGroups(); group++) {
             final int[] positiveGroups = new int[numTerms];
             final int baseGroup = 1 + (group - 1) * (numTerms + (withDefault ? 1 : 0));
             for (int i = 0; i < numTerms; i++) {

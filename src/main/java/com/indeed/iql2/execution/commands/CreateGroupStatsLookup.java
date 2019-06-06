@@ -27,8 +27,7 @@ public class CreateGroupStatsLookup implements Command {
 
     @Override
     public void execute(final Session session) {
-        final int depth = session.currentDepth;
-        final double[] stats = this.stats;
+        final int depth = session.getCurrentDepth();
         final Session.SavedGroupStats savedStats = new Session.SavedGroupStats(depth, stats);
         if (session.savedGroupStats.containsKey(name)) {
             throw new IllegalArgumentException("Name already in use!: [" + name + "]");

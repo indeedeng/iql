@@ -64,7 +64,7 @@ public class ExplodePerGroup implements Command {
         final long[] emptyLongArray = new long[0];
         final String[] emptyStringArray = new String[0];
 
-        for (int group = 1; group <= session.numGroups; group++) {
+        for (int group = 1; group <= session.getNumGroups(); group++) {
             final long[] longTerms = (isIntType && intTerms[group] != null) ? intTerms[group].toLongArray() : emptyLongArray;
             final String[] stringTerms = (!isIntType && strTerms[group] != null) ? strTerms[group].toArray(emptyStringArray) : emptyStringArray;
             final int termsCount = isIntType ? longTerms.length : stringTerms.length;

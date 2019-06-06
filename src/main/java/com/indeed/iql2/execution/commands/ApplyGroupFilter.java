@@ -24,6 +24,7 @@ import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.SessionCallback;
 import com.indeed.iql2.execution.groupkeys.GroupKey;
 import com.indeed.iql2.execution.groupkeys.sets.DumbGroupKeySet;
+import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.util.logging.TracingTreeTimer;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -52,19 +53,19 @@ public class ApplyGroupFilter implements Command {
         final long[][] stats = new long[metricIndexes.size()][];
         session.process(new SessionCallback() {
             @Override
-            public void handle(final TracingTreeTimer timer, final String name, final ImhotepSession session) throws ImhotepOutOfMemoryException {
+            public void handle(final TracingTreeTimer timer, final String name, final ImhotepSession imhotepSession) throws ImhotepOutOfMemoryException {
                 for (final Map.Entry<QualifiedPush, Integer> entry : metricIndexes.entrySet()) {
                     if (!entry.getKey().sessionName.equals(name)) {
                         continue;
                     }
-                    final long[] groupStats = session.getGroupStats(entry.getKey().pushes);
+                    final long[] groupStats = Session.getGroupStats(imhotepSession, entry.getKey().pushes, session.timer);
                     synchronized (stats) {
                         stats[entry.getValue()] = groupStats;
                     }
                 }
             }
         });
-        final boolean[] keep = filter.getGroupStats(stats, session.numGroups);
+        final boolean[] keep = filter.getGroupStats(stats, session.getNumGroups());
         final int keepCount = Booleans.countTrue(keep);
         final int[] fromGroups = new int[keepCount];
         final int[] toGroups = new int[keepCount];
@@ -84,7 +85,7 @@ public class ApplyGroupFilter implements Command {
             }
         }
         session.remapGroups(fromGroups, toGroups);
-        session.groupKeySet = DumbGroupKeySet.create(session.groupKeySet.previous(), newGroupParents.toIntArray(), newGroupKeys);
-        session.numGroups = session.groupKeySet.numGroups();
+        final GroupKeySet groupKeySet = DumbGroupKeySet.create(session.groupKeySet.previous(), newGroupParents.toIntArray(), newGroupKeys);
+        session.assumeDense(groupKeySet, 0);
     }
 }

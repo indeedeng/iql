@@ -85,7 +85,7 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
                 handlerables.add(new NameIt<>(session, p -> longToDouble(p), getGroupPercentiles.iterateHandler(session), name));
             } else if (computation instanceof GetGroupStats) {
                 final double[][] groupStats = ((GetGroupStats)computation).evaluate(session);
-                final double[] results = Arrays.copyOf(groupStats[0], session.numGroups + 1);
+                final double[] results = Arrays.copyOf(groupStats[0], session.getNumGroups() + 1);
                 new CreateGroupStatsLookup(results, name).execute(session);
             } else if (computation instanceof ComputeFieldExtremeValue) {
                 final double[] results = ((ComputeFieldExtremeValue)computation).evaluate(session);
@@ -177,7 +177,7 @@ public class ComputeAndCreateGroupStatsLookups implements Command {
         final int numFilters = filters.size();
         final double[][] results = new double[numFilters][];
         for (int i = 0; i < results.length; i++) {
-            results[i] = new double[session.numGroups + 1];
+            results[i] = new double[session.getNumGroups() + 1];
         }
         session.timer.pop();
 

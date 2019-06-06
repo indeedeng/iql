@@ -97,7 +97,7 @@ public class GetGroupDistinctsWindowed implements Command {
             this.filterPushes = Lists.newArrayList(filter.map(Pushable::requires).orElse(Collections.emptySet()));
             this.statIndexes = new int[filterPushes.size()];
             this.numStats = filterPushes.size();
-            this.numGroups = session.numGroups;
+            this.numGroups = session.getNumGroups();
             this.groupStatValues = new long[numStats * (numGroups + 1)];
             this.tmpRollingSumsBuffer = new long[numStats];
             this.groupsSeen = new BitSet();

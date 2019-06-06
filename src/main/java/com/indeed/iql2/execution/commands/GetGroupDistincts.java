@@ -57,7 +57,7 @@ public class GetGroupDistincts implements Command {
         private final long[] groupCounts;
 
         private IterateHandlerImpl(final Session session) {
-            this.groupCounts = new long[session.numGroups + 1];
+            this.groupCounts = new long[session.getNumGroups() + 1];
         }
 
         @Override

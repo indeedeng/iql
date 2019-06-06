@@ -47,7 +47,7 @@ public class IterateAndExplode implements Command {
     @Override
     public void execute(final Session session) throws ImhotepOutOfMemoryException, IOException {
         final boolean isIntField = session.isIntField(field);
-        final TermsCollector terms = new TermsCollector(isIntField, session.numGroups);
+        final TermsCollector terms = new TermsCollector(isIntField, session.getNumGroups());
         SimpleIterate.evaluate(session, field, selecting, fieldOpts, terms);
         new ExplodePerGroup(field, isIntField, terms.intTerms, terms.stringTerms, explodeDefaultName).execute(session);
     }

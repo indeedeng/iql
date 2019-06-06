@@ -60,7 +60,7 @@ public class MetricRegroup implements Command {
 
         final int intermediateBuckets = ((excludeGutters && !withDefaultBucket) ? 0 : 2) + (int) Math.ceil(((double) max - min) / interval);
 
-        final int groupsBefore = session.numGroups;
+        final int groupsBefore = session.getNumGroups();
         final int maxIntermediateGroups = session.checkGroupLimit((long) (intermediateBuckets) * groupsBefore);
 
         final boolean deleteEmptyGroups = (session.iqlVersion == 1) && !withDefault && !fromPredicate;

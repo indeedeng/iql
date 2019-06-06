@@ -45,7 +45,7 @@ public class RandomMetricRegroup implements Command {
 
     @Override
     public void execute(final Session session) throws ImhotepOutOfMemoryException {
-        final int numGroups = session.numGroups;
+        final int numGroups = session.getNumGroups();
         if (numGroups != 1) {
             throw new IllegalArgumentException("Can only use RANDOM() regroup as first GROUP BY");
         }

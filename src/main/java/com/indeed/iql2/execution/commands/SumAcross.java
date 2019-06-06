@@ -68,8 +68,8 @@ public class SumAcross implements Command {
         return IterateHandlers.executeSingle(session, field, iterateHandler(session));
     }
 
-    public IterateHandler<double[]> iterateHandler(Session session) {
-        return new IterateHandlerImpl(session.numGroups);
+    public IterateHandler<double[]> iterateHandler(final Session session) {
+        return new IterateHandlerImpl(session.getNumGroups());
     }
 
     private class IterateHandlerImpl implements IterateHandler<double[]> {

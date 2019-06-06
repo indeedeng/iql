@@ -55,7 +55,7 @@ public class ComputeFieldExtremeValue implements Command {
     }
 
     public double[] evaluate(final Session session) throws ImhotepOutOfMemoryException, IOException {
-        final double[] result = new double[session.numGroups + 1];
+        final double[] result = new double[session.getNumGroups() + 1];
         Arrays.fill(result, Double.NaN);
         final ResultCollector out = new ResultCollector() {
             @Override
