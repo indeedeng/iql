@@ -434,7 +434,7 @@ public final class IQLQuery implements Closeable {
         } else {    // have to work with the files on the hard drive to avoid OOM
             TempFile unsortedFile = null;
             try {
-                unsortedFile = IQLTempFiles.getInstance().createForIQL1(queryHash);
+                unsortedFile = IQLTempFiles.createForIQL1(queryHash);
                 // TODO: Use LimitedBufferedOutputStream or mark as skipped on limit
                 final PrintWriter fileOutputStream = new PrintWriter(new OutputStreamWriter(
                         unsortedFile.bufferedOutputStream(), Charsets.UTF_8));

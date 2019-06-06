@@ -588,7 +588,7 @@ public class SelectQueryExecution {
                 strictCloser.registerOrClose(innerStrictCloser);
                 if (cacheEnabled) {
                     final Consumer<String> oldOut = out;
-                    cacheFile = IQLTempFiles.getInstance().createForIQL2(cacheKey.rawHash);
+                    cacheFile = IQLTempFiles.createForIQL2(cacheKey.rawHash);
                     cacheWriter = new TruncatingBufferedOutputStream(cacheFile.outputStream(), maxCachedQuerySizeLimitBytes);
 
                     out = s -> {
