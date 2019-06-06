@@ -184,9 +184,9 @@ public class FieldRegroupTest extends BasicTest {
     public void testRandomFieldRegroup() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("No term", "0"));
-        expected.add(ImmutableList.of("1", "8"));
-        expected.add(ImmutableList.of("2", "3"));
-        expected.add(ImmutableList.of("3", "140"));
+        expected.add(ImmutableList.of("1", "7"));
+        expected.add(ImmutableList.of("2", "10"));
+        expected.add(ImmutableList.of("3", "134"));
         testIQL2(expected, "from organic yesterday today group by random(oji, 3, \"SomeRandomSalt\") select count()", true);
         testIQL2(addConstantColumn(1, "1", expected.subList(1, expected.size())), "from organic yesterday today group by random(oji, 3, \"SomeRandomSalt\"), allbit select count()", true);
     }
