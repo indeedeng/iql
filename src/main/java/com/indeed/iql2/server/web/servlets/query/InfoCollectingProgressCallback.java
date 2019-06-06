@@ -65,14 +65,14 @@ public class InfoCollectingProgressCallback implements ProgressCallback {
     @Override
     public void startCommand(Session session, Command command, boolean streamingToTSV) {
         if (session != null) {
-            maxNumGroups = Math.max(maxNumGroups, session.numGroups);
+            maxNumGroups = Math.max(maxNumGroups, session.getNumGroups());
         }
     }
 
     @Override
     public void endCommand(Session session, Command command) {
         if (session != null) {
-            maxNumGroups = Math.max(maxNumGroups, session.numGroups);
+            maxNumGroups = Math.max(maxNumGroups, session.getNumGroups());
         }
     }
 

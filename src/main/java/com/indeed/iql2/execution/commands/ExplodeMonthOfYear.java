@@ -55,7 +55,7 @@ public class ExplodeMonthOfYear implements Command {
             realEnd = shardsEnd + (timeUnit.millis - difference % timeUnit.millis);
         }
 
-        final int oldNumGroups = session.numGroups;
+        final int oldNumGroups = session.getNumGroups();
 
         final int numBuckets = (int) Math.ceil(((double) realEnd - realStart) / unitSize);
         final DateTime startMonth = new DateTime(realStart, IMHOTEP_TIME).withDayOfMonth(1).withTimeAtStartOfDay();
@@ -64,7 +64,7 @@ public class ExplodeMonthOfYear implements Command {
                 startMonth,
                 endMonthExclusive
         ).getMonths();
-        session.checkGroupLimit((long) (numMonths) * session.numGroups);
+        session.checkGroupLimit((long) (numMonths) * session.getNumGroups());
 
         final long numGroupsLong = session.performTimeRegroup(realStart, realEnd, unitSize, timeField, false, false);
         session.checkGroupLimit(numGroupsLong);

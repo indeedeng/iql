@@ -53,7 +53,7 @@ public class ComputeAndCreateGroupStatsLookup implements Command {
             longResults = ((GetGroupPercentiles)computation).evaluate(session);
         } else if (computation instanceof GetGroupStats) {
             final double[][] groupStats = ((GetGroupStats)computation).evaluate(session);
-            results = Arrays.copyOf(groupStats[0], session.numGroups + 1);
+            results = Arrays.copyOf(groupStats[0], session.getNumGroups() + 1);
         } else {
             throw new IllegalArgumentException("Shouldn't be able to reach here. Bug in ComputeAndCreateGroupStatsLookup parser: " + computation);
         }

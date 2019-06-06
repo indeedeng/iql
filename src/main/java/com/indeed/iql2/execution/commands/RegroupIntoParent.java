@@ -36,7 +36,7 @@ public class RegroupIntoParent implements Command {
         for (final Map.Entry<String, Session.SavedGroupStats> entry : session.savedGroupStats.entrySet()) {
             final String k = entry.getKey();
             final Session.SavedGroupStats v = entry.getValue();
-            if (v.depth == session.currentDepth) {
+            if (v.depth == session.getCurrentDepth()) {
                 final double[] mergedStats = new double[prevNumGroups + 1];
                 final double[] oldStats = v.stats;
                 final boolean[] anyFound = new boolean[prevNumGroups + 1];
@@ -74,17 +74,15 @@ public class RegroupIntoParent implements Command {
         session.timer.pop();
 
         session.timer.push("create rules");
-        final int[] fromGroups = new int[session.numGroups];
-        final int[] toGroups = new int[session.numGroups];
-        for (int group = 1; group <= session.numGroups; group++) {
+        final int[] fromGroups = new int[session.getNumGroups()];
+        final int[] toGroups = new int[session.getNumGroups()];
+        for (int group = 1; group <= session.getNumGroups(); group++) {
             final int newGroup = session.groupKeySet.parentGroup(group);
             fromGroups[group - 1] = group;
             toGroups[group - 1] = newGroup;
         }
         session.timer.pop();
         session.remapGroups(fromGroups, toGroups);
-        session.currentDepth -= 1;
-        session.numGroups = prevNumGroups;
-        session.groupKeySet = session.groupKeySet.previous();
+        session.assumeDense(session.groupKeySet.previous(), -1);
     }
 }

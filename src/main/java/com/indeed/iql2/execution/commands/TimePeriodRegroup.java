@@ -57,7 +57,7 @@ public class TimePeriodRegroup implements Command {
         }
 
         final long numBucketsLong = (shardEnd - shardStart) / periodMillis;
-        session.checkGroupLimit(numBucketsLong * session.numGroups);
+        session.checkGroupLimit(numBucketsLong * session.getNumGroups());
         final int numBuckets = (int) numBucketsLong;
         final boolean deleteEmptyGroups = (session.iqlVersion == 1) && !isRelative;
         final long groupCountLong = session.performTimeRegroup(shardStart, shardEnd, periodMillis, timeField, isRelative, deleteEmptyGroups);

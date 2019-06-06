@@ -36,8 +36,8 @@ public class ExplodeSessionNames implements Command {
             final ImhotepSession s = entry.getValue().session;
 
             session.timer.push("make dumb rules");
-            final int[] fromGroups = new int[session.numGroups];
-            final int[] toGroups = new int[session.numGroups];
+            final int[] fromGroups = new int[session.getNumGroups()];
+            final int[] toGroups = new int[session.getNumGroups()];
             for (int i = 0; i < fromGroups.length; i++) {
                 final int target = i + 1;
                 final int newGroup = (target - 1) * numSessions + (index + 1);

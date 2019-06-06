@@ -157,13 +157,13 @@ public class SimpleIterate implements Command {
                 if (opts.topK.get().sortOrder == SortOrder.DESCENDING) {
                     comparator = comparator.reversed();
                 }
-                collector = ResultCollector.topKCollector(out, session.numGroups, limit,comparator);
+                collector = ResultCollector.topKCollector(out, session.getNumGroups(), limit,comparator);
             } else {
                 Comparator<TermSelects> comparator = TermSelects.COMPARATOR;
                 if (opts.topK.get().sortOrder == SortOrder.ASCENDING) {
                     comparator = comparator.reversed();
                 }
-                collector = ResultCollector.allTermsCollector(out, session.numGroups, comparator);
+                collector = ResultCollector.allTermsCollector(out, session.getNumGroups(), comparator);
             }
         } else {
             collector = out;
@@ -283,7 +283,7 @@ public class SimpleIterate implements Command {
                 if (sortOrder == SortOrder.ASCENDING) {
                     comparator = comparator.reversed();
                 }
-                collector = ResultCollector.allTermsCollector(out, session.numGroups, comparator);
+                collector = ResultCollector.allTermsCollector(out, session.getNumGroups(), comparator);
             } else {
                 collector = out;
             }

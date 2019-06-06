@@ -49,11 +49,11 @@ public class ExplodePerDocPercentile implements Command {
         final FieldSet field = this.field;
         final int numBuckets = this.numBuckets;
 
-        session.checkGroupLimit((long) (numBuckets) * session.numGroups);
+        session.checkGroupLimit((long) (numBuckets) * session.getNumGroups());
 
         session.timer.push("get counts");
         final Map<String, List<List<String>>> sessionStats = new HashMap<>();
-        final long[] counts = new long[session.numGroups + 1];
+        final long[] counts = new long[session.getNumGroups() + 1];
         for (final Session.ImhotepSessionInfo s : session.sessions.values()) {
             final long[] stats = s.session.getGroupStats(Collections.singletonList("hasintfield " + field.datasetFieldName(s.name)));
             for (int i = 0; i < stats.length; i++) {
@@ -63,9 +63,9 @@ public class ExplodePerDocPercentile implements Command {
         }
         session.timer.pop();
 
-        final long[] runningCounts = new long[session.numGroups + 1];
-        final long[][] cutoffs = new long[session.numGroups + 1][numBuckets];
-        final int[] soFar = new int[session.numGroups + 1];
+        final long[] runningCounts = new long[session.getNumGroups() + 1];
+        final long[][] cutoffs = new long[session.getNumGroups() + 1][numBuckets];
+        final int[] soFar = new int[session.getNumGroups() + 1];
         final Map<String, IntList> metricIndexes = Maps.newHashMap();
         for (final String k : session.sessions.keySet()) {
             final int nextIndex = metricIndexes.size();
@@ -114,7 +114,7 @@ public class ExplodePerDocPercentile implements Command {
         }, session.timer, session.options);
         session.timer.pop();
 
-        for (int group = 1; group <= session.numGroups; group++) {
+        for (int group = 1; group <= session.getNumGroups(); group++) {
             Preconditions.checkState(runningCounts[group] == counts[group], "Failed to detect multi-valued field, or missed some values?");
             Preconditions.checkState((soFar[group] == numBuckets) || (counts[group] == 0));
         }
@@ -125,7 +125,7 @@ public class ExplodePerDocPercentile implements Command {
         final IntList groupParents = new IntArrayList();
         nextGroupKeys.add(null);
         groupParents.add(-1);
-        for (int group = 1; group <= session.numGroups; group++) {
+        for (int group = 1; group <= session.getNumGroups(); group++) {
             final IntArrayList positiveGroups = new IntArrayList();
             final LongArrayList thresholds = new LongArrayList();
             for (int bucket = 0; bucket < numBuckets; bucket++) {

@@ -50,7 +50,7 @@ public class GetGroupStats implements Command {
     // returns result as double[numStats][numGroups]
     public double[][] evaluate(final Session session) throws ImhotepOutOfMemoryException {
         final Map<String, ImhotepSession> sessions = session.getSessionsMapRaw();
-        final int numGroups = session.numGroups;
+        final int numGroups = session.getNumGroups();
 
         session.timer.push("determining pushes");
         final Set<QualifiedPush> pushesRequired = Sets.newHashSet();
@@ -94,7 +94,7 @@ public class GetGroupStats implements Command {
             final IntList positions = entry.getValue();
             final ImhotepSession s = sessions.get(name);
             for (int i = 0; i < positions.size(); i++) {
-                allStats[positions.get(i)] = s.getGroupStats(pushesForSession.get(i).pushes);
+                allStats[positions.get(i)] = Session.getGroupStats(s, pushesForSession.get(i).pushes, session.timer);
             }
         }
         session.timer.pop();

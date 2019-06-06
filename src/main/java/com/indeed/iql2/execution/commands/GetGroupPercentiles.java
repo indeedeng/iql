@@ -52,7 +52,7 @@ public class GetGroupPercentiles implements Command {
 
     public IterateHandler<long[]> iterateHandler(final Session session) throws ImhotepOutOfMemoryException {
         session.timer.push("compute counts");
-        final long[] counts = new long[session.numGroups + 1];
+        final long[] counts = new long[session.getNumGroups() + 1];
         for (final String dataset : field.datasets()) {
             final ImhotepSession s = session.sessions.get(dataset).session;
             final long[] stats = s.getGroupStats(Collections.singletonList("hasintfield " + field.datasetFieldName(dataset)));
@@ -68,7 +68,7 @@ public class GetGroupPercentiles implements Command {
             requiredCounts[i] = (percentile / 100.0) * (double)counts[i];
         }
         session.timer.pop();
-        return new IterateHandlerImpl(session.numGroups, requiredCounts);
+        return new IterateHandlerImpl(session.getNumGroups(), requiredCounts);
     }
 
     private class IterateHandlerImpl implements IterateHandler<long[]> {

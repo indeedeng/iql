@@ -46,7 +46,9 @@ public class IntOrAction implements Action {
     }
 
     @Override
-    public void apply(Session session) throws ImhotepOutOfMemoryException {
+    public void apply(final Session session) throws ImhotepOutOfMemoryException {
+        // sorting terms only once
+        long[] sortedTerms = null;
         for (final Map.Entry<String, Session.ImhotepSessionInfo> e : session.sessions.entrySet()) {
             final String dataset = e.getKey();
             if (field.containsDataset(dataset)) {
@@ -55,16 +57,18 @@ public class IntOrAction implements Action {
                 if (!sessionInfo.intFields.contains(fieldName)) {
                     new StringOrAction(field.subset(dataset), stringifiedTerms(), targetGroup, positiveGroup, negativeGroup).apply(session);
                 } else {
-                    session.timer.push("sort terms");
-                    final long[] terms = new long[this.terms.size()];
-                    int i = 0;
-                    for (final long term : this.terms) {
-                        terms[i] = term;
-                        i++;
+                    if (sortedTerms == null) {
+                        session.timer.push("sort terms");
+                        sortedTerms = new long[this.terms.size()];
+                        int i = 0;
+                        for (final long term : this.terms) {
+                            sortedTerms[i] = term;
+                            i++;
+                        }
+                        Arrays.sort(sortedTerms);
+                        session.timer.pop();
                     }
-                    Arrays.sort(terms);
-                    session.timer.pop();
-                    session.intOrRegroup(fieldName, terms, targetGroup, negativeGroup, positiveGroup, Collections.singleton(dataset));
+                    session.intOrRegroup(fieldName, sortedTerms, targetGroup, negativeGroup, positiveGroup, Collections.singleton(dataset));
                 }
             }
         }
