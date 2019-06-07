@@ -628,7 +628,7 @@ public class Session {
         }
 
         numGroups = groupKeySet.numGroups();
-        timer.push("numGroups =" + numGroups);
+        timer.push("numGroups = " + numGroups);
         timer.pop();
         this.groupKeySet = new MaskingGroupKeySet(groupKeySet, anyPresent);
         currentDepth += 1;
@@ -644,7 +644,7 @@ public class Session {
     public void assumeDense(final GroupKeySet groupKeySet, final int depthChange) {
         timer.push("assumeDense");
         numGroups = groupKeySet.numGroups();
-        timer.push("numGroups =" + numGroups);
+        timer.push("numGroups = " + numGroups);
         timer.pop();
         this.groupKeySet = groupKeySet;
         currentDepth += depthChange;
