@@ -722,7 +722,7 @@ public class SelectQueryExecution {
                                         try {
                                             cacheFile.removeFile();
                                         } catch (final Exception e) {
-                                            log.warn("Failed to delete " + cacheFile.getInternalPath(), e);
+                                            log.warn("Failed to delete " + cacheFile.unsafeGetPath(), e);
                                         }
                                     }
                                 }
@@ -737,7 +737,7 @@ public class SelectQueryExecution {
                         try {
                             cacheFile.removeFile();
                         } catch (final Exception removeException) {
-                            log.warn("Failed to delete " + cacheFile.getInternalPath(), removeException);
+                            log.warn("Failed to delete " + cacheFile.unsafeGetPath(), removeException);
                         }
                     }
                     throw Throwables.propagate(e);

@@ -90,7 +90,7 @@ public class InMemoryQueryCache implements QueryCache {
 
     @Override
     public void writeFromFile(String cachedFileName, TempFile localFile) throws IOException {
-        final String[] lines = Files.readTextFileOrDie(localFile.getInternalPath().toString());
+        final String[] lines = Files.readTextFileOrDie(localFile.unsafeGetPath().toString());
         cachedValues.put(cachedFileName, Joiner.on('\n').join(lines) + '\n');
         writesTracked.add(cachedFileName);
     }
