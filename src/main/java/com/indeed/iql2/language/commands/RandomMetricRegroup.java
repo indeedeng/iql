@@ -47,9 +47,6 @@ public class RandomMetricRegroup implements Command {
         if (k <= 1) {
             errorCollector.error("Bucket count in RANDOM() must be greater than 1, buckets = " + k);
         }
-        if (k > 100000) {
-            throw new IllegalArgumentException("Max bucket count for RANDOM() regroup is 100K pending IQL-849 resolution");
-        }
         for (final Map.Entry<String, DocMetric> entry : perDatasetMetric.entrySet()) {
             entry.getValue().validate(entry.getKey(), validationHelper, errorCollector);
         }
