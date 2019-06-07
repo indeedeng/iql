@@ -32,6 +32,7 @@ import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.UserSessionCountLimitExceededException;
 import com.indeed.imhotep.utils.tempfiles.TempFile;
+import com.indeed.imhotep.utils.tempfiles.TempFiles;
 import com.indeed.iql.cache.CompletableOutputStream;
 import com.indeed.iql.cache.QueryCache;
 import com.indeed.iql.exceptions.IqlKnownException;
@@ -718,13 +719,7 @@ public class SelectQueryExecution {
                                     }
                                 } finally {
                                     Closeables2.closeQuietly(selectQueryRef, log);
-                                    if (cacheFile != null) {
-                                        try {
-                                            cacheFile.removeFile();
-                                        } catch (final Exception e) {
-                                            log.warn("Failed to delete " + cacheFile.unsafeGetPath(), e);
-                                        }
-                                    }
+                                    TempFiles.removeFileQuietly(cacheFile);
                                 }
                                 return null;
                             }
@@ -733,13 +728,7 @@ public class SelectQueryExecution {
 
                     return selectExecutionInformation;
                 } catch (final Exception e) {
-                    if (cacheFile != null) {
-                        try {
-                            cacheFile.removeFile();
-                        } catch (final Exception removeException) {
-                            log.warn("Failed to delete " + cacheFile.unsafeGetPath(), removeException);
-                        }
-                    }
+                    TempFiles.removeFileQuietly(cacheFile);
                     throw Throwables.propagate(e);
                 }
             }

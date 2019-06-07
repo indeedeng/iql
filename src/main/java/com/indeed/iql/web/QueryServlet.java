@@ -30,6 +30,7 @@ import com.indeed.imhotep.exceptions.ImhotepErrorResolver;
 import com.indeed.imhotep.exceptions.ImhotepKnownException;
 import com.indeed.imhotep.exceptions.QueryCancelledException;
 import com.indeed.imhotep.service.MetricStatsEmitter;
+import com.indeed.imhotep.utils.tempfiles.TempFiles;
 import com.indeed.iql.cache.CompletableOutputStream;
 import com.indeed.iql.cache.QueryCache;
 import com.indeed.iql.exceptions.IqlKnownException;
@@ -723,11 +724,7 @@ public class QueryServlet {
             try {
                 queryCache.writeFromFile(cachedFileName, writeResults.unsortedFile);
             } finally {
-                try {
-                    writeResults.unsortedFile.removeFile();
-                } catch (final Exception e) {
-                    log.info("Failed to delete: " + writeResults.unsortedFile.unsafeGetPath(), e);
-                }
+                TempFiles.removeFileQuietly(writeResults.unsortedFile);
             }
         } else {    // this should never happen
             log.warn("Results are not available to upload cache to HDFS: " + cachedFileName);

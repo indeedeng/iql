@@ -29,6 +29,7 @@ import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.utils.tempfiles.TempFile;
+import com.indeed.imhotep.utils.tempfiles.TempFiles;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql.metadata.DatasetsMetadata;
@@ -453,13 +454,7 @@ public final class IQLQuery implements Closeable {
                 final boolean exceedsRowLimit = rowsWritten >= rowLimit && rows.hasNext();
                 return new WriteResults(rowsWritten, unsortedFile, null, exceedsRowLimit);
             } catch (final Exception e) {
-                if (unsortedFile != null) {
-                    try {
-                        unsortedFile.removeFile();
-                    } catch (final Exception removeException) {
-                        log.warn("Failed to delete temporary file " + unsortedFile.unsafeGetPath(), removeException);
-                    }
-                }
+                TempFiles.removeFileQuietly(unsortedFile);
                 throw Throwables.propagate(e);
             }
         }
