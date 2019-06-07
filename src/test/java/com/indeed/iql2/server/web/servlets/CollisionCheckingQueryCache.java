@@ -14,8 +14,8 @@
 
 package com.indeed.iql2.server.web.servlets;
 
-
 import com.google.common.base.Throwables;
+import com.indeed.imhotep.utils.tempfiles.TempFile;
 import com.indeed.iql.cache.CompletableOutputStream;
 import com.indeed.iql.cache.QueryCache;
 import com.indeed.iql2.server.web.servlets.query.SelectQueryExecution;
@@ -23,7 +23,6 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.log4j.Logger;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -109,8 +108,8 @@ public class CollisionCheckingQueryCache implements QueryCache {
     }
 
     @Override
-    public void writeFromFile(final String cachedFileName, final File localFile) throws IOException {
-        final byte[] bytes = Files.readAllBytes(localFile.toPath());
+    public void writeFromFile(final String cachedFileName, final TempFile localFile) throws IOException {
+        final byte[] bytes = Files.readAllBytes(localFile.unsafeGetPath());
         observed(
                 cachedFileName,
                 computeResultHash(bytes)

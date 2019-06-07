@@ -19,6 +19,10 @@ import com.google.common.collect.Lists;
 import com.indeed.imhotep.client.Host;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.service.MetricStatsEmitter;
+import com.indeed.imhotep.utils.tempfiles.CombinedEventListener;
+import com.indeed.imhotep.utils.tempfiles.ImhotepTempFiles;
+import com.indeed.imhotep.utils.tempfiles.LoggingEventListener;
+import com.indeed.imhotep.utils.tempfiles.StatsEmitEventListener;
 import com.indeed.ims.client.ImsClient;
 import com.indeed.ims.client.ImsClientInterface;
 import com.indeed.ims.server.SpringContextAware;
@@ -47,7 +51,9 @@ import com.indeed.iql2.server.web.servlets.query.QueryServletPackageMarker;
 import com.indeed.util.core.threads.NamedThreadFactory;
 import com.indeed.util.core.time.DefaultWallClock;
 import com.indeed.util.core.time.WallClock;
+import com.indeed.util.tempfiles.IQLTempFiles;
 import javafx.util.Pair;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -438,5 +444,33 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
         // If unset, users are likely to get cryptic errors such as
         // "Required String parameter 'q' is not present"
         return env.getProperty("max.post.size", Integer.class, Integer.MAX_VALUE);
+    }
+
+    @Bean(initMethod = "tryCleanupTempDirectory", destroyMethod = "tryCleanupTempDirectory")
+    public ImhotepTempFiles imhotepTempFiles(final MetricStatsEmitter statsEmitter) {
+        ImhotepTempFiles.recreate(
+                ImhotepTempFiles.builder()
+                        .setTakeStackTrace(true)
+                        .setExpirationMillis(TimeUnit.HOURS.toMillis(2))
+                        .setEventListener(CombinedEventListener.of(
+                                new LoggingEventListener(Level.ERROR, Logger.getLogger(ImhotepTempFiles.class)),
+                                new StatsEmitEventListener(statsEmitter, "temp.file.event")
+                        ))
+        );
+        return ImhotepTempFiles.getInstance();
+    }
+
+    @Bean(initMethod = "tryCleanupTempDirectory", destroyMethod = "tryCleanupTempDirectory")
+    public IQLTempFiles iqlTempFiles(final MetricStatsEmitter statsEmitter) {
+        IQLTempFiles.recreate(
+                IQLTempFiles.builder()
+                        .setTakeStackTrace(true)
+                        .setExpirationMillis(TimeUnit.HOURS.toMillis(2))
+                        .setEventListener(CombinedEventListener.of(
+                                new LoggingEventListener(Level.ERROR, Logger.getLogger(IQLTempFiles.class)),
+                                new StatsEmitEventListener(statsEmitter, "temp.file.event")
+                        ))
+        );
+        return IQLTempFiles.getInstance();
     }
 }

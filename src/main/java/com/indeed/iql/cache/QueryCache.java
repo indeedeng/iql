@@ -14,6 +14,7 @@
  package com.indeed.iql.cache;
 
 import com.google.common.io.ByteStreams;
+import com.indeed.imhotep.utils.tempfiles.TempFile;
 
 import javax.annotation.Nullable;
 import java.io.BufferedInputStream;
@@ -57,9 +58,9 @@ public interface QueryCache {
      * @param cachedFileName Name of the file to upload to
      * @param localFile Local File instance to upload from
      */
-    default void writeFromFile(String cachedFileName, File localFile) throws IOException {
+    default void writeFromFile(String cachedFileName, TempFile localFile) throws IOException {
         try (final CompletableOutputStream cacheStream = getOutputStream(cachedFileName)) {
-            try (final InputStream fileIn = new BufferedInputStream(new FileInputStream(localFile))) {
+            try (final InputStream fileIn = localFile.bufferedInputStream()) {
                 ByteStreams.copy(fileIn, cacheStream);
             }
             cacheStream.complete();

@@ -1,6 +1,7 @@
 package com.indeed.iql.cache;
 
-import java.io.File;
+import com.indeed.imhotep.utils.tempfiles.TempFile;
+
 import java.io.InputStream;
 
 /**
@@ -40,7 +41,7 @@ public class NoOpQueryCache implements QueryCache {
     }
 
     @Override
-    public void writeFromFile(String cachedFileName, File localFile) {
+    public void writeFromFile(String cachedFileName, TempFile localFile) {
         throw new IllegalStateException("Can't send data to cache as it is disabled");
     }
 

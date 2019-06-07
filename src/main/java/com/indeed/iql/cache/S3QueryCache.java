@@ -18,13 +18,13 @@ import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.Region;
+import com.indeed.imhotep.utils.tempfiles.TempFile;
 import org.apache.log4j.Logger;
 import org.springframework.core.env.PropertyResolver;
 
 import javax.annotation.Nullable;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -147,8 +147,8 @@ public class S3QueryCache implements QueryCache {
     }
 
     @Override
-    public void writeFromFile(String cachedFileName, File localFile) {
-        client.putObject(bucket, cachedFileName, localFile);
+    public void writeFromFile(String cachedFileName, TempFile localFile) {
+        client.putObject(bucket, cachedFileName, localFile.unsafeGetFile());
     }
 
     /**

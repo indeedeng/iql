@@ -31,6 +31,8 @@ import com.indeed.imhotep.StrictCloser;
 import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.UserSessionCountLimitExceededException;
+import com.indeed.imhotep.utils.tempfiles.TempFile;
+import com.indeed.imhotep.utils.tempfiles.TempFiles;
 import com.indeed.iql.cache.CompletableOutputStream;
 import com.indeed.iql.cache.QueryCache;
 import com.indeed.iql.exceptions.IqlKnownException;
@@ -70,6 +72,7 @@ import com.indeed.util.core.io.Closeables2;
 import com.indeed.util.core.reference.SharedReference;
 import com.indeed.util.core.time.WallClock;
 import com.indeed.util.logging.TracingTreeTimer;
+import com.indeed.util.tempfiles.IQLTempFiles;
 import org.antlr.v4.runtime.CharStream;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
@@ -82,7 +85,6 @@ import org.joda.time.format.ISODateTimeFormat;
 import javax.annotation.Nullable;
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -579,15 +581,15 @@ public class SelectQueryExecution {
             final CountingConsumer<String> countingExternalOutput = new CountingConsumer<>(externalOutput);
             Consumer<String> out = countingExternalOutput;
 
-            final File cacheFile;
+            final TempFile cacheFile;
             final TruncatingBufferedOutputStream cacheWriter;
 
             try (final StrictCloser innerStrictCloser = new StrictCloser()) {
                 strictCloser.registerOrClose(innerStrictCloser);
                 if (cacheEnabled) {
                     final Consumer<String> oldOut = out;
-                    cacheFile = File.createTempFile("query", ".cache.tmp", tmpDir);
-                    cacheWriter = new TruncatingBufferedOutputStream(new FileOutputStream(cacheFile), maxCachedQuerySizeLimitBytes);
+                    cacheFile = IQLTempFiles.createForIQL2(cacheKey.rawHash);
+                    cacheWriter = new TruncatingBufferedOutputStream(cacheFile.outputStream(), maxCachedQuerySizeLimitBytes);
 
                     out = s -> {
                         oldOut.accept(s);
@@ -717,9 +719,7 @@ public class SelectQueryExecution {
                                     }
                                 } finally {
                                     Closeables2.closeQuietly(selectQueryRef, log);
-                                    if (!cacheFile.delete()) {
-                                        log.warn("Failed to delete " + cacheFile);
-                                    }
+                                    TempFiles.removeFileQuietly(cacheFile);
                                 }
                                 return null;
                             }
@@ -728,11 +728,7 @@ public class SelectQueryExecution {
 
                     return selectExecutionInformation;
                 } catch (final Exception e) {
-                    if (cacheFile != null) {
-                        if (!cacheFile.delete()) {
-                            log.info("Failed to delete: " + cacheFile.getPath());
-                        }
-                    }
+                    TempFiles.removeFileQuietly(cacheFile);
                     throw Throwables.propagate(e);
                 }
             }

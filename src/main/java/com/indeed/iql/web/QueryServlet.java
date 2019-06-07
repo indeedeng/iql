@@ -30,6 +30,7 @@ import com.indeed.imhotep.exceptions.ImhotepErrorResolver;
 import com.indeed.imhotep.exceptions.ImhotepKnownException;
 import com.indeed.imhotep.exceptions.QueryCancelledException;
 import com.indeed.imhotep.service.MetricStatsEmitter;
+import com.indeed.imhotep.utils.tempfiles.TempFiles;
 import com.indeed.iql.cache.CompletableOutputStream;
 import com.indeed.iql.cache.QueryCache;
 import com.indeed.iql.exceptions.IqlKnownException;
@@ -548,7 +549,7 @@ public class QueryServlet {
             final int groupingColumns = Math.max(1, (parsedQuery.groupBy == null || parsedQuery.groupBy.groupings == null) ? 1 : parsedQuery.groupBy.groupings.size());
             final int selectColumns = Math.max(1, (parsedQuery.select == null || parsedQuery.select.getProjections() == null) ? 1 : parsedQuery.select.getProjections().size());
             final long beginSendToClientMillis = System.currentTimeMillis();
-            writeResults = iqlQuery.outputResults(groupStats, outputStream, args.csv, args.isEventStream, iqlQuery.getRowLimit(), groupingColumns, selectColumns, args.cacheWriteDisabled);
+            writeResults = iqlQuery.outputResults(groupStats, outputStream, args.csv, args.isEventStream, iqlQuery.getRowLimit(), groupingColumns, selectColumns, args.cacheWriteDisabled, queryHash);
             queryInfo.sendToClientMillis = System.currentTimeMillis() - beginSendToClientMillis;
             queryInfo.rows = writeResults.rowsWritten;
             if (writeResults.exceedsLimit) {
@@ -723,9 +724,7 @@ public class QueryServlet {
             try {
                 queryCache.writeFromFile(cachedFileName, writeResults.unsortedFile);
             } finally {
-                if(!writeResults.unsortedFile.delete()) {
-                    log.info("Failed to delete: " + writeResults.unsortedFile.getPath());
-                }
+                TempFiles.removeFileQuietly(writeResults.unsortedFile);
             }
         } else {    // this should never happen
             log.warn("Results are not available to upload cache to HDFS: " + cachedFileName);
