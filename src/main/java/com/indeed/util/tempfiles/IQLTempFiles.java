@@ -22,7 +22,7 @@ public class IQLTempFiles extends AbstractTempFiles<IQLTempFiles.Type> {
                     .build()
     );
 
-    public static void initialize(final AbstractTempFiles.Builder<Type, IQLTempFiles> imhotepTempFiles) {
+    public static void recreate(final AbstractTempFiles.Builder<Type, IQLTempFiles> imhotepTempFiles) {
         INSTANCE.set(imhotepTempFiles.build());
     }
 

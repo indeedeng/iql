@@ -448,7 +448,7 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
 
     @Bean(initMethod = "tryCleanupTempDirectory", destroyMethod = "tryCleanupTempDirectory")
     public ImhotepTempFiles imhotepTempFiles(final MetricStatsEmitter statsEmitter) {
-        ImhotepTempFiles.initialize(
+        ImhotepTempFiles.recreate(
                 ImhotepTempFiles.builder()
                         .setTakeStackTrace(true)
                         .setExpirationMillis(TimeUnit.HOURS.toMillis(2))
@@ -462,7 +462,7 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
 
     @Bean(initMethod = "tryCleanupTempDirectory", destroyMethod = "tryCleanupTempDirectory")
     public IQLTempFiles iqlTempFiles(final MetricStatsEmitter statsEmitter) {
-        IQLTempFiles.initialize(
+        IQLTempFiles.recreate(
                 IQLTempFiles.builder()
                         .setTakeStackTrace(true)
                         .setExpirationMillis(TimeUnit.HOURS.toMillis(2))
