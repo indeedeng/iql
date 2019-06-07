@@ -71,8 +71,6 @@ import javax.annotation.Nullable;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.Closeable;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -447,7 +445,7 @@ public final class IQLQuery implements Closeable {
                 // save the remaining rows to disk
                 rowsWritten += writeRowsToStream(rows, fileOutputStream, csv, rowLimit - rowsWritten, false);
                 fileOutputStream.close();
-                log.trace("Stored on disk to " + unsortedFile.getPath() + " in " + (System.currentTimeMillis() - started) + "ms");
+                log.trace("Stored on disk to " + unsortedFile.getInternalPath() + " in " + (System.currentTimeMillis() - started) + "ms");
 
                 // send the results out to the client
                 copyStream(unsortedFile.inputStream(), httpOutStream, rowLimit, progress);
@@ -459,7 +457,7 @@ public final class IQLQuery implements Closeable {
                     try {
                         unsortedFile.removeFile();
                     } catch (final Exception removeException) {
-                        log.warn("Failed to delete temporary file " + unsortedFile.getPath(), removeException);
+                        log.warn("Failed to delete temporary file " + unsortedFile.getInternalPath(), removeException);
                     }
                 }
                 throw Throwables.propagate(e);

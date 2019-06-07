@@ -109,7 +109,7 @@ public class CollisionCheckingQueryCache implements QueryCache {
 
     @Override
     public void writeFromFile(final String cachedFileName, final TempFile localFile) throws IOException {
-        final byte[] bytes = Files.readAllBytes(localFile.getPath());
+        final byte[] bytes = Files.readAllBytes(localFile.getInternalPath());
         observed(
                 cachedFileName,
                 computeResultHash(bytes)

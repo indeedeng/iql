@@ -148,7 +148,7 @@ public class S3QueryCache implements QueryCache {
 
     @Override
     public void writeFromFile(String cachedFileName, TempFile localFile) {
-        client.putObject(bucket, cachedFileName, localFile.getFile());
+        client.putObject(bucket, cachedFileName, localFile.getInternalFile());
     }
 
     /**

@@ -84,7 +84,6 @@ import org.joda.time.format.ISODateTimeFormat;
 import javax.annotation.Nullable;
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -723,7 +722,7 @@ public class SelectQueryExecution {
                                         try {
                                             cacheFile.removeFile();
                                         } catch (final Exception e) {
-                                            log.warn("Failed to delete " + cacheFile.getPath(), e);
+                                            log.warn("Failed to delete " + cacheFile.getInternalPath(), e);
                                         }
                                     }
                                 }
@@ -738,7 +737,7 @@ public class SelectQueryExecution {
                         try {
                             cacheFile.removeFile();
                         } catch (final Exception removeException) {
-                            log.warn("Failed to delete " + cacheFile.getPath(), removeException);
+                            log.warn("Failed to delete " + cacheFile.getInternalPath(), removeException);
                         }
                     }
                     throw Throwables.propagate(e);

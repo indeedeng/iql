@@ -726,7 +726,7 @@ public class QueryServlet {
                 try {
                     writeResults.unsortedFile.removeFile();
                 } catch (final Exception e) {
-                    log.info("Failed to delete: " + writeResults.unsortedFile.getPath(), e);
+                    log.info("Failed to delete: " + writeResults.unsortedFile.getInternalPath(), e);
                 }
             }
         } else {    // this should never happen
