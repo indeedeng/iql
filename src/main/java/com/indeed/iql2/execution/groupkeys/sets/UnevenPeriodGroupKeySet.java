@@ -31,7 +31,7 @@ import java.util.Locale;
 
 @EqualsAndHashCode
 @ToString
-public class YearMonthGroupKeySet implements GroupKeySet {
+public class UnevenPeriodGroupKeySet implements GroupKeySet {
     private final GroupKeySet previous;
     private final int numPeriods;
     private final DateTime start;
@@ -40,9 +40,9 @@ public class YearMonthGroupKeySet implements GroupKeySet {
 
     @EqualsAndHashCode.Exclude
     @ToString.Exclude
-    private final LoadingCache<DateTime, StringGroupKey> buildGroupKey;
+    private final LoadingCache<Integer, StringGroupKey> buildGroupKey;
 
-    public YearMonthGroupKeySet(
+    public UnevenPeriodGroupKeySet(
             final GroupKeySet previous,
             final int numPeriods,
             final DateTime start,
@@ -56,10 +56,11 @@ public class YearMonthGroupKeySet implements GroupKeySet {
         this.formatString = formatString;
         final DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern(formatString).withLocale(Locale.US);
         buildGroupKey = CacheBuilder.newBuilder()
-                .build(new CacheLoader<DateTime, StringGroupKey>() {
+                .build(new CacheLoader<Integer, StringGroupKey>() {
                     @Override
-                    public StringGroupKey load(final DateTime start) {
-                        final DateTime end = groupByType.plusPeriods(start, 1);
+                    public StringGroupKey load(final Integer periodOffset) {
+                        final DateTime periodStart = groupByType.plusPeriods(start, periodOffset);
+                        final DateTime end = groupByType.plusPeriods(periodStart, 1);
                         return StringGroupKey.fromTimeRange(dateTimeFormatter, start.getMillis(), end.getMillis(), formatter);
                     }
                 });
@@ -77,9 +78,8 @@ public class YearMonthGroupKeySet implements GroupKeySet {
 
     @Override
     public GroupKey groupKey(final int group) {
-        final int monthOffset = (group - 1) % numPeriods;
-        final DateTime periodStart = groupByType.plusPeriods(start, monthOffset);
-        return buildGroupKey.getUnchecked(periodStart);
+        final int periodOffset = (group - 1) % numPeriods;
+        return buildGroupKey.getUnchecked(periodOffset);
     }
 
     @Override

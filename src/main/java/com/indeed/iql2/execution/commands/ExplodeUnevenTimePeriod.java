@@ -16,7 +16,7 @@ package com.indeed.iql2.execution.commands;
 
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.Session;
-import com.indeed.iql2.execution.groupkeys.sets.YearMonthGroupKeySet;
+import com.indeed.iql2.execution.groupkeys.sets.UnevenPeriodGroupKeySet;
 import com.indeed.iql2.language.TimeUnit;
 import com.indeed.iql2.language.query.UnevenGroupByPeriod;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
@@ -90,7 +90,7 @@ public class ExplodeUnevenTimePeriod implements Command {
 
         session.remapGroups(fromGroups, toGroups);
 
-        final YearMonthGroupKeySet groupKeySet = new YearMonthGroupKeySet(
+        final UnevenPeriodGroupKeySet groupKeySet = new UnevenPeriodGroupKeySet(
                 session.groupKeySet,
                 numPeriods,
                 start,
