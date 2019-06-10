@@ -55,8 +55,6 @@ public class QueryOptions {
         private static final Splitter COLON_SPLITTER = Splitter.on(":");
         private static final Splitter EQUALITY_SPLITTER = Splitter.on("=");
 
-        public static final String BATCH = "batch";
-
         public static final String PWHERE = "where2";
 
         public static final String P2P_CACHE = "p2pcache";
