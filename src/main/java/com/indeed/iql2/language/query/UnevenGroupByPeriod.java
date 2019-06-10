@@ -29,13 +29,13 @@ public enum UnevenGroupByPeriod {
     public DateTime startOfPeriod(final DateTime dateTime) {
         switch (this) {
             case MONTH:
-                return dateTime.withDayOfMonth(1).withTimeAtStartOfDay();
+                return dateTime.withTimeAtStartOfDay().withDayOfMonth(1);
             case QUARTER:
                 final int inputMonth = dateTime.getMonthOfYear();
                 final int outputMonth = inputMonth - ((inputMonth - 1) % 3);
-                return dateTime.withMonthOfYear(outputMonth).withDayOfMonth(1).withTimeAtStartOfDay();
+                return dateTime.withTimeAtStartOfDay().withDayOfMonth(1).withMonthOfYear(outputMonth);
             case YEAR:
-                return dateTime.withDayOfYear(1).withTimeAtStartOfDay();
+                return dateTime.withTimeAtStartOfDay().withDayOfYear(1);
             default:
                 throw new IllegalArgumentException("Unexpected value: " + this);
         }
