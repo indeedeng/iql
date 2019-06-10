@@ -15,9 +15,9 @@
 package com.indeed.iql2.execution.groupkeys.sets;
 
 import com.indeed.iql2.Formatter;
-import com.indeed.iql2.execution.TimeUnit;
 import com.indeed.iql2.execution.groupkeys.IntTermGroupKey;
 import com.indeed.iql2.execution.groupkeys.StringGroupKey;
+import com.indeed.iql2.language.TimeUnit;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormat;
