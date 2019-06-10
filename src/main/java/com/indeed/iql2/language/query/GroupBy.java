@@ -290,7 +290,11 @@ public abstract class GroupBy extends AbstractPositional {
         public final Optional<String> timeFormat;
         private final UnevenGroupByPeriod groupByType;
 
-        public GroupByUnevenTimePeriod(final Optional<FieldSet> timeField, final Optional<String> timeFormat, final UnevenGroupByPeriod groupByType) {
+        public GroupByUnevenTimePeriod(
+                final Optional<FieldSet> timeField,
+                final Optional<String> timeFormat,
+                final UnevenGroupByPeriod groupByType
+        ) {
             this.timeField = timeField;
             this.timeFormat = timeFormat;
             this.groupByType = groupByType;
