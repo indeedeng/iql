@@ -68,21 +68,21 @@ public class AggregateFilters {
             }
 
             public void enterAggregateTermIs(JQLParser.AggregateTermIsContext ctx) {
-                accept(new AggregateFilter.TermIs(Term.parseJqlTerm(ctx.jqlTermVal())));
+                accept(new AggregateFilter.TermIs(Term.parseJqlTerm(ctx.jqlTermVal(), context.warn)));
             }
 
             public void enterAggregateTermRegex(JQLParser.AggregateTermRegexContext ctx) {
-                accept(new AggregateFilter.TermRegex(Term.term(ParserCommon.unquote(ctx.STRING_LITERAL().getText()))));
+                accept(new AggregateFilter.TermRegex(Term.term(ParserCommon.unquote(ctx.STRING_LITERAL().getText(), context.warn))));
             }
 
             public void enterAggregateRegex(JQLParser.AggregateRegexContext ctx) {
                 checkAggregateRegex(ctx.field);
-                accept(new AggregateFilter.Regex(fieldResolver.resolve(ctx.field), ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
+                accept(new AggregateFilter.Regex(fieldResolver.resolve(ctx.field), ParserCommon.unquote(ctx.STRING_LITERAL().getText(), context.warn)));
             }
 
             public void enterAggregateNotRegex(JQLParser.AggregateNotRegexContext ctx) {
                 checkAggregateRegex(ctx.field);
-                accept(new AggregateFilter.Not(new AggregateFilter.Regex(fieldResolver.resolve(ctx.field), ParserCommon.unquote(ctx.STRING_LITERAL().getText()))));
+                accept(new AggregateFilter.Not(new AggregateFilter.Regex(fieldResolver.resolve(ctx.field), ParserCommon.unquote(ctx.STRING_LITERAL().getText(), context.warn))));
             }
 
             public void enterAggregateTrue(JQLParser.AggregateTrueContext ctx) {

@@ -336,13 +336,17 @@ public class QueryServletTestUtils extends BasicTest {
     }
 
     static void testWarning(List<String> expectedWarnings, String query, LanguageVersion version, final Options options) throws Exception {
+        expectedWarnings = expectedWarnings.stream().map(s -> "[\"" + s + "\"]").collect(Collectors.toList());
+        Assert.assertEquals(expectedWarnings, getWarnings(query, version, options));
+    }
+
+    static List<String> getWarnings(final String query, final LanguageVersion version, final Options options) throws Exception {
         final ImhotepClient client = options.dataset.getNormalClient();
         final JsonNode header = getQueryHeader(client, query, version, options);
         if (header.get("IQL-Warning") == null) {
-            Assert.assertTrue(expectedWarnings.isEmpty());
+            return Collections.emptyList();
         } else {
-            expectedWarnings = expectedWarnings.stream().map(s -> "[\"" + s + "\"]").collect(Collectors.toList());
-            Assert.assertArrayEquals(expectedWarnings.toArray(new String[expectedWarnings.size()]), header.get("IQL-Warning").textValue().split("\n"));
+            return Arrays.asList(header.get("IQL-Warning").textValue().split("\n"));
         }
     }
 
