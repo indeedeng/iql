@@ -60,8 +60,8 @@ public class UnevenPeriodGroupKeySet implements GroupKeySet {
                     @Override
                     public StringGroupKey load(final Integer periodOffset) {
                         final DateTime periodStart = groupByType.plusPeriods(start, periodOffset);
-                        final DateTime end = groupByType.plusPeriods(periodStart, 1);
-                        return StringGroupKey.fromTimeRange(dateTimeFormatter, start.getMillis(), end.getMillis(), formatter);
+                        final DateTime periodEnd = groupByType.plusPeriods(periodStart, 1);
+                        return StringGroupKey.fromTimeRange(dateTimeFormatter, periodStart.getMillis(), periodEnd.getMillis(), formatter);
                     }
                 });
     }
