@@ -43,6 +43,7 @@ import com.indeed.iql2.language.commands.TopK;
 import com.indeed.iql2.language.passes.BooleanFilterTree;
 import com.indeed.iql2.language.precomputed.Precomputed;
 import com.indeed.iql2.language.query.Dataset;
+import com.indeed.iql2.language.query.UnevenGroupByPeriod;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.util.core.Pair;
@@ -284,18 +285,20 @@ public interface ExecutionStep {
 
     @EqualsAndHashCode
     @ToString
-    class ExplodeMonthOfYear implements ExecutionStep {
+    class ExplodeUnevenTimePeriod implements ExecutionStep {
         private final Optional<FieldSet> timeField;
         private final Optional<String> timeFormat;
+        private final UnevenGroupByPeriod groupByType;
 
-        public ExplodeMonthOfYear(final Optional<FieldSet> timeField, final Optional<String> timeFormat) {
+        public ExplodeUnevenTimePeriod(final Optional<FieldSet> timeField, final Optional<String> timeFormat, final UnevenGroupByPeriod groupByType) {
             this.timeField = timeField;
             this.timeFormat = timeFormat;
+            this.groupByType = groupByType;
         }
 
         @Override
         public List<Command> commands() {
-            return Collections.singletonList(new com.indeed.iql2.language.commands.ExplodeMonthOfYear(timeField, timeFormat));
+            return Collections.singletonList(new com.indeed.iql2.language.commands.ExplodeUnevenTimePeriod(timeField, timeFormat, groupByType));
         }
 
         @Override

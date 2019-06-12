@@ -16,9 +16,9 @@ package com.indeed.iql2.execution.commands;
 
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.Session;
-import com.indeed.iql2.execution.TimeUnit;
 import com.indeed.iql2.execution.groupkeys.DayOfWeekGroupKey;
 import com.indeed.iql2.execution.groupkeys.sets.DayOfWeekGroupKeySet;
+import com.indeed.iql2.language.TimeUnit;
 import org.joda.time.DateTime;
 
 import java.util.Optional;

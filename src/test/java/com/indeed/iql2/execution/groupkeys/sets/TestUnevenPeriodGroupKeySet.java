@@ -15,9 +15,10 @@
 package com.indeed.iql2.execution.groupkeys.sets;
 
 import com.indeed.iql2.Formatter;
-import com.indeed.iql2.execution.TimeUnit;
 import com.indeed.iql2.execution.groupkeys.IntTermGroupKey;
 import com.indeed.iql2.execution.groupkeys.StringGroupKey;
+import com.indeed.iql2.language.TimeUnit;
+import com.indeed.iql2.language.query.UnevenGroupByPeriod;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
@@ -27,19 +28,19 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.Locale;
 
-public class TestYearMonthGroupKeySet {
+public class TestUnevenPeriodGroupKeySet {
 
     private static final String FORMAT_STRING = TimeUnit.SECOND.formatString;
     private static final DateTimeFormatter FORMATTER = DateTimeFormat.forPattern(FORMAT_STRING).withLocale(Locale.US);
 
-    private static YearMonthGroupKeySet create() {
+    private static UnevenPeriodGroupKeySet create() {
         final DumbGroupKeySet dumbGroupKeySet = DumbGroupKeySet.create(DumbGroupKeySet.empty(), new int[]{-1, 1, 1, 1, 1, 1}, Arrays.asList(null, new IntTermGroupKey(1), new IntTermGroupKey(2), new IntTermGroupKey(3), new IntTermGroupKey(4), new IntTermGroupKey(5)));
-        return new YearMonthGroupKeySet(dumbGroupKeySet, 12, new DateTime(2015, 2, 1, 0, 0, 0), FORMAT_STRING, Formatter.TSV);
+        return new UnevenPeriodGroupKeySet(dumbGroupKeySet, 12, new DateTime(2015, 2, 1, 0, 0, 0), UnevenGroupByPeriod.MONTH, FORMAT_STRING, Formatter.TSV);
     }
 
     @Test
     public void testParentGroup() throws Exception {
-        final YearMonthGroupKeySet yearMonthGroupKey = create();
+        final UnevenPeriodGroupKeySet yearMonthGroupKey = create();
         for (int i = 1; i <= 12; i++) {
             Assert.assertEquals(1, yearMonthGroupKey.parentGroup(i));
         }
@@ -60,7 +61,7 @@ public class TestYearMonthGroupKeySet {
     @Test
     public void testGroupKey() throws Exception {
         final Formatter formatter = Formatter.TSV;
-        final YearMonthGroupKeySet yearMonthGroupKey = create();
+        final UnevenPeriodGroupKeySet yearMonthGroupKey = create();
         for (int i = 1; i <= 60; i+=12) {
             final long start = new DateTime(2015, 2, 1, 0, 0).getMillis();
             final long end = new DateTime(2015, 3, 1, 0, 0).getMillis();
@@ -130,7 +131,7 @@ public class TestYearMonthGroupKeySet {
 
     @Test
     public void testIsPresent() throws Exception {
-        final YearMonthGroupKeySet yearMonthGroupKey = create();
+        final UnevenPeriodGroupKeySet yearMonthGroupKey = create();
         Assert.assertFalse(yearMonthGroupKey.isPresent(0));
         for (int i = 1; i <= 60; i++) {
             Assert.assertTrue(yearMonthGroupKey.isPresent(i));

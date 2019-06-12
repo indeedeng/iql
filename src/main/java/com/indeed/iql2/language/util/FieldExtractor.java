@@ -524,9 +524,9 @@ public class FieldExtractor {
 			}
 
 			@Override
-			public Set<DatasetField> visit(final GroupBy.GroupByMonth groupByMonth) {
-				if (groupByMonth.timeField.isPresent()) {
-					return groupByMonth.timeField.get().datasetFields();
+			public Set<DatasetField> visit(final GroupBy.GroupByUnevenTimePeriod groupByUnevenTimePeriod) {
+				if (groupByUnevenTimePeriod.timeField.isPresent()) {
+					return groupByUnevenTimePeriod.timeField.get().datasetFields();
 				}
 				return ImmutableSet.of();
 			}

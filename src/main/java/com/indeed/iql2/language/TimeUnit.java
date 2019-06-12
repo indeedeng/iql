@@ -27,21 +27,22 @@ public enum TimeUnit {
     HOUR(1000L * 60 * 60, "yyyy-MM-dd HH", "hour"),
     DAY(1000L * 60 * 60 * 24, "yyyy-MM-dd", "day"),
     WEEK(1000L * 60 * 60 * 24 * 7, "yyyy-MM-dd", "week"),
-    MONTH(TimeUnit.DAY.millis, "MMMM yyyy", "month"),
+    MONTH(0L, "MMMM yyyy", "month"),
     YEAR(0L, "yyyy", "year"),
+    QUARTER(0L, null, "quarter"),
     BUCKETS(0L, null, "b");
 
     public final long millis;
     public final String formatString;
     public final String identifier;
 
-    TimeUnit(long millis, String formatString, String identifier) {
+    TimeUnit(final long millis, final String formatString, final String identifier) {
         this.millis = millis;
         this.formatString = formatString;
         this.identifier = identifier;
     }
 
-    public static TimeUnit fromChar(char c, boolean useLegacy) {
+    public static TimeUnit fromChar(final char c, final boolean useLegacy) {
         switch (c) {
             case 's':
             case 'S':
@@ -65,38 +66,42 @@ public enum TimeUnit {
             case 'y':
             case 'Y':
                 return YEAR;
+            case 'q':
+            case 'Q':
+                return QUARTER;
             default:
                 throw new IqlKnownException.ParseErrorException("Invalid time unit: " + c);
         }
     }
 
-    public static TimeUnit fromString(String s, boolean useLegacy) {
+    public static TimeUnit fromString(final String s, final boolean useLegacy) {
         if (s.length() == 1) {
             return fromChar(s.charAt(0), useLegacy);
-        } else {
-            final String lowerTimeUnit = s.toLowerCase();
-            if ("seconds".startsWith(lowerTimeUnit)) {
-                return SECOND;
-            } else if ("minutes".startsWith(lowerTimeUnit)) {
-                return MINUTE;
-            } else if ("hours".startsWith(lowerTimeUnit)) {
-                return HOUR;
-            } else if ("days".startsWith(lowerTimeUnit)) {
-                return DAY;
-            } else if ("weeks".startsWith(lowerTimeUnit)) {
-                return WEEK;
-            } else if ("months".startsWith(lowerTimeUnit)) {
-                return MONTH;
-            } else if ("buckets".startsWith(lowerTimeUnit)) {
-                return BUCKETS;
-            } else if ("years".startsWith(lowerTimeUnit)) {
-                return YEAR;
-            }
+        }
+        final String lowerTimeUnit = s.toLowerCase();
+        if ("seconds".startsWith(lowerTimeUnit)) {
+            return SECOND;
+        } else if ("minutes".startsWith(lowerTimeUnit)) {
+            return MINUTE;
+        } else if ("hours".startsWith(lowerTimeUnit)) {
+            return HOUR;
+        } else if ("days".startsWith(lowerTimeUnit)) {
+            return DAY;
+        } else if ("weeks".startsWith(lowerTimeUnit)) {
+            return WEEK;
+        } else if ("months".startsWith(lowerTimeUnit)) {
+            return MONTH;
+        } else if ("buckets".startsWith(lowerTimeUnit)) {
+            return BUCKETS;
+        } else if ("years".startsWith(lowerTimeUnit)) {
+            return YEAR;
+        } else if ("quarters".startsWith(lowerTimeUnit)) {
+            return QUARTER;
         }
         throw new IqlKnownException.ParseErrorException("Don't know how to turn into TimeUnit: " + s);
     }
 
-    public static DateTime subtract(DateTime start, int value, TimeUnit unit) {
+    public static DateTime subtract(final DateTime start, final int value, final TimeUnit unit) {
         switch (unit) {
             case SECOND:
                 return start.minusSeconds(value);
@@ -112,6 +117,8 @@ public enum TimeUnit {
                 return start.minusMonths(value);
             case YEAR:
                 return start.minusYears(value);
+            case QUARTER:
+                return start.minusMonths(3);
             default:
                 throw new IqlKnownException.ParseErrorException("Unknown time unit: " + unit);
         }

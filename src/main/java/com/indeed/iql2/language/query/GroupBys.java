@@ -229,18 +229,20 @@ public class GroupBys {
 
                     if ((unit == TimeUnit.BUCKETS) && (pairs.size() > 1)) {
                         throw new IqlKnownException.ParseErrorException("Can't group by buckets and also other time units in the same time group by");
-                    } else if ((unit == TimeUnit.MONTH) && (pairs.size() > 1)) {
-                        throw new IqlKnownException.ParseErrorException("Can't group by months and also other time units in the same time group by");
-                    } else if ((unit == TimeUnit.MONTH) && (coeff != 1)) {
-                        throw new IqlKnownException.ParseErrorException("Month group by must be 1 month for time group-by.");
+                    }
+                    if (((unit == TimeUnit.MONTH) || (unit == TimeUnit.YEAR) || (unit == TimeUnit.QUARTER)) && (pairs.size() > 1)) {
+                        throw new IqlKnownException.ParseErrorException("Can't group by months/years/quarters and also other time units in the same time group by");
+                    }
+                    if (((unit == TimeUnit.MONTH) || (unit == TimeUnit.YEAR) || (unit == TimeUnit.QUARTER)) && (coeff != 1)) {
+                        throw new IqlKnownException.ParseErrorException("Month/year/quarter group by must be 1 month/1 year/1 quarter for time group-by.");
                     }
 
                     if (unit == TimeUnit.BUCKETS) {
                         accept(new GroupBy.GroupByTimeBuckets(coeff, timeField, timeFormat, isRelative), aggregatedContext);
                         return;
                     }
-                    if (unit == TimeUnit.MONTH) {
-                        accept(new GroupBy.GroupByMonth(timeField, timeFormat), aggregatedContext);
+                    if ((unit == TimeUnit.MONTH) || (unit == TimeUnit.YEAR) || (unit == TimeUnit.QUARTER)) {
+                        accept(new GroupBy.GroupByUnevenTimePeriod(timeField, timeFormat, UnevenGroupByPeriod.fromTimeUnit(unit)), aggregatedContext);
                         return;
                     }
 

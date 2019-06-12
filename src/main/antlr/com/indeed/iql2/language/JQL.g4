@@ -92,17 +92,18 @@ UID_TO_UNIXTIME : 'UID_TO_UNIXTIME' ;
 
 M: 'M' ;
 Y : 'Y' ;
+Q : 'Q' ;
 TODAYS : 'T' | 'TO' | 'TOD' | 'TODA' | 'TODAY' ;
 TOMORROWS : 'TOM' | 'TOMO' | 'TOMOR' | 'TOMORR' | 'TOMORRO' | 'TOMORROW' ;
 // Note that M term goes before TIME_UNIT so we have to handle M separatelly
 // We cannot put M after TIME_UNIT because in that case metric M will not parse.
 YESTERDAYS : Y | 'YE' | 'YES' | 'YEST' | 'YESTE' | 'YESTER' | 'YESTERD' | 'YESTERDA' | 'YESTERDAY' ;
-TIME_UNIT : [SHDW]|M|Y|'SECOND'|'SECONDS'|'MINUTE'|'MINUTES'|'HOUR'|'HOURS'|'DAY'|'DAYS'|'WEEK'|'WEEKS'|'MO'|'MONTH'|'MONTHS'|'YEAR'|'YEARS';
+TIME_UNIT : [SHDWQ]|M|Y|'SECOND'|'SECONDS'|'MINUTE'|'MINUTES'|'HOUR'|'HOURS'|'DAY'|'DAYS'|'WEEK'|'WEEKS'|'MO'|'MONTH'|'MONTHS'|'YEAR'|'YEARS'|'QUARTER'|'QUARTERS';
 BUCKET_ATOM : [0-9]* (BUCKET|BUCKETS|B);
 
 TIME_INTERVAL_ATOM : ([0-9]* (TIME_UNIT|M|Y))+; // time interval without spaces like '1d1week'
-timeIntervalOneWord : TIME_INTERVAL_ATOM | TIME_UNIT | M | Y ;
-timeIntervalAtom: (coeff=NAT unit=(TIME_UNIT|M | Y)) ; // time interval with spaces like '5 days'
+timeIntervalOneWord : TIME_INTERVAL_ATOM | TIME_UNIT | M | Y;
+timeIntervalAtom: (coeff=NAT unit=(TIME_UNIT | M | Y)) ; // time interval with spaces like '5 days'
 
 timeInterval : (withoutSpaces+=timeIntervalOneWord | withSpaces+=timeIntervalAtom)+;
 bucket : BUCKET_ATOM | (coeff=NAT? (BUCKET|BUCKETS|B));
