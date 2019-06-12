@@ -14,12 +14,14 @@
 
 package com.indeed.iql2.language.actions;
 
+import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableSet;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ErrorMessages;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.ToString;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.net.util.Base64;
@@ -36,6 +38,9 @@ public class StringOrAction implements Action {
     public final int targetGroup;
     public final int positiveGroup;
     public final int negativeGroup;
+
+    @Getter(lazy=true)
+    private final String sha1SummedTerms = sha1SummedTerms();
 
     public StringOrAction(final FieldSet field, final ImmutableSet<String> terms, final int targetGroup, final int positiveGroup, final int negativeGroup) {
         this.field = field;
@@ -66,11 +71,10 @@ public class StringOrAction implements Action {
         );
     }
 
-    @ToString.Include(name = "sha1SummedTerms")
     private String sha1SummedTerms() {
         final MessageDigest sha1 = DigestUtils.getSha1Digest();
         for (final String term : terms) {
-            sha1.update(term.getBytes());
+            sha1.update(term.getBytes(Charsets.UTF_8));
         }
         return Base64.encodeBase64URLSafeString(sha1.digest());
     }

@@ -19,10 +19,10 @@ import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.ToString;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.net.util.Base64;
-import org.apache.log4j.Logger;
 
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
@@ -37,6 +37,9 @@ public class IntOrAction implements Action {
     public final int targetGroup;
     public final int positiveGroup;
     public final int negativeGroup;
+
+    @Getter(lazy=true)
+    private final String sha1SummedTerms = sha1SummedTerms();
 
     public IntOrAction(final FieldSet field, final ImmutableSet<Long> terms, final int targetGroup, final int positiveGroup, final int negativeGroup) {
         this.field = field;
@@ -64,7 +67,6 @@ public class IntOrAction implements Action {
         );
     }
 
-    @ToString.Include(name="sha1SummedTerms")
     private String sha1SummedTerms() {
         final MessageDigest sha1 = DigestUtils.getSha1Digest();
         final ByteBuffer byteBuffer = ByteBuffer.allocate(8);
