@@ -17,17 +17,20 @@ package com.indeed.iql2.language.actions;
 import com.google.common.collect.ImmutableSet;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ErrorMessages;
-import com.indeed.iql2.language.util.ToStringEscapingUtil;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.net.util.Base64;
+
+import java.security.MessageDigest;
 
 @EqualsAndHashCode
 @ToString
 public class StringOrAction implements Action {
     public final FieldSet field;
-    @ToString.Exclude // include termsEscaped instead
+    @ToString.Exclude // include sha1SummedTerms instead
     public final ImmutableSet<String> terms;
 
     public final int targetGroup;
@@ -63,8 +66,12 @@ public class StringOrAction implements Action {
         );
     }
 
-    @ToString.Include(name = "terms")
-    private String termsEscaped() {
-        return ToStringEscapingUtil.escape(terms);
+    @ToString.Include(name = "sha1SummedTerms")
+    private String sha1SummedTerms() {
+        final MessageDigest sha1 = DigestUtils.getSha1Digest();
+        for (final String term : terms) {
+            sha1.update(term.getBytes());
+        }
+        return Base64.encodeBase64URLSafeString(sha1.digest());
     }
 }

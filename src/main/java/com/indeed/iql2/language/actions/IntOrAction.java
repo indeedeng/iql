@@ -20,11 +20,18 @@ import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.net.util.Base64;
+import org.apache.log4j.Logger;
+
+import java.nio.ByteBuffer;
+import java.security.MessageDigest;
 
 @EqualsAndHashCode
 @ToString
 public class IntOrAction implements Action {
     public final FieldSet field;
+    @ToString.Exclude // include sha1SummedTerms instead
     public final ImmutableSet<Long> terms;
 
     public final int targetGroup;
@@ -55,5 +62,16 @@ public class IntOrAction implements Action {
                 positiveGroup,
                 negativeGroup
         );
+    }
+
+    @ToString.Include(name="sha1SummedTerms")
+    private String sha1SummedTerms() {
+        final MessageDigest sha1 = DigestUtils.getSha1Digest();
+        final ByteBuffer byteBuffer = ByteBuffer.allocate(8);
+        for (final long term : terms) {
+            byteBuffer.putLong(0, term);
+            sha1.update(byteBuffer.array());
+        }
+        return Base64.encodeBase64URLSafeString(sha1.digest());
     }
 }

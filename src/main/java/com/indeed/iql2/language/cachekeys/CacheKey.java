@@ -1,7 +1,6 @@
 package com.indeed.iql2.language.cachekeys;
 
 import com.google.common.base.Charsets;
-import com.google.common.base.Throwables;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
@@ -15,10 +14,10 @@ import com.indeed.iql2.language.query.Query;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.log4j.Logger;
 
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Comparator;
 import java.util.List;
 import java.util.TreeSet;
@@ -38,13 +37,7 @@ public class CacheKey {
     public static CacheKey computeCacheKey(final Query query, final ResultFormat resultFormat) {
         final List<Command> commands = query.commands();
         final TreeSet<String> sortedOptions = Sets.newTreeSet(query.options);
-        final MessageDigest sha1;
-        try {
-            sha1 = MessageDigest.getInstance("SHA-1");
-        } catch (NoSuchAlgorithmException e) {
-            log.error("Failed to init SHA1", e);
-            throw Throwables.propagate(e);
-        }
+        final MessageDigest sha1 = DigestUtils.getSha1Digest();
         sha1.update(Ints.toByteArray(SelectQuery.VERSION_FOR_HASHING));
         sha1.update(Ints.toByteArray(query.useLegacy ? 1 : 2));
         sha1.update(resultFormat.toString().getBytes());
