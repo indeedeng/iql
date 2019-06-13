@@ -728,6 +728,7 @@ public class SelectQueryExecution {
 
                     return selectExecutionInformation;
                 } catch (final Exception e) {
+                    Closeables2.closeQuietly(cacheWriter, log);
                     TempFiles.removeFileQuietly(cacheFile);
                     throw Throwables.propagate(e);
                 }
