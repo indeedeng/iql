@@ -67,7 +67,9 @@ public class RunningQueriesManager {
         }
     }
 
-    @Scheduled(fixedDelay = 300)
+    private static final int POLL_INTERVAL_MILLIS = 100;
+
+    @Scheduled(fixedDelay = POLL_INTERVAL_MILLIS)
     private void tryStartingWaitingQueries() {
         try {
             synchronized (queriesWaiting) {
@@ -75,7 +77,7 @@ public class RunningQueriesManager {
                     return;
                 }
                 // if there is a large volume of queries, batch them instead of letting each one trigger a DB check immediately
-                if(lastTriedStartingQueries > System.currentTimeMillis() - 300) {
+                if(lastTriedStartingQueries > System.currentTimeMillis() - POLL_INTERVAL_MILLIS) {
                     return;
                 }
                 lastTriedStartingQueries = System.currentTimeMillis();
