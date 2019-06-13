@@ -234,8 +234,6 @@ public class RunningQueriesManager {
         synchronized (queriesWaiting) {
             queriesWaiting.add(selectQuery);
         }
-        // Try to start the query immediately not waiting for the scheduled run of the DB updater
-        tryStartingWaitingQueries();
     }
 
     public void unregister(SelectQuery selectQuery) {
