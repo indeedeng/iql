@@ -49,7 +49,8 @@ public class ParserCommon {
         }
     }
 
-    private static final CharSet ESCAPED_CHARS = new CharOpenHashSet(new char[]{'\\', '\'', '\"', 'r', 'f', 't', 'n', 'b','u'});
+    // deliberately exclude b and f for lack of utility in the context of IQL
+    private static final CharSet ESCAPED_CHARS = new CharOpenHashSet(new char[]{'\\', '\'', '\"', 'r', 't', 'n', 'u'});
 
     public static void checkForUnnecessaryEscapes(final String text, final Consumer<String> warn) {
         final CharSet unnecessaryEscapes = getUnnecessaryEscapes(text);
