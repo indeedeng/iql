@@ -71,13 +71,13 @@ public class DocFilters {
                 final FieldSet field = fieldResolver.resolve(ctx.field);
                 final boolean negate = ctx.not != null;
                 final ImmutableSet<Term> terms =
-                        ImmutableSet.copyOf(ctx.terms.stream().map(Term::parseLegacyTerm).iterator());
+                        ImmutableSet.copyOf(ctx.terms.stream().map(legacyTermValContext -> Term.parseLegacyTerm(legacyTermValContext, context.warn)).iterator());
                 accept(docInHelper(field, negate, terms));
             }
 
             @Override
             public void enterLegacyDocFieldIsnt(JQLParser.LegacyDocFieldIsntContext ctx) {
-                final Term term = Term.parseLegacyTerm(ctx.legacyTermVal());
+                final Term term = Term.parseLegacyTerm(ctx.legacyTermVal(), context.warn);
                 accept(fieldResolver.resolveDocFilter(ctx.field, new ScopedFieldResolver.FieldIsntCallback(term), context));
             }
 
@@ -93,7 +93,7 @@ public class DocFilters {
                 }
                 final String seed;
                 if (ctx.seed != null) {
-                    seed = ParserCommon.unquoteLegacy(ctx.seed.getText());
+                    seed = ParserCommon.unquoteLegacy(ctx.seed.getText(), context.warn);
                 } else {
                     seed = String.valueOf(Math.random());
                 }
@@ -108,25 +108,25 @@ public class DocFilters {
 
             @Override
             public void enterLegacyDocRegex(final JQLParser.LegacyDocRegexContext ctx) {
-                final String unquoted = ParserCommon.unquoteLegacy(ctx.legacyTermVal().getText());
+                final String unquoted = ParserCommon.unquoteLegacy(ctx.legacyTermVal().getText(), context.warn);
                 accept(new DocFilter.Regex(fieldResolver.resolve(ctx.field), unquoted));
             }
 
             @Override
             public void enterLegacyDocNotRegex(final JQLParser.LegacyDocNotRegexContext ctx) {
-                final String unquoted = ParserCommon.unquoteLegacy(ctx.legacyTermVal().getText());
+                final String unquoted = ParserCommon.unquoteLegacy(ctx.legacyTermVal().getText(), context.warn);
                 accept(new DocFilter.NotRegex(fieldResolver.resolve(ctx.field), unquoted));
             }
 
             @Override
             public void enterLegacyDocFieldIs(JQLParser.LegacyDocFieldIsContext ctx) {
-                final Term term = Term.parseLegacyTerm(ctx.legacyTermVal());
+                final Term term = Term.parseLegacyTerm(ctx.legacyTermVal(), context.warn);
                 accept(fieldResolver.resolveDocFilter(ctx.field, new ScopedFieldResolver.FieldIsCallback(term), context));
             }
 
             @Override
             public void enterLegacyDocLuceneFieldIs(JQLParser.LegacyDocLuceneFieldIsContext ctx) {
-                final DocFilter fieldIs = DocFilter.FieldIs.create(fieldResolver.resolve(ctx.field), Term.parseLegacyTerm(ctx.legacyTermVal()));
+                final DocFilter fieldIs = DocFilter.FieldIs.create(fieldResolver.resolve(ctx.field), Term.parseLegacyTerm(ctx.legacyTermVal(), context.warn));
                 if (ctx.negate == null) {
                     accept(fieldIs);
                 } else {
@@ -192,7 +192,7 @@ public class DocFilters {
 
             @Override
             public void enterLegacyLucene(final JQLParser.LegacyLuceneContext ctx) {
-                accept(new DocFilter.Lucene(ParserCommon.unquoteLegacy(ctx.STRING_LITERAL().getText()), fieldResolver, datasetsMetadata));
+                accept(new DocFilter.Lucene(ParserCommon.unquoteLegacy(ctx.STRING_LITERAL().getText(), context.warn), fieldResolver, datasetsMetadata));
             }
 
             @Override
@@ -241,7 +241,7 @@ public class DocFilters {
             public void enterDocFieldIn(final JQLParser.DocFieldInContext ctx) {
                 final FieldSet field = fieldResolver.resolve(ctx.singlyScopedField());
                 final boolean negate = ctx.not != null;
-                final ImmutableSet<Term> terms = ImmutableSet.copyOf(ctx.terms.stream().map(Term::parseJqlTerm).iterator());
+                final ImmutableSet<Term> terms = ImmutableSet.copyOf(ctx.terms.stream().map(jqlTermValContext -> Term.parseJqlTerm(jqlTermValContext, context.warn)).iterator());
                 accept(field.wrap(docInHelper(field, negate, terms)));
             }
 
@@ -265,7 +265,7 @@ public class DocFilters {
                 }
                 final String seed;
                 if (ctx.seed != null) {
-                    seed = ParserCommon.unquote(ctx.seed.getText());
+                    seed = ParserCommon.unquote(ctx.seed.getText(), context.warn);
                 } else {
                     seed = String.valueOf(Math.random());
                 }
@@ -285,7 +285,7 @@ public class DocFilters {
                 }
                 final String seed;
                 if (ctx.seed != null) {
-                    seed = ParserCommon.unquote(ctx.seed.getText());
+                    seed = ParserCommon.unquote(ctx.seed.getText(), context.warn);
                 } else {
                     seed = String.valueOf(Math.random());
                 }
@@ -300,7 +300,7 @@ public class DocFilters {
             @Override
             public void enterDocRegex(JQLParser.DocRegexContext ctx) {
                 final FieldSet field = fieldResolver.resolve(ctx.singlyScopedField());
-                accept(field.wrap(new DocFilter.Regex(field, ParserCommon.unquote(ctx.STRING_LITERAL().getText()))));
+                accept(field.wrap(new DocFilter.Regex(field, ParserCommon.unquote(ctx.STRING_LITERAL().getText(), context.warn))));
             }
 
             @Override
@@ -345,13 +345,13 @@ public class DocFilters {
 
             @Override
             public void enterDocFieldIs(JQLParser.DocFieldIsContext ctx) {
-                final Term term = Term.parseJqlTerm(ctx.jqlTermVal());
+                final Term term = Term.parseJqlTerm(ctx.jqlTermVal(), context.warn);
                 accept(fieldResolver.resolveDocFilter(ctx.singlyScopedField(), new ScopedFieldResolver.FieldIsCallback(term), context));
             }
 
             @Override
             public void enterDocFieldIsnt(JQLParser.DocFieldIsntContext ctx) {
-                final Term term = Term.parseJqlTerm(ctx.jqlTermVal());
+                final Term term = Term.parseJqlTerm(ctx.jqlTermVal(), context.warn);
                 accept(fieldResolver.resolveDocFilter(ctx.singlyScopedField(), new ScopedFieldResolver.FieldIsntCallback(term), context));
             }
 
@@ -413,13 +413,13 @@ public class DocFilters {
 
             @Override
             public void enterLucene(JQLParser.LuceneContext ctx) {
-                accept(new DocFilter.Lucene(ParserCommon.unquote(ctx.STRING_LITERAL().getText()), context.fieldResolver, context.datasetsMetadata));
+                accept(new DocFilter.Lucene(ParserCommon.unquote(ctx.STRING_LITERAL().getText(), context.warn), context.fieldResolver, context.datasetsMetadata));
             }
 
             @Override
             public void enterDocNotRegex(JQLParser.DocNotRegexContext ctx) {
                 final FieldSet field = fieldResolver.resolve(ctx.singlyScopedField());
-                accept(field.wrap(new DocFilter.NotRegex(field, ParserCommon.unquote(ctx.STRING_LITERAL().getText()))));
+                accept(field.wrap(new DocFilter.NotRegex(field, ParserCommon.unquote(ctx.STRING_LITERAL().getText(), context.warn))));
             }
 
             @Override

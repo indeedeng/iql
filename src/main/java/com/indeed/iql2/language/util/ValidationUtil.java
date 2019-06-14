@@ -24,6 +24,7 @@ import com.indeed.imhotep.matcher.StringTermMatchers;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.JQLParser;
+import com.indeed.iql2.language.ParserCommon;
 import com.indeed.iql2.language.TimePeriods;
 import com.indeed.iql2.language.passes.ExtractQualifieds;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
@@ -271,5 +272,6 @@ public class ValidationUtil {
         } catch (final Exception e) {
             errorCollector.error(e.getMessage());
         }
+        ParserCommon.checkForUnnecessaryRegexEscapes(regex, errorCollector::warn);
     }
 }

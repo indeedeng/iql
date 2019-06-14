@@ -148,7 +148,7 @@ public class TimePeriodsTest {
     private static final Function<Pair<String, Boolean>, List<Pair<Integer, TimeUnit>>> PARSE_TIME_BUCKET =
             pair -> {
                 final JQLParser.TimeBucketContext ctx = Queries.runParser(pair.getFirst(), JQLParser::timeBucketTerminal).timeBucket();
-                return TimePeriods.parseTimeBuckets(ctx, pair.getSecond());
+                return TimePeriods.parseTimeBuckets(ctx, pair.getSecond(), (warn) -> {});
             };
 
     private static final Function<Pair<String, Boolean>, List<Pair<Integer, TimeUnit>>> PARSE_TIME_INTERVAL =
