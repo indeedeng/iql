@@ -51,7 +51,7 @@ public class ParserCommon {
         }
     }
 
-    private static final String REGEXP_RESERVED_CHARS = "|?*+{}\\[\\].\"()\\\\^$";
+    private static final String REGEXP_RESERVED_CHARS = "|?*+{}[].\"()^$\\";
     private static final CharSet REGEXP_ESCAPED_CHARS = new CharOpenHashSet(REGEXP_RESERVED_CHARS.toCharArray());
 
     public static void checkForUnnecessaryRegexEscapes(final String regex, final Consumer<String> warn) {
