@@ -16,8 +16,10 @@ package com.indeed.iql2.language;
 
 import com.google.common.base.Preconditions;
 import com.indeed.iql.exceptions.IqlKnownException;
+import it.unimi.dsi.fastutil.chars.CharAVLTreeSet;
 import it.unimi.dsi.fastutil.chars.CharOpenHashSet;
 import it.unimi.dsi.fastutil.chars.CharSet;
+import it.unimi.dsi.fastutil.chars.CharSortedSet;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.joda.time.DateTimeZone;
 
@@ -49,19 +51,43 @@ public class ParserCommon {
         }
     }
 
+    private static final String REGEXP_RESERVED_CHARS = "|?*+{}\\[\\].\"()\\\\^$";
+    private static final CharSet REGEXP_ESCAPED_CHARS = new CharOpenHashSet(REGEXP_RESERVED_CHARS.toCharArray());
+
+    public static void checkForUnnecessaryRegexEscapes(final String regex, final Consumer<String> warn) {
+        final CharSortedSet unnecessaryEscapes = getUnnecessaryRegexEscapes(regex);
+        if (!unnecessaryEscapes.isEmpty()) {
+            warn.accept("Regex contains unnecessary escapes (for characters " + unnecessaryEscapes + "): " + regex);
+        }
+    }
+
+    public static CharSortedSet getUnnecessaryRegexEscapes(final String regex) {
+        final CharSortedSet unnecessaryEscapes = new CharAVLTreeSet();
+        for (int i = 0; i < regex.length(); i++) {
+            if (regex.charAt(i) == '\\') {
+                i += 1;
+                final char escapedChar = regex.charAt(i);
+                if (!REGEXP_ESCAPED_CHARS.contains(escapedChar)) {
+                    unnecessaryEscapes.add(escapedChar);
+                }
+            }
+        }
+        return unnecessaryEscapes;
+    }
+
     // deliberately exclude b and f for lack of utility in the context of IQL
     private static final CharSet ESCAPED_CHARS = new CharOpenHashSet(new char[]{'\\', '\'', '\"', 'r', 't', 'n', 'u'});
 
     public static void checkForUnnecessaryEscapes(final String text, final Consumer<String> warn) {
-        final CharSet unnecessaryEscapes = getUnnecessaryEscapes(text);
+        final CharSortedSet unnecessaryEscapes = getUnnecessaryEscapes(text);
         if (!unnecessaryEscapes.isEmpty()) {
             warn.accept("String contains unnecessary escapes (for characters " + unnecessaryEscapes + "): " + text);
         }
     }
 
     @SuppressWarnings("AssignmentToForLoopParameter")
-    public static CharSet getUnnecessaryEscapes(final String text) {
-        final CharSet unnecessaryEscapes = new CharOpenHashSet();
+    public static CharSortedSet getUnnecessaryEscapes(final String text) {
+        final CharSortedSet unnecessaryEscapes = new CharAVLTreeSet();
         final char quoteUsed = text.charAt(0);
         Preconditions.checkArgument((text.startsWith("\"") && text.endsWith("\"")) || (text.startsWith("\'") && text.endsWith("\'")));
         final char quoteNotUsed = (quoteUsed == '\'') ? '\"' : '\'';

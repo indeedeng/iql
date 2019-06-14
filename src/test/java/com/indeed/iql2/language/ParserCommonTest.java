@@ -9,7 +9,6 @@ import java.util.Collections;
 import static org.junit.Assert.*;
 
 public class ParserCommonTest {
-
     @Test
     public void getUnnecessaryEscapes() {
         Assert.assertEquals(
@@ -35,6 +34,26 @@ public class ParserCommonTest {
         Assert.assertEquals(
                 Collections.emptySet(),
                 ParserCommon.getUnnecessaryEscapes("\" \\\" \"")
+        );
+    }
+
+    @Test
+    public void getUnnecessaryRegexEscapes() {
+        Assert.assertEquals(
+                Collections.emptySet(),
+                ParserCommon.getUnnecessaryRegexEscapes("This is a test with no errors\\. \\| \\? \\* \\+ \\{ \\} \\[ \\] \\^ \\. \\\" \\( \\) \\\\")
+        );
+        Assert.assertEquals(
+                Sets.newHashSet('s', 'w'),
+                ParserCommon.getUnnecessaryRegexEscapes("\\w+\\s")
+        );
+        Assert.assertEquals(
+                Sets.newHashSet('d'),
+                ParserCommon.getUnnecessaryRegexEscapes("\\d+")
+        );
+        Assert.assertEquals(
+                Collections.emptySet(),
+                ParserCommon.getUnnecessaryRegexEscapes("[0-9]+")
         );
     }
 }

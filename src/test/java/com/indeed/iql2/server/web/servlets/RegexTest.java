@@ -18,6 +18,7 @@ import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class RegexTest {
@@ -87,5 +88,19 @@ public class RegexTest {
                     QueryServletTestUtils.LanguageVersion.IQL2,
                     s -> s.contains("IqlKnownException$ParseErrorException"));
         }
+    }
+
+    @Test
+    public void testWarnings() throws Exception {
+        QueryServletTestUtils.testWarning(
+                Collections.singletonList("Regex contains unnecessary escapes (for characters {d, s, w}): \\d\\s\\w"),
+                "from organic yesterday today where country =~ \"\\\\d\\\\s\\\\w\"",
+                QueryServletTestUtils.LanguageVersion.IQL2
+        );
+        QueryServletTestUtils.testWarning(
+                Collections.singletonList("Regex contains unnecessary escapes (for characters {d, s, w}): \\d\\s\\w"),
+                "from organic yesterday today group by country having term() =~ \"\\\\d\\\\s\\\\w\"",
+                QueryServletTestUtils.LanguageVersion.IQL2
+        );
     }
 }
