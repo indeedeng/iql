@@ -17,7 +17,7 @@ public class ParserCommonTest {
         );
         Assert.assertEquals(
                 Collections.emptySet(),
-                ParserCommon.getUnnecessaryEscapes("\"this is a test. \\\\ \\r \\f \\t \\n \\b \\u1234 \"")
+                ParserCommon.getUnnecessaryEscapes("\"this is a test. \\\\ \\r \\t \\n \\u1234 \"")
         );
         Assert.assertEquals(
                 Collections.singleton('\''),
