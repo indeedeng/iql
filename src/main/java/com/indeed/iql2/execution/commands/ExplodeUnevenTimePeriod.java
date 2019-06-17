@@ -17,9 +17,9 @@ package com.indeed.iql2.execution.commands;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.groupkeys.sets.UnevenPeriodGroupKeySet;
+import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.TimeUnit;
 import com.indeed.iql2.language.query.UnevenGroupByPeriod;
-import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
@@ -28,12 +28,15 @@ import java.util.Optional;
 public class ExplodeUnevenTimePeriod implements Command {
     private static final DateTimeZone IMHOTEP_TIME = DateTimeZone.forOffsetHours(-6);
 
-    private final Optional<FieldSet> timeField;
+    private final Optional<DocMetric> timeMetric;
     private final Optional<String> timeFormat;
     private final UnevenGroupByPeriod groupByType;
 
-    public ExplodeUnevenTimePeriod(final Optional<FieldSet> timeField, final Optional<String> timeFormat, final UnevenGroupByPeriod groupByType) {
-        this.timeField = timeField;
+    public ExplodeUnevenTimePeriod(
+            final Optional<DocMetric> timeMetric,
+            final Optional<String> timeFormat,
+            final UnevenGroupByPeriod groupByType) {
+        this.timeMetric = timeMetric;
         this.timeFormat = timeFormat;
         this.groupByType = groupByType;
     }
@@ -66,7 +69,7 @@ public class ExplodeUnevenTimePeriod implements Command {
         final int numPeriods = groupByType.periodsBetween(start, endExclusive);
         session.checkGroupLimit((long) (numPeriods) * session.getNumGroups());
 
-        final long numGroupsLong = session.performTimeRegroup(realStart, realEnd, unitSize, timeField, false, false);
+        final long numGroupsLong = session.performTimeRegroup(realStart, realEnd, unitSize, timeMetric, false, false);
         session.checkGroupLimit(numGroupsLong);
 
         session.timer.push("compute month remapping");

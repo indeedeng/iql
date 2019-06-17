@@ -14,10 +14,9 @@
 
 package com.indeed.iql2.language.commands;
 
-import com.google.common.base.Preconditions;
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
-import com.indeed.iql2.language.query.fieldresolution.FieldSet;
+import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.util.ValidationHelper;
 import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
@@ -33,22 +32,27 @@ import java.util.function.Function;
 @ToString
 public class TimePeriodRegroup implements Command {
     private final long periodMillis;
-    private final Optional<FieldSet> timeField;
+    private final Optional<DocMetric> timeMetric;
     private final Optional<String> timeFormat;
     private final boolean isRelative;
 
-    public TimePeriodRegroup(final long periodMillis, final Optional<FieldSet> timeField, final Optional<String> timeFormat, final boolean isRelative) {
+    public TimePeriodRegroup(
+            final long periodMillis,
+            final Optional<DocMetric> timeMetric,
+            final Optional<String> timeFormat,
+            final boolean isRelative) {
         this.periodMillis = periodMillis;
-        this.timeField = timeField;
+        this.timeMetric = timeMetric;
         this.timeFormat = timeFormat;
         this.isRelative = isRelative;
     }
 
     @Override
-    public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {
-        if (timeField.isPresent()) {
-            Preconditions.checkState(validationHelper.datasets().equals(timeField.get().datasets()));
-            ValidationUtil.validateIntField(timeField.get(), validationHelper, errorCollector, this);
+    public void validate(final ValidationHelper validationHelper, final ErrorCollector errorCollector) {
+        if (timeMetric.isPresent()) {
+            for (final String dataset : validationHelper.datasets()) {
+                timeMetric.get().validate(dataset, validationHelper, errorCollector);
+            }
         }
         if (timeFormat.isPresent()) {
             ValidationUtil.validateDateTimeFormat(timeFormat.get(), errorCollector);
@@ -57,10 +61,13 @@ public class TimePeriodRegroup implements Command {
     }
 
     @Override
-    public com.indeed.iql2.execution.commands.Command toExecutionCommand(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet, List<String> options) {
+    public com.indeed.iql2.execution.commands.Command toExecutionCommand(
+            final Function<String, PerGroupConstant> namedMetricLookup,
+            final GroupKeySet groupKeySet,
+            final List<String> options) {
         return new com.indeed.iql2.execution.commands.TimePeriodRegroup(
                 periodMillis,
-                timeField,
+                timeMetric,
                 timeFormat,
                 isRelative
         );
