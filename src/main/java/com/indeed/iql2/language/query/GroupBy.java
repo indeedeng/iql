@@ -171,7 +171,7 @@ public abstract class GroupBy extends AbstractPositional {
 
         @Override
         public GroupBy transform(Function<GroupBy, GroupBy> groupBy, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
-            return groupBy.apply(new GroupByTime(periodMillis, metric, format, isRelative))
+            return groupBy.apply(new GroupByTime(periodMillis, metric.map(g), format, isRelative))
                     .copyPosition(this);
         }
 
@@ -264,7 +264,7 @@ public abstract class GroupBy extends AbstractPositional {
 
         @Override
         public GroupBy transform(Function<GroupBy, GroupBy> groupBy, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
-            return groupBy.apply(new GroupByTimeBuckets(numBuckets, metric, format, isRelative))
+            return groupBy.apply(new GroupByTimeBuckets(numBuckets, metric.map(g), format, isRelative))
                     .copyPosition(this);
         }
 
@@ -315,7 +315,7 @@ public abstract class GroupBy extends AbstractPositional {
 
         @Override
         public GroupBy transform(final Function<GroupBy, GroupBy> groupBy, final Function<AggregateMetric, AggregateMetric> f, final Function<DocMetric, DocMetric> g, final Function<AggregateFilter, AggregateFilter> h, final Function<DocFilter, DocFilter> i) {
-            return groupBy.apply(new GroupByUnevenTimePeriod(timeMetric, timeFormat, groupByType))
+            return groupBy.apply(new GroupByUnevenTimePeriod(timeMetric.map(g), timeFormat, groupByType))
                     .copyPosition(this);
         }
 
