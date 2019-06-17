@@ -202,11 +202,11 @@ public class GroupBys {
                     return;
                 }
 
-                final Optional<FieldSet> timeField;
-                if (ctx.groupByTime().timeField != null) {
-                    timeField = Optional.of(fieldResolver.resolve(ctx.groupByTime().timeField));
+                final Optional<DocMetric> timeMetric;
+                if (ctx.groupByTime().timeMetric != null) {
+                    timeMetric = Optional.of(DocMetrics.parseDocMetric(ctx.groupByTime().timeMetric, context));
                 } else {
-                    timeField = Optional.empty();
+                    timeMetric = Optional.empty();
                 }
 
                 final Optional<String> timeFormat;
@@ -238,18 +238,18 @@ public class GroupBys {
                     }
 
                     if (unit == TimeUnit.BUCKETS) {
-                        accept(new GroupBy.GroupByTimeBuckets(coeff, timeField, timeFormat, isRelative), aggregatedContext);
+                        accept(new GroupBy.GroupByTimeBuckets(coeff, timeMetric, timeFormat, isRelative), aggregatedContext);
                         return;
                     }
                     if ((unit == TimeUnit.MONTH) || (unit == TimeUnit.YEAR) || (unit == TimeUnit.QUARTER)) {
-                        accept(new GroupBy.GroupByUnevenTimePeriod(timeField, timeFormat, UnevenGroupByPeriod.fromTimeUnit(unit)), aggregatedContext);
+                        accept(new GroupBy.GroupByUnevenTimePeriod(timeMetric, timeFormat, UnevenGroupByPeriod.fromTimeUnit(unit)), aggregatedContext);
                         return;
                     }
 
                     millisSum += coeff * unit.millis;
                 }
 
-                accept(new GroupBy.GroupByTime(millisSum, timeField, timeFormat, isRelative), aggregatedContext);
+                accept(new GroupBy.GroupByTime(millisSum, timeMetric, timeFormat, isRelative), aggregatedContext);
             }
 
             @Override

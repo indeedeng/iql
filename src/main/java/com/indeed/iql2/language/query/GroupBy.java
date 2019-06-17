@@ -149,13 +149,17 @@ public abstract class GroupBy extends AbstractPositional {
     @ToString
     public static class GroupByTime extends GroupBy {
         public final long periodMillis;
-        public final Optional<FieldSet> field;
+        public final Optional<DocMetric> metric;
         public final Optional<String> format;
         public final boolean isRelative;
 
-        public GroupByTime(final long periodMillis, final Optional<FieldSet> field, final Optional<String> format, final boolean isRelative) {
+        public GroupByTime(
+                final long periodMillis,
+                final Optional<DocMetric> metric,
+                final Optional<String> format,
+                final boolean isRelative) {
             this.periodMillis = periodMillis;
-            this.field = field;
+            this.metric = metric;
             this.format = format;
             this.isRelative = isRelative;
         }
@@ -167,7 +171,7 @@ public abstract class GroupBy extends AbstractPositional {
 
         @Override
         public GroupBy transform(Function<GroupBy, GroupBy> groupBy, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
-            return groupBy.apply(new GroupByTime(periodMillis, field, format, isRelative))
+            return groupBy.apply(new GroupByTime(periodMillis, metric, format, isRelative))
                     .copyPosition(this);
         }
 
@@ -178,7 +182,7 @@ public abstract class GroupBy extends AbstractPositional {
 
         @Override
         public ExecutionStep executionStep(List<Dataset> datasets) {
-            return new ExecutionStep.ExplodeTimePeriod(periodMillis, field, format, isRelative);
+            return new ExecutionStep.ExplodeTimePeriod(periodMillis, metric, format, isRelative);
         }
 
         @Override
@@ -238,13 +242,17 @@ public abstract class GroupBy extends AbstractPositional {
     @ToString
     public static class GroupByTimeBuckets extends GroupBy {
         public final int numBuckets;
-        public final Optional<FieldSet> field;
+        public final Optional<DocMetric> metric;
         public final Optional<String> format;
         public final boolean isRelative;
 
-        public GroupByTimeBuckets(final int numBuckets, final Optional<FieldSet> field, final Optional<String> format, boolean isRelative) {
+        public GroupByTimeBuckets(
+                final int numBuckets,
+                final Optional<DocMetric> metric,
+                final Optional<String> format,
+                final boolean isRelative) {
             this.numBuckets = numBuckets;
-            this.field = field;
+            this.metric = metric;
             this.format = format;
             this.isRelative = isRelative;
         }
@@ -256,7 +264,7 @@ public abstract class GroupBy extends AbstractPositional {
 
         @Override
         public GroupBy transform(Function<GroupBy, GroupBy> groupBy, Function<AggregateMetric, AggregateMetric> f, Function<DocMetric, DocMetric> g, Function<AggregateFilter, AggregateFilter> h, Function<DocFilter, DocFilter> i) {
-            return groupBy.apply(new GroupByTimeBuckets(numBuckets, field, format, isRelative))
+            return groupBy.apply(new GroupByTimeBuckets(numBuckets, metric, format, isRelative))
                     .copyPosition(this);
         }
 
@@ -268,7 +276,7 @@ public abstract class GroupBy extends AbstractPositional {
         @Override
         public ExecutionStep executionStep(List<Dataset> datasets) {
             final long periodMillis = TimePeriods.getTimePeriodFromBucket(Dataset.getEarliestStart(datasets), Dataset.getLatestEnd(datasets), Dataset.getLongestRange(datasets), numBuckets, isRelative);
-            return new ExecutionStep.ExplodeTimePeriod(periodMillis, field, format, isRelative);
+            return new ExecutionStep.ExplodeTimePeriod(periodMillis, metric, format, isRelative);
         }
 
         @Override
@@ -286,16 +294,16 @@ public abstract class GroupBy extends AbstractPositional {
     @ToString
     public static class GroupByUnevenTimePeriod extends GroupBy {
 
-        public final Optional<FieldSet> timeField;
+        public final Optional<DocMetric> timeMetric;
         public final Optional<String> timeFormat;
         private final UnevenGroupByPeriod groupByType;
 
         public GroupByUnevenTimePeriod(
-                final Optional<FieldSet> timeField,
+                final Optional<DocMetric> timeMetric,
                 final Optional<String> timeFormat,
                 final UnevenGroupByPeriod groupByType
         ) {
-            this.timeField = timeField;
+            this.timeMetric = timeMetric;
             this.timeFormat = timeFormat;
             this.groupByType = groupByType;
         }
@@ -307,7 +315,7 @@ public abstract class GroupBy extends AbstractPositional {
 
         @Override
         public GroupBy transform(final Function<GroupBy, GroupBy> groupBy, final Function<AggregateMetric, AggregateMetric> f, final Function<DocMetric, DocMetric> g, final Function<AggregateFilter, AggregateFilter> h, final Function<DocFilter, DocFilter> i) {
-            return groupBy.apply(new GroupByUnevenTimePeriod(timeField, timeFormat, groupByType))
+            return groupBy.apply(new GroupByUnevenTimePeriod(timeMetric, timeFormat, groupByType))
                     .copyPosition(this);
         }
 
@@ -319,7 +327,7 @@ public abstract class GroupBy extends AbstractPositional {
         @Override
         public ExecutionStep executionStep(final List<Dataset> datasets) {
             return new ExecutionStep.ExplodeUnevenTimePeriod(
-                    timeField,
+                    timeMetric,
                     timeFormat,
                     groupByType
             );

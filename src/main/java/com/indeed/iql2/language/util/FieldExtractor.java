@@ -508,8 +508,8 @@ public class FieldExtractor {
 
 			@Override
 			public Set<DatasetField> visit(final GroupBy.GroupByTime groupByTime) {
-				if (groupByTime.field.isPresent()) {
-					return groupByTime.field.get().datasetFields();
+				if (groupByTime.metric.isPresent()) {
+					return getDatasetFields(groupByTime.metric.get());
 				}
 				//"unixtime" might be implicitly used here.
 				return ImmutableSet.of();
@@ -517,16 +517,16 @@ public class FieldExtractor {
 
 			@Override
 			public Set<DatasetField> visit(final GroupBy.GroupByTimeBuckets groupByTimeBuckets) {
-				if (groupByTimeBuckets.field.isPresent()) {
-					return groupByTimeBuckets.field.get().datasetFields();
+				if (groupByTimeBuckets.metric.isPresent()) {
+					return getDatasetFields(groupByTimeBuckets.metric.get());
 				}
 				return ImmutableSet.of();
 			}
 
 			@Override
 			public Set<DatasetField> visit(final GroupBy.GroupByUnevenTimePeriod groupByUnevenTimePeriod) {
-				if (groupByUnevenTimePeriod.timeField.isPresent()) {
-					return groupByUnevenTimePeriod.timeField.get().datasetFields();
+				if (groupByUnevenTimePeriod.timeMetric.isPresent()) {
+					return getDatasetFields(groupByUnevenTimePeriod.timeMetric.get());
 				}
 				return ImmutableSet.of();
 			}

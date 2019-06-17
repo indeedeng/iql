@@ -17,20 +17,24 @@ package com.indeed.iql2.execution.commands;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.iql2.execution.Session;
 import com.indeed.iql2.execution.groupkeys.sets.DateTimeRangeGroupKeySet;
+import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.TimeUnit;
-import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 
 import java.util.Optional;
 
 public class TimePeriodRegroup implements Command {
     public final long periodMillis;
-    public final Optional<FieldSet> timeField;
+    public final Optional<DocMetric> timeMetric;
     public final Optional<String> timeFormat;
     public final boolean isRelative;
 
-    public TimePeriodRegroup(long periodMillis, Optional<FieldSet> timeField, Optional<String> timeFormat, boolean isRelative) {
+    public TimePeriodRegroup(
+            final long periodMillis,
+            final Optional<DocMetric> timeMetric,
+            final Optional<String> timeFormat,
+            final boolean isRelative) {
         this.periodMillis = periodMillis;
-        this.timeField = timeField;
+        this.timeMetric = timeMetric;
         this.timeFormat = timeFormat;
         this.isRelative = isRelative;
     }
@@ -60,7 +64,7 @@ public class TimePeriodRegroup implements Command {
         session.checkGroupLimit(numBucketsLong * session.getNumGroups());
         final int numBuckets = (int) numBucketsLong;
         final boolean deleteEmptyGroups = (session.iqlVersion == 1) && !isRelative;
-        final long groupCountLong = session.performTimeRegroup(shardStart, shardEnd, periodMillis, timeField, isRelative, deleteEmptyGroups);
+        final long groupCountLong = session.performTimeRegroup(shardStart, shardEnd, periodMillis, timeMetric, isRelative, deleteEmptyGroups);
         final int groupCount = session.checkGroupLimit(groupCountLong);
         final String format = timeFormat.orElse(TimeUnit.SECOND.formatString);
         final DateTimeRangeGroupKeySet groupKeySet = new DateTimeRangeGroupKeySet(session.groupKeySet, shardStart, periodMillis, numBuckets, groupCount, format, session.formatter);

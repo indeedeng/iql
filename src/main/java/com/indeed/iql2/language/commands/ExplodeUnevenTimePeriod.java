@@ -16,9 +16,10 @@ package com.indeed.iql2.language.commands;
 
 import com.indeed.iql2.execution.groupkeys.sets.GroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
+import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.query.UnevenGroupByPeriod;
-import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.util.ValidationHelper;
+import com.indeed.iql2.language.util.ValidationUtil;
 import com.indeed.iql2.server.web.servlets.query.ErrorCollector;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -30,23 +31,34 @@ import java.util.function.Function;
 @EqualsAndHashCode
 @ToString
 public class ExplodeUnevenTimePeriod implements Command {
-    private final Optional<FieldSet> timeField;
+    private final Optional<DocMetric> timeMetric;
     private final Optional<String> timeFormat;
     private final UnevenGroupByPeriod groupByType;
 
-    public ExplodeUnevenTimePeriod(final Optional<FieldSet> timeField, final Optional<String> timeFormat, final UnevenGroupByPeriod groupByType) {
-        this.timeField = timeField;
+    public ExplodeUnevenTimePeriod(
+            final Optional<DocMetric> timeMetric,
+            final Optional<String> timeFormat,
+            final UnevenGroupByPeriod groupByType) {
+        this.timeMetric = timeMetric;
         this.timeFormat = timeFormat;
         this.groupByType = groupByType;
     }
 
     @Override
     public void validate(ValidationHelper validationHelper, ErrorCollector errorCollector) {
-
+        if (timeMetric.isPresent()) {
+            final DocMetric metric = timeMetric.get();
+            for (final String dataset : validationHelper.datasets()) {
+                metric.validate(dataset, validationHelper, errorCollector);
+            }
+        }
+        if (timeFormat.isPresent()) {
+            ValidationUtil.validateDateTimeFormat(timeFormat.get(), errorCollector);
+        }
     }
 
     @Override
     public com.indeed.iql2.execution.commands.Command toExecutionCommand(Function<String, PerGroupConstant> namedMetricLookup, GroupKeySet groupKeySet, List<String> options) {
-        return new com.indeed.iql2.execution.commands.ExplodeUnevenTimePeriod(timeField, timeFormat, groupByType);
+        return new com.indeed.iql2.execution.commands.ExplodeUnevenTimePeriod(timeMetric, timeFormat, groupByType);
     }
 }

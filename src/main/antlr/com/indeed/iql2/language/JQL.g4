@@ -497,7 +497,7 @@ groupByMetric [boolean useLegacy]
     ;
 
 groupByTime [boolean useLegacy]
-    : (TIME | ({$ctx.useLegacy}? TIMEBUCKETS)) ('(' (timeBucket (',' timeFormat=(DEFAULT | STRING_LITERAL) (',' timeField=identifier)?)?)? (isRelative=RELATIVE)? ')')?
+    : (TIME | ({$ctx.useLegacy}? TIMEBUCKETS)) ('(' (timeBucket (',' timeFormat=(DEFAULT | STRING_LITERAL) (',' timeMetric=docMetric[$ctx.useLegacy] )?)?)? (isRelative=RELATIVE)? ')')?
     ;
 
 groupByField [boolean useLegacy]
