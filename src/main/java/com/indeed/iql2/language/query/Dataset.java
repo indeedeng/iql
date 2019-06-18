@@ -51,10 +51,6 @@ import java.util.stream.Collectors;
 import static com.indeed.iql2.language.Identifiers.parseIdentifier;
 
 public class Dataset extends AbstractPositional {
-    static {
-        DateTimeZone.setDefault(DateTimeZone.forOffsetHours(-6));
-    }
-
     public final Positioned<String> dataset;
     public final Positioned<DateTime> startInclusive;
     public final Positioned<DateTime> endExclusive;
@@ -126,8 +122,18 @@ public class Dataset extends AbstractPositional {
             Query.Context context) {
         ScopedFieldResolver fieldResolver = context.fieldResolver;
         final Positioned<String> dataset = fieldResolver.resolveImhotepDataset(datasetContext.index);
-        final Positioned<DateTime> start = parseDateTime(datasetContext.startTime, datasetContext.useLegacy, context.clock);
-        final Positioned<DateTime> end = parseDateTime(datasetContext.endTime, datasetContext.useLegacy, context.clock);
+        final Positioned<DateTime> start = parseDateTime(
+                datasetContext.startTime,
+                datasetContext.useLegacy,
+                context.clock,
+                context.timeZone
+        );
+        final Positioned<DateTime> end = parseDateTime(
+                datasetContext.endTime,
+                datasetContext.useLegacy,
+                context.clock,
+                context.timeZone
+        );
         final Optional<Positioned<String>> name = Optional.ofNullable(datasetContext.name).map(Identifiers::parseIdentifier);
 
         final ShardResolver.ShardResolutionResult resolutionResult = getShards(context, dataset.unwrap(), start.unwrap(), end.unwrap(), name.map(Positioned::unwrap));
@@ -236,24 +242,35 @@ public class Dataset extends AbstractPositional {
         return result;
     }
 
-    public static Positioned<DateTime> parseDateTime(final JQLParser.DateTimeContext dateTimeContext, final boolean useLegacy, final WallClock clock) {
-        return Positioned.from(innerParseDateTime(dateTimeContext, useLegacy, clock), dateTimeContext);
+    public static Positioned<DateTime> parseDateTime(
+            final JQLParser.DateTimeContext dateTimeContext,
+            final boolean useLegacy,
+            final WallClock clock,
+            final DateTimeZone timeZone
+    ) {
+        return Positioned.from(innerParseDateTime(dateTimeContext, useLegacy, clock, timeZone), dateTimeContext);
     }
 
     private static DateTime innerParseDateTime(
             final JQLParser.DateTimeContext dateTimeContext,
             final boolean useLegacy,
-            final WallClock clock) {
+            final WallClock clock,
+            final DateTimeZone timeZone
+    ) {
         if (dateTimeContext.DATETIME_TOKEN() != null) {
-            return createDateTime(dateTimeContext.DATETIME_TOKEN().getText().replaceAll(" ", "T"));
-        } else if (dateTimeContext.STRING_LITERAL() != null) {
+            return createDateTime(
+                    dateTimeContext.DATETIME_TOKEN().getText().replaceAll(" ", "T"),
+                    timeZone
+            );
+        }
+        if (dateTimeContext.STRING_LITERAL() != null) {
             final String unquoted = ParserCommon.unquote(dateTimeContext.STRING_LITERAL().getText(), useLegacy);
 
             // unquoted literal must be parseable by dateTimeTerminal or relativeTimeTerminal
 
             final JQLParser.DateTimeTerminalContext dateTimeTerminal = Queries.tryRunParser(unquoted, JQLParser::dateTimeTerminal);
             if (dateTimeTerminal != null) {
-                return innerParseDateTime(dateTimeTerminal.dateTime(), useLegacy, clock);
+                return innerParseDateTime(dateTimeTerminal.dateTime(), useLegacy, clock, timeZone);
             }
 
             final JQLParser.RelativeTimeTerminalContext relativeTimeTerminal = Queries.tryRunParser(unquoted, JQLParser::relativeTimeTerminal);
@@ -264,21 +281,23 @@ public class Dataset extends AbstractPositional {
 
                 if (relativeTimeTerminal.timeInterval() != null) {
                     final List<Pair<Integer, TimeUnit>> intervals = TimePeriods.parseTimeIntervals(relativeTimeTerminal.timeInterval().getText(), useLegacy);
-                    return TimePeriods.subtract(clock, intervals);
+                    return TimePeriods.subtract(clock, intervals, timeZone);
                 }
             }
 
             throw new IqlKnownException.ParseErrorException("Failed to parse string as either DateTime or time period: " + unquoted);
-        } else if (dateTimeContext.relativeTime() != null) {
-            return relativeTime(dateTimeContext.relativeTime(), clock, useLegacy);
-        } else if (dateTimeContext.NAT() != null) {
+        }
+        if (dateTimeContext.relativeTime() != null) {
+            return relativeTime(dateTimeContext.relativeTime(), clock, useLegacy, timeZone);
+        }
+        if (dateTimeContext.NAT() != null) {
             final long timestamp = Long.parseLong(dateTimeContext.NAT().getText());
             // 4 digit number is parsed as NAT but not as DATETIME_TOKEN
             // if it looks like a year, then return year
             if ((timestamp > 2010) && (timestamp < 2050)) {
-                return new DateTime((int)timestamp, 1, 1, 0, 0 );
+                return new DateTime((int)timestamp, 1, 1, 0, 0, timeZone);
             }
-            return parseUnixTimestamp(dateTimeContext.NAT().getText());
+            return parseUnixTimestamp(dateTimeContext.NAT().getText(), timeZone);
         }
         throw new IqlKnownException.ParseErrorException("Unhandled dateTime: " + dateTimeContext.getText());
     }
@@ -286,51 +305,53 @@ public class Dataset extends AbstractPositional {
     public static DateTime relativeTime(
             final JQLParser.RelativeTimeContext context,
             final WallClock clock,
-            final boolean useLegacy) {
+            final boolean useLegacy,
+            final DateTimeZone timeZone
+    ) {
 
         if (context.TODAYS() != null) {
-            return today(clock);
+            return today(clock, timeZone);
         }
 
         if (context.TOMORROWS() != null) {
-            return today(clock).plusDays(1);
+            return today(clock, timeZone).plusDays(1);
         }
 
         if ((context.YESTERDAYS() != null) || (context.Y() != null)) {
-            return today(clock).minusDays(1);
+            return today(clock, timeZone).minusDays(1);
         }
 
         if (context.timeIntervalOneWord() != null) {
             final List<Pair<Integer, TimeUnit>> intervals = TimePeriods.parseTimeIntervals(context.timeIntervalOneWord().getText(), useLegacy);
-            return TimePeriods.subtract(clock, intervals);
+            return TimePeriods.subtract(clock, intervals, timeZone);
         }
 
         throw new IqlKnownException.ParseErrorException("Failed to parse string as either DateTime or time period: " + context.getText());
     }
 
-    private static DateTime parseUnixTimestamp(String value) {
+    private static DateTime parseUnixTimestamp(final String value, final DateTimeZone timeZone) {
         long timestamp = Long.parseLong(value);
         if(timestamp < Integer.MAX_VALUE) {
             timestamp *= 1000;  // seconds to milliseconds
         }
-        return createDateTime(timestamp);
+        return createDateTime(timestamp, timeZone);
     }
 
-    private static DateTime today(final WallClock clock) {
-        return createDateTime(clock.currentTimeMillis()).withTimeAtStartOfDay();
+    private static DateTime today(final WallClock clock, final DateTimeZone timeZone) {
+        return createDateTime(clock.currentTimeMillis(), timeZone).withTimeAtStartOfDay();
     }
 
-    private static DateTime createDateTime(final long time) {
+    private static DateTime createDateTime(final long time, final DateTimeZone timeZone) {
         try {
-            return new DateTime(time);
+            return new DateTime(time, timeZone);
         } catch (final Throwable t) {
             throw new IqlKnownException.ParseErrorException("Error parsing date/time: " + time, t);
         }
     }
 
-    private static DateTime createDateTime(final String time) {
+    private static DateTime createDateTime(final String time, final DateTimeZone timeZone) {
         try {
-            return new DateTime(time);
+            return new DateTime(time, timeZone);
         } catch (final Throwable t) {
             throw new IqlKnownException.ParseErrorException("Error parsing date/time: " + time, t);
         }

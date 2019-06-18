@@ -35,7 +35,15 @@ public class TestDateTimeRangeGroupKeySet {
 
     private static DateTimeRangeGroupKeySet create() {
         final DumbGroupKeySet previous = DumbGroupKeySet.create(DumbGroupKeySet.empty(), new int[]{-1, 1, 1, 1, 1, 1}, Arrays.asList(null, new IntTermGroupKey(1), new IntTermGroupKey(2), new IntTermGroupKey(3), new IntTermGroupKey(4), new IntTermGroupKey(5)));
-        return new DateTimeRangeGroupKeySet(previous, new DateTime(2015, 2, 23, 12, 0, 0).getMillis(), TimeUnit.HOUR.millis, 24, 24 * previous.numGroups(), TimeUnit.HOUR.formatString, Formatter.TSV);
+        return new DateTimeRangeGroupKeySet(previous,
+                new DateTime(2015, 2, 23, 12, 0, 0).getMillis(),
+                TimeUnit.HOUR.millis,
+                24,
+                24 * previous.numGroups(),
+                TimeUnit.HOUR.formatString,
+                Formatter.TSV,
+                DateTimeZone.forOffsetHours(-6)
+        );
     }
 
     @Test

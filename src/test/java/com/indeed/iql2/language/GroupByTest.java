@@ -50,8 +50,8 @@ public class GroupByTest {
             new TracingTreeTimer(),
             FIELD_RESOLVER.universalScope(),
             new NullShardResolver(),
-            PersistentStack.empty()
-    );
+            PersistentStack.empty(),
+            DateTimeZone.forOffsetHours(-6));
 
     private static final Function<JQLParser, GroupByEntry> PARSE_IQL1_GROUP_BY = new Function<JQLParser, GroupByEntry>() {
         @Override

@@ -16,14 +16,9 @@ package com.indeed.iql2.language;
 
 import com.indeed.iql.exceptions.IqlKnownException;
 import org.apache.commons.lang.StringEscapeUtils;
-import org.joda.time.DateTimeZone;
 
 public class ParserCommon {
     private ParserCommon() {
-    }
-
-    static {
-        DateTimeZone.setDefault(DateTimeZone.forOffsetHours(-6));
     }
 
     public static String unquote(final String text, final boolean useLegacy) {

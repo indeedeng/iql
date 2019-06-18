@@ -46,8 +46,8 @@ public class SubstituteDimension {
                         context.timer,
                         fieldResolver,
                         new NullShardResolver(), // Dimensions metrics cannot use subqueries
-                        context.aggregateContexts
-                )
+                        context.aggregateContexts,
+                        context.timeZone)
         );
 
         Preconditions.checkArgument(!dimensionMetric.requiresFTGS(), "Dimension metric requiring FTGS is not supported");

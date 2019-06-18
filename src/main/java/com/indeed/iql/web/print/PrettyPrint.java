@@ -46,6 +46,7 @@ import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
@@ -62,6 +63,8 @@ import java.util.function.Function;
 
 public class PrettyPrint {
     private static final Function<String, String> RENDER_STRING = s -> "\"" + stringEscape(s) + "\"";
+    public static final int MILLIS_PER_MINUTE = 1000 * 60;
+    public static final int MILLIS_PER_HOUR = MILLIS_PER_MINUTE * 60;
 
     public static void main(String[] args) {
         final DatasetsMetadata datasetsMetadata = DatasetsMetadata.empty();
@@ -82,7 +85,7 @@ public class PrettyPrint {
 
     private static String prettyPrint(JQLParser.QueryContext queryContext, Query query, DatasetsMetadata datasetsMetadata, Consumer<String> consumer, WallClock clock) {
         final FieldResolver fieldResolver = FieldResolver.build(queryContext, queryContext.fromContents(), datasetsMetadata, query.useLegacy);
-        final PrettyPrint prettyPrint = new PrettyPrint(queryContext, datasetsMetadata, fieldResolver.universalScope(), consumer, clock);
+        final PrettyPrint prettyPrint = new PrettyPrint(queryContext, datasetsMetadata, fieldResolver.universalScope(), consumer, clock, query.timeZone);
         prettyPrint.pp(query);
         while (prettyPrint.sb.charAt(prettyPrint.sb.length() - 1) == '\n') {
             prettyPrint.sb.setLength(prettyPrint.sb.length() - 1);
@@ -102,11 +105,18 @@ public class PrettyPrint {
     // A bit of a hack. Can probably be removed by making the wrappers not pp(), but that's effort.
     private final Set<Interval> seenCommentIntervals = new HashSet<>();
 
-    private PrettyPrint(JQLParser.QueryContext queryContext, final DatasetsMetadata datasetsMetadata, final ScopedFieldResolver fieldResolver, final Consumer<String> consumer, final WallClock clock) {
+    private PrettyPrint(
+            JQLParser.QueryContext queryContext,
+            final DatasetsMetadata datasetsMetadata,
+            final ScopedFieldResolver fieldResolver,
+            final Consumer<String> consumer,
+            final WallClock clock,
+            final DateTimeZone timeZone
+    ) {
         this.inputStream = queryContext.start.getInputStream();
         this.datasetsMetadata = datasetsMetadata;
         this.fieldResolver = fieldResolver;
-        this.context = new Query.Context(null, datasetsMetadata, null, consumer, clock, timer, fieldResolver, new NullShardResolver(), PersistentStack.empty());
+        this.context = new Query.Context(null, datasetsMetadata, null, consumer, clock, timer, fieldResolver, new NullShardResolver(), PersistentStack.empty(), timeZone);
     }
 
     private String getText(Positional positional) {
@@ -153,7 +163,27 @@ public class PrettyPrint {
         sb.append(comment).append(' ');
     }
 
-    private void pp(Query query) {
+    private void pp(final Query query) {
+        if (!query.timeZone.equals(DateTimeZone.forOffsetHours(-6))) {
+            // TODO: add timezone clause tests
+            sb.append("TIMEZONE GMT");
+            final int offsetMillis = query.timeZone.getOffset(0);
+            if (offsetMillis != 0) {
+                if (offsetMillis < 0) {
+                    sb.append('-');
+                } else  {
+                    sb.append('+');
+                }
+                final int hours = offsetMillis / MILLIS_PER_HOUR;
+                final int minutes = (offsetMillis - (hours * MILLIS_PER_HOUR)) / MILLIS_PER_MINUTE;
+                if (((hours * MILLIS_PER_HOUR) + (minutes * MILLIS_PER_MINUTE)) != offsetMillis) {
+                    throw new IllegalStateException("Something went wrong with timezone handling");
+                }
+                sb.append(String.format("%02d:%02d", hours, minutes));
+            }
+            sb.append(' ');
+        }
+
         sb.append("FROM ");
         final boolean multiDataSets = query.datasets.size() > 1;
 

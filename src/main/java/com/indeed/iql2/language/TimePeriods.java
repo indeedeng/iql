@@ -20,6 +20,7 @@ import com.indeed.iql2.language.query.Queries;
 import com.indeed.util.core.Pair;
 import com.indeed.util.core.time.WallClock;
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -108,8 +109,12 @@ public class TimePeriods {
         return result;
     }
 
-    public static DateTime subtract(final WallClock clock, final List<Pair<Integer, TimeUnit>> intervals) {
-        DateTime dt = new DateTime(clock.currentTimeMillis()).withTimeAtStartOfDay();
+    public static DateTime subtract(
+            final WallClock clock,
+            final List<Pair<Integer, TimeUnit>> intervals,
+            final DateTimeZone timeZone
+    ) {
+        DateTime dt = new DateTime(clock.currentTimeMillis(), timeZone).withTimeAtStartOfDay();
         for (final Pair<Integer, TimeUnit> interval : intervals) {
             dt = TimeUnit.subtract(dt, interval.getFirst(), interval.getSecond());
         }

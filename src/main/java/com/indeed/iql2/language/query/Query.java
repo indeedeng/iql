@@ -53,6 +53,7 @@ import lombok.ToString;
 import lombok.Value;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.joda.time.DateTimeZone;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -78,6 +79,7 @@ public class Query extends AbstractPositional {
     public final List<String> options;
     public final Optional<Integer> rowLimit;
     public final boolean useLegacy;
+    public final DateTimeZone timeZone;
 
     // Lazily initialized on use
     @ToString.Exclude
@@ -87,7 +89,17 @@ public class Query extends AbstractPositional {
     @EqualsAndHashCode.Exclude
     private Optional<List<AggregateMetric>> totals = null;
 
-    public Query(final List<Dataset> datasets, final Optional<DocFilter> filter, final List<GroupByEntry> groupBys, final List<AggregateMetric> selects, final List<Optional<String>> formatStrings, final List<String> options, final Optional<Integer> rowLimit, final boolean useLegacy) {
+    public Query(
+            final List<Dataset> datasets,
+            final Optional<DocFilter> filter,
+            final List<GroupByEntry> groupBys,
+            final List<AggregateMetric> selects,
+            final List<Optional<String>> formatStrings,
+            final List<String> options,
+            final Optional<Integer> rowLimit,
+            final boolean useLegacy,
+            final DateTimeZone timeZone
+    ) {
         this.datasets = datasets;
         this.filter = filter;
         this.groupBys = groupBys;
@@ -96,6 +108,7 @@ public class Query extends AbstractPositional {
         this.options = options;
         this.rowLimit = rowLimit;
         this.useLegacy = useLegacy;
+        this.timeZone = timeZone;
     }
 
     public interface AggregateContext {
@@ -146,6 +159,7 @@ public class Query extends AbstractPositional {
         public final ScopedFieldResolver fieldResolver;
         public final ShardResolver shardResolver;
         public final PersistentStack<AggregateContext> aggregateContexts;
+        public final DateTimeZone timeZone;
         public final TracingTreeTimer timer;
 
         public Context(
@@ -157,8 +171,8 @@ public class Query extends AbstractPositional {
                 final TracingTreeTimer timer,
                 final ScopedFieldResolver fieldResolver,
                 final ShardResolver shardResolver,
-                final PersistentStack<AggregateContext> aggregateContexts
-        ) {
+                final PersistentStack<AggregateContext> aggregateContexts,
+                final DateTimeZone timeZone) {
             this.options = options;
             this.datasetsMetadata = datasetsMetadata;
             this.fromContext = fromContext;
@@ -168,26 +182,27 @@ public class Query extends AbstractPositional {
             this.fieldResolver = fieldResolver;
             this.shardResolver = shardResolver;
             this.aggregateContexts = aggregateContexts;
+            this.timeZone = timeZone;
         }
 
         public Context copyWithAnotherFromContext(final JQLParser.FromContentsContext newContext) {
-            return new Context(options, datasetsMetadata, newContext, warn, clock, timer, fieldResolver, shardResolver, aggregateContexts);
+            return new Context(options, datasetsMetadata, newContext, warn, clock, timer, fieldResolver, shardResolver, aggregateContexts, timeZone);
         }
 
         public Context withFieldResolver(final ScopedFieldResolver fieldResolver) {
-            return new Context(options, datasetsMetadata, fromContext, warn, clock, timer, fieldResolver, shardResolver, aggregateContexts);
+            return new Context(options, datasetsMetadata, fromContext, warn, clock, timer, fieldResolver, shardResolver, aggregateContexts, timeZone);
         }
 
         public Context withoutAggregate() {
-            return new Context(options, datasetsMetadata, fromContext, warn, clock, timer, fieldResolver, shardResolver, PersistentStack.empty());
+            return new Context(options, datasetsMetadata, fromContext, warn, clock, timer, fieldResolver, shardResolver, PersistentStack.empty(), timeZone);
         }
 
         private Context withAggregate(final AggregateContext aggregateContext) {
-            return new Context(options, datasetsMetadata, fromContext, warn, clock, timer, fieldResolver, shardResolver, aggregateContexts.pushed(aggregateContext));
+            return new Context(options, datasetsMetadata, fromContext, warn, clock, timer, fieldResolver, shardResolver, aggregateContexts.pushed(aggregateContext), timeZone);
         }
 
         public Context withAggregatePopped() {
-            return new Context(options, datasetsMetadata, fromContext, warn, clock, timer, fieldResolver, shardResolver, aggregateContexts.popped());
+            return new Context(options, datasetsMetadata, fromContext, warn, clock, timer, fieldResolver, shardResolver, aggregateContexts.popped(), timeZone);
         }
 
         public Context withFieldAggregate(final FieldSet fieldSet) {
@@ -206,7 +221,7 @@ public class Query extends AbstractPositional {
         }
 
         public PartialContext partialContext() {
-            return new PartialContext(options, datasetsMetadata, fromContext, warn, clock, timer, shardResolver, aggregateContexts);
+            return new PartialContext(options, datasetsMetadata, fromContext, warn, clock, timer, shardResolver, aggregateContexts, timeZone);
         }
 
         // Represents Context when we don't yet have a FieldResolver.
@@ -220,8 +235,9 @@ public class Query extends AbstractPositional {
             public final TracingTreeTimer timer;
             public final ShardResolver shardResolver;
             public final PersistentStack<AggregateContext> aggregateContexts;
+            public final DateTimeZone timeZone;
 
-            public PartialContext(final List<String> options, final DatasetsMetadata datasetsMetadata, final JQLParser.FromContentsContext fromContext, final Consumer<String> warn, final WallClock clock, final TracingTreeTimer timer, final ShardResolver shardResolver, final PersistentStack<AggregateContext> aggregateContexts) {
+            public PartialContext(final List<String> options, final DatasetsMetadata datasetsMetadata, final JQLParser.FromContentsContext fromContext, final Consumer<String> warn, final WallClock clock, final TracingTreeTimer timer, final ShardResolver shardResolver, final PersistentStack<AggregateContext> aggregateContexts, final DateTimeZone timeZone) {
                 this.options = options;
                 this.datasetsMetadata = datasetsMetadata;
                 this.fromContext = fromContext;
@@ -230,10 +246,11 @@ public class Query extends AbstractPositional {
                 this.timer = timer;
                 this.shardResolver = shardResolver;
                 this.aggregateContexts = aggregateContexts;
+                this.timeZone = timeZone;
             }
 
             public Context fullContext(final ScopedFieldResolver fieldResolver) {
-                return new Context(options, datasetsMetadata, fromContext, warn, clock, timer, fieldResolver, shardResolver, aggregateContexts);
+                return new Context(options, datasetsMetadata, fromContext, warn, clock, timer, fieldResolver, shardResolver, aggregateContexts, timeZone);
             }
         }
     }
@@ -349,7 +366,33 @@ public class Query extends AbstractPositional {
         // Make future errors immediately thrown, while also throwing any errors that have been caused up to this point.
         fieldResolver.setErrorMode(FieldResolver.ErrorMode.IMMEDIATE);
 
-        return new Query(datasets, whereFilter, groupBys, selectedMetrics, formatStrings, context.options, rowLimit, useLegacy);
+        return new Query(datasets, whereFilter, groupBys, selectedMetrics, formatStrings, context.options, rowLimit, useLegacy, context.timeZone);
+    }
+
+    private static DateTimeZone timeZoneForQuery(final JQLParser.QueryContext queryCtx) {
+        final List<JQLParser.TimeZoneSpecifierContext> timeZones = queryCtx.timeZones;
+        if (timeZones.isEmpty()) {
+            return DateTimeZone.forOffsetHours(-6);
+        }
+        if (timeZones.size() > 1) {
+            throw new IqlKnownException.ParseErrorException("Requested multiple timezones -- can only use 1!");
+        }
+        final JQLParser.TimeZoneSpecifierContext timeZoneCtx = timeZones.get(0);
+        final int hoursOffset = (timeZoneCtx.hours != null) ? Integer.parseInt(timeZoneCtx.hours.getText()) : 0;
+        final int minutesOffset = (timeZoneCtx.minutes != null) ? Integer.parseInt(timeZoneCtx.minutes.getText()) : 0;
+        final String signString = (timeZoneCtx.sign == null) ? "+" : timeZoneCtx.sign.getText();
+        final int sign;
+        switch (signString) {
+            case "+":
+                sign = 1;
+                break;
+            case "-":
+                sign = -1;
+                break;
+            default:
+                throw new IllegalStateException("Sign cannot be other than + or -");
+        }
+        return DateTimeZone.forOffsetHoursMinutes(sign * hoursOffset, sign * minutesOffset);
     }
 
     public static Query parseQuery(
@@ -366,7 +409,17 @@ public class Query extends AbstractPositional {
         if (QueryOptions.Experimental.hasHosts(options)) {
             shardResolver = new RemappingShardResolver(shardResolver, QueryOptions.Experimental.parseHostMappingMethod(options), QueryOptions.Experimental.parseHosts(options));
         }
-        final Context.PartialContext context = new Context.PartialContext(options, datasetsMetadata, queryContext.fromContents(), warn, clock, timer, shardResolver, PersistentStack.empty());
+        final Context.PartialContext context = new Context.PartialContext(
+                options,
+                datasetsMetadata,
+                queryContext.fromContents(),
+                warn,
+                clock,
+                timer,
+                shardResolver,
+                PersistentStack.empty(),
+                timeZoneForQuery(queryContext)
+        );
         final Query query = parseQuery(
                 queryContext,
                 context,
@@ -456,7 +509,7 @@ public class Query extends AbstractPositional {
         for (final AggregateMetric select : this.selects) {
             selects.add(select.transform(f, g, h, i, groupBy));
         }
-        return new Query(datasets, filter, groupBys, selects, formatStrings, options, rowLimit, useLegacy).copyPosition(this);
+        return new Query(datasets, filter, groupBys, selects, formatStrings, options, rowLimit, useLegacy, timeZone).copyPosition(this);
     }
 
     private static void validateDatasetNames(final List<Dataset> datasets) {

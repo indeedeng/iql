@@ -41,6 +41,7 @@ public class CacheKey {
         sha1.update(Ints.toByteArray(SelectQuery.VERSION_FOR_HASHING));
         sha1.update(Ints.toByteArray(query.useLegacy ? 1 : 2));
         sha1.update(resultFormat.toString().getBytes());
+        sha1.update(Ints.toByteArray(query.timeZone.getOffset(0)));
         for (final Command command : commands) {
             sha1.update(command.toString().getBytes(Charsets.UTF_8));
         }

@@ -63,6 +63,7 @@ import com.indeed.util.tempfiles.IQLTempFiles;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.joda.time.Interval;
 import org.joda.time.Period;
 import org.joda.time.format.PeriodFormat;
@@ -657,7 +658,7 @@ public final class IQLQuery implements Closeable {
         final Optional<Integer> rowLimit =
                 (this.rowLimit < (Integer.MAX_VALUE - 1)) ? Optional.of(this.rowLimit) : Optional.empty();
         final boolean useLegacy = true;
-        return new Query(datasets, filter, groupBys, selects, formatStrings, options, rowLimit, useLegacy);
+        return new Query(datasets, filter, groupBys, selects, formatStrings, options, rowLimit, useLegacy, DateTimeZone.forOffsetHours(-6));
     }
 
     public List<GroupByEntry> convertGroupBys(final boolean fixKnownDiffs) throws Iql1ConvertException {

@@ -22,6 +22,7 @@ import com.indeed.iql2.execution.groupkeys.GroupKey;
 import com.indeed.iql2.execution.groupkeys.StringGroupKey;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
+import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
@@ -48,14 +49,18 @@ public class DateTimeRangeGroupKeySet implements GroupKeySet {
             final int numBuckets,
             final int numGroups,
             final String format,
-            final Formatter formatter) {
+            final Formatter formatter,
+            final DateTimeZone timeZone
+    ) {
         this.previous = previous;
         this.earliestStart = earliestStart;
         this.periodMillis = periodMillis;
         this.numBuckets = numBuckets;
         this.numGroups = numGroups;
         this.format = format;
-        final DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern(format).withLocale(Locale.US);
+        final DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern(format)
+                .withLocale(Locale.US)
+                .withZone(timeZone);
         buildGroupKey = CacheBuilder.newBuilder()
                 .build(new CacheLoader<Integer, StringGroupKey>() {
                     @Override

@@ -52,8 +52,8 @@ public class DocMetricsTest {
             new TracingTreeTimer(),
             FIELD_RESOLVER.universalScope(),
             new NullShardResolver(),
-            PersistentStack.empty()
-    );
+            PersistentStack.empty(),
+            DateTimeZone.forOffsetHours(-6));
 
     private static final Function<String, DocMetric> PARSE_LEGACY_DOC_METRIC = new Function<String, DocMetric>() {
         public DocMetric apply(@Nullable String input) {

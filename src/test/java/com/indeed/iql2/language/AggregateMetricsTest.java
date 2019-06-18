@@ -53,8 +53,8 @@ public class AggregateMetricsTest {
             new TracingTreeTimer(),
             FIELD_RESOLVER.universalScope(),
             new NullShardResolver(),
-            PersistentStack.empty()
-    );
+            PersistentStack.empty(),
+            DateTimeZone.forOffsetHours(-6));
 
     private static final Function<String, AggregateMetric> PARSE_IQL2_AGGREGATE_METRIC = new Function<String, AggregateMetric>() {
         public AggregateMetric apply(@Nullable String input) {

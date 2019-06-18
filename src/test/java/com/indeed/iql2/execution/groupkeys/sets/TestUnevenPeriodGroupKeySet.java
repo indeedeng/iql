@@ -20,6 +20,7 @@ import com.indeed.iql2.execution.groupkeys.StringGroupKey;
 import com.indeed.iql2.language.TimeUnit;
 import com.indeed.iql2.language.query.UnevenGroupByPeriod;
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.junit.Assert;
@@ -35,7 +36,14 @@ public class TestUnevenPeriodGroupKeySet {
 
     private static UnevenPeriodGroupKeySet create() {
         final DumbGroupKeySet dumbGroupKeySet = DumbGroupKeySet.create(DumbGroupKeySet.empty(), new int[]{-1, 1, 1, 1, 1, 1}, Arrays.asList(null, new IntTermGroupKey(1), new IntTermGroupKey(2), new IntTermGroupKey(3), new IntTermGroupKey(4), new IntTermGroupKey(5)));
-        return new UnevenPeriodGroupKeySet(dumbGroupKeySet, 12, new DateTime(2015, 2, 1, 0, 0, 0), UnevenGroupByPeriod.MONTH, FORMAT_STRING, Formatter.TSV);
+        return new UnevenPeriodGroupKeySet(dumbGroupKeySet,
+                12,
+                new DateTime(2015, 2, 1, 0, 0, 0),
+                UnevenGroupByPeriod.MONTH,
+                FORMAT_STRING,
+                Formatter.TSV,
+                DateTimeZone.forOffsetHours(-6)
+        );
     }
 
     @Test

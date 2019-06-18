@@ -51,8 +51,8 @@ public class FieldResolverTest {
             new TracingTreeTimer(),
             FIELD_RESOLVER.universalScope(),
             new NullShardResolver(),
-            PersistentStack.empty()
-    );
+            PersistentStack.empty(),
+            DateTimeZone.forOffsetHours(-6));
 
     public static FieldResolver fromQuery(final String query) {
         final boolean useLegacy = false;

@@ -24,6 +24,7 @@ import com.indeed.iql2.language.query.UnevenGroupByPeriod;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
@@ -48,13 +49,17 @@ public class UnevenPeriodGroupKeySet implements GroupKeySet {
             final DateTime start,
             final UnevenGroupByPeriod groupByType,
             final String formatString,
-            final Formatter formatter) {
+            final Formatter formatter,
+            final DateTimeZone timeZone
+    ) {
         this.previous = previous;
         this.numPeriods = numPeriods;
         this.start = start;
         this.groupByType = groupByType;
         this.formatString = formatString;
-        final DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern(formatString).withLocale(Locale.US);
+        final DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern(formatString)
+                .withLocale(Locale.US)
+                .withZone(timeZone);
         buildGroupKey = CacheBuilder.newBuilder()
                 .build(new CacheLoader<Integer, StringGroupKey>() {
                     @Override
