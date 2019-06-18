@@ -528,6 +528,8 @@ public class SelectQueryExecution {
                         null
                 );
 
+                queryMetadata.setPendingHeaders();
+
                 finalizeQueryExecution(selectExecutionInformation, 0);
 
                 return selectExecutionInformation;
