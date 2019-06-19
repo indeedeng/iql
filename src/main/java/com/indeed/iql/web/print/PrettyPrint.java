@@ -165,7 +165,6 @@ public class PrettyPrint {
 
     private void pp(final Query query) {
         if (!query.timeZone.equals(DateTimeZone.forOffsetHours(-6))) {
-            // TODO: add timezone clause tests
             sb.append("TIMEZONE GMT");
             final int offsetMillis = query.timeZone.getOffset(0);
             if (offsetMillis != 0) {
