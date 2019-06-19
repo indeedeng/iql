@@ -1,16 +1,16 @@
 package com.indeed.iql2.server.web.servlets;
 
-import com.google.common.collect.ImmutableList;
 import com.indeed.iql2.ComparisonTools;
 import org.junit.Test;
 
 public class ComparisonToolsTest {
     private static void testWarning(final String query, final ComparisonTools.Result warning) throws Exception {
-        QueryServletTestUtils.testWarning(
+        // iql1 is disabled
+        /*QueryServletTestUtils.testWarning(
                 ImmutableList.of("Deprecation warning: " + warning.message),
                 query,
                 QueryServletTestUtils.LanguageVersion.ORIGINAL_IQL1
-        );
+        );*/
     }
     @Test
     public void testWarnings() throws Exception {
