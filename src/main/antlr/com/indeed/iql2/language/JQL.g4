@@ -149,7 +149,7 @@ identifier
     | SAMPLE | AND | OR | TRUE | FALSE | IF | THEN | ELSE | FLOATSCALE | SIGNUM | LIMIT | HAVING
     | FIELD_MIN | FIELD_MAX | ALIASING | HASINTFIELD | HASSTRFIELD | INTTERMCOUNT | STRTERMCOUNT | SAME | EXP | WINDOW_SUM | MIN | MAX
     | PRINTF | EXTRACT | RANDOM | OPTIONS
-    | M | Y | TODAYS | TOMORROWS | YESTERDAYS | TIME_UNIT | TIME_INTERVAL_ATOM
+    | M | Y | Q | TODAYS | TOMORROWS | YESTERDAYS | TIME_UNIT | TIME_INTERVAL_ATOM
     | RELATIVE | DATASET
     | BACKQUOTED_ID | LEN | DOCID | UID_TO_UNIXTIME
     | UTC | GMT | TIMEZONE
@@ -501,7 +501,7 @@ groupByMetric [boolean useLegacy]
     ;
 
 groupByTime [boolean useLegacy]
-    : (TIME | ({$ctx.useLegacy}? TIMEBUCKETS)) ('(' (timeBucket (',' timeFormat=(DEFAULT | STRING_LITERAL) (',' timeField=identifier)?)?)? (isRelative=RELATIVE)? ')')?
+    : (TIME | ({$ctx.useLegacy}? TIMEBUCKETS)) ('(' (timeBucket (',' timeFormat=(DEFAULT | STRING_LITERAL) (',' timeMetric=docMetric[$ctx.useLegacy] )?)?)? (isRelative=RELATIVE)? ')')?
     ;
 
 groupByField [boolean useLegacy]

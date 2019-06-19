@@ -700,14 +700,14 @@ public final class IQLQuery implements Closeable {
                 final StatRangeGrouping statRangeGrouping = (StatRangeGrouping) grouping;
                 final GroupBy groupBy;
                 if (statRangeGrouping.isTimeGrouping) {
-                    final Field field;
+                    Optional<DocMetric> timeMetric = Optional.of(convertToDocMetric(statRangeGrouping.stat));
                     if (statRangeGrouping.stat instanceof Stats.IntFieldStat) {
-                        field = ((Stats.IntFieldStat) statRangeGrouping.stat).field;
-                    } else {
-                        throw new Iql1ConvertException("group by time must be by field");
+                        final Field field = ((Stats.IntFieldStat) statRangeGrouping.stat).field;
+                        if (field.getFieldName().equals(DatasetMetadata.TIME_FIELD_NAME)) {
+                            timeMetric = Optional.empty();
+                        }
                     }
-                    final Optional<FieldSet> f = field.getFieldName().equals(DatasetMetadata.TIME_FIELD_NAME) ? Optional.empty() : Optional.of(createField(field));
-                    groupBy = new GroupBy.GroupByTime(statRangeGrouping.intervalSize * 1000, f, statRangeGrouping.timeFormat, false);
+                    groupBy = new GroupBy.GroupByTime(statRangeGrouping.intervalSize * 1000, timeMetric, statRangeGrouping.timeFormat, false);
                 } else {
                     groupBy = new GroupBy.GroupByMetric(
                             convertToDocMetric(statRangeGrouping.stat),

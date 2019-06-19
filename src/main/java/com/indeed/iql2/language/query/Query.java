@@ -328,7 +328,7 @@ public class Query extends AbstractPositional {
                 for (final JQLParser.FormattedAggregateMetricContext formattedMetric : selectSet.formattedAggregateMetric()) {
                     metrics.add(formattedMetric.aggregateMetric());
                     if (formattedMetric.STRING_LITERAL() != null) {
-                        formatString = Optional.of(ParserCommon.unquote(formattedMetric.STRING_LITERAL().getText(), useLegacy));
+                        formatString = Optional.of(ParserCommon.unquote(formattedMetric.STRING_LITERAL().getText(), useLegacy, context.warn));
                     } else if (selectSet.precision != null) {
                         formatString = Optional.of(String.format(FORMAT_STRING_TEMPLATE, selectSet.precision.getText()));
                     } else {
@@ -404,7 +404,7 @@ public class Query extends AbstractPositional {
             final TracingTreeTimer timer,
             ShardResolver shardResolver
     ) {
-        final List<String> options = queryContext.options.stream().map(x -> ParserCommon.unquote(x.getText(), queryContext.useLegacy)).collect(Collectors.toList());
+        final List<String> options = queryContext.options.stream().map(x -> ParserCommon.unquote(x.getText(), queryContext.useLegacy, warn)).collect(Collectors.toList());
         options.addAll(defaultOptions);
         if (QueryOptions.Experimental.hasHosts(options)) {
             shardResolver = new RemappingShardResolver(shardResolver, QueryOptions.Experimental.parseHostMappingMethod(options), QueryOptions.Experimental.parseHosts(options));

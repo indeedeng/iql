@@ -27,6 +27,7 @@ import org.antlr.v4.runtime.Token;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class DocMetrics {
@@ -186,7 +187,7 @@ public class DocMetrics {
             public void enterLegacyDocMetricAtomHasString(final JQLParser.LegacyDocMetricAtomHasStringContext ctx) {
                 final String term;
                 if (ctx.quotedTerm != null) {
-                    term = ParserCommon.unquoteLegacy(ctx.quotedTerm.getText());
+                    term = ParserCommon.unquoteLegacy(ctx.quotedTerm.getText(), context.warn);
                 } else if (ctx.idTerm != null) {
                     term = Identifiers.extractIdentifier(ctx.idTerm);
                 } else if (ctx.numTerm != null) {
@@ -201,7 +202,7 @@ public class DocMetrics {
             public void enterLegacyDocMetricAtomHasntString(final JQLParser.LegacyDocMetricAtomHasntStringContext ctx) {
                 final String term;
                 if (ctx.quotedTerm != null) {
-                    term = ParserCommon.unquoteLegacy(ctx.quotedTerm.getText());
+                    term = ParserCommon.unquoteLegacy(ctx.quotedTerm.getText(), context.warn);
                 } else {
                     throw new IllegalStateException("Did not handle term value in: " + ctx.getText());
                 }
@@ -216,14 +217,14 @@ public class DocMetrics {
 
             @Override
             public void enterLegacyDocMetricAtomHasStringQuoted(JQLParser.LegacyDocMetricAtomHasStringQuotedContext ctx) {
-                final HasTermQuote hasTermQuote = HasTermQuote.create(ctx.STRING_LITERAL().getText());
+                final HasTermQuote hasTermQuote = HasTermQuote.create(ctx.STRING_LITERAL().getText(), context.warn);
                 final FieldSet field = fieldResolver.resolveContextless(hasTermQuote.getField());
                 accept(hasTermMetricOrThrow(field, Term.term(hasTermQuote.getTerm())));
             }
 
             @Override
             public void enterLegacyDocMetricAtomHasIntQuoted(JQLParser.LegacyDocMetricAtomHasIntQuotedContext ctx) {
-                final HasTermQuote hasTermQuote = HasTermQuote.create(ctx.STRING_LITERAL().getText());
+                final HasTermQuote hasTermQuote = HasTermQuote.create(ctx.STRING_LITERAL().getText(), context.warn);
                 final Term termInt = Term.term(hasTermQuote.getTerm());
                 accept(fieldResolver.resolveDocMetric(Queries.runParser(hasTermQuote.getField(), JQLParser::identifierTerminal).identifier(), new ScopedFieldResolver.HasTermCallback(termInt), context));
             }
@@ -243,7 +244,7 @@ public class DocMetrics {
 
             @Override
             public void enterLegacyDocMetricAtomLucene(final JQLParser.LegacyDocMetricAtomLuceneContext ctx) {
-                accept(new DocMetric.Lucene(ParserCommon.unquoteLegacy(ctx.queryField.getText()), datasetsMetadata, fieldResolver));
+                accept(new DocMetric.Lucene(ParserCommon.unquoteLegacy(ctx.queryField.getText(), context.warn), datasetsMetadata, fieldResolver));
             }
 
             @Override
@@ -463,13 +464,13 @@ public class DocMetrics {
             @Override
             public void enterDocMetricAtomHasntString(JQLParser.DocMetricAtomHasntStringContext ctx) {
                 final FieldSet field = fieldResolver.resolve(ctx.singlyScopedField());
-                accept(field.wrap(negateMetric(hasTermMetricOrThrow(field, Term.term(ParserCommon.unquote(ctx.term.getText()))))));
+                accept(field.wrap(negateMetric(hasTermMetricOrThrow(field, Term.term(ParserCommon.unquote(ctx.term.getText(), context.warn))))));
             }
 
             @Override
             public void enterDocMetricAtomHasString(JQLParser.DocMetricAtomHasStringContext ctx) {
                 final FieldSet field = fieldResolver.resolve(ctx.singlyScopedField());
-                accept(field.wrap(hasTermMetricOrThrow(field, Term.term(ParserCommon.unquote(ctx.term.getText())))));
+                accept(field.wrap(hasTermMetricOrThrow(field, Term.term(ParserCommon.unquote(ctx.term.getText(), context.warn)))));
             }
 
             @Override
@@ -514,7 +515,7 @@ public class DocMetrics {
                 if (token == null) {
                     return "DEFAULT SALT";
                 } else {
-                    return ParserCommon.unquote(token.getText());
+                    return ParserCommon.unquote(token.getText(), context.warn);
                 }
             }
 
@@ -539,14 +540,14 @@ public class DocMetrics {
             public void enterDocMetricAtomRegex(JQLParser.DocMetricAtomRegexContext ctx) {
                 final FieldSet field = fieldResolver.resolve(ctx.singlyScopedField());
                 // TODO: How to handle regex parsing? Same as Java?
-                accept(field.wrap(new DocMetric.RegexMetric(field, ParserCommon.unquote(ctx.regex.getText()))));
+                accept(field.wrap(new DocMetric.RegexMetric(field, ParserCommon.unquote(ctx.regex.getText(), context.warn))));
             }
 
             @Override
             public void enterDocMetricAtomExtract(JQLParser.DocMetricAtomExtractContext ctx) {
                 final FieldSet field = fieldResolver.resolve(ctx.singlyScopedField());
                 // TODO: How to handle regex parsing? Same as Java?
-                final String regex = ParserCommon.unquote(ctx.regex.getText());
+                final String regex = ParserCommon.unquote(ctx.regex.getText(), context.warn);
                 final int groupNumber;
                 if (ctx.groupNumber != null) {
                     groupNumber = Integer.parseInt(ctx.groupNumber.getText());
@@ -563,7 +564,7 @@ public class DocMetrics {
 
             @Override
             public void enterDocMetricAtomLucene(final JQLParser.DocMetricAtomLuceneContext ctx) {
-                accept(new DocMetric.Lucene(ParserCommon.unquote(ctx.queryField.getText()), context.datasetsMetadata, context.fieldResolver));
+                accept(new DocMetric.Lucene(ParserCommon.unquote(ctx.queryField.getText(), context.warn), context.datasetsMetadata, context.fieldResolver));
             }
 
             @Override
@@ -675,8 +676,8 @@ public class DocMetrics {
             this.term = term;
         }
 
-        public static HasTermQuote create(final String s) {
-            final String unquoted = ParserCommon.unquoteLegacy(s);
+        public static HasTermQuote create(final String s, final Consumer<String> warn) {
+            final String unquoted = ParserCommon.unquoteLegacy(s, warn);
             final int colon = unquoted.indexOf(':');
             if (colon == -1) {
                 throw new IqlKnownException.ParseErrorException("Exprected format is : 'field:term', real string is : '" + s + "'");

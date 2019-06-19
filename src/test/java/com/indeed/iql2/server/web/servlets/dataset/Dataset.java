@@ -263,6 +263,9 @@ public class Dataset {
                 List<MetricsYaml> metrics = Lists.newArrayList();
                 final MemoryFlamdex flamdex = shard.flamdex;
                 for (String intField : flamdex.getIntFields()) {
+                    if (intField.equals("unixtime")) {
+                        continue;
+                    }
                     final MetricsYaml metric = new MetricsYaml();
                     metric.setName(intField);
                     metric.setExpr(DIMENSION_PREFIX +intField+"+0");

@@ -46,6 +46,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static com.indeed.iql2.language.Identifiers.parseIdentifier;
@@ -126,12 +127,14 @@ public class Dataset extends AbstractPositional {
                 datasetContext.startTime,
                 datasetContext.useLegacy,
                 context.clock,
+                context.warn,
                 context.timeZone
         );
         final Positioned<DateTime> end = parseDateTime(
                 datasetContext.endTime,
                 datasetContext.useLegacy,
                 context.clock,
+                context.warn,
                 context.timeZone
         );
         final Optional<Positioned<String>> name = Optional.ofNullable(datasetContext.name).map(Identifiers::parseIdentifier);
@@ -246,15 +249,17 @@ public class Dataset extends AbstractPositional {
             final JQLParser.DateTimeContext dateTimeContext,
             final boolean useLegacy,
             final WallClock clock,
+            final Consumer<String> warn,
             final DateTimeZone timeZone
     ) {
-        return Positioned.from(innerParseDateTime(dateTimeContext, useLegacy, clock, timeZone), dateTimeContext);
+        return Positioned.from(innerParseDateTime(dateTimeContext, useLegacy, clock, warn, timeZone), dateTimeContext);
     }
 
     private static DateTime innerParseDateTime(
             final JQLParser.DateTimeContext dateTimeContext,
             final boolean useLegacy,
             final WallClock clock,
+            final Consumer<String> warn,
             final DateTimeZone timeZone
     ) {
         if (dateTimeContext.DATETIME_TOKEN() != null) {
@@ -264,13 +269,13 @@ public class Dataset extends AbstractPositional {
             );
         }
         if (dateTimeContext.STRING_LITERAL() != null) {
-            final String unquoted = ParserCommon.unquote(dateTimeContext.STRING_LITERAL().getText(), useLegacy);
+            final String unquoted = ParserCommon.unquote(dateTimeContext.STRING_LITERAL().getText(), useLegacy, warn);
 
             // unquoted literal must be parseable by dateTimeTerminal or relativeTimeTerminal
 
             final JQLParser.DateTimeTerminalContext dateTimeTerminal = Queries.tryRunParser(unquoted, JQLParser::dateTimeTerminal);
             if (dateTimeTerminal != null) {
-                return innerParseDateTime(dateTimeTerminal.dateTime(), useLegacy, clock, timeZone);
+                return innerParseDateTime(dateTimeTerminal.dateTime(), useLegacy, clock, warn, timeZone);
             }
 
             final JQLParser.RelativeTimeTerminalContext relativeTimeTerminal = Queries.tryRunParser(unquoted, JQLParser::relativeTimeTerminal);

@@ -25,6 +25,7 @@ import org.joda.time.DateTimeZone;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class TimePeriods {
     private TimePeriods() {
@@ -33,15 +34,15 @@ public class TimePeriods {
     private static final int MAX_RECOMMENDED_BUCKETS = 1000;
     private static final List<TimeUnit> inferenceBucketSizeOptions = ImmutableList.of(TimeUnit.SECOND, TimeUnit.MINUTE, TimeUnit.HOUR, TimeUnit.DAY, TimeUnit.WEEK);
 
-    public static List<Pair<Integer, TimeUnit>> parseTimeBuckets(final JQLParser.TimeBucketContext timeBucketContext, final boolean useLegacy) {
+    public static List<Pair<Integer, TimeUnit>> parseTimeBuckets(final JQLParser.TimeBucketContext timeBucketContext, final boolean useLegacy, final Consumer<String> warn) {
         if (timeBucketContext.STRING_LITERAL() != null) {
-            final String unquoted = ParserCommon.unquote(timeBucketContext.STRING_LITERAL().getText(), useLegacy);
+            final String unquoted = ParserCommon.unquote(timeBucketContext.STRING_LITERAL().getText(), useLegacy, warn);
             final JQLParser.TimeBucketTerminalContext bucketTerminal = Queries.tryRunParser(unquoted, JQLParser::timeBucketTerminal);
             if (bucketTerminal == null) {
                 throw new IqlKnownException.ParseErrorException("Syntax errors encountered parsing bucket: [" + unquoted + "]");
             }
             // recursive call after unquoting
-            return parseTimeBuckets(bucketTerminal.timeBucket(), useLegacy);
+            return parseTimeBuckets(bucketTerminal.timeBucket(), useLegacy, warn);
         }
 
         if (timeBucketContext.timeInterval() != null) {

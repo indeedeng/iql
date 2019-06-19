@@ -43,8 +43,8 @@ import com.indeed.iql2.language.commands.TopK;
 import com.indeed.iql2.language.passes.BooleanFilterTree;
 import com.indeed.iql2.language.precomputed.Precomputed;
 import com.indeed.iql2.language.query.Dataset;
-import com.indeed.iql2.language.query.UnevenGroupByPeriod;
 import com.indeed.iql2.language.query.Query;
+import com.indeed.iql2.language.query.UnevenGroupByPeriod;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.util.core.Pair;
 import lombok.EqualsAndHashCode;
@@ -244,20 +244,24 @@ public interface ExecutionStep {
     @ToString
     class ExplodeTimePeriod implements ExecutionStep {
         private final long periodMillis;
-        private final Optional<FieldSet> timeField;
+        private final Optional<DocMetric> timeMetric;
         private final Optional<String> timeFormat;
         private final boolean isRelative;
 
-        public ExplodeTimePeriod(final long periodMillis, final Optional<FieldSet> timeField, final Optional<String> timeFormat, final boolean isRelative) {
+        public ExplodeTimePeriod(
+                final long periodMillis,
+                final Optional<DocMetric> timeMetric,
+                final Optional<String> timeFormat,
+                final boolean isRelative) {
             this.periodMillis = periodMillis;
-            this.timeField = timeField;
+            this.timeMetric = timeMetric;
             this.timeFormat = timeFormat;
             this.isRelative = isRelative;
         }
 
         @Override
         public List<Command> commands() {
-            return Collections.singletonList(new TimePeriodRegroup(periodMillis, timeField, timeFormat, isRelative));
+            return Collections.singletonList(new TimePeriodRegroup(periodMillis, timeMetric, timeFormat, isRelative));
         }
 
         @Override
@@ -286,19 +290,22 @@ public interface ExecutionStep {
     @EqualsAndHashCode
     @ToString
     class ExplodeUnevenTimePeriod implements ExecutionStep {
-        private final Optional<FieldSet> timeField;
+        private final Optional<DocMetric> timeMetric;
         private final Optional<String> timeFormat;
         private final UnevenGroupByPeriod groupByType;
 
-        public ExplodeUnevenTimePeriod(final Optional<FieldSet> timeField, final Optional<String> timeFormat, final UnevenGroupByPeriod groupByType) {
-            this.timeField = timeField;
+        public ExplodeUnevenTimePeriod(
+                final Optional<DocMetric> timeMetric,
+                final Optional<String> timeFormat,
+                final UnevenGroupByPeriod groupByType) {
+            this.timeMetric = timeMetric;
             this.timeFormat = timeFormat;
             this.groupByType = groupByType;
         }
 
         @Override
         public List<Command> commands() {
-            return Collections.singletonList(new com.indeed.iql2.language.commands.ExplodeUnevenTimePeriod(timeField, timeFormat, groupByType));
+            return Collections.singletonList(new com.indeed.iql2.language.commands.ExplodeUnevenTimePeriod(timeMetric, timeFormat, groupByType));
         }
 
         @Override

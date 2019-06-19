@@ -34,7 +34,6 @@ import com.indeed.iql2.language.query.GroupBy;
 import com.indeed.iql2.language.query.Queries;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.fieldresolution.FieldResolver;
-import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import com.indeed.iql2.language.query.fieldresolution.ScopedFieldResolver;
 import com.indeed.iql2.language.query.shardresolution.NullShardResolver;
 import com.indeed.iql2.language.util.ParserUtil;
@@ -329,16 +328,16 @@ public class PrettyPrint {
                 return null;
             }
 
-            private void timeFieldAndFormat(Optional<FieldSet> field, Optional<String> format) {
+            private void timeMetricAndFormat(final Optional<DocMetric> metric, final Optional<String> format) {
                 context = context.withMetricAggregate();
-                if (field.isPresent() || format.isPresent()) {
+                if (metric.isPresent() || format.isPresent()) {
                     if (format.isPresent()) {
                         sb.append(", ").append('"').append(stringEscape(format.get())).append('"');
                     } else {
                         sb.append(", default");
                     }
-                    if (field.isPresent()) {
-                        sb.append(", ").append(getText(field.get()));
+                    if (metric.isPresent()) {
+                        sb.append(", ").append(getText(metric.get()));
                     }
                 }
             }
@@ -364,7 +363,7 @@ public class PrettyPrint {
                 context = context.withMetricAggregate();
                 sb.append("time(");
                 sb.append(groupByTimeBuckets.numBuckets).append('b');
-                timeFieldAndFormat(groupByTimeBuckets.field, groupByTimeBuckets.format);
+                timeMetricAndFormat(groupByTimeBuckets.metric, groupByTimeBuckets.format);
                 sb.append(')');
                 return null;
             }
@@ -373,7 +372,7 @@ public class PrettyPrint {
             public Void visit(GroupBy.GroupByUnevenTimePeriod groupByUnevenTimePeriod) {
                 context = context.withMetricAggregate();
                 sb.append("time(1month");
-                timeFieldAndFormat(groupByUnevenTimePeriod.timeField, groupByUnevenTimePeriod.timeFormat);
+                timeMetricAndFormat(groupByUnevenTimePeriod.timeMetric, groupByUnevenTimePeriod.timeFormat);
                 sb.append(')');
                 return null;
             }

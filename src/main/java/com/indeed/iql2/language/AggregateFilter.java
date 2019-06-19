@@ -151,6 +151,7 @@ public abstract class AggregateFilter extends AbstractPositional {
 
         @Override
         public void validate(Set<String> scope, ValidationHelper validationHelper, ErrorCollector errorCollector) {
+            ValidationUtil.validateRegex(term.toExecutionTerm().asString(), errorCollector);
         }
 
         @Override

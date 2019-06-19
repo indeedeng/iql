@@ -186,7 +186,7 @@ public class ComparisonTools {
                 if (input instanceof GroupBy.GroupByTimeBuckets) {
                     final GroupBy.GroupByTimeBuckets buckets = (GroupBy.GroupByTimeBuckets)input;
                     final long period = dataset.endExclusive.unwrap().getMillis() - dataset.startInclusive.unwrap().getMillis();
-                    return new GroupBy.GroupByTime(period / buckets.numBuckets, buckets.field, buckets.format, buckets.isRelative);
+                    return new GroupBy.GroupByTime(period / buckets.numBuckets, buckets.metric, buckets.format, buckets.isRelative);
                 } else if (input instanceof GroupBy.GroupByInferredTime) {
                     final GroupBy.GroupByInferredTime inferredTime = (GroupBy.GroupByInferredTime)input;
                     final List<Dataset> datasets = Collections.singletonList(dataset);

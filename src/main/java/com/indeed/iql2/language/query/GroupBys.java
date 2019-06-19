@@ -140,11 +140,11 @@ public class GroupBys {
                 final FieldSet field = fieldResolver.resolve(ctx.field);
                 final Query.Context aggregatedContext = context.withFieldAggregate(field);
                 if (ctx.not != null) {
-                    final Iterator<Term> terms = ctx.terms.stream().map(Term::parseTerm).iterator();
+                    final Iterator<Term> terms = ctx.terms.stream().map(termValContext -> Term.parseTerm(termValContext, context.warn)).iterator();
                     final AggregateFilter filter = AggregateFilters.aggregateInHelper(terms, true);
                     accept(new GroupBy.GroupByField(field, Optional.of(filter), Optional.empty(), ctx.withDefault != null), aggregatedContext);
                 } else {
-                    final ImmutableSet<Term> terms = ImmutableSet.copyOf(ctx.terms.stream().map(Term::parseTerm).iterator());
+                    final ImmutableSet<Term> terms = ImmutableSet.copyOf(ctx.terms.stream().map(termValContext -> Term.parseTerm(termValContext, context.warn)).iterator());
                     final boolean withDefault = ctx.withDefault != null;
                     accept(new GroupBy.GroupByFieldIn(field, terms, withDefault, ctx.useLegacy), aggregatedContext);
                 }
@@ -202,11 +202,11 @@ public class GroupBys {
                     return;
                 }
 
-                final Optional<FieldSet> timeField;
-                if (ctx.groupByTime().timeField != null) {
-                    timeField = Optional.of(fieldResolver.resolve(ctx.groupByTime().timeField));
+                final Optional<DocMetric> timeMetric;
+                if (ctx.groupByTime().timeMetric != null) {
+                    timeMetric = Optional.of(DocMetrics.parseDocMetric(ctx.groupByTime().timeMetric, context));
                 } else {
-                    timeField = Optional.empty();
+                    timeMetric = Optional.empty();
                 }
 
                 final Optional<String> timeFormat;
@@ -215,13 +215,13 @@ public class GroupBys {
                     if ("default".equalsIgnoreCase(format)) {
                         timeFormat = Optional.empty();
                     } else {
-                        timeFormat = Optional.of(ParserCommon.unquote(format, ctx.useLegacy));
+                        timeFormat = Optional.of(ParserCommon.unquote(format, ctx.useLegacy, context.warn));
                     }
                 } else {
                     timeFormat = Optional.empty();
                 }
 
-                final List<Pair<Integer, TimeUnit>> pairs = TimePeriods.parseTimeBuckets(ctx.groupByTime().timeBucket(), ctx.useLegacy);
+                final List<Pair<Integer, TimeUnit>> pairs = TimePeriods.parseTimeBuckets(ctx.groupByTime().timeBucket(), ctx.useLegacy, context.warn);
                 long millisSum = 0L;
                 for (final Pair<Integer, TimeUnit> pair : pairs) {
                     final int coeff = pair.getFirst();
@@ -238,18 +238,18 @@ public class GroupBys {
                     }
 
                     if (unit == TimeUnit.BUCKETS) {
-                        accept(new GroupBy.GroupByTimeBuckets(coeff, timeField, timeFormat, isRelative), aggregatedContext);
+                        accept(new GroupBy.GroupByTimeBuckets(coeff, timeMetric, timeFormat, isRelative), aggregatedContext);
                         return;
                     }
                     if ((unit == TimeUnit.MONTH) || (unit == TimeUnit.YEAR) || (unit == TimeUnit.QUARTER)) {
-                        accept(new GroupBy.GroupByUnevenTimePeriod(timeField, timeFormat, UnevenGroupByPeriod.fromTimeUnit(unit)), aggregatedContext);
+                        accept(new GroupBy.GroupByUnevenTimePeriod(timeMetric, timeFormat, UnevenGroupByPeriod.fromTimeUnit(unit)), aggregatedContext);
                         return;
                     }
 
                     millisSum += coeff * unit.millis;
                 }
 
-                accept(new GroupBy.GroupByTime(millisSum, timeField, timeFormat, isRelative), aggregatedContext);
+                accept(new GroupBy.GroupByTime(millisSum, timeMetric, timeFormat, isRelative), aggregatedContext);
             }
 
             @Override
@@ -301,7 +301,7 @@ public class GroupBys {
                 if (ctx.salt == null) {
                     salt = "DEFAULT SALT";
                 } else {
-                    salt = ParserCommon.unquote(ctx.salt.getText());
+                    salt = ParserCommon.unquote(ctx.salt.getText(), context.warn);
                 }
                 accept(new GroupBy.GroupByRandom(field, k, salt), context.withMetricAggregate());
             }
@@ -314,7 +314,7 @@ public class GroupBys {
                 if (ctx.salt == null) {
                     salt = "DEFAULT SALT";
                 } else {
-                    salt = ParserCommon.unquote(ctx.salt.getText());
+                    salt = ParserCommon.unquote(ctx.salt.getText(), context.warn);
                 }
                 accept(new GroupBy.GroupByRandomMetric(metric, k, salt), context.withMetricAggregate());
             }

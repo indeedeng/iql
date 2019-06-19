@@ -316,7 +316,7 @@ public class SelectQueryExecution {
             final Query paranoidQuery = Queries.parseQuery(this.query, useLegacy, datasetsMetadata, defaultIQL2Options, x -> {}, clock, timer, shardResolver).query;
             timer.pop();
 
-            timer.push("check query equals() and hashCode() (paranoid mode)");
+            timer.push("check query equals(), hashCode(), and cache key (paranoid mode)");
             if (!paranoidQuery.equals(query)) {
                 log.error("parseResult.query = " + query);
                 log.error("paranoidQuery = " + paranoidQuery);
@@ -326,6 +326,11 @@ public class SelectQueryExecution {
                 log.error("parseResult.query = " + query);
                 log.error("paranoidQuery = " + paranoidQuery);
                 throw new IllegalStateException("Paranoid mode encountered re-parsed query hashCode() failure!");
+            }
+            if (!paranoidQuery.cacheKey(resultFormat).rawHash.equals(query.cacheKey(resultFormat).rawHash)) {
+                log.error("parseResult.query = " + query);
+                log.error("paranoidQuery = " + paranoidQuery);
+                throw new IllegalStateException("Paranoid mode encountered re-parsed query cache key failure!");
             }
             timer.pop();
 
@@ -522,6 +527,8 @@ public class SelectQueryExecution {
                         null,
                         null
                 );
+
+                queryMetadata.setPendingHeaders();
 
                 finalizeQueryExecution(selectExecutionInformation, 0);
 

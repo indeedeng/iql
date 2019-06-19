@@ -61,6 +61,7 @@ import com.indeed.iql2.execution.groupkeys.sets.MaskingGroupKeySet;
 import com.indeed.iql2.execution.metrics.aggregate.AggregateMetric;
 import com.indeed.iql2.execution.metrics.aggregate.PerGroupConstant;
 import com.indeed.iql2.execution.progress.ProgressCallback;
+import com.indeed.iql2.language.DocMetric;
 import com.indeed.iql2.language.SortOrder;
 import com.indeed.iql2.language.query.Queries;
 import com.indeed.iql2.language.query.fieldresolution.FieldSet;
@@ -547,7 +548,7 @@ public class Session {
             final long start,
             final long end,
             final long unitSize,
-            final Optional<FieldSet> fieldOverride,
+            final Optional<DocMetric> metricOverride,
             final boolean isRelative,
             final boolean deleteEmptyGroups) throws ImhotepOutOfMemoryException {
         timer.push("performTimeRegroup");
@@ -558,17 +559,15 @@ public class Session {
         for (final ImhotepSessionInfo sessionInfo : sessions.values()) {
             timer.push("session", "session:" + sessionInfo.name);
 
-            final ImhotepSession session = sessionInfo.session;
-            final String fieldName;
-            if (fieldOverride.isPresent()) {
-                fieldName = fieldOverride.get().datasetFieldName(sessionInfo.name);
+            final List<String> stat;
+            if (metricOverride.isPresent()) {
+                stat = metricOverride.get().getPushes(sessionInfo.name);
             } else {
-                fieldName = sessionInfo.timeFieldName;
+                stat = Collections.singletonList(sessionInfo.timeFieldName);
             }
 
-            final List<String> stat = Collections.singletonList(fieldName);
-
             timer.push("metricRegroup");
+            final ImhotepSession session = sessionInfo.session;
             if (isRelative) {
                 final long realStart = sessionInfo.startTime.getMillis();
                 final long realEnd = sessionInfo.endTime.getMillis();

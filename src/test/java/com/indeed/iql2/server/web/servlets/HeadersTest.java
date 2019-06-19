@@ -3,10 +3,12 @@ package com.indeed.iql2.server.web.servlets;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
 import com.indeed.iql2.server.web.servlets.QueryServletTestUtils.LanguageVersion;
+import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import org.junit.Test;
 
 import java.util.List;
 
+import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.ResultFormat.TSV;
 import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testAll;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -29,6 +31,24 @@ public class HeadersTest extends BasicTest {
         assertNotNull(totals);
         final String quotedValue = totals.toString();
         assertEquals(quotedValue, "\"" + expectedTotals + "\"");
+    }
+
+    @Test
+    public void testNewestShardHeaderPresent() throws Exception {
+        final QueryServletTestUtils.Options options = QueryServletTestUtils.Options.create();
+        options.setHeadOnly(true);
+        options.setGetVersion(true);
+        for (final LanguageVersion languageVersion : LanguageVersion.values()) {
+            final JsonNode headers = QueryServletTestUtils.getQueryHeader(
+                    AllData.DATASET.getNormalClient(),
+                    "from organic yesterday today",
+                    languageVersion,
+                    options,
+                    TSV
+            );
+            final JsonNode jsonNode = headers.get("IQL-Newest-Shard");
+            assertNotNull(jsonNode.asText());
+        }
     }
 
     @Test

@@ -18,6 +18,7 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 import java.util.Comparator;
+import java.util.function.Consumer;
 
 
 /**
@@ -88,7 +89,7 @@ public class Term {
         return stringTerm == null;
     }
 
-    public static Term parseJqlTerm(final JQLParser.JqlTermValContext jqlTermValContext) {
+    public static Term parseJqlTerm(final JQLParser.JqlTermValContext jqlTermValContext, final Consumer<String> warn) {
         final Term[] ref = new Term[1];
 
         jqlTermValContext.enterRule(new JQLBaseListener() {
@@ -105,7 +106,7 @@ public class Term {
 
             public void enterJqlStringTerm(final JQLParser.JqlStringTermContext ctx) {
                 if (ctx.STRING_LITERAL() != null) {
-                    accept(term(ParserCommon.unquote(ctx.STRING_LITERAL().getText())));
+                    accept(term(ParserCommon.unquote(ctx.STRING_LITERAL().getText(), warn)));
                 }
             }
         });
@@ -117,7 +118,7 @@ public class Term {
         return ref[0];
     }
 
-    public static Term parseLegacyTerm(final JQLParser.LegacyTermValContext legacyTermValContext) {
+    public static Term parseLegacyTerm(final JQLParser.LegacyTermValContext legacyTermValContext, final Consumer<String> warn) {
         final Term[] ref = new Term[1];
 
         legacyTermValContext.enterRule(new JQLBaseListener() {
@@ -134,7 +135,7 @@ public class Term {
 
             public void enterLegacyStringTerm(final JQLParser.LegacyStringTermContext ctx) {
                 if (ctx.STRING_LITERAL() != null) {
-                    accept(term(ParserCommon.unquoteLegacy(ctx.STRING_LITERAL().getText())));
+                    accept(term(ParserCommon.unquoteLegacy(ctx.STRING_LITERAL().getText(), warn)));
                 } else if (ctx.identifier() != null) {
                     accept(term(ctx.identifier().getText()));
                 }
@@ -148,11 +149,11 @@ public class Term {
         return ref[0];
     }
 
-    public static Term parseTerm(final JQLParser.TermValContext termValContext) {
+    public static Term parseTerm(final JQLParser.TermValContext termValContext, final Consumer<String> warn) {
         if (termValContext.jqlTermVal() != null) {
-            return parseJqlTerm(termValContext.jqlTermVal());
+            return parseJqlTerm(termValContext.jqlTermVal(), warn);
         } else if (termValContext.legacyTermVal() != null) {
-            return parseLegacyTerm(termValContext.legacyTermVal());
+            return parseLegacyTerm(termValContext.legacyTermVal(), warn);
         } else {
             throw new IllegalArgumentException();
         }

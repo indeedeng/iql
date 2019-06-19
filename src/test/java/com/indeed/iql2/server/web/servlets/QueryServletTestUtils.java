@@ -54,7 +54,9 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -159,16 +161,29 @@ public class QueryServletTestUtils extends BasicTest {
         return run(client, query, version, resultFormat, options, defaultOptions).data;
     }
 
-    private static JsonNode getQueryHeader(final ImhotepClient client, String query, LanguageVersion version, Options options) throws Exception {
-        return run(client, query, version, EVENT_STREAM, options, new IQL2Options()).header;
+    static JsonNode getQueryHeader(
+            final ImhotepClient client,
+            final String query,
+            final LanguageVersion version,
+            final Options options,
+            final ResultFormat resultFormat
+    ) throws Exception {
+        return run(client, query, version, resultFormat, options, new IQL2Options()).header;
     }
 
-    public static JsonNode getQueryHeader(final String query, LanguageVersion version) throws Exception {
-        return getQueryHeader(Options.create().dataset.getNormalClient(), query, version, Options.create());
+    static JsonNode getQueryHeader(final String query, final LanguageVersion version) throws Exception {
+        return getQueryHeader(AllData.DATASET.getNormalClient(), query, version, Options.create(), EVENT_STREAM);
     }
 
     @SuppressWarnings("WeakerAccess")
-    public static QueryResult run(ImhotepClient client, String query, LanguageVersion version, ResultFormat resultFormat, Options options, final IQL2Options defaultOptions) throws Exception {
+    public static QueryResult run(
+            final ImhotepClient client,
+            final String query,
+            final LanguageVersion version,
+            final ResultFormat resultFormat,
+            final Options options,
+            final IQL2Options defaultOptions
+    ) throws Exception {
         final QueryServlet queryServlet = create(client, version, options, defaultOptions);
         final MockHttpServletRequest request = new MockHttpServletRequest();
         final boolean stream = resultFormat.equals(EVENT_STREAM);
@@ -180,6 +195,12 @@ public class QueryServletTestUtils extends BasicTest {
 
         if (csv) {
             request.addParameter("csv", "1");
+        }
+        if (options.headOnly) {
+            request.addParameter("head", "1");
+        }
+        if (options.getVersion) {
+            request.addParameter("getversion", "1");
         }
         version.addRequestParameters(request);
         final MockHttpServletResponse response = new MockHttpServletResponse();
@@ -230,6 +251,11 @@ public class QueryServletTestUtils extends BasicTest {
                         }
                     }
                 }
+                final Map<String, String> headers = new HashMap<>();
+                for (final String name : response.getHeaderNames()) {
+                    headers.put(name, response.getHeader(name));
+                }
+                header = OBJECT_MAPPER.valueToTree(headers);
             } else {
                 throw new IllegalArgumentException("Error encountered when running query: " + response.getContentAsString());
             }
@@ -251,6 +277,8 @@ public class QueryServletTestUtils extends BasicTest {
         private Long maxCacheQuerySizeLimitBytes;
         private boolean skipCsv;
         private boolean onlyCsv;
+        private boolean headOnly;
+        private boolean getVersion;
 
         Options() {
         }
@@ -329,6 +357,14 @@ public class QueryServletTestUtils extends BasicTest {
             this.onlyCsv = onlyCsv;
             return this;
         }
+
+        public void setHeadOnly(final boolean headOnly) {
+            this.headOnly = headOnly;
+        }
+
+        public void setGetVersion(final boolean getVersion) {
+            this.getVersion = getVersion;
+        }
     }
 
     static void testWarning(List<String> expectedWarnings, String query, LanguageVersion version) throws Exception {
@@ -336,13 +372,17 @@ public class QueryServletTestUtils extends BasicTest {
     }
 
     static void testWarning(List<String> expectedWarnings, String query, LanguageVersion version, final Options options) throws Exception {
+        expectedWarnings = expectedWarnings.stream().map(s -> "[\"" + s + "\"]").collect(Collectors.toList());
+        Assert.assertEquals(expectedWarnings, getWarnings(query, version, options));
+    }
+
+    static List<String> getWarnings(final String query, final LanguageVersion version, final Options options) throws Exception {
         final ImhotepClient client = options.dataset.getNormalClient();
-        final JsonNode header = getQueryHeader(client, query, version, options);
+        final JsonNode header = getQueryHeader(client, query, version, options, EVENT_STREAM);
         if (header.get("IQL-Warning") == null) {
-            Assert.assertTrue(expectedWarnings.isEmpty());
+            return Collections.emptyList();
         } else {
-            expectedWarnings = expectedWarnings.stream().map(s -> "[\"" + s + "\"]").collect(Collectors.toList());
-            Assert.assertArrayEquals(expectedWarnings.toArray(new String[expectedWarnings.size()]), header.get("IQL-Warning").textValue().split("\n"));
+            return Arrays.asList(header.get("IQL-Warning").textValue().split("\n"));
         }
     }
 

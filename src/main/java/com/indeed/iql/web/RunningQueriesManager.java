@@ -29,6 +29,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * @author vladimir
@@ -69,39 +71,45 @@ public class RunningQueriesManager {
 
     private static final int POLL_INTERVAL_MILLIS = 100;
 
+    private final Lock tryStartingWaitingQueriesLock = new ReentrantLock();
+
     @Scheduled(fixedDelay = POLL_INTERVAL_MILLIS)
     private void tryStartingWaitingQueries() {
-        try {
-            synchronized (queriesWaiting) {
-                if (queriesWaiting.isEmpty() && queriesRunning.isEmpty()) {
-                    return;
-                }
-                // if there is a large volume of queries, batch them instead of letting each one trigger a DB check immediately
-                if(lastTriedStartingQueries > System.currentTimeMillis() - POLL_INTERVAL_MILLIS) {
-                    return;
-                }
-                lastTriedStartingQueries = System.currentTimeMillis();
+        if (tryStartingWaitingQueriesLock.tryLock()) {
+            try {
+                synchronized (queriesWaiting) {
+                    if (queriesWaiting.isEmpty() && queriesRunning.isEmpty()) {
+                        return;
+                    }
+                    // if there is a large volume of queries, batch them instead of letting each one trigger a DB check immediately
+                    if(lastTriedStartingQueries > System.currentTimeMillis() - POLL_INTERVAL_MILLIS) {
+                        return;
+                    }
+                    lastTriedStartingQueries = System.currentTimeMillis();
 
-                log.debug("Checking locks for " + queriesWaiting.size() + " pending queries");
+                    log.debug("Checking locks for " + queriesWaiting.size() + " pending queries");
 
-                final RunningQueriesUpdateResult result = tryStartPendingQueries(queriesWaiting, iqldb, perUserPendingQueriesLimit);
-                final List<SelectQuery> queriesStarted = result.queriesStarting;
+                    final RunningQueriesUpdateResult result = tryStartPendingQueries(queriesWaiting, iqldb, perUserPendingQueriesLimit);
+                    final List<SelectQuery> queriesStarted = result.queriesStarting;
 
-                queriesWaiting.removeAll(result.queriesStarting);
+                    queriesWaiting.removeAll(result.queriesStarting);
 
-                synchronized (queriesRunning) {
-                    queriesRunning.addAll(result.queriesStarting);
-                    if(!result.cancelledQueries.isEmpty()) {
-                        applyCancellations(result.cancelledQueries);
+                    synchronized (queriesRunning) {
+                        queriesRunning.addAll(result.queriesStarting);
+                        if(!result.cancelledQueries.isEmpty()) {
+                            applyCancellations(result.cancelledQueries);
+                        }
+                    }
+
+                    for(SelectQuery startedQuery: queriesStarted) {
+                        startedQuery.onStarted(DateTime.now());
                     }
                 }
-
-                for(SelectQuery startedQuery: queriesStarted) {
-                    startedQuery.onStarted(DateTime.now());
-                }
+            } catch (Exception e) {
+                log.error("Exception while starting waiting queries", e);
+            } finally {
+                tryStartingWaitingQueriesLock.unlock();
             }
-        } catch (Exception e) {
-            log.error("Exception while starting waiting queries", e);
         }
     }
 
