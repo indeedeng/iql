@@ -53,7 +53,6 @@ import com.indeed.iql1.sql.ast2.GroupByClause;
 import com.indeed.iql1.sql.ast2.IQL1SelectStatement;
 import com.indeed.iql1.sql.ast2.SelectClause;
 import com.indeed.iql1.sql.parser.SelectStatementParser;
-import com.indeed.iql2.ComparisonTools;
 import com.indeed.iql2.IQL2Options;
 import com.indeed.iql2.execution.QueryOptions;
 import com.indeed.iql2.server.web.servlets.query.EventStreamProgressCallback;
@@ -107,7 +106,6 @@ import java.util.TimeZone;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 /**
@@ -370,7 +368,7 @@ public class QueryServlet {
             final boolean forceRunOriginalIql1 = (queryRequestParams.legacyMode != null) && !queryRequestParams.legacyMode;
 
             Optional<String> comparisonWarning = Optional.empty();
-            boolean switchToLegacy = false;
+            /*boolean switchToLegacy = false;
             if (queryRequestParams.version == 1) {
                 final AtomicReference<String> queryHash = new AtomicReference<>();
                 comparisonWarning = ComparisonTools.checkCompatibility(selectStatement, metadataCache.get(), imhotepClient, clock, limits, queryHash);
@@ -380,7 +378,10 @@ public class QueryServlet {
                     final int bucket = Math.abs(queryHash.get().hashCode()) % 100;
                     switchToLegacy = bucket < switchToLegacyRatio;
                 }
-            }
+            }*/
+
+            // Switching all queries to new IQL engine
+            final boolean switchToLegacy = true;
 
             if ((queryRequestParams.version == 2) || forceRunLegacyMode || switchToLegacy) {
                 // IQL2

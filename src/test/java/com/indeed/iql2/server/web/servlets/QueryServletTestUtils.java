@@ -414,14 +414,15 @@ public class QueryServletTestUtils extends BasicTest {
     }
 
     static void testOriginalIQL1(final ImhotepClient client, final List<List<String>> expected, final String query, final Options options) throws Exception {
-        for (final Set<String> queryOptions : OPTIONS_TO_TEST) {
+        // iql1 is disabled
+        /*for (final Set<String> queryOptions : OPTIONS_TO_TEST) {
             for (final ResultFormat resultFormat : ResultFormat.values()) {
                 if (!shouldRun(options, resultFormat)) {
                     continue;
                 }
                 Assert.assertEquals(expected, runQuery(client, query, LanguageVersion.ORIGINAL_IQL1, resultFormat, options, queryOptions));
             }
-        }
+        }*/
     }
 
     // test only legacy mode in IQL2

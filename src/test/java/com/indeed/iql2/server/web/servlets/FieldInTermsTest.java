@@ -97,12 +97,14 @@ public class FieldInTermsTest extends BasicTest {
     @Test
     public void testFailLeadingComma() throws Exception {
         final String whereClause = "from organic yesterday today where tk in (, 'a', 'b') select count()";
-        QueryServletTestUtils.expectException(whereClause, QueryServletTestUtils.LanguageVersion.ORIGINAL_IQL1, s -> s.contains("StatementParseException"));
+        // iql1 is disabled
+        //QueryServletTestUtils.expectException(whereClause, QueryServletTestUtils.LanguageVersion.ORIGINAL_IQL1, s -> s.contains("StatementParseException"));
         QueryServletTestUtils.expectException(whereClause, QueryServletTestUtils.LanguageVersion.IQL1_LEGACY_MODE, s -> s.contains("ParseErrorException"));
         QueryServletTestUtils.expectException(whereClause, QueryServletTestUtils.LanguageVersion.IQL2, s -> s.contains("ParseErrorException"));
 
         final String groupByClause = "from organic yesterday today where tk in (, 'a', 'b') select count()";
-        QueryServletTestUtils.expectException(groupByClause, QueryServletTestUtils.LanguageVersion.ORIGINAL_IQL1, s -> s.contains("StatementParseException"));
+        // iql is disabled
+        //QueryServletTestUtils.expectException(groupByClause, QueryServletTestUtils.LanguageVersion.ORIGINAL_IQL1, s -> s.contains("StatementParseException"));
         QueryServletTestUtils.expectException(groupByClause, QueryServletTestUtils.LanguageVersion.IQL1_LEGACY_MODE, s -> s.contains("ParseErrorException"));
         QueryServletTestUtils.expectException(groupByClause, QueryServletTestUtils.LanguageVersion.IQL2, s -> s.contains("ParseErrorException"));
     }
