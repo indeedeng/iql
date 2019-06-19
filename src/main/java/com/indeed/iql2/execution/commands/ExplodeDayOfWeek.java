@@ -53,7 +53,7 @@ public class ExplodeDayOfWeek implements Command {
             final int oldGroup = 1 + (group - 1) / numBuckets;
             final int dayOffset = (group - 1) % numBuckets;
             final long groupStart = start + dayOffset * TimeUnit.DAY.millis;
-            final int newGroup = 1 + ((oldGroup - 1) * DAY_KEYS.length) + new DateTime(groupStart).getDayOfWeek() - 1;
+            final int newGroup = 1 + ((oldGroup - 1) * DAY_KEYS.length) + new DateTime(groupStart, session.timeZone).getDayOfWeek() - 1;
             fromGroups[group - 1] = group;
             toGroups[group - 1] = newGroup;
         }

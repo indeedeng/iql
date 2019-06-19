@@ -164,4 +164,19 @@ public class TimeZoneTest extends BasicTest {
         QueryServletTestUtils.testIQL2AndLegacy(expected, "TIMEZONE UTC+05:30 FROM organic 2015-01-01 2015-01-02 GROUP BY time(1h)");
         QueryServletTestUtils.testIQL2AndLegacy(expected, "FROM organic 2015-01-01 2015-01-02 GROUP BY time(1h) TIMEZONE UTC+05:30");
     }
+
+    @Test
+    public void testExplodeDayOfWeek() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+
+        expected.add(ImmutableList.of("Monday", "0"));
+        expected.add(ImmutableList.of("Tuesday", "0"));
+        expected.add(ImmutableList.of("Wednesday", "0"));
+        expected.add(ImmutableList.of("Thursday", "136"));
+        expected.add(ImmutableList.of("Friday", "15"));
+        expected.add(ImmutableList.of("Saturday", "0"));
+        expected.add(ImmutableList.of("Sunday", "0"));
+
+        QueryServletTestUtils.testIQL2AndLegacy(expected, "TIMEZONE GMT+09:00\nFROM organic 2015-01-01 15:00 2015-01-02 15:00 GROUP BY DAYOFWEEK()");
+    }
 }
