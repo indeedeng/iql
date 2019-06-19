@@ -41,7 +41,7 @@ public class ExplodeUnevenTimePeriod implements Command {
 
     @Override
     public void execute(final Session session) throws ImhotepOutOfMemoryException {
-        final long earliestStart = session.getEarliestStart();
+        final long earliestStart = new DateTime(session.getEarliestStart(), session.timeZone).withTimeAtStartOfDay().getMillis();
         final long latestEnd = session.getLatestEnd();
 
         final long unitSize = TimeUnit.DAY.millis;

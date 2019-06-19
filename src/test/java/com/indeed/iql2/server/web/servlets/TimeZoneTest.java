@@ -179,4 +179,14 @@ public class TimeZoneTest extends BasicTest {
 
         QueryServletTestUtils.testIQL2AndLegacy(expected, "TIMEZONE GMT+09:00\nFROM organic 2015-01-01 15:00 2015-01-02 15:00 GROUP BY DAYOFWEEK()");
     }
+
+    @Test
+    public void testExplodeQuarter() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+
+        expected.add(ImmutableList.of("[2014-10-01 00:00:00, 2015-01-01 00:00:00)", "130"));
+        expected.add(ImmutableList.of("[2015-01-01 00:00:00, 2015-04-01 00:00:00)", "21"));
+
+        QueryServletTestUtils.testIQL2AndLegacy(expected, "TIMEZONE GMT-09:00\nFROM organic 2014-12-31 21:00 2015-01-01 21:00 GROUP BY TIME(1 quarter)");
+    }
 }
