@@ -367,7 +367,7 @@ legacyDocMetric
     ;
 
 jqlDocMetric
-    : COUNT '(' ')' # DocCounts
+    : (datasetName=identifier '.')? COUNT '(' ')' # DocCounts
     | ABS '(' jqlDocMetric ')' # DocAbs
     | SIGNUM '(' jqlDocMetric ')' # DocSignum
     | LOG '(' jqlDocMetric (',' scaleFactor = integer)? ')' # DocLog
@@ -382,7 +382,7 @@ jqlDocMetric
     | '(' jqlDocMetric ')' # DocMetricParens
     | IF filter=jqlDocFilter THEN trueCase=jqlDocMetric ELSE falseCase=jqlDocMetric # DocIfThenElse
     | jqlDocMetricAtom # DocAtom
-    | integer # DocInt
+    | (datasetName=identifier '.')? integer # DocInt
     | DOCID '(' ')' # DocId
     ;
 

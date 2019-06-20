@@ -165,4 +165,18 @@ public class DocMetricsTest extends BasicTest {
     public void testMultiValuedUidToTimestamp() throws Exception {
         QueryServletTestUtils.expectException("from multiValuedUidTimestamp yesterday today select UID_TO_UNIXTIME(uid)", QueryServletTestUtils.LanguageVersion.IQL2, x -> x.contains("Can only compute uid_to_timestamp on single valued fields containing UIDs"));
     }
+
+    @Test
+    public void testQualifiedCount() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("", "151", "151"));
+        QueryServletTestUtils.testIQL2(expected, "from organic yesterday today, groupByDataset select organic.count(), [organic.count()]");
+    }
+
+    @Test
+    public void testQualifiedConstant() throws Exception {
+        final List<List<String>> expected = new ArrayList<>();
+        expected.add(ImmutableList.of("", "302"));
+        QueryServletTestUtils.testIQL2(expected, "from organic yesterday today, groupByDataset select [organic.2]");
+    }
 }
