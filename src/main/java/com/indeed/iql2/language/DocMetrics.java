@@ -313,7 +313,12 @@ public class DocMetrics {
             }
 
             public void enterDocCounts(JQLParser.DocCountsContext ctx) {
-                accept(new DocMetric.Count());
+                DocMetric metric = new DocMetric.Count();
+                if (ctx.datasetName != null) {
+                    final String dataset = context.fieldResolver.resolveDataset(ctx.datasetName).unwrap();
+                    metric = new DocMetric.Qualified(dataset, metric);
+                }
+                accept(metric);
             }
 
             public void enterDocSignum(JQLParser.DocSignumContext ctx) {
@@ -383,7 +388,12 @@ public class DocMetrics {
             }
 
             public void enterDocInt(JQLParser.DocIntContext ctx) {
-                accept(new DocMetric.Constant(Long.parseLong(ctx.integer().getText())));
+                DocMetric metric = new DocMetric.Constant(Long.parseLong(ctx.integer().getText()));
+                if (ctx.datasetName != null) {
+                    final String dataset = context.fieldResolver.resolveDataset(ctx.datasetName).unwrap();
+                    metric = new DocMetric.Qualified(dataset, metric);
+                }
+                accept(metric);
             }
 
             @Override
