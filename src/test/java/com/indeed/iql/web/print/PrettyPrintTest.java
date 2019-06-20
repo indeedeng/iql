@@ -71,6 +71,14 @@ public class PrettyPrintTest {
     }
 
     @Test
+    public void testTimezone() {
+        Assert.assertEquals("FROM jobsearch yesterday today\nWHERE \nGROUP BY \nSELECT count()", PrettyPrint.prettyPrint("from jobsearch yesterday today TIMEZONE GMT-6", false, DATASETS_METADATA));
+        Assert.assertEquals("TIMEZONE GMT+09:00\nFROM jobsearch yesterday today\nWHERE \nGROUP BY \nSELECT count()", PrettyPrint.prettyPrint("from jobsearch yesterday today TIMEZONE GMT+9", false, DATASETS_METADATA));
+        Assert.assertEquals("TIMEZONE GMT\nFROM jobsearch yesterday today\nWHERE \nGROUP BY \nSELECT count()", PrettyPrint.prettyPrint("from jobsearch yesterday today TIMEZONE UTC", false, DATASETS_METADATA));
+        Assert.assertEquals("TIMEZONE GMT-10:30\nFROM jobsearch yesterday today\nWHERE \nGROUP BY \nSELECT count()", PrettyPrint.prettyPrint("from jobsearch yesterday today TIMEZONE UTC-10:30", false, DATASETS_METADATA));
+    }
+
+    @Test
     public void stringEscape() {
         Assert.assertEquals("abc\\\"def", PrettyPrint.stringEscape("abc\"def"));
         Assert.assertEquals("abc\\ndef", PrettyPrint.stringEscape("abc\ndef"));

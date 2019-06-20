@@ -165,13 +165,14 @@ public class PrettyPrint {
     private void pp(final Query query) {
         if (!query.timeZone.equals(DateTimeZone.forOffsetHours(-6))) {
             sb.append("TIMEZONE GMT");
-            final int offsetMillis = query.timeZone.getOffset(0);
+            int offsetMillis = query.timeZone.getOffset(0);
             if (offsetMillis != 0) {
                 if (offsetMillis < 0) {
                     sb.append('-');
                 } else  {
                     sb.append('+');
                 }
+                offsetMillis = Math.abs(offsetMillis);
                 final int hours = offsetMillis / MILLIS_PER_HOUR;
                 final int minutes = (offsetMillis - (hours * MILLIS_PER_HOUR)) / MILLIS_PER_MINUTE;
                 if (((hours * MILLIS_PER_HOUR) + (minutes * MILLIS_PER_MINUTE)) != offsetMillis) {
@@ -179,7 +180,7 @@ public class PrettyPrint {
                 }
                 sb.append(String.format("%02d:%02d", hours, minutes));
             }
-            sb.append(' ');
+            sb.append('\n');
         }
 
         sb.append("FROM ");
