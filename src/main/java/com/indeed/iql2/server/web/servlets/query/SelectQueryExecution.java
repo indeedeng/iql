@@ -412,6 +412,8 @@ public class SelectQueryExecution {
         queryInfo.cacheHashes = query.allCacheKeys(resultFormat);
         timer.pop();
 
+        queryMetadata.addItem("IQL-Timezone", query.timeZone, true);
+
         final StrictCloser strictCloser = new StrictCloser();
         // SelectQuery can be closed after all cache has been uploaded
         final SharedReference<SelectQuery> selectQuery = SharedReference.create(
