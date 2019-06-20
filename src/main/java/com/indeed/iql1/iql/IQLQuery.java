@@ -30,6 +30,7 @@ import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.utils.tempfiles.TempFile;
 import com.indeed.imhotep.utils.tempfiles.TempFiles;
+import com.indeed.iql.Constants;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql.metadata.DatasetsMetadata;
@@ -658,7 +659,7 @@ public final class IQLQuery implements Closeable {
         final Optional<Integer> rowLimit =
                 (this.rowLimit < (Integer.MAX_VALUE - 1)) ? Optional.of(this.rowLimit) : Optional.empty();
         final boolean useLegacy = true;
-        return new Query(datasets, filter, groupBys, selects, formatStrings, options, rowLimit, useLegacy, DateTimeZone.forOffsetHours(-6));
+        return new Query(datasets, filter, groupBys, selects, formatStrings, options, rowLimit, useLegacy, Constants.DEFAULT_IQL_TIME_ZONE);
     }
 
     public List<GroupByEntry> convertGroupBys(final boolean fixKnownDiffs) throws Iql1ConvertException {

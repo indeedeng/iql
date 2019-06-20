@@ -15,6 +15,7 @@
 package com.indeed.iql2.server.web.servlets.dataset;
 
 import com.indeed.flamdex.writer.FlamdexDocument;
+import com.indeed.iql.Constants;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
@@ -27,7 +28,7 @@ import java.util.List;
 
 public class JobsearchDataset {
     static Dataset create() {
-        final DateTimeZone timeZone = DateTimeZone.forOffsetHours(-6);
+        final DateTimeZone timeZone = Constants.DEFAULT_IQL_TIME_ZONE;
 
         final List<Dataset.DatasetShard> result = new ArrayList<>();
 
@@ -66,7 +67,7 @@ public class JobsearchDataset {
     }
 
     private static FlamdexDocument makeDocument(DateTime timestamp, String ctkrcvd, String country, int page, boolean isLast) {
-        if (!timestamp.getZone().equals(DateTimeZone.forOffsetHours(-6))) {
+        if (!timestamp.getZone().equals(Constants.DEFAULT_IQL_TIME_ZONE)) {
             throw new IllegalArgumentException("Bad timestamp timezone: " + timestamp.getZone());
         }
 

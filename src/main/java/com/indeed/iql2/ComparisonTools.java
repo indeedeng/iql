@@ -2,6 +2,7 @@ package com.indeed.iql2;
 
 import com.indeed.imhotep.StrictCloser;
 import com.indeed.imhotep.client.ImhotepClient;
+import com.indeed.iql.Constants;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.language.SelectStatement;
 import com.indeed.iql.metadata.DatasetsMetadata;
@@ -91,7 +92,7 @@ public class ComparisonTools {
         final IQL1SelectStatement iql1SelectStatement =
                 SelectStatementParser.parseSelectStatement(
                         query,
-                        new DateTime(clock.currentTimeMillis(), DateTimeZone.forOffsetHours(-6)),
+                        new DateTime(clock.currentTimeMillis(), Constants.DEFAULT_IQL_TIME_ZONE),
                         datasetsMetadata);
 
         final IQLQuery iql1Query = IQLTranslator.translate(

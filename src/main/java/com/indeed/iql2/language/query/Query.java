@@ -21,6 +21,7 @@ import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.indeed.common.datastruct.PersistentStack;
 import com.indeed.imhotep.Shard;
+import com.indeed.iql.Constants;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.execution.QueryOptions;
@@ -372,7 +373,7 @@ public class Query extends AbstractPositional {
     private static DateTimeZone timeZoneForQuery(final JQLParser.QueryContext queryCtx) {
         final List<JQLParser.TimeZoneSpecifierContext> timeZones = queryCtx.timeZones;
         if (timeZones.isEmpty()) {
-            return DateTimeZone.forOffsetHours(-6);
+            return Constants.DEFAULT_IQL_TIME_ZONE;
         }
         if (timeZones.size() > 1) {
             throw new IqlKnownException.ParseErrorException("Requested multiple timezones -- can only use 1!");

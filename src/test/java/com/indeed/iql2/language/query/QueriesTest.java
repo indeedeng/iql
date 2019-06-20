@@ -16,6 +16,7 @@ package com.indeed.iql2.language.query;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.indeed.iql.Constants;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.JQLParser;
@@ -45,7 +46,7 @@ public class QueriesTest {
 
     @Test
     public void testSplitQuery() {
-        final StoppedClock clock = new StoppedClock(DateTime.parse("2015-01-02").withZoneRetainFields(DateTimeZone.forOffsetHours(-6)).getMillis());
+        final StoppedClock clock = new StoppedClock(DateTime.parse("2015-01-02").withZoneRetainFields(Constants.DEFAULT_IQL_TIME_ZONE).getMillis());
         final DatasetsMetadata datasetsMetadata = AllData.DATASET.getDatasetsMetadata();
         {
             final String query = "FROM organic 1d 0d";

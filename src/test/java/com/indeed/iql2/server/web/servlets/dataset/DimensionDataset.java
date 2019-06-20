@@ -1,6 +1,7 @@
 package com.indeed.iql2.server.web.servlets.dataset;
 
 import com.indeed.flamdex.writer.FlamdexDocument;
+import com.indeed.iql.Constants;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
@@ -12,7 +13,7 @@ import java.util.List;
  */
 public class DimensionDataset {
     static Dataset createDataset() {
-        final DateTimeZone timeZone = DateTimeZone.forOffsetHours(-6);
+        final DateTimeZone timeZone = Constants.DEFAULT_IQL_TIME_ZONE;
         final List<Dataset.DatasetShard> shards = new ArrayList<>();
 
         {

@@ -16,24 +16,21 @@ package com.indeed.iql2.server.web.servlets.dataset;
 
 import com.google.common.collect.Lists;
 import com.indeed.flamdex.writer.FlamdexDocument;
+import com.indeed.iql.Constants;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
 import java.util.List;
 
 public class FieldEqualDataset {
-    static {
-        DateTimeZone.setDefault(DateTimeZone.forOffsetHours(-6));
-    }
-
     // fields [time, s1, s2, i1, i2]
     static Dataset create() {
         final List<Dataset.DatasetShard> shards = Lists.newArrayList();
         final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
-        flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 0, 0), 1, 1, "a", "a"));
-        flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 0, 30), 1, 1, "a", "b"));
-        flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 1, 15), 1, 2, "a", "b"));
-        flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 10, 0), 2, 2, "b", "b"));
+        flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 0, 0, Constants.DEFAULT_IQL_TIME_ZONE), 1, 1, "a", "a"));
+        flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 0, 30, Constants.DEFAULT_IQL_TIME_ZONE), 1, 1, "a", "b"));
+        flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 1, 15, Constants.DEFAULT_IQL_TIME_ZONE), 1, 2, "a", "b"));
+        flamdex.addDocument(makeDocument(new DateTime(2015, 1, 1, 0, 10, 0, Constants.DEFAULT_IQL_TIME_ZONE), 2, 2, "b", "b"));
         shards.add(new Dataset.DatasetShard("fieldEqual", "index20150101.00", flamdex));
         return new Dataset(shards);
     }

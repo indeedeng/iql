@@ -17,6 +17,7 @@ package com.indeed.iql.web.print;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.indeed.common.datastruct.PersistentStack;
+import com.indeed.iql.Constants;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.AbstractPositional;
 import com.indeed.iql2.language.AggregateFilter;
@@ -163,7 +164,7 @@ public class PrettyPrint {
     }
 
     private void pp(final Query query) {
-        if (!query.timeZone.equals(DateTimeZone.forOffsetHours(-6))) {
+        if (!query.timeZone.equals(Constants.DEFAULT_IQL_TIME_ZONE)) {
             sb.append("TIMEZONE GMT");
             int offsetMillis = query.timeZone.getOffset(0);
             if (offsetMillis != 0) {

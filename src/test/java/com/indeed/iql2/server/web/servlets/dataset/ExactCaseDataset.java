@@ -1,6 +1,7 @@
 package com.indeed.iql2.server.web.servlets.dataset;
 
 import com.indeed.flamdex.writer.FlamdexDocument;
+import com.indeed.iql.Constants;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
@@ -19,7 +20,7 @@ public class ExactCaseDataset {
             final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
 
             final FlamdexDocument doc = new FlamdexDocument();
-            doc.addIntTerm("unixtime", new DateTime(2015, 1, 1, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis() / 1000);
+            doc.addIntTerm("unixtime", new DateTime(2015, 1, 1, 0, 0, Constants.DEFAULT_IQL_TIME_ZONE).getMillis() / 1000);
 
             // Same case-insensitive name, same type, different values
             doc.addIntTerm("i1", 1);
@@ -39,7 +40,7 @@ public class ExactCaseDataset {
             final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
 
             final FlamdexDocument doc = new FlamdexDocument();
-            doc.addIntTerm("unixtime", new DateTime(2015, 1, 1, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis() / 1000);
+            doc.addIntTerm("unixtime", new DateTime(2015, 1, 1, 0, 0, Constants.DEFAULT_IQL_TIME_ZONE).getMillis() / 1000);
 
             // Same case-insensitive name, same type, different values
             doc.addStringTerm("s1", "s1 term");

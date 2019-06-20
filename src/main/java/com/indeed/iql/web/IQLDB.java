@@ -15,6 +15,7 @@
 package com.indeed.iql.web;
 
 import com.google.common.collect.Maps;
+import com.indeed.iql.Constants;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTimeZone;
@@ -45,7 +46,8 @@ public class IQLDB {
     private static final Logger log = Logger.getLogger ( IQLDB.class );
     public static String hostname;
     static {
-        DateTimeZone.setDefault(DateTimeZone.forOffsetHours(-6));
+        // TODO: Can we remove this?
+        DateTimeZone.setDefault(Constants.DEFAULT_IQL_TIME_ZONE);
         TimeZone.setDefault(TimeZone.getTimeZone("GMT-6"));
 
         try {

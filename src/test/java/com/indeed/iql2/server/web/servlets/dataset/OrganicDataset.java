@@ -15,6 +15,7 @@
 package com.indeed.iql2.server.web.servlets.dataset;
 
 import com.indeed.flamdex.writer.FlamdexDocument;
+import com.indeed.iql.Constants;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
@@ -36,7 +37,7 @@ public class OrganicDataset {
     // ojc = 306
     // distinct(tk) = { "a", "b", "c", "d" }, || = 4
     private static Dataset create(final boolean useDynamicShardNaming) {
-        final DateTimeZone timeZone = DateTimeZone.forOffsetHours(-6);
+        final DateTimeZone timeZone = Constants.DEFAULT_IQL_TIME_ZONE;
 
         final String suffix = useDynamicShardNaming ? "_dynamic" : "";
 
@@ -161,7 +162,7 @@ public class OrganicDataset {
     }
 
     private static FlamdexDocument makeDocument(final DateTime timestamp, final int oji, final int ojc, final String tk) {
-        if (!timestamp.getZone().equals(DateTimeZone.forOffsetHours(-6))) {
+        if (!timestamp.getZone().equals(Constants.DEFAULT_IQL_TIME_ZONE)) {
             throw new IllegalArgumentException("Bad timestamp timezone: " + timestamp.getZone());
         }
         if (ojc > oji) {

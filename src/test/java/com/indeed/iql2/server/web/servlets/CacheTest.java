@@ -20,6 +20,7 @@ import com.google.common.collect.Sets;
 import com.google.common.io.Files;
 import com.indeed.imhotep.Shard;
 import com.indeed.imhotep.client.ImhotepClient;
+import com.indeed.iql.Constants;
 import com.indeed.iql.cache.CompletableOutputStream;
 import com.indeed.iql.cache.QueryCache;
 import com.indeed.iql.metadata.DatasetsMetadata;
@@ -55,7 +56,7 @@ import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.ResultFo
 public class CacheTest extends BasicTest {
     // TODO: can we lower this?
     private static final long CACHE_WRITE_TIMEOUT = 1000L;
-    private static final DateTimeZone TIME_ZONE = DateTimeZone.forOffsetHours(-6);
+    private static final DateTimeZone TIME_ZONE = Constants.DEFAULT_IQL_TIME_ZONE;
     // Unique in the context of 1 day of hourly sharded data in organic yesterday (2015-01-01).
     private final ImmutableList<String> uniqueQueries = ImmutableList.of(
             "from organic yesterday today",
@@ -84,7 +85,7 @@ public class CacheTest extends BasicTest {
             "from organic yesterday today as a, organic yesterday today as b where a.tk=\"a\" select a.count(), b.count()",
             "from organic yesterday today as b, organic yesterday today as a where a.tk=\"a\" select a.count(), b.count()"
     );
-    private static final StoppedClock CLOCK = new StoppedClock(new DateTime(2015, 1, 1, 0, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis());
+    private static final StoppedClock CLOCK = new StoppedClock(new DateTime(2015, 1, 1, 0, 0, 0, TIME_ZONE).getMillis());
 
     private static String getCacheKey(final String queryString) {
         final ImhotepClient imhotepClient = AllData.DATASET.getNormalClient();

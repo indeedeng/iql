@@ -2,6 +2,7 @@ package com.indeed.iql2.language.query.fieldresolution;
 
 import com.google.common.collect.ImmutableMap;
 import com.indeed.common.datastruct.PersistentStack;
+import com.indeed.iql.Constants;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql.metadata.ImhotepMetadataCache;
@@ -40,7 +41,7 @@ import static org.junit.Assert.assertTrue;
  */
 public class FieldResolverTest {
     private static final Consumer<String> WARN = s -> System.out.println("PARSE WARNING: " + s);
-    private static final WallClock CLOCK = new StoppedClock(new DateTime(2015, 2, 1, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis());
+    private static final WallClock CLOCK = new StoppedClock(new DateTime(2015, 2, 1, 0, 0, Constants.DEFAULT_IQL_TIME_ZONE).getMillis());
     private static final FieldResolver FIELD_RESOLVER = FieldResolverTest.fromQuery("from organic 2d 1d");
     private static final Query.Context CONTEXT = new Query.Context(
             Collections.emptyList(),
@@ -52,7 +53,7 @@ public class FieldResolverTest {
             FIELD_RESOLVER.universalScope(),
             new NullShardResolver(),
             PersistentStack.empty(),
-            DateTimeZone.forOffsetHours(-6));
+            Constants.DEFAULT_IQL_TIME_ZONE);
 
     public static FieldResolver fromQuery(final String query) {
         final boolean useLegacy = false;

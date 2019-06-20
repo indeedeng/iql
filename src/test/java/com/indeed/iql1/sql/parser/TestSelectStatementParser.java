@@ -14,6 +14,7 @@
  package com.indeed.iql1.sql.parser;
 
 import com.google.common.collect.Lists;
+import com.indeed.iql.Constants;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql1.sql.ast.BinaryExpression;
 import com.indeed.iql1.sql.ast.Expression;
@@ -22,6 +23,7 @@ import com.indeed.iql1.sql.ast.Op;
 import com.indeed.iql1.sql.ast2.FromClause;
 import com.indeed.iql1.sql.ast2.IQL1SelectStatement;
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -32,6 +34,8 @@ import static org.junit.Assert.assertEquals;
 
 public class TestSelectStatementParser {
 
+    public static final DateTimeZone ZONE = Constants.DEFAULT_IQL_TIME_ZONE;
+
     private static IQL1SelectStatement parseSelectStatement(final String selectQuery) {
         return SelectStatementParser.parseSelectStatement(selectQuery, DateTime.now(), null);
     }
@@ -41,7 +45,7 @@ public class TestSelectStatementParser {
         String testQuery = "from jobsearch '2012-01-01' '2012-01-02' where rcv=jsv group by grp select sjc";
         IQL1SelectStatement expected = new IQL1SelectStatement(
                 Lists.newArrayList((Expression) new NameExpression("sjc")),
-                new FromClause("jobsearch", new DateTime(2012,1,1,0,0), new DateTime(2012,1,2,0,0)),
+                new FromClause("jobsearch", new DateTime(2012,1,1,0,0,ZONE), new DateTime(2012,1,2,0,0,ZONE)),
                 new BinaryExpression(new NameExpression("rcv"), Op.EQ, new NameExpression("jsv")),
                 Lists.newArrayList((Expression)new NameExpression("grp")));
 

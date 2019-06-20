@@ -16,6 +16,7 @@ package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.indeed.iql.Constants;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.junit.Test;
@@ -156,7 +157,7 @@ public class DistinctTest extends BasicTest {
         expected.add(ImmutableList.of("1", "[2015-01-06 00:00:00, 2015-01-07 00:00:00)", "3", "5", "2", "2"));
         expected.add(ImmutableList.of("1", "[2015-01-07 00:00:00, 2015-01-08 00:00:00)", "5", "6", "2", "2"));
 
-        final long jan4Seconds = new DateTime(2015, 1, 4, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis() / 1000;
+        final long jan4Seconds = new DateTime(2015, 1, 4, 0, 0, Constants.DEFAULT_IQL_TIME_ZONE).getMillis() / 1000;
 
         testIQL2(
                 expected,

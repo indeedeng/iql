@@ -14,6 +14,7 @@
 
 package com.indeed.iql2.server.web.fieldExtractor;
 
+import com.indeed.iql.Constants;
 import com.indeed.iql2.language.query.Queries;
 import com.indeed.iql2.language.query.shardresolution.NullShardResolver;
 import com.indeed.iql2.language.query.shardresolution.ShardResolver;
@@ -48,7 +49,7 @@ public class BaseTest {
 
 	protected static final DatasetField JOBSEARCH_CTKRCVD = new DatasetField("ctkrcvd", "jobsearch", true);
 
-	private static final WallClock wallClock = new StoppedClock(new DateTime(2015, 1, 2, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis());
+	private static final WallClock wallClock = new StoppedClock(new DateTime(2015, 1, 2, 0, 0, Constants.DEFAULT_IQL_TIME_ZONE).getMillis());
 	private static final TracingTreeTimer TIMER = new TracingTreeTimer();
 	private static final ShardResolver SHARD_RESOLVER = new NullShardResolver();
 
