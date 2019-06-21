@@ -25,6 +25,7 @@ import com.google.common.collect.Lists;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.service.MetricStatsEmitter;
 import com.indeed.ims.client.ImsClientInterface;
+import com.indeed.iql.Constants;
 import com.indeed.iql.cache.QueryCache;
 import com.indeed.iql.metadata.ImhotepMetadataCache;
 import com.indeed.iql.web.AccessControl;
@@ -272,7 +273,7 @@ public class QueryServletTestUtils extends BasicTest {
         private QueryCache queryCache = CollisionCheckingQueryCache.INSTANCE;
         private ImsClientInterface imsClient;
         private boolean skipTestDimension = FAST_TEST;
-        private WallClock wallClock = new StoppedClock(new DateTime(2015, 1, 2, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis());
+        private WallClock wallClock = new StoppedClock(new DateTime(2015, 1, 2, 0, 0, Constants.DEFAULT_IQL_TIME_ZONE).getMillis());
         @Nullable
         private Long maxCacheQuerySizeLimitBytes;
         private boolean skipCsv;

@@ -20,6 +20,7 @@ import com.google.common.collect.Sets;
 import com.indeed.flamdex.lucene.LuceneQueryTranslator;
 import com.indeed.imhotep.StrictCloser;
 import com.indeed.imhotep.client.ImhotepClient;
+import com.indeed.iql.Constants;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql.metadata.DatasetsMetadata;
@@ -1128,11 +1129,11 @@ public final class IQLTranslator {
             }
             final Stringifier<Long> stringifier = new Stringifier<Long>() {
                 public String toString(final Long integer) {
-                    return new DateTime(integer*1000).toString(dateTimeFormatter);
+                    return new DateTime(integer*1000, Constants.DEFAULT_IQL_TIME_ZONE).toString(dateTimeFormatter);
                 }
 
                 public Long fromString(final String str) {
-                    return (new DateTime(str).getMillis()/1000);
+                    return (new DateTime(str, Constants.DEFAULT_IQL_TIME_ZONE).getMillis()/1000);
                 }
             };
             final Stat stat;

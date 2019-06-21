@@ -14,12 +14,14 @@
 
 package com.indeed.iql2.execution.groupkeys.sets;
 
+import com.indeed.iql.Constants;
 import com.indeed.iql2.Formatter;
 import com.indeed.iql2.execution.groupkeys.IntTermGroupKey;
 import com.indeed.iql2.execution.groupkeys.StringGroupKey;
 import com.indeed.iql2.language.TimeUnit;
 import com.indeed.iql2.language.query.UnevenGroupByPeriod;
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.junit.Assert;
@@ -29,13 +31,21 @@ import java.util.Arrays;
 import java.util.Locale;
 
 public class TestUnevenPeriodGroupKeySet {
+    private static final DateTimeZone ZONE = Constants.DEFAULT_IQL_TIME_ZONE;
 
     private static final String FORMAT_STRING = TimeUnit.SECOND.formatString;
     private static final DateTimeFormatter FORMATTER = DateTimeFormat.forPattern(FORMAT_STRING).withLocale(Locale.US);
 
     private static UnevenPeriodGroupKeySet create() {
         final DumbGroupKeySet dumbGroupKeySet = DumbGroupKeySet.create(DumbGroupKeySet.empty(), new int[]{-1, 1, 1, 1, 1, 1}, Arrays.asList(null, new IntTermGroupKey(1), new IntTermGroupKey(2), new IntTermGroupKey(3), new IntTermGroupKey(4), new IntTermGroupKey(5)));
-        return new UnevenPeriodGroupKeySet(dumbGroupKeySet, 12, new DateTime(2015, 2, 1, 0, 0, 0), UnevenGroupByPeriod.MONTH, FORMAT_STRING, Formatter.TSV);
+        return new UnevenPeriodGroupKeySet(dumbGroupKeySet,
+                12,
+                new DateTime(2015, 2, 1, 0, 0, 0, Constants.DEFAULT_IQL_TIME_ZONE),
+                UnevenGroupByPeriod.MONTH,
+                FORMAT_STRING,
+                Formatter.TSV,
+                Constants.DEFAULT_IQL_TIME_ZONE
+        );
     }
 
     @Test
@@ -63,63 +73,63 @@ public class TestUnevenPeriodGroupKeySet {
         final Formatter formatter = Formatter.TSV;
         final UnevenPeriodGroupKeySet yearMonthGroupKey = create();
         for (int i = 1; i <= 60; i+=12) {
-            final long start = new DateTime(2015, 2, 1, 0, 0).getMillis();
-            final long end = new DateTime(2015, 3, 1, 0, 0).getMillis();
+            final long start = new DateTime(2015, 2, 1, 0, 0, ZONE).getMillis();
+            final long end = new DateTime(2015, 3, 1, 0, 0, ZONE).getMillis();
             Assert.assertEquals(StringGroupKey.fromTimeRange(FORMATTER, start, end, formatter), yearMonthGroupKey.groupKey(i));
         }
         for (int i = 2; i <= 60; i+=12) {
-            final long start = new DateTime(2015, 3, 1, 0, 0).getMillis();
-            final long end = new DateTime(2015, 4, 1, 0, 0).getMillis();
+            final long start = new DateTime(2015, 3, 1, 0, 0, ZONE).getMillis();
+            final long end = new DateTime(2015, 4, 1, 0, 0, ZONE).getMillis();
             Assert.assertEquals(StringGroupKey.fromTimeRange(FORMATTER, start, end, formatter), yearMonthGroupKey.groupKey(i));
         }
         for (int i = 3; i <= 60; i+=12) {
-            final long start = new DateTime(2015, 4, 1, 0, 0).getMillis();
-            final long end = new DateTime(2015, 5, 1, 0, 0).getMillis();
+            final long start = new DateTime(2015, 4, 1, 0, 0, ZONE).getMillis();
+            final long end = new DateTime(2015, 5, 1, 0, 0, ZONE).getMillis();
             Assert.assertEquals(StringGroupKey.fromTimeRange(FORMATTER, start, end, formatter), yearMonthGroupKey.groupKey(i));
         }
         for (int i = 4; i <= 60; i+=12) {
-            final long start = new DateTime(2015, 5, 1, 0, 0).getMillis();
-            final long end = new DateTime(2015, 6, 1, 0, 0).getMillis();
+            final long start = new DateTime(2015, 5, 1, 0, 0, ZONE).getMillis();
+            final long end = new DateTime(2015, 6, 1, 0, 0, ZONE).getMillis();
             Assert.assertEquals(StringGroupKey.fromTimeRange(FORMATTER, start, end, formatter), yearMonthGroupKey.groupKey(i));
         }
         for (int i = 5; i <= 60; i+=12) {
-            final long start = new DateTime(2015, 6, 1, 0, 0).getMillis();
-            final long end = new DateTime(2015, 7, 1, 0, 0).getMillis();
+            final long start = new DateTime(2015, 6, 1, 0, 0, ZONE).getMillis();
+            final long end = new DateTime(2015, 7, 1, 0, 0, ZONE).getMillis();
             Assert.assertEquals(StringGroupKey.fromTimeRange(FORMATTER, start, end, formatter), yearMonthGroupKey.groupKey(i));
         }
         for (int i = 6; i <= 60; i+=12) {
-            final long start = new DateTime(2015, 7, 1, 0, 0).getMillis();
-            final long end = new DateTime(2015, 8, 1, 0, 0).getMillis();
+            final long start = new DateTime(2015, 7, 1, 0, 0, ZONE).getMillis();
+            final long end = new DateTime(2015, 8, 1, 0, 0, ZONE).getMillis();
             Assert.assertEquals(StringGroupKey.fromTimeRange(FORMATTER, start, end, formatter), yearMonthGroupKey.groupKey(i));
         }
         for (int i = 7; i <= 60; i+=12) {
-            final long start = new DateTime(2015, 8, 1, 0, 0).getMillis();
-            final long end = new DateTime(2015, 9, 1, 0, 0).getMillis();
+            final long start = new DateTime(2015, 8, 1, 0, 0, ZONE).getMillis();
+            final long end = new DateTime(2015, 9, 1, 0, 0, ZONE).getMillis();
             Assert.assertEquals(StringGroupKey.fromTimeRange(FORMATTER, start, end, formatter), yearMonthGroupKey.groupKey(i));
         }
         for (int i = 8; i <= 60; i+=12) {
-            final long start = new DateTime(2015, 9, 1, 0, 0).getMillis();
-            final long end = new DateTime(2015, 10, 1, 0, 0).getMillis();
+            final long start = new DateTime(2015, 9, 1, 0, 0, ZONE).getMillis();
+            final long end = new DateTime(2015, 10, 1, 0, 0, ZONE).getMillis();
             Assert.assertEquals(StringGroupKey.fromTimeRange(FORMATTER, start, end, formatter), yearMonthGroupKey.groupKey(i));
         }
         for (int i = 9; i <= 60; i+=12) {
-            final long start = new DateTime(2015, 10, 1, 0, 0).getMillis();
-            final long end = new DateTime(2015, 11, 1, 0, 0).getMillis();
+            final long start = new DateTime(2015, 10, 1, 0, 0, ZONE).getMillis();
+            final long end = new DateTime(2015, 11, 1, 0, 0, ZONE).getMillis();
             Assert.assertEquals(StringGroupKey.fromTimeRange(FORMATTER, start, end, formatter), yearMonthGroupKey.groupKey(i));
         }
         for (int i = 10; i <= 60; i+=12) {
-            final long start = new DateTime(2015, 11, 1, 0, 0).getMillis();
-            final long end = new DateTime(2015, 12, 1, 0, 0).getMillis();
+            final long start = new DateTime(2015, 11, 1, 0, 0, ZONE).getMillis();
+            final long end = new DateTime(2015, 12, 1, 0, 0, ZONE).getMillis();
             Assert.assertEquals(StringGroupKey.fromTimeRange(FORMATTER, start, end, formatter), yearMonthGroupKey.groupKey(i));
         }
         for (int i = 11; i <= 60; i+=12) {
-            final long start = new DateTime(2015, 12, 1, 0, 0).getMillis();
-            final long end = new DateTime(2016, 1, 1, 0, 0).getMillis();
+            final long start = new DateTime(2015, 12, 1, 0, 0, ZONE).getMillis();
+            final long end = new DateTime(2016, 1, 1, 0, 0, ZONE).getMillis();
             Assert.assertEquals(StringGroupKey.fromTimeRange(FORMATTER, start, end, formatter), yearMonthGroupKey.groupKey(i));
         }
         for (int i = 12; i <= 60; i+=12) {
-            final long start = new DateTime(2016, 1, 1, 0, 0).getMillis();
-            final long end = new DateTime(2016, 2, 1, 0, 0).getMillis();
+            final long start = new DateTime(2016, 1, 1, 0, 0, ZONE).getMillis();
+            final long end = new DateTime(2016, 2, 1, 0, 0, ZONE).getMillis();
             Assert.assertEquals(StringGroupKey.fromTimeRange(FORMATTER, start, end, formatter), yearMonthGroupKey.groupKey(i));
         }
     }

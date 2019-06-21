@@ -4,6 +4,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.indeed.imhotep.Shard;
+import com.indeed.iql.Constants;
 import com.indeed.iql2.language.query.shardresolution.ImhotepClientShardResolver;
 import com.indeed.iql2.language.query.shardresolution.NullShardResolver;
 import com.indeed.iql2.language.query.shardresolution.ShardResolver;
@@ -26,7 +27,7 @@ import java.util.Random;
 
 public class DatasetTest {
 
-    private static final StoppedClock CLOCK = new StoppedClock(new DateTime(2015, 1, 2, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis());
+    private static final StoppedClock CLOCK = new StoppedClock(new DateTime(2015, 1, 2, 0, 0, Constants.DEFAULT_IQL_TIME_ZONE).getMillis());
     private static final ImhotepClientShardResolver SHARD_RESOLVER = new ImhotepClientShardResolver(AllData.DATASET.getNormalClient());
 
     private static List<Dataset> parseQueryDatasets(

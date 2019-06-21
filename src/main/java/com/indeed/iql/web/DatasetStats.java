@@ -17,6 +17,7 @@ package com.indeed.iql.web;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.indeed.iql.Constants;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormat;
@@ -106,8 +107,8 @@ public class DatasetStats {
         return lastShardNumDocs;
     }
 
-    private static final DateTimeFormatter yyyymmddhh = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH").withZone(DateTimeZone.forOffsetHours(-6));
-    private static final DateTimeFormatter yyyymmdd = DateTimeFormat.forPattern("yyyy-MM-dd").withZone(DateTimeZone.forOffsetHours(-6));
+    private static final DateTimeFormatter yyyymmddhh = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH").withZone(Constants.DEFAULT_IQL_TIME_ZONE);
+    private static final DateTimeFormatter yyyymmdd = DateTimeFormat.forPattern("yyyy-MM-dd").withZone(Constants.DEFAULT_IQL_TIME_ZONE);
 
     @Nonnull
     private static String shardDateToString(@Nullable DateTime date) {

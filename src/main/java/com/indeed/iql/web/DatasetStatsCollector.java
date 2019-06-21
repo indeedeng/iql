@@ -20,6 +20,7 @@ import com.google.common.collect.Sets;
 import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.ShardInfo;
 import com.indeed.imhotep.client.ImhotepClient;
+import com.indeed.iql.Constants;
 import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql.metadata.FieldMetadata;
 import com.indeed.iql.metadata.ImhotepMetadataCache;
@@ -42,7 +43,8 @@ import java.util.Map;
  */
 public class DatasetStatsCollector {
     private static final Logger log = Logger.getLogger(DatasetStatsCollector.class);
-    private static final DateTimeFormatter SHARD_VERSION_FORMATTER = DateTimeFormat.forPattern("yyyyMMddHHmmss").withZone(DateTimeZone.forOffsetHours(-6));
+    private static final DateTimeFormatter SHARD_VERSION_FORMATTER = DateTimeFormat.forPattern("yyyyMMddHHmmss").withZone(
+            Constants.DEFAULT_IQL_TIME_ZONE);
     private static final long LOWEST_LEGAL_TIMESTAMP_DATE = 10000000000L;
 
 
@@ -115,12 +117,12 @@ public class DatasetStatsCollector {
 
 
             if (firstDataTime != Long.MAX_VALUE && firstDataTime != 0) {
-                stats.firstDataTime = new DateTime(firstDataTime, DateTimeZone.forOffsetHours(-6));
+                stats.firstDataTime = new DateTime(firstDataTime, Constants.DEFAULT_IQL_TIME_ZONE);
             } else {
                 log.error("Failed to parse time range start for " + datasetInfo.getDataset());
             }
             if (lastDataTime != 0) {
-                stats.lastDataTime = new DateTime(lastDataTime, DateTimeZone.forOffsetHours(-6));
+                stats.lastDataTime = new DateTime(lastDataTime, Constants.DEFAULT_IQL_TIME_ZONE);
                 stats.lastShardNumDocs = lastShardNumDocs;
                 final long lastWeekCutoff = stats.lastDataTime.minusDays(7).getMillis();
                 // reiterate through the shards to find the last week

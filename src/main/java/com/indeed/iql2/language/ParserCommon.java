@@ -21,16 +21,11 @@ import it.unimi.dsi.fastutil.chars.CharOpenHashSet;
 import it.unimi.dsi.fastutil.chars.CharSet;
 import it.unimi.dsi.fastutil.chars.CharSortedSet;
 import org.apache.commons.lang.StringEscapeUtils;
-import org.joda.time.DateTimeZone;
 
 import java.util.function.Consumer;
 
 public class ParserCommon {
     private ParserCommon() {
-    }
-
-    static {
-        DateTimeZone.setDefault(DateTimeZone.forOffsetHours(-6));
     }
 
     public static String unquote(final String text, final boolean useLegacy, final Consumer<String> warn) {

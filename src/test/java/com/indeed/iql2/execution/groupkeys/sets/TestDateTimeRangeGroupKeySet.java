@@ -14,6 +14,7 @@
 
 package com.indeed.iql2.execution.groupkeys.sets;
 
+import com.indeed.iql.Constants;
 import com.indeed.iql2.Formatter;
 import com.indeed.iql2.execution.groupkeys.IntTermGroupKey;
 import com.indeed.iql2.execution.groupkeys.StringGroupKey;
@@ -29,13 +30,19 @@ import java.util.Arrays;
 import java.util.Locale;
 
 public class TestDateTimeRangeGroupKeySet {
-    static {
-        DateTimeZone.setDefault(DateTimeZone.forOffsetHours(-6));
-    }
+    private static DateTimeZone ZONE = Constants.DEFAULT_IQL_TIME_ZONE;
 
     private static DateTimeRangeGroupKeySet create() {
         final DumbGroupKeySet previous = DumbGroupKeySet.create(DumbGroupKeySet.empty(), new int[]{-1, 1, 1, 1, 1, 1}, Arrays.asList(null, new IntTermGroupKey(1), new IntTermGroupKey(2), new IntTermGroupKey(3), new IntTermGroupKey(4), new IntTermGroupKey(5)));
-        return new DateTimeRangeGroupKeySet(previous, new DateTime(2015, 2, 23, 12, 0, 0).getMillis(), TimeUnit.HOUR.millis, 24, 24 * previous.numGroups(), TimeUnit.HOUR.formatString, Formatter.TSV);
+        return new DateTimeRangeGroupKeySet(previous,
+                new DateTime(2015, 2, 23, 12, 0, 0, Constants.DEFAULT_IQL_TIME_ZONE).getMillis(),
+                TimeUnit.HOUR.millis,
+                24,
+                24 * previous.numGroups(),
+                TimeUnit.HOUR.formatString,
+                Formatter.TSV,
+                Constants.DEFAULT_IQL_TIME_ZONE
+        );
     }
 
     @Test
@@ -65,76 +72,76 @@ public class TestDateTimeRangeGroupKeySet {
         final DateTimeFormatter formatter = DateTimeFormat.forPattern(format).withLocale(Locale.US);
         final Formatter escaper = Formatter.TSV;
         for (int i = 1; i <= 120; i += 24) {
-            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 23, 12, 0, 0).getMillis(), new DateTime(2015, 2, 23, 13, 0, 0).getMillis(), escaper), keySet.groupKey(i));
+            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 23, 12, 0, 0, ZONE).getMillis(), new DateTime(2015, 2, 23, 13, 0, 0, ZONE).getMillis(), escaper), keySet.groupKey(i));
         }
         for (int i = 2; i <= 120; i += 24) {
-            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 23, 13, 0, 0).getMillis(), new DateTime(2015, 2, 23, 14, 0, 0).getMillis(), escaper), keySet.groupKey(i));
+            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 23, 13, 0, 0, ZONE).getMillis(), new DateTime(2015, 2, 23, 14, 0, 0, ZONE).getMillis(), escaper), keySet.groupKey(i));
         }
         for (int i = 3; i <= 120; i += 24) {
-            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 23, 14, 0, 0).getMillis(), new DateTime(2015, 2, 23, 15, 0, 0).getMillis(), escaper), keySet.groupKey(i));
+            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 23, 14, 0, 0, ZONE).getMillis(), new DateTime(2015, 2, 23, 15, 0, 0, ZONE).getMillis(), escaper), keySet.groupKey(i));
         }
         for (int i = 4; i <= 120; i += 24) {
-            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 23, 15, 0, 0).getMillis(), new DateTime(2015, 2, 23, 16, 0, 0).getMillis(), escaper), keySet.groupKey(i));
+            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 23, 15, 0, 0, ZONE).getMillis(), new DateTime(2015, 2, 23, 16, 0, 0, ZONE).getMillis(), escaper), keySet.groupKey(i));
         }
         for (int i = 5; i <= 120; i += 24) {
-            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 23, 16, 0, 0).getMillis(), new DateTime(2015, 2, 23, 17, 0, 0).getMillis(), escaper), keySet.groupKey(i));
+            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 23, 16, 0, 0, ZONE).getMillis(), new DateTime(2015, 2, 23, 17, 0, 0, ZONE).getMillis(), escaper), keySet.groupKey(i));
         }
         for (int i = 6; i <= 120; i += 24) {
-            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 23, 17, 0, 0).getMillis(), new DateTime(2015, 2, 23, 18, 0, 0).getMillis(), escaper), keySet.groupKey(i));
+            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 23, 17, 0, 0, ZONE).getMillis(), new DateTime(2015, 2, 23, 18, 0, 0, ZONE).getMillis(), escaper), keySet.groupKey(i));
         }
         for (int i = 7; i <= 120; i += 24) {
-            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 23, 18, 0, 0).getMillis(), new DateTime(2015, 2, 23, 19, 0, 0).getMillis(), escaper), keySet.groupKey(i));
+            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 23, 18, 0, 0, ZONE).getMillis(), new DateTime(2015, 2, 23, 19, 0, 0, ZONE).getMillis(), escaper), keySet.groupKey(i));
         }
         for (int i = 8; i <= 120; i += 24) {
-            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 23, 19, 0, 0).getMillis(), new DateTime(2015, 2, 23, 20, 0, 0).getMillis(), escaper), keySet.groupKey(i));
+            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 23, 19, 0, 0, ZONE).getMillis(), new DateTime(2015, 2, 23, 20, 0, 0, ZONE).getMillis(), escaper), keySet.groupKey(i));
         }
         for (int i = 9; i <= 120; i += 24) {
-            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 23, 20, 0, 0).getMillis(), new DateTime(2015, 2, 23, 21, 0, 0).getMillis(), escaper), keySet.groupKey(i));
+            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 23, 20, 0, 0, ZONE).getMillis(), new DateTime(2015, 2, 23, 21, 0, 0, ZONE).getMillis(), escaper), keySet.groupKey(i));
         }
         for (int i = 10; i <= 120; i += 24) {
-            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 23, 21, 0, 0).getMillis(), new DateTime(2015, 2, 23, 22, 0, 0).getMillis(), escaper), keySet.groupKey(i));
+            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 23, 21, 0, 0, ZONE).getMillis(), new DateTime(2015, 2, 23, 22, 0, 0, ZONE).getMillis(), escaper), keySet.groupKey(i));
         }
         for (int i = 11; i <= 120; i += 24) {
-            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 23, 22, 0, 0).getMillis(), new DateTime(2015, 2, 23, 23, 0, 0).getMillis(), escaper), keySet.groupKey(i));
+            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 23, 22, 0, 0, ZONE).getMillis(), new DateTime(2015, 2, 23, 23, 0, 0, ZONE).getMillis(), escaper), keySet.groupKey(i));
         }
         for (int i = 12; i <= 120; i += 24) {
-            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 23, 23, 0, 0).getMillis(), new DateTime(2015, 2, 24, 0, 0, 0).getMillis(), escaper), keySet.groupKey(i));
+            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 23, 23, 0, 0, ZONE).getMillis(), new DateTime(2015, 2, 24, 0, 0, 0, ZONE).getMillis(), escaper), keySet.groupKey(i));
         }
         for (int i = 13; i <= 120; i += 24) {
-            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 24, 0, 0, 0).getMillis(), new DateTime(2015, 2, 24, 1, 0, 0).getMillis(), escaper), keySet.groupKey(i));
+            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 24, 0, 0, 0, ZONE).getMillis(), new DateTime(2015, 2, 24, 1, 0, 0, ZONE).getMillis(), escaper), keySet.groupKey(i));
         }
         for (int i = 14; i <= 120; i += 24) {
-            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 24, 1, 0, 0).getMillis(), new DateTime(2015, 2, 24, 2, 0, 0).getMillis(), escaper), keySet.groupKey(i));
+            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 24, 1, 0, 0, ZONE).getMillis(), new DateTime(2015, 2, 24, 2, 0, 0, ZONE).getMillis(), escaper), keySet.groupKey(i));
         }
         for (int i = 15; i <= 120; i += 24) {
-            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 24, 2, 0, 0).getMillis(), new DateTime(2015, 2, 24, 3, 0, 0).getMillis(), escaper), keySet.groupKey(i));
+            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 24, 2, 0, 0, ZONE).getMillis(), new DateTime(2015, 2, 24, 3, 0, 0, ZONE).getMillis(), escaper), keySet.groupKey(i));
         }
         for (int i = 16; i <= 120; i += 24) {
-            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 24, 3, 0, 0).getMillis(), new DateTime(2015, 2, 24, 4, 0, 0).getMillis(), escaper), keySet.groupKey(i));
+            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 24, 3, 0, 0, ZONE).getMillis(), new DateTime(2015, 2, 24, 4, 0, 0, ZONE).getMillis(), escaper), keySet.groupKey(i));
         }
         for (int i = 17; i <= 120; i += 24) {
-            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 24, 4, 0, 0).getMillis(), new DateTime(2015, 2, 24, 5, 0, 0).getMillis(), escaper), keySet.groupKey(i));
+            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 24, 4, 0, 0, ZONE).getMillis(), new DateTime(2015, 2, 24, 5, 0, 0, ZONE).getMillis(), escaper), keySet.groupKey(i));
         }
         for (int i = 18; i <= 120; i += 24) {
-            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 24, 5, 0, 0).getMillis(), new DateTime(2015, 2, 24, 6, 0, 0).getMillis(), escaper), keySet.groupKey(i));
+            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 24, 5, 0, 0, ZONE).getMillis(), new DateTime(2015, 2, 24, 6, 0, 0, ZONE).getMillis(), escaper), keySet.groupKey(i));
         }
         for (int i = 19; i <= 120; i += 24) {
-            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 24, 6, 0, 0).getMillis(), new DateTime(2015, 2, 24, 7, 0, 0).getMillis(), escaper), keySet.groupKey(i));
+            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 24, 6, 0, 0, ZONE).getMillis(), new DateTime(2015, 2, 24, 7, 0, 0, ZONE).getMillis(), escaper), keySet.groupKey(i));
         }
         for (int i = 20; i <= 120; i += 24) {
-            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 24, 7, 0, 0).getMillis(), new DateTime(2015, 2, 24, 8, 0, 0).getMillis(), escaper), keySet.groupKey(i));
+            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 24, 7, 0, 0, ZONE).getMillis(), new DateTime(2015, 2, 24, 8, 0, 0, ZONE).getMillis(), escaper), keySet.groupKey(i));
         }
         for (int i = 21; i <= 120; i += 24) {
-            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 24, 8, 0, 0).getMillis(), new DateTime(2015, 2, 24, 9, 0, 0).getMillis(), escaper), keySet.groupKey(i));
+            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 24, 8, 0, 0, ZONE).getMillis(), new DateTime(2015, 2, 24, 9, 0, 0, ZONE).getMillis(), escaper), keySet.groupKey(i));
         }
         for (int i = 22; i <= 120; i += 24) {
-            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 24, 9, 0, 0).getMillis(), new DateTime(2015, 2, 24, 10, 0, 0).getMillis(), escaper), keySet.groupKey(i));
+            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 24, 9, 0, 0, ZONE).getMillis(), new DateTime(2015, 2, 24, 10, 0, 0, ZONE).getMillis(), escaper), keySet.groupKey(i));
         }
         for (int i = 23; i <= 120; i += 24) {
-            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 24, 10, 0, 0).getMillis(), new DateTime(2015, 2, 24, 11, 0, 0).getMillis(), escaper), keySet.groupKey(i));
+            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 24, 10, 0, 0, ZONE).getMillis(), new DateTime(2015, 2, 24, 11, 0, 0, ZONE).getMillis(), escaper), keySet.groupKey(i));
         }
         for (int i = 24; i <= 120; i += 24) {
-            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 24, 11, 0, 0).getMillis(), new DateTime(2015, 2, 24, 12, 0, 0).getMillis(), escaper), keySet.groupKey(i));
+            Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 24, 11, 0, 0, ZONE).getMillis(), new DateTime(2015, 2, 24, 12, 0, 0, ZONE).getMillis(), escaper), keySet.groupKey(i));
         }
     }
 

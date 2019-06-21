@@ -38,8 +38,8 @@ public class ExplodeDayOfWeek implements Command {
     public void execute(final Session session) throws ImhotepOutOfMemoryException {
         session.checkGroupLimit(session.getNumGroups() * 7L);
 
-        final long start = new DateTime(session.getEarliestStart()).withTimeAtStartOfDay().getMillis();
-        final long end = new DateTime(session.getLatestEnd()).plusDays(1).withTimeAtStartOfDay().getMillis();
+        final long start = new DateTime(session.getEarliestStart(), session.timeZone).withTimeAtStartOfDay().getMillis();
+        final long end = new DateTime(session.getLatestEnd(), session.timeZone).plusDays(1).withTimeAtStartOfDay().getMillis();
         session.timer.push("daily regroup");
         final long numGroupsLong = session.performTimeRegroup(start, end, TimeUnit.DAY.millis, Optional.empty(), false, false);
         final int numGroups = session.checkGroupLimit(numGroupsLong);
@@ -53,7 +53,7 @@ public class ExplodeDayOfWeek implements Command {
             final int oldGroup = 1 + (group - 1) / numBuckets;
             final int dayOffset = (group - 1) % numBuckets;
             final long groupStart = start + dayOffset * TimeUnit.DAY.millis;
-            final int newGroup = 1 + ((oldGroup - 1) * DAY_KEYS.length) + new DateTime(groupStart).getDayOfWeek() - 1;
+            final int newGroup = 1 + ((oldGroup - 1) * DAY_KEYS.length) + new DateTime(groupStart, session.timeZone).getDayOfWeek() - 1;
             fromGroups[group - 1] = group;
             toGroups[group - 1] = newGroup;
         }

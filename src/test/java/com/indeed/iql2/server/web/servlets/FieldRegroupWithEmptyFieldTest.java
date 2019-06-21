@@ -26,10 +26,6 @@ import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testIQL2
 import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testIQL2AndLegacy;
 
 public class FieldRegroupWithEmptyFieldTest extends BasicTest {
-    static {
-        DateTimeZone.setDefault(DateTimeZone.forOffsetHours(-6));
-    }
-
     @Test
     public void testGroupByIntLimit() throws Exception {
         final List<List<String>> expected = new ArrayList<>();

@@ -30,6 +30,7 @@ import com.indeed.imhotep.api.PerformanceStats;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.utils.tempfiles.TempFile;
 import com.indeed.imhotep.utils.tempfiles.TempFiles;
+import com.indeed.iql.Constants;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql.metadata.DatasetsMetadata;
@@ -63,6 +64,7 @@ import com.indeed.util.tempfiles.IQLTempFiles;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.joda.time.Interval;
 import org.joda.time.Period;
 import org.joda.time.format.PeriodFormat;
@@ -657,7 +659,7 @@ public final class IQLQuery implements Closeable {
         final Optional<Integer> rowLimit =
                 (this.rowLimit < (Integer.MAX_VALUE - 1)) ? Optional.of(this.rowLimit) : Optional.empty();
         final boolean useLegacy = true;
-        return new Query(datasets, filter, groupBys, selects, formatStrings, options, rowLimit, useLegacy);
+        return new Query(datasets, filter, groupBys, selects, formatStrings, options, rowLimit, useLegacy, Constants.DEFAULT_IQL_TIME_ZONE);
     }
 
     public List<GroupByEntry> convertGroupBys(final boolean fixKnownDiffs) throws Iql1ConvertException {

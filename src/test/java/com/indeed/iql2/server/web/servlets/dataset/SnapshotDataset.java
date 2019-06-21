@@ -2,6 +2,7 @@ package com.indeed.iql2.server.web.servlets.dataset;
 
 import com.google.common.collect.ImmutableList;
 import com.indeed.flamdex.writer.FlamdexDocument;
+import com.indeed.iql.Constants;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
@@ -39,7 +40,7 @@ public class SnapshotDataset {
             for (int id = 0; id < idPresences.size(); id++) {
                 if (idPresences.get(id).get(day) == 1) {
                     flamdex.addDocument(new FlamdexDocument.Builder()
-                            .addIntTerm("unixtime", new DateTime(2015, 1, day + 1, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis() / 1000)
+                            .addIntTerm("unixtime", new DateTime(2015, 1, day + 1, 0, 0, Constants.DEFAULT_IQL_TIME_ZONE).getMillis() / 1000)
                             .addStringTerm("id", String.valueOf(id))
                             .build()
                     );

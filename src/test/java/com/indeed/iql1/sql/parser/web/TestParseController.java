@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.indeed.iql.Constants;
 import com.indeed.iql.metadata.ImhotepMetadataCache;
 import com.indeed.iql.web.FieldFrequencyCache;
 import com.indeed.iql1.web.ParseController;
@@ -27,7 +28,7 @@ import java.io.IOException;
 import java.util.Map;
 
 public class TestParseController {
-    private static final DateTime NOW = DateTime.now().withZone(DateTimeZone.forOffsetHours(-6));
+    private static final DateTime NOW = DateTime.now().withZone(Constants.DEFAULT_IQL_TIME_ZONE);
     private static final WallClock NOW_CLOCK = new StoppedClock(NOW.getMillis());
     private static final DateTime TODAY = NOW.withMillisOfDay(0);
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()

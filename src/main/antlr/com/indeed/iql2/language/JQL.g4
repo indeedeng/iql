@@ -89,6 +89,9 @@ RANDOM: 'RANDOM' ;
 OPTIONS: 'OPTIONS' ;
 DOCID: 'DOCID' ;
 UID_TO_UNIXTIME : 'UID_TO_UNIXTIME' ;
+UTC : 'UTC' ;
+GMT : 'GMT' ;
+TIMEZONE : 'TIMEZONE' ;
 
 M: 'M' ;
 Y : 'Y' ;
@@ -149,6 +152,7 @@ identifier
     | M | Y | Q | TODAYS | TOMORROWS | YESTERDAYS | TIME_UNIT | TIME_INTERVAL_ATOM
     | RELATIVE | DATASET
     | BACKQUOTED_ID | LEN | DOCID | UID_TO_UNIXTIME
+    | UTC | GMT | TIMEZONE
     ;
 identifierTerminal : identifier EOF ;
 
@@ -558,13 +562,19 @@ selectContents [boolean useLegacy]
     : (formattedAggregateMetric[$ctx.useLegacy] (',' formattedAggregateMetric[$ctx.useLegacy])*)? (ROUNDING precision=NAT)?
     ;
 
+timeZoneSpecifier
+    : (UTC | GMT) (sign=('+'|'-') hours=NAT (':' minutes=NAT)?)?
+    ;
+
 query [boolean useLegacy]
-    : (SELECT selects+=selectContents[$ctx.useLegacy])?
+    : (TIMEZONE timeZones+=timeZoneSpecifier)?
+      (SELECT selects+=selectContents[$ctx.useLegacy])?
       FROM fromContents[$ctx.useLegacy]
       (WHERE whereContents[$ctx.useLegacy])?
       (GROUP BY groupByContents[$ctx.useLegacy])?
       (SELECT selects+=selectContents[$ctx.useLegacy])?
       (OPTIONS '[' (options+=STRING_LITERAL (',' options+=STRING_LITERAL)*)? ']')?
+      (TIMEZONE timeZones+=timeZoneSpecifier)? // placed before LIMIT because IQLWEB appends LIMIT
       (LIMIT limit=NAT)?
       (OPTIONS '[' (options+=STRING_LITERAL (',' options+=STRING_LITERAL)*)? ']')?
       EOF

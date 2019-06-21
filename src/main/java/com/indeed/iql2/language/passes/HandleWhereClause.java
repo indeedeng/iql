@@ -24,8 +24,6 @@ import com.indeed.iql2.language.actions.Actions;
 import com.indeed.iql2.language.execution.ExecutionStep;
 import com.indeed.iql2.language.optimizations.ConstantFolding;
 import com.indeed.iql2.language.query.Query;
-import com.indeed.iql2.language.util.ValidationHelper;
-import com.indeed.iql2.server.web.servlets.query.CommandValidator;
 
 import java.util.Collections;
 import java.util.List;
@@ -37,7 +35,7 @@ public class HandleWhereClause {
 
     public static Result handleWhereClause(Query query) {
         if (query.filter.isPresent()) {
-            final Query newQuery = new Query(query.datasets, Optional.empty(), query.groupBys, query.selects, query.formatStrings, query.options, query.rowLimit, query.useLegacy).copyPosition(query);
+            final Query newQuery = new Query(query.datasets, Optional.empty(), query.groupBys, query.selects, query.formatStrings, query.options, query.rowLimit, query.useLegacy, query.timeZone).copyPosition(query);
 
             if (query.options.contains(QueryOptions.Experimental.PWHERE)) {
                 final DocFilter constantFolded = ConstantFolding.apply(query.filter.get());

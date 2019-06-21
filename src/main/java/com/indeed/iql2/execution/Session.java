@@ -99,15 +99,11 @@ import java.util.function.Consumer;
  * @author jwolfe
  */
 public class Session {
-
-    static {
-        DateTimeZone.setDefault(DateTimeZone.forOffsetHours(-6));
-    }
-
     private static final Logger log = Logger.getLogger(Session.class);
 
     public GroupKeySet groupKeySet = DumbGroupKeySet.empty();
     public final Map<String, SavedGroupStats> savedGroupStats = Maps.newHashMap();
+    public final DateTimeZone timeZone;
     private int currentDepth = 0;
     // Here metric totals will be saved in case of no-regroup query.
     // Saving it to not calculate this stats twice (as totals and as query results)
@@ -139,8 +135,8 @@ public class Session {
             final Set<String> options,
             final FieldType defaultFieldType,
             final ResultFormat resultFormat,
-            final int iqlVersion
-    ) {
+            final int iqlVersion,
+            final DateTimeZone timeZone) {
         this.sessions = sessions;
         this.timer = timer;
         this.progressCallback = progressCallback;
@@ -150,6 +146,7 @@ public class Session {
         this.defaultFieldType = defaultFieldType;
         this.iqlVersion = iqlVersion;
         this.formatter = Formatter.forFormat(resultFormat);
+        this.timeZone = timeZone;
     }
 
     public int getNumGroups() {
@@ -194,7 +191,8 @@ public class Session {
             final String clientName,
             final FieldType defaultFieldType,
             final ResultFormat resultFormat,
-            final int iqlVersion
+            final int iqlVersion,
+            final DateTimeZone timeZone
     ) throws ImhotepOutOfMemoryException, IOException {
         final Map<String, ImhotepSessionInfo> sessions = Maps.newLinkedHashMap();
 
@@ -213,7 +211,7 @@ public class Session {
         progressCallback.sessionsOpened(sessions);
         treeTimer.pop();
 
-        final Session session = new Session(sessions, treeTimer, progressCallback, groupLimit, firstStartTimeMillis, optionsSet, defaultFieldType, resultFormat, iqlVersion);
+        final Session session = new Session(sessions, treeTimer, progressCallback, groupLimit, firstStartTimeMillis, optionsSet, defaultFieldType, resultFormat, iqlVersion, timeZone);
         for (int i = 0; i < commands.size(); i++) {
             final com.indeed.iql2.language.commands.Command command = commands.get(i);
             final Tracer tracer = GlobalTracer.get();
@@ -321,8 +319,8 @@ public class Session {
             final Set<String> sessionIntFields = Sets.newHashSet(datasetInfo.getIntFields());
             final Set<String> sessionStringFields = Sets.newHashSet(datasetInfo.getStringFields());
 
-            final DateTime startDateTime = parseDateTime(dataset.start);
-            final DateTime endDateTime = parseDateTime(dataset.end);
+            final DateTime startDateTime = dataset.start;
+            final DateTime endDateTime = dataset.end;
             treeTimer.pop();
             treeTimer.push("build session");
             treeTimer.push("create session builder");
@@ -376,15 +374,6 @@ public class Session {
             treeTimer.pop();
         }
         return firstStartTimeMillis;
-    }
-
-    // this datetime is serialized by standard Datetime by iql2-language
-    private static DateTime parseDateTime(String datetime) {
-        try {
-            return DateTime.parse(datetime);
-        } catch (final IllegalArgumentException e) {
-            throw Throwables.propagate(e);
-        }
     }
 
     private void evaluateCommand(final com.indeed.iql2.language.commands.Command lCommand,

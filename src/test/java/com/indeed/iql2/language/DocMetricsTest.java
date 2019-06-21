@@ -15,6 +15,7 @@
 package com.indeed.iql2.language;
 
 import com.indeed.common.datastruct.PersistentStack;
+import com.indeed.iql.Constants;
 import com.indeed.iql2.language.query.Queries;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.fieldresolution.FieldResolver;
@@ -41,7 +42,7 @@ import static com.indeed.iql2.language.DocMetric.Multiply;
 import static com.indeed.iql2.language.DocMetric.Subtract;
 
 public class DocMetricsTest {
-    public static final WallClock CLOCK = new StoppedClock(new DateTime(2015, 2, 1, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis());
+    public static final WallClock CLOCK = new StoppedClock(new DateTime(2015, 2, 1, 0, 0, Constants.DEFAULT_IQL_TIME_ZONE).getMillis());
     private static final FieldResolver FIELD_RESOLVER = FieldResolverTest.fromQuery("from synthetic 2d 1d");
     public static final Query.Context CONTEXT = new Query.Context(
             Collections.emptyList(),
@@ -52,8 +53,8 @@ public class DocMetricsTest {
             new TracingTreeTimer(),
             FIELD_RESOLVER.universalScope(),
             new NullShardResolver(),
-            PersistentStack.empty()
-    );
+            PersistentStack.empty(),
+            Constants.DEFAULT_IQL_TIME_ZONE);
 
     private static final Function<String, DocMetric> PARSE_LEGACY_DOC_METRIC = new Function<String, DocMetric>() {
         public DocMetric apply(@Nullable String input) {

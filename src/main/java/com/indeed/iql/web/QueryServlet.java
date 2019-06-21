@@ -31,6 +31,7 @@ import com.indeed.imhotep.exceptions.ImhotepKnownException;
 import com.indeed.imhotep.exceptions.QueryCancelledException;
 import com.indeed.imhotep.service.MetricStatsEmitter;
 import com.indeed.imhotep.utils.tempfiles.TempFiles;
+import com.indeed.iql.Constants;
 import com.indeed.iql.cache.CompletableOutputStream;
 import com.indeed.iql.cache.QueryCache;
 import com.indeed.iql.exceptions.IqlKnownException;
@@ -115,7 +116,8 @@ import java.util.stream.Collectors;
 public class QueryServlet {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     static {
-        DateTimeZone.setDefault(DateTimeZone.forOffsetHours(-6));
+        // TODO: Can we remove this?
+        DateTimeZone.setDefault(Constants.DEFAULT_IQL_TIME_ZONE);
         TimeZone.setDefault(TimeZone.getTimeZone("GMT-6"));
         GlobalUncaughtExceptionHandler.register();
         OBJECT_MAPPER.configure(SerializationFeature.INDENT_OUTPUT, true);
@@ -405,7 +407,7 @@ public class QueryServlet {
             } else {
                 // IQL1
                 queryInfo.engine = "iql1";
-                final IQL1SelectStatement iql1SelectStatement = SelectStatementParser.parseSelectStatement(query, new DateTime(clock.currentTimeMillis()), metadataCache.get());
+                final IQL1SelectStatement iql1SelectStatement = SelectStatementParser.parseSelectStatement(query, new DateTime(clock.currentTimeMillis(), Constants.DEFAULT_IQL_TIME_ZONE), metadataCache.get());
                 setQueryInfoFromSelectStatement(iql1SelectStatement, queryInfo, clientInfo);
 
                 final PrintWriter writer = resp.getWriter();
@@ -415,7 +417,7 @@ public class QueryServlet {
                 // SelectQuery can be closed after all cache has been uploaded
                 final SharedReference<SelectQuery> selectQuery = SharedReference.create(
                         new SelectQuery(queryInfo, runningQueriesManager, query, clientInfo, limits,
-                                new DateTime(queryInfo.queryStartTimestamp), iql1SelectStatement, (byte) 1, queryMetadata, strictCloser, eventStreamProgressCallback)
+                                new DateTime(queryInfo.queryStartTimestamp, Constants.DEFAULT_IQL_TIME_ZONE), iql1SelectStatement, (byte) 1, queryMetadata, strictCloser, eventStreamProgressCallback)
                 );
                 try {
                     selectQuery.get().lock(); // blocks and waits if necessary
@@ -662,7 +664,8 @@ public class QueryServlet {
         outputStream.flush();
     }
 
-    private static final DateTimeFormatter yyyymmddhhmmss = DateTimeFormat.forPattern("yyyyMMddHHmmss").withZone(DateTimeZone.forOffsetHours(-6));
+    private static final DateTimeFormatter yyyymmddhhmmss = DateTimeFormat.forPattern("yyyyMMddHHmmss")
+            .withZone(Constants.DEFAULT_IQL_TIME_ZONE);
 
     @Nullable
     private static DateTime getLatestShardVersion(List<Shard> shardVersionList) {
@@ -681,8 +684,8 @@ public class QueryServlet {
         return yyyymmddhhmmss.parseDateTime(String.valueOf(maxVersion));
     }
 
-    private static final DateTimeFormatter yyyymmddhh = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH").withZone(DateTimeZone.forOffsetHours(-6));
-    private static final DateTimeFormatter yyyymmdd = DateTimeFormat.forPattern("yyyy-MM-dd").withZone(DateTimeZone.forOffsetHours(-6));
+    private static final DateTimeFormatter yyyymmddhh = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH").withZone(Constants.DEFAULT_IQL_TIME_ZONE);
+    private static final DateTimeFormatter yyyymmdd = DateTimeFormat.forPattern("yyyy-MM-dd").withZone(Constants.DEFAULT_IQL_TIME_ZONE);
 
     public static String intervalListToString(Collection<Interval> intervals) {
         if(intervals == null) {

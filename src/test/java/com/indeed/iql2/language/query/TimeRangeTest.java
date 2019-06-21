@@ -1,5 +1,6 @@
 package com.indeed.iql2.language.query;
 
+import com.indeed.iql.Constants;
 import com.indeed.iql.metadata.DatasetsMetadata;
 import com.indeed.iql2.language.query.shardresolution.NullShardResolver;
 import com.indeed.iql2.server.web.servlets.dataset.AllData;
@@ -14,7 +15,7 @@ import java.util.Collections;
 
 public class TimeRangeTest {
     private static final DatasetsMetadata DATASETS_METADATA = AllData.DATASET.getDatasetsMetadata();
-    private static final DateTimeZone ZONE = DateTimeZone.forOffsetHours(-6);
+    private static final DateTimeZone ZONE = Constants.DEFAULT_IQL_TIME_ZONE;
     private static final DateTime STOPPED_TIME = new DateTime(2015, 1, 1, 0, 0, ZONE);
 
     private void testStartEnd(final String query, final DateTime start, final DateTime end) {

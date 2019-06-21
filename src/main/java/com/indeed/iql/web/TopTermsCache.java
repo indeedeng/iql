@@ -18,6 +18,7 @@ import com.google.common.collect.Maps;
 import com.indeed.imhotep.TermCount;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.client.ImhotepClient;
+import com.indeed.iql.Constants;
 import com.indeed.util.core.io.Closeables2;
 import com.indeed.util.io.Files;
 import org.apache.log4j.Logger;
@@ -68,7 +69,7 @@ public class TopTermsCache {
                 final TopTermsArtifact artifact = Files.readObjectFromFile(cacheFilePath, TopTermsArtifact.class, true);
 
                 if(artifact != null) {
-                    final DateTime artifactExpirationTime = new DateTime(artifact.timestamp).plusMillis(CACHE_UPDATE_FREQUENCY);
+                    final DateTime artifactExpirationTime = new DateTime(artifact.timestamp, Constants.DEFAULT_IQL_TIME_ZONE).plusMillis(CACHE_UPDATE_FREQUENCY);
                     if(DateTime.now().isBefore(artifactExpirationTime) || devMode) {
                         // persisted cache not expired. reuse
                         datasetToFieldToTerms = artifact.datasetToFieldToTerms;

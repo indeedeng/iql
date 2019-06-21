@@ -2,6 +2,7 @@ package com.indeed.iql2.server.web.servlets.dataset;
 
 import com.google.common.collect.ImmutableList;
 import com.indeed.flamdex.writer.FlamdexDocument;
+import com.indeed.iql.Constants;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormat;
@@ -16,7 +17,7 @@ public class CSVEscapeDataset {
 
     static Dataset createDataset() {
         final Dataset.DatasetFlamdex flamdex = new Dataset.DatasetFlamdex();
-        final DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd").withZone(DateTimeZone.forOffsetHours(-6));
+        final DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd").withZone(Constants.DEFAULT_IQL_TIME_ZONE);
 
         final FlamdexDocument doc1 = new FlamdexDocument();
         doc1.addStringTerm("sField", CRAZY_TERM);

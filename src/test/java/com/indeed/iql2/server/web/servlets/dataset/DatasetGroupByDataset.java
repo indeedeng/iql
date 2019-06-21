@@ -1,6 +1,7 @@
 package com.indeed.iql2.server.web.servlets.dataset;
 
 import com.indeed.flamdex.writer.FlamdexDocument;
+import com.indeed.iql.Constants;
 import org.joda.time.DateTimeZone;
 import org.joda.time.LocalDate;
 import org.joda.time.format.DateTimeFormat;
@@ -14,7 +15,7 @@ import java.util.List;
  */
 public class DatasetGroupByDataset {
     private static final DateTimeFormatter FORMATTER = DateTimeFormat.forPattern("yyyyMMdd");
-    private static final DateTimeZone DATE_TIME_ZONE = DateTimeZone.forOffsetHours(-6);
+    private static final DateTimeZone DATE_TIME_ZONE = Constants.DEFAULT_IQL_TIME_ZONE;
     private static final String DATASET = "groupByDataset";
 
     private static Dataset.DatasetShard makeShard(LocalDate day, int count) {

@@ -15,6 +15,7 @@
 package com.indeed.iql2.language;
 
 import com.indeed.common.datastruct.PersistentStack;
+import com.indeed.iql.Constants;
 import com.indeed.iql2.language.query.Queries;
 import com.indeed.iql2.language.query.Query;
 import com.indeed.iql2.language.query.fieldresolution.FieldResolver;
@@ -42,7 +43,7 @@ import static com.indeed.iql2.language.AggregateMetric.Subtract;
 import static com.indeed.iql2.language.DocMetricsTest.docField;
 
 public class AggregateMetricsTest {
-    private static final WallClock CLOCK = new StoppedClock(new DateTime(2015, 2, 1, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis());
+    private static final WallClock CLOCK = new StoppedClock(new DateTime(2015, 2, 1, 0, 0, Constants.DEFAULT_IQL_TIME_ZONE).getMillis());
     private static final FieldResolver FIELD_RESOLVER = FieldResolverTest.fromQuery("from synthetic 2d 1d");
     private static final Query.Context CONTEXT = new Query.Context(
             Collections.emptyList(),
@@ -53,8 +54,8 @@ public class AggregateMetricsTest {
             new TracingTreeTimer(),
             FIELD_RESOLVER.universalScope(),
             new NullShardResolver(),
-            PersistentStack.empty()
-    );
+            PersistentStack.empty(),
+            Constants.DEFAULT_IQL_TIME_ZONE);
 
     private static final Function<String, AggregateMetric> PARSE_IQL2_AGGREGATE_METRIC = new Function<String, AggregateMetric>() {
         public AggregateMetric apply(@Nullable String input) {

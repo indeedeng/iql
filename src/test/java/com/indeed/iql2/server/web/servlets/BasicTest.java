@@ -15,6 +15,7 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.indeed.imhotep.client.ImhotepClient;
+import com.indeed.iql.Constants;
 import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import com.indeed.util.varexport.VarExporter;
 import org.apache.log4j.Level;
@@ -31,7 +32,7 @@ import java.io.IOException;
  */
 @Ignore
 public abstract class BasicTest {
-    public static final DateTimeZone TIME_ZONE = DateTimeZone.forOffsetHours(-6);
+    public static final DateTimeZone TIME_ZONE = Constants.DEFAULT_IQL_TIME_ZONE;
     private static Level level;
 
     @BeforeClass public static void disbaleVarExporterWarning() {

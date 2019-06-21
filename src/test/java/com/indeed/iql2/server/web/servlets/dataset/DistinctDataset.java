@@ -2,6 +2,7 @@ package com.indeed.iql2.server.web.servlets.dataset;
 
 import com.google.common.collect.Lists;
 import com.indeed.flamdex.writer.FlamdexDocument;
+import com.indeed.iql.Constants;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
@@ -18,7 +19,7 @@ public class DistinctDataset {
         // A is present on the 2nd through the 5th inclusive
         for (int i = 1; i < 5; i++) {
             final FlamdexDocument doc = new FlamdexDocument();
-            doc.addIntTerm("unixtime", new DateTime(2015, 1, i + 1, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis() / 1000);
+            doc.addIntTerm("unixtime", new DateTime(2015, 1, i + 1, 0, 0, Constants.DEFAULT_IQL_TIME_ZONE).getMillis() / 1000);
             doc.addStringTerm("tk", "a");
             flamdex.addDocument(doc);
         }
@@ -26,7 +27,7 @@ public class DistinctDataset {
         // B, C are present on the 3rd through the 7th inclusive
         for (int i = 2; i < 7; i++) {
             final FlamdexDocument doc = new FlamdexDocument();
-            doc.addIntTerm("unixtime", new DateTime(2015, 1, i + 1, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis() / 1000);
+            doc.addIntTerm("unixtime", new DateTime(2015, 1, i + 1, 0, 0, Constants.DEFAULT_IQL_TIME_ZONE).getMillis() / 1000);
             doc.addStringTerm("tk", "b");
             doc.addStringTerm("tk", "c");
             flamdex.addDocument(doc);
@@ -35,7 +36,7 @@ public class DistinctDataset {
         // D is present on the 3rd through the 6th inclusive
         for (int i = 2; i < 6; i++) {
             final FlamdexDocument doc = new FlamdexDocument();
-            doc.addIntTerm("unixtime", new DateTime(2015, 1, i + 1, 0, 0, DateTimeZone.forOffsetHours(-6)).getMillis() / 1000);
+            doc.addIntTerm("unixtime", new DateTime(2015, 1, i + 1, 0, 0, Constants.DEFAULT_IQL_TIME_ZONE).getMillis() / 1000);
             doc.addStringTerm("tk", "d");
             flamdex.addDocument(doc);
         }

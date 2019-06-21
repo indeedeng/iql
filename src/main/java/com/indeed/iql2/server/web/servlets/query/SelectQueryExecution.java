@@ -33,6 +33,7 @@ import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.UserSessionCountLimitExceededException;
 import com.indeed.imhotep.utils.tempfiles.TempFile;
 import com.indeed.imhotep.utils.tempfiles.TempFiles;
+import com.indeed.iql.Constants;
 import com.indeed.iql.cache.CompletableOutputStream;
 import com.indeed.iql.cache.QueryCache;
 import com.indeed.iql.exceptions.IqlKnownException;
@@ -412,10 +413,12 @@ public class SelectQueryExecution {
         queryInfo.cacheHashes = query.allCacheKeys(resultFormat);
         timer.pop();
 
+        queryMetadata.addItem("IQL-Timezone", query.timeZone, true);
+
         final StrictCloser strictCloser = new StrictCloser();
         // SelectQuery can be closed after all cache has been uploaded
         final SharedReference<SelectQuery> selectQuery = SharedReference.create(
-                new SelectQuery(queryInfo, runningQueriesManager, this.query, clientInfo, limits, new DateTime(queryInfo.queryStartTimestamp),
+                new SelectQuery(queryInfo, runningQueriesManager, this.query, clientInfo, limits, new DateTime(queryInfo.queryStartTimestamp, Constants.DEFAULT_IQL_TIME_ZONE),
                         null, (byte) sessions, queryMetadata, strictCloser, progressCallback)
         );
         try {
@@ -672,7 +675,8 @@ public class SelectQueryExecution {
                             clientInfo.client,
                             (version == 2) ? FieldType.Integer : FieldType.String,
                             resultFormat,
-                            version
+                            version,
+                            substitutedQuery.timeZone
                     );
 
                     final SelectExecutionInformation selectExecutionInformation = new SelectExecutionInformation(
@@ -889,7 +893,7 @@ public class SelectQueryExecution {
     // increment query limit so that we know that whether it filters the response data size
     public static Query incrementQueryLimit(final Query query) {
         final Optional<Integer> newRowLimit = query.rowLimit.map(limit -> limit + 1);
-        return new Query(query.datasets, query.filter, query.groupBys, query.selects, query.formatStrings, query.options, newRowLimit, query.useLegacy).copyPosition(query);
+        return new Query(query.datasets, query.filter, query.groupBys, query.selects, query.formatStrings, query.options, newRowLimit, query.useLegacy, query.timeZone).copyPosition(query);
     }
 
     public static class DatasetWithMissingShards {

@@ -65,6 +65,7 @@ import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.misc.Interval;
 import org.apache.log4j.Logger;
+import org.joda.time.DateTime;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -88,16 +89,16 @@ public class Queries {
 
     public static class QueryDataset {
         public final String dataset;
-        public final String start;
-        public final String end;
+        public final DateTime start;
+        public final DateTime end;
         public final String name;
 
         public final List<Shard> shards;
 
         public QueryDataset(
                 final String dataset,
-                final String start,
-                final String end,
+                final DateTime start,
+                final DateTime end,
                 final String name,
                 final List<Shard> shards
         ) {
@@ -114,8 +115,8 @@ public class Queries {
         for (final Dataset dataset : query.datasets) {
             result.add(new QueryDataset(
                     dataset.dataset.unwrap(),
-                    dataset.startInclusive.unwrap().toString(),
-                    dataset.endExclusive.unwrap().toString(),
+                    dataset.startInclusive.unwrap(),
+                    dataset.endExclusive.unwrap(),
                     dataset.alias.orElse(dataset.dataset).unwrap(),
                     dataset.shards
             ));
