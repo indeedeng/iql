@@ -15,6 +15,7 @@ package com.indeed.iql1.web;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
+import com.indeed.iql.Constants;
 import com.indeed.iql.language.IQLStatement;
 import com.indeed.iql.language.SelectStatement;
 import com.indeed.iql.language.StatementParser;
@@ -76,7 +77,7 @@ public class ParseController {
             if (!(parsedQuery instanceof SelectStatement)) {
                 throw new RuntimeException("The query is not recognized as a select statement: " + query);
             }
-            return SelectStatementParser.parseSelectStatement(query, new DateTime(wallClock.currentTimeMillis()), metadata.get());
+            return SelectStatementParser.parseSelectStatement(query, new DateTime(wallClock.currentTimeMillis(), Constants.DEFAULT_IQL_TIME_ZONE), metadata.get());
         } catch (final Throwable e) {
             QueryServlet.handleError(resp, !Strings.isNullOrEmpty(json), e, false, false);
             return null;

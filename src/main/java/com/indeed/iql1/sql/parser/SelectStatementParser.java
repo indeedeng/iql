@@ -15,6 +15,7 @@
 
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
+import com.indeed.iql.Constants;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.metadata.DatasetMetadata;
 import com.indeed.iql.metadata.DatasetsMetadata;
@@ -177,7 +178,7 @@ public class SelectStatementParser {
                 DateTime endTime;
 
                 try {
-                    startTime = new DateTime(start.replace(' ', 'T'));
+                    startTime = new DateTime(start.replace(' ', 'T'), Constants.DEFAULT_IQL_TIME_ZONE);
                 } catch (IllegalArgumentException ignored) {
                     if(Strings.isNullOrEmpty(start)) {
                         startTime = querySubmitTime.withTimeAtStartOfDay();
@@ -187,7 +188,7 @@ public class SelectStatementParser {
                 }
 
                 try {
-                    endTime = new DateTime(end.replace(' ', 'T'));
+                    endTime = new DateTime(end.replace(' ', 'T'), Constants.DEFAULT_IQL_TIME_ZONE);
                 } catch (IllegalArgumentException ignored) {
                     if(Strings.isNullOrEmpty(end)) {
                         endTime = querySubmitTime.plusDays(1).withTimeAtStartOfDay();
@@ -215,7 +216,7 @@ public class SelectStatementParser {
                     if (!startTime.isBefore(endTime)) {
                         throw new IqlKnownException.ParseErrorException("Start date has to be before the end date. start: " + startTime + ", end: " + endTime);
                     }
-                    if (startTime.isBefore(new DateTime(LOWEST_YEAR_ALLOWED, 1, 1, 0, 0))) {
+                    if (startTime.isBefore(new DateTime(LOWEST_YEAR_ALLOWED, 1, 1, 0, 0, Constants.DEFAULT_IQL_TIME_ZONE))) {
                         throw new IqlKnownException.ParseErrorException("The start date appears to be too low. Check for a typo: " + startTime);
                     }
                 }
@@ -253,7 +254,7 @@ public class SelectStatementParser {
             if(timestamp < Integer.MAX_VALUE) {
                 timestamp *= 1000;  // seconds to milliseconds
             }
-            return new DateTime(timestamp);
+            return new DateTime(timestamp, Constants.DEFAULT_IQL_TIME_ZONE);
         } catch (NumberFormatException ignored) {
             return null;
         }

@@ -406,7 +406,7 @@ public class QueryServlet {
             } else {
                 // IQL1
                 queryInfo.engine = "iql1";
-                final IQL1SelectStatement iql1SelectStatement = SelectStatementParser.parseSelectStatement(query, new DateTime(clock.currentTimeMillis()), metadataCache.get());
+                final IQL1SelectStatement iql1SelectStatement = SelectStatementParser.parseSelectStatement(query, new DateTime(clock.currentTimeMillis(), Constants.DEFAULT_IQL_TIME_ZONE), metadataCache.get());
                 setQueryInfoFromSelectStatement(iql1SelectStatement, queryInfo, clientInfo);
 
                 final PrintWriter writer = resp.getWriter();
@@ -416,7 +416,7 @@ public class QueryServlet {
                 // SelectQuery can be closed after all cache has been uploaded
                 final SharedReference<SelectQuery> selectQuery = SharedReference.create(
                         new SelectQuery(queryInfo, runningQueriesManager, query, clientInfo, limits,
-                                new DateTime(queryInfo.queryStartTimestamp), iql1SelectStatement, (byte) 1, queryMetadata, strictCloser, eventStreamProgressCallback)
+                                new DateTime(queryInfo.queryStartTimestamp, Constants.DEFAULT_IQL_TIME_ZONE), iql1SelectStatement, (byte) 1, queryMetadata, strictCloser, eventStreamProgressCallback)
                 );
                 try {
                     selectQuery.get().lock(); // blocks and waits if necessary

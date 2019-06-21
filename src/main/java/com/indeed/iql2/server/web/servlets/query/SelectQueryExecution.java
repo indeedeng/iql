@@ -33,6 +33,7 @@ import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.UserSessionCountLimitExceededException;
 import com.indeed.imhotep.utils.tempfiles.TempFile;
 import com.indeed.imhotep.utils.tempfiles.TempFiles;
+import com.indeed.iql.Constants;
 import com.indeed.iql.cache.CompletableOutputStream;
 import com.indeed.iql.cache.QueryCache;
 import com.indeed.iql.exceptions.IqlKnownException;
@@ -417,7 +418,7 @@ public class SelectQueryExecution {
         final StrictCloser strictCloser = new StrictCloser();
         // SelectQuery can be closed after all cache has been uploaded
         final SharedReference<SelectQuery> selectQuery = SharedReference.create(
-                new SelectQuery(queryInfo, runningQueriesManager, this.query, clientInfo, limits, new DateTime(queryInfo.queryStartTimestamp),
+                new SelectQuery(queryInfo, runningQueriesManager, this.query, clientInfo, limits, new DateTime(queryInfo.queryStartTimestamp, Constants.DEFAULT_IQL_TIME_ZONE),
                         null, (byte) sessions, queryMetadata, strictCloser, progressCallback)
         );
         try {

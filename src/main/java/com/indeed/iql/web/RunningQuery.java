@@ -15,6 +15,7 @@
 package com.indeed.iql.web;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.indeed.iql.Constants;
 import org.joda.time.DateTime;
 import org.springframework.jdbc.core.RowMapper;
 
@@ -91,8 +92,8 @@ public class RunningQuery {
                     rs.getString("qhash"),
                     rs.getString("username"),
                     rs.getString("client"),
-                    submitTime != 0 ? new DateTime(submitTime * 1000) : null,
-                    executionStartTime != 0 ? new DateTime(executionStartTime * 1000) : null,
+                    submitTime != 0 ? new DateTime(submitTime * 1000, Constants.DEFAULT_IQL_TIME_ZONE) : null,
+                    executionStartTime != 0 ? new DateTime(executionStartTime * 1000, Constants.DEFAULT_IQL_TIME_ZONE) : null,
                     rs.getString("hostname"),
                     rs.getByte("sessions"),
                     rs.getBoolean("killed"));
