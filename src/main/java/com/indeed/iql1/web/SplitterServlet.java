@@ -15,6 +15,7 @@
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.indeed.iql.Constants;
 import com.indeed.iql.web.ServletUtil;
 import com.indeed.iql1.sql.ast2.FromClause;
 import com.indeed.iql1.sql.ast2.QueryParts;
@@ -39,7 +40,8 @@ import javax.servlet.http.HttpServletResponse;
  */
 @Controller
 public class SplitterServlet {
-    private static final DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss");
+    private static final DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss")
+            .withZone(Constants.DEFAULT_IQL_TIME_ZONE);
     private final SplitServlet splitServletV2;
 
     @Autowired

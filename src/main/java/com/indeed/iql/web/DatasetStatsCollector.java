@@ -43,8 +43,7 @@ import java.util.Map;
  */
 public class DatasetStatsCollector {
     private static final Logger log = Logger.getLogger(DatasetStatsCollector.class);
-    private static final DateTimeFormatter SHARD_VERSION_FORMATTER = DateTimeFormat.forPattern("yyyyMMddHHmmss").withZone(
-            Constants.DEFAULT_IQL_TIME_ZONE);
+    private static final DateTimeFormatter SHARD_VERSION_FORMATTER = DateTimeFormat.forPattern("yyyyMMddHHmmss").withZone(Constants.DEFAULT_IQL_TIME_ZONE);
     private static final long LOWEST_LEGAL_TIMESTAMP_DATE = 10000000000L;
 
 

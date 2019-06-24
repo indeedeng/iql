@@ -1119,13 +1119,13 @@ public final class IQLTranslator {
             final DateTimeFormatter dateTimeFormatter;
             if (format != null) {
                 try {
-                    dateTimeFormatter = DateTimeFormat.forPattern(format);
+                    dateTimeFormatter = DateTimeFormat.forPattern(format).withZone(Constants.DEFAULT_IQL_TIME_ZONE);
                 } catch (final Throwable t) {
                     throw new IqlKnownException.ParseErrorException("Incorrect DateTime format string: \"" + format + "\"\n"
                             + "default format is \"YYYY-MM-dd HH:mm:ss\"", t);
                 }
             } else {
-                dateTimeFormatter = DateTimeFormat.forPattern("YYYY-MM-dd HH:mm:ss");
+                dateTimeFormatter = DateTimeFormat.forPattern("YYYY-MM-dd HH:mm:ss").withZone(Constants.DEFAULT_IQL_TIME_ZONE);
             }
             final Stringifier<Long> stringifier = new Stringifier<Long>() {
                 public String toString(final Long integer) {
