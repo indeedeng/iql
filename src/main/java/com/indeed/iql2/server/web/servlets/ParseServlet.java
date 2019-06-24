@@ -26,7 +26,6 @@ import com.indeed.util.core.time.StoppedClock;
 import com.indeed.util.logging.TracingTreeTimer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
@@ -50,7 +49,7 @@ public class ParseServlet {
         this.defaultIQL2Options = defaultIQL2Options;
     }
 
-    @RequestMapping("parse")
+//    @RequestMapping("parse")
     @ResponseBody
     public Object parse(
             final HttpServletRequest request,
