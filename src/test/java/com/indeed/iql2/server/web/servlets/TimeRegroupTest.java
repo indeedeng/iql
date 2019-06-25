@@ -296,7 +296,7 @@ public class TimeRegroupTest extends BasicTest {
     public void GroupByInferredTime() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         DateTime startDate = new DateTime("2015-01-01T01:00:00", Constants.DEFAULT_IQL_TIME_ZONE);
-        final DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern("YYYY-MM-dd HH:mm:ss");
+        final DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern("YYYY-MM-dd HH:mm:ss").withZone(Constants.DEFAULT_IQL_TIME_ZONE);
         for (int i = 0; i < 60; i++) {
             expected.add(ImmutableList.of("[" + startDate.toString(dateTimeFormatter) + ", " + startDate.plusMinutes(1).toString(dateTimeFormatter) + ")", "1"));
             startDate = startDate.plusMinutes(1);
@@ -307,7 +307,7 @@ public class TimeRegroupTest extends BasicTest {
     @Test
     public void GroupByInferredTime1() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
-        final DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern("YYYY-MM-dd HH:mm:ss");
+        final DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern("YYYY-MM-dd HH:mm:ss").withZone(Constants.DEFAULT_IQL_TIME_ZONE);
         DateTime startDate = new DateTime("2015-01-01T03:00:00", Constants.DEFAULT_IQL_TIME_ZONE);
         for (int i = 0; i < 21; i++) {
             expected.add(ImmutableList.of("[" + startDate.toString(dateTimeFormatter) + ", " + startDate.plusHours(1).toString(dateTimeFormatter) + ")", "1"));
@@ -320,7 +320,7 @@ public class TimeRegroupTest extends BasicTest {
     public void GroupByInferredTimeRelative() throws Exception {
         final List<List<String>> expected = new ArrayList<>();
         //QueryServletTestUtils.testIQL2(expected, "from dataset1 2014-12-01 2014-12-20 group by time(1d) select count()");
-        final DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern("YYYY-MM-dd HH:mm:ss");
+        final DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern("YYYY-MM-dd HH:mm:ss").withZone(Constants.DEFAULT_IQL_TIME_ZONE);
         DateTime startDateJan = new DateTime("2015-01-01T00:00:00", Constants.DEFAULT_IQL_TIME_ZONE);
         expected.add(ImmutableList.of("[" + startDateJan.toString(dateTimeFormatter) + ", " + startDateJan.plusDays(1).toString(dateTimeFormatter) + ")", "2"));
         startDateJan = startDateJan.plusDays(1);

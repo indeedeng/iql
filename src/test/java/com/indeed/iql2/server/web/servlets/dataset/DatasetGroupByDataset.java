@@ -14,8 +14,8 @@ import java.util.List;
  * @author jwolfe
  */
 public class DatasetGroupByDataset {
-    private static final DateTimeFormatter FORMATTER = DateTimeFormat.forPattern("yyyyMMdd");
     private static final DateTimeZone DATE_TIME_ZONE = Constants.DEFAULT_IQL_TIME_ZONE;
+    private static final DateTimeFormatter FORMATTER = DateTimeFormat.forPattern("yyyyMMdd").withZone(DATE_TIME_ZONE);
     private static final String DATASET = "groupByDataset";
 
     private static Dataset.DatasetShard makeShard(LocalDate day, int count) {

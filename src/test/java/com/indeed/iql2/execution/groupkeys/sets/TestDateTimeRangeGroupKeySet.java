@@ -69,7 +69,7 @@ public class TestDateTimeRangeGroupKeySet {
     public void testGroupKey() throws Exception {
         final String format = TimeUnit.HOUR.formatString;
         final DateTimeRangeGroupKeySet keySet = create();
-        final DateTimeFormatter formatter = DateTimeFormat.forPattern(format).withLocale(Locale.US);
+        final DateTimeFormatter formatter = DateTimeFormat.forPattern(format).withLocale(Locale.US).withZone(ZONE);
         final Formatter escaper = Formatter.TSV;
         for (int i = 1; i <= 120; i += 24) {
             Assert.assertEquals(StringGroupKey.fromTimeRange(formatter, new DateTime(2015, 2, 23, 12, 0, 0, ZONE).getMillis(), new DateTime(2015, 2, 23, 13, 0, 0, ZONE).getMillis(), escaper), keySet.groupKey(i));
