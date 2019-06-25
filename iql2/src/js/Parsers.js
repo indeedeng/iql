@@ -137,7 +137,7 @@ class Parser {
         if (q.trim().length === 0) {
             return success("");
         }
-        return runParser('whereContents', q, [this.isLegacy]);
+        return runParser('whereClauseTerminal', q, [this.isLegacy]);
     }
 
     @autobind
@@ -145,7 +145,7 @@ class Parser {
         if (q.trim().length === 0) {
             return success("");
         }
-        return runParser('groupByContents', q, [this.isLegacy]);
+        return runParser('groupByClauseTerminal', q, [this.isLegacy]);
     }
 
     @autobind
@@ -153,7 +153,7 @@ class Parser {
         if (q.trim().length === 0) {
             return success("");
         }
-        return runParser('selectContents', q, [this.isLegacy]);
+        return runParser('selectClauseTerminal', q, [this.isLegacy]);
     }
 
     @autobind
@@ -187,7 +187,7 @@ class Parser {
         if (groupByRaw.trim().length === 0) {
             return success([]);
         }
-        const parseResult = runParser('groupByContents', groupByRaw, [this.isLegacy]);
+        const parseResult = runParser('groupByClauseTerminal', groupByRaw, [this.isLegacy]);
         if (parseResult.errors) return parseResult;
         const parsed = parseResult.success;
         const getText = makeGetText(parsed);
@@ -199,7 +199,7 @@ class Parser {
         if (groupByRaw.trim().length === 0) {
             return success([]);
         }
-        const parseResult = runParser('groupByContents', groupByRaw, [this.isLegacy]);
+        const parseResult = runParser('groupByClauseTerminal', groupByRaw, [this.isLegacy]);
         if (parseResult.errors) return parseResult;
         const parsed = parseResult.success;
         const getText = makeGetText(parsed);
@@ -218,7 +218,7 @@ class Parser {
         if (selectRaw.trim().length === 0) {
             return success([]);
         }
-        const parseResult = runParser('selectContents', selectRaw, [this.isLegacy]);
+        const parseResult = runParser('selectClauseTerminal', selectRaw, [this.isLegacy]);
         if (parseResult.errors) return parseResult;
         const parsed = parseResult.success;
         const getText = makeGetText(parsed);
@@ -230,7 +230,7 @@ class Parser {
         if (selectRaw.trim().length === 0) {
             return success([]);
         }
-        const parseResult = runParser('selectContents', selectRaw, [this.isLegacy]);
+        const parseResult = runParser('selectClauseTerminal', selectRaw, [this.isLegacy]);
         if (parseResult.errors) return parseResult;
         const parsed = parseResult.success;
         const getText = makeGetText(parsed);

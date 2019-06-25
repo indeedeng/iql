@@ -580,6 +580,16 @@ query [boolean useLegacy]
       EOF
     ;
 
+// rules to parse separate clauses
+whereClauseTerminal [boolean useLegacy]
+    : whereContents[$ctx.useLegacy] EOF;
+
+groupByClauseTerminal [boolean useLegacy]
+    : groupByContents[$ctx.useLegacy] EOF;
+
+selectClauseTerminal [boolean useLegacy]
+    : selectContents[$ctx.useLegacy] EOF;
+
 queryNoSelect
     : FROM (same=SAME | fromContents[false])
       (WHERE whereContents[false])?
