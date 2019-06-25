@@ -339,7 +339,8 @@ public class Session {
                 .daemonTempFileSizeLimit(imhotepDaemonTempFileSizeLimit)
                 .allowSessionForwarding(requestRust)
                 .allowPeerToPeerCache(p2pCache)
-                .useFtgsPooledConnection(ftgsPooledConnection);
+                .useFtgsPooledConnection(ftgsPooledConnection)
+                .useBatch(true);
             treeTimer.pop();
             final String sessionInfo = "build session builder ("
                     + chosenShards.size() + " shards, "
@@ -348,9 +349,6 @@ public class Session {
             treeTimer.push("build session builder", sessionInfo );
             ImhotepSession imhotepSession = strictCloser.registerOrClose(sessionBuilder.build());
             treeTimer.pop();
-
-            // All Requests will use Batch mode.
-            imhotepSession = ((RemoteImhotepMultiSession) imhotepSession).toBatch();
 
             treeTimer.pop();
 
