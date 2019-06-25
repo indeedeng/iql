@@ -581,6 +581,9 @@ query [boolean useLegacy]
     ;
 
 // rules to parse separate clauses
+fromClauseTerminal [boolean useLegacy]
+    : fromContents[$ctx.useLegacy] EOF;
+
 whereClauseTerminal [boolean useLegacy]
     : whereContents[$ctx.useLegacy] EOF;
 

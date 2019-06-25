@@ -129,7 +129,7 @@ class Parser {
 
     @autobind
     from(q) {
-        return runParser('fromContents', q, [this.isLegacy]);
+        return runParser('fromClauseTerminal', q, [this.isLegacy]);
     }
 
     @autobind
@@ -251,7 +251,7 @@ class Parser {
 
     @autobind
     fromDatasets(fromRaw) {
-        const parseResult = runParser('fromContents', fromRaw, [this.isLegacy]);
+        const parseResult = runParser('fromClauseTerminal', fromRaw, [this.isLegacy]);
         if (parseResult.errors) return parseResult;
         const parsed = parseResult.success;
         const getText = makeGetText(parsed);
