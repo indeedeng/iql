@@ -24,7 +24,6 @@ import java.util.function.Predicate;
 import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.addConstantColumn;
 import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testAll;
 import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testIQL2;
-import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testIQL2AndLegacy;
 
 public class FieldRegroupTest extends BasicTest {
     @Test
@@ -156,8 +155,7 @@ public class FieldRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("2", "1", "2"));
         expected.add(ImmutableList.of("1", "84", "84"));
         expected.add(ImmutableList.of("0", "2", "0"));
-        // IQL1 does not support '[by metric]' sorting.
-        testIQL2AndLegacy(expected, "from organic yesterday today group by ojc[BY ojc/count()] select count(), ojc", true);
+        testAll(expected, "from organic yesterday today group by ojc[BY ojc/count()] select count(), ojc", true);
         testIQL2(addConstantColumn(1, "1", expected), "from organic yesterday today group by ojc[BY ojc/count()], allbit select count(), ojc", true);
     }
 

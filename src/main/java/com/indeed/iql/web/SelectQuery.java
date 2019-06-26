@@ -19,7 +19,6 @@ import com.google.common.base.Throwables;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
 import com.indeed.imhotep.Shard;
-import com.indeed.iql1.sql.ast2.IQL1SelectStatement;
 import com.indeed.iql2.execution.progress.ProgressCallback;
 import com.indeed.util.core.io.Closeables2;
 import org.apache.commons.codec.binary.Base64;
@@ -53,9 +52,6 @@ public class SelectQuery implements Closeable {
     final Limits limits;
     final DateTime querySubmitTimestamp;
     final byte sessions;    // imhotep sessions
-    /** Only in IQL1 */
-    @Nullable
-    final IQL1SelectStatement parsedStatement;
     final QueryMetadata queryMetadata;
     private final Closeable queryResourceCloser;
     private final ProgressCallback progressCallback;
@@ -74,7 +70,6 @@ public class SelectQuery implements Closeable {
             final ClientInfo clientInfo,
             final Limits limits,
             final DateTime querySubmitTimestamp,
-            final IQL1SelectStatement parsedStatement,
             final byte sessions,
             final QueryMetadata queryMetadata,
             @WillCloseWhenClosed final Closeable queryResourceCloser,
@@ -85,7 +80,6 @@ public class SelectQuery implements Closeable {
         this.clientInfo = clientInfo;
         this.limits = limits;
         this.querySubmitTimestamp = querySubmitTimestamp;
-        this.parsedStatement = parsedStatement;
         this.queryHash = getQueryHash(queryString, null, false);
         this.sessions = sessions;
         this.queryMetadata = queryMetadata;
@@ -216,7 +210,6 @@ public class SelectQuery implements Closeable {
                 ", username='" + clientInfo.username + '\'' +
                 ", client='" + clientInfo.client + '\'' +
                 ", querySubmitTimestamp=" + querySubmitTimestamp +
-                ", parsedStatement=" + parsedStatement +
                 ", queryResourceCloser=" + queryResourceCloser +
                 ", queryStartTimestamp=" + queryStartTimestamp +
                 ", waitLock=" + waitLock +

@@ -1,10 +1,5 @@
 package com.indeed.iql.exceptions;
 
-import com.google.common.base.Throwables;
-
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 /**
  * Exceptions for user errors like incorrect query or too many groups after regrouping.
  *
@@ -133,51 +128,4 @@ public class IqlKnownException extends RuntimeException {
             super(message);
         }
     }
-
-    // Legacy parsing exception from Iql 1.
-    // Renamed, previously was IQLParseException
-    public static class StatementParseException extends IqlKnownException {
-        private static final Pattern COLUMN_ERROR_PATTERN = Pattern.compile("line 1, column (\\d+)[\\n:]");
-
-        // which clause the exception occurred in
-        private final String clause;
-        private final int offsetInClause;
-
-        public StatementParseException(final Throwable cause, final String clause) {
-            super(getSummaryMessage(Throwables.getRootCause(cause)), cause);
-
-            this.clause = clause;
-            this.setStackTrace(cause.getStackTrace());
-
-
-            offsetInClause = getOffset(cause);
-        }
-
-        private static int getOffset(final Throwable cause) {
-            if(cause != null) {
-                final String causeMessage = cause.getMessage();
-                final Matcher columnMatcher = COLUMN_ERROR_PATTERN.matcher(causeMessage);
-                if(columnMatcher.find()) {
-                    return Integer.valueOf(columnMatcher.group(1));
-                }
-            }
-            return -1;
-        }
-
-        public String getClause() {
-            return clause;
-        }
-
-        public int getOffsetInClause() {
-            return offsetInClause;
-        }
-
-        private static String getSummaryMessage(final Throwable e) {
-            String message = e.getMessage();
-            final Matcher columnErrorMatcher = COLUMN_ERROR_PATTERN.matcher(message);
-            message = columnErrorMatcher.replaceAll("");
-            return message.trim();
-        }
-    }
-
 }

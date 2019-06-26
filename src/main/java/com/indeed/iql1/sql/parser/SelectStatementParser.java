@@ -14,32 +14,19 @@
  package com.indeed.iql1.sql.parser;
 
 import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
 import com.indeed.iql.Constants;
 import com.indeed.iql.exceptions.IqlKnownException;
-import com.indeed.iql.metadata.DatasetMetadata;
-import com.indeed.iql.metadata.DatasetsMetadata;
-import com.indeed.iql1.sql.ast.Expression;
-import com.indeed.iql1.sql.ast.FunctionExpression;
 import com.indeed.iql1.sql.ast2.FromClause;
-import com.indeed.iql1.sql.ast2.GroupByClause;
-import com.indeed.iql1.sql.ast2.IQL1SelectStatement;
-import com.indeed.iql1.sql.ast2.QueryParts;
-import com.indeed.iql1.sql.ast2.SelectClause;
-import com.indeed.iql1.sql.ast2.WhereClause;
 import org.codehaus.jparsec.Parser;
 import org.codehaus.jparsec.Parsers;
 import org.codehaus.jparsec.Scanners;
 import org.codehaus.jparsec.Terminals;
 import org.codehaus.jparsec.functors.Map;
-import org.codehaus.jparsec.misc.Mapper;
 import org.joda.time.DateTime;
 import org.joda.time.Period;
 
 import javax.annotation.Nullable;
-import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * @author vladimir
@@ -50,100 +37,6 @@ public class SelectStatementParser {
     }
 
     public static int LOWEST_YEAR_ALLOWED = 0;
-
-    public static IQL1SelectStatement parseSelectStatement(
-            final String selectQuery,
-            final DateTime querySubmitTime,
-            @Nullable final DatasetsMetadata datasetsMetadata) {
-        final QueryParts parts;
-        try {
-            parts = QuerySplitter.splitQuery(selectQuery);
-        } catch (Exception e) {
-            throw new IqlKnownException.StatementParseException(e, "splitter");
-        }
-        return parseSelectStatement(parts, querySubmitTime, datasetsMetadata);
-    }
-
-    static IQL1SelectStatement parseSelectStatement(
-            final QueryParts parts,
-            final DateTime querySubmitTime,
-            @Nullable final DatasetsMetadata metadata) {
-        final SelectClause select;
-        final FromClause from;
-        final WhereClause where;
-        final GroupByClause groupBy;
-
-        try {
-            from = parseFromClause(parts.from, querySubmitTime, false);
-        } catch (Exception e) {
-            throw new IqlKnownException.StatementParseException(e, "from");
-        }
-        final String dataset = from.getDataset();
-        final java.util.Map<String, String> aliases = Optional.ofNullable(metadata)
-                .flatMap(meta -> meta.getMetadata(dataset))
-                .map(DatasetMetadata::getIql1ExpressionAliases)
-                .orElse(Collections.emptyMap());
-
-        try {
-            select = parseSelectClause(parts.select, aliases);
-        } catch (Exception e) {
-            throw new IqlKnownException.StatementParseException(e, "select");
-        }
-
-        try {
-            where = parseWhereClause(parts.where, aliases);
-        } catch (Exception e) {
-            throw new IqlKnownException.StatementParseException(e, "where");
-        }
-        try {
-            groupBy = parseGroupByClause(parts.groupBy, aliases);
-        } catch (Exception e) {
-            throw new IqlKnownException.StatementParseException(e, "groupBy");
-        }
-        int limit = parseLimit(parts.limit);
-
-        return new IQL1SelectStatement(select, from, where, groupBy, limit);
-    }
-
-    private static int parseLimit(String limit) {
-        if (limit.isEmpty()) {
-            return Integer.MAX_VALUE - 1;
-        }
-        try {
-            int limitInt = Integer.valueOf(limit);
-            if( limitInt > 0 && limitInt <= Integer.MAX_VALUE - 1) {
-                return limitInt;
-            }
-        } catch (NumberFormatException ignored) {}
-        throw new IqlKnownException.RowLimitErrorException("Query Limit should be a positive, not exceeding " + (Integer.MAX_VALUE - 1));
-    }
-
-    static GroupByClause parseGroupByClause(String text) {
-        return parseGroupByClause(text, Collections.emptyMap());
-    }
-    static GroupByClause parseGroupByClause(String text, java.util.Map<String, String> aliases) {
-        if(Strings.isNullOrEmpty(text)) {
-            return null;
-        }
-        text = Preprocessor.applyAliases(text, aliases);
-
-        Parser<Expression> expr = ExpressionParser.groupByExpression();
-        Parser<GroupByClause> groupByParser = Mapper.curry(GroupByClause.class).sequence(expr.sepBy1(TerminalParser.term(",")));
-        return TerminalParser.parse(groupByParser, text);
-    }
-
-    public static WhereClause parseWhereClause(String text) {
-        return parseWhereClause(text, Collections.emptyMap());
-    }
-    public static WhereClause parseWhereClause(String text, java.util.Map<String, String> aliases) {
-        if(Strings.isNullOrEmpty(text)) {
-            return null;
-        }
-        text = Preprocessor.applyAliases(text, aliases);
-
-        final Expression whereExpression = ExpressionParser.parseWhereExpression(text);
-        return new WhereClause(whereExpression);
-    }
 
     public static FromClause parseFromClause(final String text, final DateTime querySubmitTime, final boolean allowIllegalDates) {
         Parser<String> tokenizer = Parsers.or(Terminals.StringLiteral.SINGLE_QUOTE_TOKENIZER,
@@ -258,29 +151,5 @@ public class SelectStatementParser {
         } catch (NumberFormatException ignored) {
             return null;
         }
-    }
-
-    public static SelectClause parseSelectClause(String text) {
-        return parseSelectClause(text, Collections.emptyMap());
-    }
-
-    public static SelectClause parseSelectClause(String text, java.util.Map<String, String> aliases) {
-        if(Strings.isNullOrEmpty(text)) {
-            return defaultSelect();
-        }
-        text = Preprocessor.applyAliases(text, aliases);
-
-        Parser<Expression> expr = ExpressionParser.expression();
-        Parser<List<Expression>> selectParser = expr.sepBy1(TerminalParser.term(","));
-        List<Expression> result = TerminalParser.parse(selectParser, text);
-        if(result == null || result.isEmpty()) {
-            return defaultSelect();
-        }
-        return new SelectClause(result);
-    }
-
-    private static SelectClause defaultSelect() {
-        // default to counts()
-        return new SelectClause(Lists.newArrayList((Expression)new FunctionExpression("count", Collections.emptyList())));
     }
 }

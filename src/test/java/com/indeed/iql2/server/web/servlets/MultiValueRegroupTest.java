@@ -42,14 +42,10 @@ public class MultiValueRegroupTest extends BasicTest {
         QueryServletTestUtils.testIQL1(
                 ImmutableList.of(ImmutableList.of("1", "50")),
                 "from multiValue yesterday today where sf in (\"1\",\"2\") i=1 GROUP BY sf", true);
-        // This query fails with ArrayIndexOutOfBoundsException in Iql1
-        // and returns ("1", "1", "50") in legacy mode
-        // But if you change filter to "where sf in ("2") sf in ("1")" it returns ("2", "2", "50")
-        // Not sure it's worth to spend much time on that.
-        // It's here just for history
-        //QueryServletTestUtils.testIQL1(
-        //        ImmutableList.of(ImmutableList.of("1", "1", "50")),
-        //        "from multiValue yesterday today where sf in (\"1\") sf in (\"2\") GROUP BY sf, sf", true);
+
+        QueryServletTestUtils.testIQL1(
+                ImmutableList.of(ImmutableList.of("1", "1", "50")),
+                "from multiValue yesterday today where sf in (\"1\") sf in (\"2\") GROUP BY sf, sf", true);
         QueryServletTestUtils.testIQL1(
                 ImmutableList.of(
                         ImmutableList.of("0", "1", "50"),

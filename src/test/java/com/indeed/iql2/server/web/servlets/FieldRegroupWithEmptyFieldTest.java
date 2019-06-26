@@ -15,7 +15,6 @@
 package com.indeed.iql2.server.web.servlets;
 
 import com.google.common.collect.ImmutableList;
-import org.joda.time.DateTimeZone;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -23,7 +22,6 @@ import java.util.List;
 
 import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testAll;
 import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testIQL2;
-import static com.indeed.iql2.server.web.servlets.QueryServletTestUtils.testIQL2AndLegacy;
 
 public class FieldRegroupWithEmptyFieldTest extends BasicTest {
     @Test
@@ -65,8 +63,7 @@ public class FieldRegroupWithEmptyFieldTest extends BasicTest {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("3", "2"));
         expected.add(ImmutableList.of("2", "4"));
-        // IQL1 does not support '[by metric]' sorting.
-        testIQL2AndLegacy(expected, "from regroupEmptyField yesterday today group by i1[by i2] limit 2", true);
+        testAll(expected, "from regroupEmptyField yesterday today group by i1[by i2] limit 2", true);
     }
 
     @Test
@@ -74,8 +71,7 @@ public class FieldRegroupWithEmptyFieldTest extends BasicTest {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("2", "4"));
         expected.add(ImmutableList.of("3", "2"));
-        // IQL1 does not support '[by metric]' sorting.
-        testIQL2AndLegacy(expected, "from regroupEmptyField yesterday today group by i1[by i1+i1] limit 2", true);
+        testAll(expected, "from regroupEmptyField yesterday today group by i1[by i1+i1] limit 2", true);
     }
 
     @Test

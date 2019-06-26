@@ -14,15 +14,8 @@
 
 package com.indeed.iql1.sql.parser;
 
-import com.google.common.base.Throwables;
 import org.codehaus.jparsec.Parser;
-import org.codehaus.jparsec.Parsers;
-import org.codehaus.jparsec.Scanners;
 import org.codehaus.jparsec.Terminals;
-import org.codehaus.jparsec.Token;
-import org.codehaus.jparsec.misc.Mapper;
-
-import java.util.List;
 
 /**
  * Lexers and terminal level parsers for IQL.
@@ -33,56 +26,5 @@ public final class TerminalParser {
     private TerminalParser() {
     }
 
-    private static final String[] WHERE_OPERATORS = {
-            "=", ":", "!=", "-",
-            ",", "(", ")" // for IN
-    };
-
-    private static final String[] OPERATORS = {
-            "+", "-", "*", "/", "%", ",", "(", ")", "\\",   // general expression operators
-            "[", "]",   // for top terms in 'group by'
-            "<", ">", "<=", ">=",   // where inequalities
-            "=", "!=", ":", "=~", "!=~", // where equalities
-    };
-
-    private static final String[] WHERE_KEYWORDS = {
-            "and", "in", "not"
-    };
-    private static final String[] KEYWORDS = WHERE_KEYWORDS;
-
-    private static final Terminals TERMS = Terminals.caseInsensitive(OPERATORS, KEYWORDS);
-
-    private static final Parser<?> BASE_TOKENIZER = Parsers.or(Terminals.IntegerLiteral.TOKENIZER, Terminals.StringLiteral.SINGLE_QUOTE_TOKENIZER, Terminals.StringLiteral.DOUBLE_QUOTE_TOKENIZER);
-    private static final Parser<?> TOKENIZER = Parsers.or(BASE_TOKENIZER, TERMS.tokenizer());
-
-
-    static final Parser<String> NUMBER = Terminals.IntegerLiteral.PARSER;
     static final Parser<String> STRING = Terminals.StringLiteral.PARSER;
-    static final Parser<String> NAME = Terminals.Identifier.PARSER;
-
-    public static <T> T parse(Parser<T> parser, String source) {
-        return parser.from(TOKENIZER, Scanners.SQL_DELIMITER).parse(source);
-    }
-
-    public static final Parser<List<Token>> LEXER = TOKENIZER.lexer(Scanners.SQL_DELIMITER);
-
-    public static Parser<?> term(String term) {
-        try {
-            return Mapper._(TERMS.token(term));
-        } catch (Throwable t) {
-            System.out.println(term);
-            throw Throwables.propagate(t);
-        }
-    }
-
-    /**
-     * Run parser if next token is not "term"
-     */
-    public static <T> Parser<T> notTerm(String term, Parser<T> parser) {
-        return Parsers.sequence(term(term).not(), parser);
-    }
-
-    public static Parser<?> phrase(String phrase) {
-        return Mapper._(TERMS.phrase(phrase.split("\\s")));
-    }
 }

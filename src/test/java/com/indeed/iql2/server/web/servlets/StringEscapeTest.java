@@ -123,7 +123,7 @@ public class StringEscapeTest {
 
     @Test
     public void testHasTerm() throws Exception {
-        // this syntax supported only in iql1 and legacy mode
+        // this syntax supported only in legacy mode
         // single quotes
         testIQL1(value(3), "from escape yesterday today select (value) * hasstr('term:x\\\\y')");
 

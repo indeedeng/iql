@@ -32,7 +32,7 @@ public class TimeZoneTest extends BasicTest {
         equivalentQueries.add("TIMEZONE UTC+05:30\nFROM organic 2015-01-01 11:30 2015-01-02 11:30");
 
         for (final String query : equivalentQueries) {
-            QueryServletTestUtils.testIQL2AndLegacy(expected, query);
+            QueryServletTestUtils.testAll(expected, query);
         }
     }
 
@@ -65,9 +65,9 @@ public class TimeZoneTest extends BasicTest {
         expected.add(ImmutableList.of("[2015-01-01 22:00:00, 2015-01-01 23:00:00)", "1"));
         expected.add(ImmutableList.of("[2015-01-01 23:00:00, 2015-01-02 00:00:00)", "1"));
 
-        QueryServletTestUtils.testIQL2AndLegacy(expected, "FROM organic 2015-01-01 2015-01-02 GROUP BY time(1h)");
-        QueryServletTestUtils.testIQL2AndLegacy(expected, "TIMEZONE GMT-6\nFROM organic 2015-01-01 2015-01-02 GROUP BY time(1h)");
-        QueryServletTestUtils.testIQL2AndLegacy(expected, "TIMEZONE UTC-6 FROM organic 2015-01-01 2015-01-02 GROUP BY time(1h)");
+        QueryServletTestUtils.testAll(expected, "FROM organic 2015-01-01 2015-01-02 GROUP BY time(1h)");
+        QueryServletTestUtils.testAll(expected, "TIMEZONE GMT-6\nFROM organic 2015-01-01 2015-01-02 GROUP BY time(1h)");
+        QueryServletTestUtils.testAll(expected, "TIMEZONE UTC-6 FROM organic 2015-01-01 2015-01-02 GROUP BY time(1h)");
     }
 
     @Test
@@ -99,9 +99,9 @@ public class TimeZoneTest extends BasicTest {
         expected.add(ImmutableList.of("[2015-01-02 13:00:00, 2015-01-02 14:00:00)", "1"));
         expected.add(ImmutableList.of("[2015-01-02 14:00:00, 2015-01-02 15:00:00)", "1"));
 
-        QueryServletTestUtils.testIQL2AndLegacy(expected, "TIMEZONE GMT+9\nFROM organic 2015-01-01 15:00 2015-01-02 15:00 GROUP BY time(1h)");
-        QueryServletTestUtils.testIQL2AndLegacy(expected, "TIMEZONE UTC+9 FROM organic 2015-01-01 15:00 2015-01-02 15:00 GROUP BY time(1h)");
-        QueryServletTestUtils.testIQL2AndLegacy(expected, "FROM organic 2015-01-01 15:00 2015-01-02 15:00 GROUP BY time(1h) TIMEZONE UTC+9");
+        QueryServletTestUtils.testAll(expected, "TIMEZONE GMT+9\nFROM organic 2015-01-01 15:00 2015-01-02 15:00 GROUP BY time(1h)");
+        QueryServletTestUtils.testAll(expected, "TIMEZONE UTC+9 FROM organic 2015-01-01 15:00 2015-01-02 15:00 GROUP BY time(1h)");
+        QueryServletTestUtils.testAll(expected, "FROM organic 2015-01-01 15:00 2015-01-02 15:00 GROUP BY time(1h) TIMEZONE UTC+9");
     }
 
     @Test
@@ -133,9 +133,9 @@ public class TimeZoneTest extends BasicTest {
         expected.add(ImmutableList.of("[2015-01-02 09:30:00, 2015-01-02 10:30:00)", "1"));
         expected.add(ImmutableList.of("[2015-01-02 10:30:00, 2015-01-02 11:30:00)", "1"));
 
-        QueryServletTestUtils.testIQL2AndLegacy(expected, "TIMEZONE GMT+05:30\nFROM organic 2015-01-01 11:30 2015-01-02 11:30 GROUP BY time(1h)");
-        QueryServletTestUtils.testIQL2AndLegacy(expected, "TIMEZONE UTC+05:30 FROM organic 2015-01-01 11:30 2015-01-02 11:30 GROUP BY time(1h)");
-        QueryServletTestUtils.testIQL2AndLegacy(expected, "FROM organic 2015-01-01 11:30 2015-01-02 11:30 GROUP BY time(1h) TIMEZONE UTC+05:30");
+        QueryServletTestUtils.testAll(expected, "TIMEZONE GMT+05:30\nFROM organic 2015-01-01 11:30 2015-01-02 11:30 GROUP BY time(1h)");
+        QueryServletTestUtils.testAll(expected, "TIMEZONE UTC+05:30 FROM organic 2015-01-01 11:30 2015-01-02 11:30 GROUP BY time(1h)");
+        QueryServletTestUtils.testAll(expected, "FROM organic 2015-01-01 11:30 2015-01-02 11:30 GROUP BY time(1h) TIMEZONE UTC+05:30");
     }
 
     @Test
@@ -167,9 +167,9 @@ public class TimeZoneTest extends BasicTest {
         expected.add(ImmutableList.of("[2015-01-01 15:15:00, 2015-01-01 16:15:00)", "1"));
         expected.add(ImmutableList.of("[2015-01-01 16:15:00, 2015-01-01 17:15:00)", "1"));
 
-        QueryServletTestUtils.testIQL2AndLegacy(expected, "TIMEZONE GMT-12:45\nFROM organic 2014-12-31 17:15 2015-01-01 17:15 GROUP BY time(1h)");
-        QueryServletTestUtils.testIQL2AndLegacy(expected, "TIMEZONE UTC-12:45 FROM organic 2014-12-31 17:15 2015-01-01 17:15 GROUP BY time(1h)");
-        QueryServletTestUtils.testIQL2AndLegacy(expected, "FROM organic 2014-12-31 17:15 2015-01-01 17:15 GROUP BY time(1h) TIMEZONE UTC-12:45");
+        QueryServletTestUtils.testAll(expected, "TIMEZONE GMT-12:45\nFROM organic 2014-12-31 17:15 2015-01-01 17:15 GROUP BY time(1h)");
+        QueryServletTestUtils.testAll(expected, "TIMEZONE UTC-12:45 FROM organic 2014-12-31 17:15 2015-01-01 17:15 GROUP BY time(1h)");
+        QueryServletTestUtils.testAll(expected, "FROM organic 2014-12-31 17:15 2015-01-01 17:15 GROUP BY time(1h) TIMEZONE UTC-12:45");
     }
 
     @Test
@@ -201,9 +201,9 @@ public class TimeZoneTest extends BasicTest {
         expected.add(ImmutableList.of("[2015-01-01 22:00:00, 2015-01-01 23:00:00)", "1"));
         expected.add(ImmutableList.of("[2015-01-01 23:00:00, 2015-01-02 00:00:00)", "1"));
 
-        QueryServletTestUtils.testIQL2AndLegacy(expected, "TIMEZONE GMT+05:30\nFROM organic 2015-01-01 2015-01-02 GROUP BY time(1h)");
-        QueryServletTestUtils.testIQL2AndLegacy(expected, "TIMEZONE UTC+05:30 FROM organic 2015-01-01 2015-01-02 GROUP BY time(1h)");
-        QueryServletTestUtils.testIQL2AndLegacy(expected, "FROM organic 2015-01-01 2015-01-02 GROUP BY time(1h) TIMEZONE UTC+05:30");
+        QueryServletTestUtils.testAll(expected, "TIMEZONE GMT+05:30\nFROM organic 2015-01-01 2015-01-02 GROUP BY time(1h)");
+        QueryServletTestUtils.testAll(expected, "TIMEZONE UTC+05:30 FROM organic 2015-01-01 2015-01-02 GROUP BY time(1h)");
+        QueryServletTestUtils.testAll(expected, "FROM organic 2015-01-01 2015-01-02 GROUP BY time(1h) TIMEZONE UTC+05:30");
     }
 
     @Test
@@ -218,7 +218,7 @@ public class TimeZoneTest extends BasicTest {
         expected.add(ImmutableList.of("Saturday", "0"));
         expected.add(ImmutableList.of("Sunday", "0"));
 
-        QueryServletTestUtils.testIQL2AndLegacy(expected, "TIMEZONE GMT+09:00\nFROM organic 2015-01-01 15:00 2015-01-02 15:00 GROUP BY DAYOFWEEK()");
+        QueryServletTestUtils.testAll(expected, "TIMEZONE GMT+09:00\nFROM organic 2015-01-01 15:00 2015-01-02 15:00 GROUP BY DAYOFWEEK()");
     }
 
     @Test
@@ -228,7 +228,7 @@ public class TimeZoneTest extends BasicTest {
         expected.add(ImmutableList.of("[2014-10-01 00:00:00, 2015-01-01 00:00:00)", "130"));
         expected.add(ImmutableList.of("[2015-01-01 00:00:00, 2015-04-01 00:00:00)", "21"));
 
-        QueryServletTestUtils.testIQL2AndLegacy(expected, "TIMEZONE GMT-09:00\nFROM organic 2014-12-31 21:00 2015-01-01 21:00 GROUP BY TIME(1 quarter)");
+        QueryServletTestUtils.testAll(expected, "TIMEZONE GMT-09:00\nFROM organic 2014-12-31 21:00 2015-01-01 21:00 GROUP BY TIME(1 quarter)");
     }
 
     private static void assertTimeZone(final String query, final String expected) throws Exception {

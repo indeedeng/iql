@@ -39,8 +39,8 @@ public class TimeRegroupTest extends BasicTest {
 
         QueryServletTestUtils.testAll(expected, "from organic yesterday today group by time(1h) select count(), oji, ojc, distinct(tk)");
         QueryServletTestUtils.testAll(expected, "from organic yesterday today group by time(24b) select count(), oji, ojc, distinct(tk)");
-        QueryServletTestUtils.testIQL2AndLegacy(expected, "from organic yesterday today group by time(1h, DEFAULT, unixtime) select count(), oji, ojc, distinct(tk)");
-        QueryServletTestUtils.testIQL2AndLegacy(expected, "from organic yesterday today group by time(1h, DEFAULT, 2 * unixtime - unixtime) select count(), oji, ojc, distinct(tk)");
+        QueryServletTestUtils.testAll(expected, "from organic yesterday today group by time(1h, DEFAULT, unixtime) select count(), oji, ojc, distinct(tk)");
+        QueryServletTestUtils.testAll(expected, "from organic yesterday today group by time(1h, DEFAULT, 2 * unixtime - unixtime) select count(), oji, ojc, distinct(tk)");
         // Remove DISTINCT to allow streaming, rather than regroup.
         QueryServletTestUtils.testAll(QueryServletTestUtils.withoutLastColumn(expected), "from organic yesterday today group by time(1h) select count(), oji, ojc");
         QueryServletTestUtils.testAll(QueryServletTestUtils.withoutLastColumn(expected), "from organic yesterday today group by time(24b) select count(), oji, ojc");
@@ -199,7 +199,7 @@ public class TimeRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("[2015-02-01 00:00:00, 2015-03-01 00:00:00)", "100", "200"));
         expected.add(ImmutableList.of("[2015-03-01 00:00:00, 2015-04-01 00:00:00)", "1", "3"));
         QueryServletTestUtils.testIQL2(expected, "from multiMonth 2015-01-01 2015-04-01 group by time(1M) select count(), month");
-        QueryServletTestUtils.testIQL2AndLegacy(expected, "from multiMonth 2015-01-01 2015-04-01 group by time(1month, default, 2 * unixtime - unixtime) select count(), month");
+        QueryServletTestUtils.testAll(expected, "from multiMonth 2015-01-01 2015-04-01 group by time(1month, default, 2 * unixtime - unixtime) select count(), month");
     }
 
     @Test
@@ -235,8 +235,8 @@ public class TimeRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("[2015-10-01 00:00:00, 2016-01-01 00:00:00)", "3"));
         expected.add(ImmutableList.of("[2016-01-01 00:00:00, 2016-04-01 00:00:00)", "3"));
         expected.add(ImmutableList.of("[2016-04-01 00:00:00, 2016-07-01 00:00:00)", "2"));
-        QueryServletTestUtils.testIQL2AndLegacy(expected, "from multiYear 2015-01-01 2016-07-01  group by time(1q) select count()");
-        QueryServletTestUtils.testIQL2AndLegacy(expected, "from multiYear 2015-01-01 2016-07-01  group by time(1 quarter) select count()");
+        QueryServletTestUtils.testAll(expected, "from multiYear 2015-01-01 2016-07-01  group by time(1q) select count()");
+        QueryServletTestUtils.testAll(expected, "from multiYear 2015-01-01 2016-07-01  group by time(1 quarter) select count()");
     }
 
     @Test
@@ -244,8 +244,8 @@ public class TimeRegroupTest extends BasicTest {
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("[2015-01-01 00:00:00, 2016-01-01 00:00:00)", "12"));
         expected.add(ImmutableList.of("[2016-01-01 00:00:00, 2017-01-01 00:00:00)", "5"));
-        QueryServletTestUtils.testIQL2AndLegacy(expected, "from multiYear 2015-01-01 2017-01-01  group by time(1y) select count()");
-        QueryServletTestUtils.testIQL2AndLegacy(expected, "from multiYear 2015-01-01 2017-01-01  group by time(1 year) select count()");
+        QueryServletTestUtils.testAll(expected, "from multiYear 2015-01-01 2017-01-01  group by time(1y) select count()");
+        QueryServletTestUtils.testAll(expected, "from multiYear 2015-01-01 2017-01-01  group by time(1 year) select count()");
     }
 
     @Test
@@ -258,7 +258,7 @@ public class TimeRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("Friday", "8", "37"));
         expected.add(ImmutableList.of("Saturday", "0", "0"));
         expected.add(ImmutableList.of("Sunday", "16", "169"));
-        QueryServletTestUtils.testIQL2AndLegacy(expected, "from dayOfWeek 2015-01-01 2015-01-15 group by dayofweek select count(), day");
+        QueryServletTestUtils.testAll(expected, "from dayOfWeek 2015-01-01 2015-01-15 group by dayofweek select count(), day");
     }
 
     @Test
@@ -278,7 +278,7 @@ public class TimeRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("[2015-01-02 00:00:00, 2015-01-03 00:00:00)", "Friday", "5", "10"));
         expected.add(ImmutableList.of("[2015-01-02 00:00:00, 2015-01-03 00:00:00)", "Saturday", "0", "0"));
         expected.add(ImmutableList.of("[2015-01-02 00:00:00, 2015-01-03 00:00:00)", "Sunday", "0", "0"));
-        QueryServletTestUtils.testIQL2AndLegacy(expected, "from dayOfWeek 2015-01-01 2015-01-03 group by time(1d), dayofweek select count(), day");
+        QueryServletTestUtils.testAll(expected, "from dayOfWeek 2015-01-01 2015-01-03 group by time(1d), dayofweek select count(), day");
     }
 
     @Test

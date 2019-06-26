@@ -420,7 +420,7 @@ public class AggregateMetricsTest extends BasicTest {
 
     @Test
     public void testDivideByConstant() throws Exception {
-        // In this test we check that in IQL1 and Legacy mode metric/constant
+        // In this test we check that metric/constant
         // is treated as sum (metric per doc) / constant
         // and not as sum (metric per doc/constant).
         final List<List<String>> expected = new ArrayList<>();
@@ -436,10 +436,7 @@ public class AggregateMetricsTest extends BasicTest {
 
         QueryServletTestUtils.testAll(ImmutableList.of(ImmutableList.of("", "500500", "-1001000", "0")),
                 "from big yesterday today where field <= 1000 select field, field - field - field - field, field - field + field - field");
-        // This is error in IQL1. Won't fix
-        QueryServletTestUtils.testOriginalIQL1(ImmutableList.of(ImmutableList.of("", "500500", "50050")),
-                "from big yesterday today where field <= 1000 select field, field/10/10/10");
-        QueryServletTestUtils.testIQL2AndLegacy(ImmutableList.of(ImmutableList.of("", "500500", "500.5")),
+        QueryServletTestUtils.testAll(ImmutableList.of(ImmutableList.of("", "500500", "500.5")),
                 "from big yesterday today where field <= 1000 select field, field/10/10/10");
     }
 
