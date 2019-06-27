@@ -13,9 +13,10 @@
  */
  package com.indeed.iql1.web;
 
+import com.google.common.base.Charsets;
+import com.google.common.io.CharStreams;
 import com.indeed.iql.cache.QueryCache;
 import com.indeed.iql.web.QueryServlet;
-import com.indeed.iql1.iql.IQLQuery;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -25,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 
@@ -33,6 +35,7 @@ import java.io.PrintWriter;
 */
 @Controller
 public class ResultServlet {
+
     private final QueryCache queryCache;
 
     @Autowired
@@ -55,9 +58,9 @@ public class ResultServlet {
         }
 
         QueryServlet.setContentType(resp, avoidFileSave, csv, false);
-        final InputStream cacheInputStream = queryCache.getInputStream(filename);
-        try (final PrintWriter printWriter = new PrintWriter(outputStream)) {
-            IQLQuery.copyStream(cacheInputStream, printWriter, Integer.MAX_VALUE, false);
+        try(final InputStream cacheInputStream = queryCache.getInputStream(filename);
+            final PrintWriter printWriter = new PrintWriter(outputStream)) {
+            CharStreams.copy(new InputStreamReader(cacheInputStream, Charsets.UTF_8), printWriter);
         }
     }
 }
