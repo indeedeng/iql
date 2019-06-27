@@ -129,7 +129,12 @@ class Parser {
 
     @autobind
     from(q) {
-        return runParser('fromClauseTerminal', q, [this.isLegacy]);
+        const parseResult = runParser('fromClauseTerminal', q, [this.isLegacy]);
+        if (parseResult.errors) {
+            return parseResult;
+        } else {
+            return success(parseResult.success.fromContents());
+        }
     }
 
     @autobind
@@ -137,7 +142,12 @@ class Parser {
         if (q.trim().length === 0) {
             return success("");
         }
-        return runParser('whereClauseTerminal', q, [this.isLegacy]);
+        const parseResult = runParser('whereClauseTerminal', q, [this.isLegacy]);
+        if (parseResult.errors) {
+            return parseResult;
+        } else {
+            return success(parseResult.success.whereContents());
+        }
     }
 
     @autobind
@@ -145,7 +155,12 @@ class Parser {
         if (q.trim().length === 0) {
             return success("");
         }
-        return runParser('groupByClauseTerminal', q, [this.isLegacy]);
+        const parseResult = runParser('groupByClauseTerminal', q, [this.isLegacy]);
+        if (parseResult.errors) {
+            return parseResult;
+        } else {
+            return success(parseResult.success.groupByContents());
+        }
     }
 
     @autobind
@@ -153,7 +168,12 @@ class Parser {
         if (q.trim().length === 0) {
             return success("");
         }
-        return runParser('selectClauseTerminal', q, [this.isLegacy]);
+        const parseResult = runParser('selectClauseTerminal', q, [this.isLegacy]);
+        if (parseResult.errors) {
+            return parseResult;
+        } else {
+            return success(parseResult.success.selectContents());
+        }
     }
 
     @autobind
@@ -187,7 +207,7 @@ class Parser {
         if (groupByRaw.trim().length === 0) {
             return success([]);
         }
-        const parseResult = runParser('groupByClauseTerminal', groupByRaw, [this.isLegacy]);
+        const parseResult = this.groupBy(groupByRaw);
         if (parseResult.errors) return parseResult;
         const parsed = parseResult.success;
         const getText = makeGetText(parsed);
@@ -199,7 +219,7 @@ class Parser {
         if (groupByRaw.trim().length === 0) {
             return success([]);
         }
-        const parseResult = runParser('groupByClauseTerminal', groupByRaw, [this.isLegacy]);
+        const parseResult = this.groupBy(groupByRaw);
         if (parseResult.errors) return parseResult;
         const parsed = parseResult.success;
         const getText = makeGetText(parsed);
@@ -218,7 +238,7 @@ class Parser {
         if (selectRaw.trim().length === 0) {
             return success([]);
         }
-        const parseResult = runParser('selectClauseTerminal', selectRaw, [this.isLegacy]);
+        const parseResult = this.select(selectRaw);
         if (parseResult.errors) return parseResult;
         const parsed = parseResult.success;
         const getText = makeGetText(parsed);
@@ -230,7 +250,7 @@ class Parser {
         if (selectRaw.trim().length === 0) {
             return success([]);
         }
-        const parseResult = runParser('selectClauseTerminal', selectRaw, [this.isLegacy]);
+        const parseResult = this.select(selectRaw);
         if (parseResult.errors) return parseResult;
         const parsed = parseResult.success;
         const getText = makeGetText(parsed);
@@ -251,7 +271,7 @@ class Parser {
 
     @autobind
     fromDatasets(fromRaw) {
-        const parseResult = runParser('fromClauseTerminal', fromRaw, [this.isLegacy]);
+        const parseResult = this.from(fromRaw);
         if (parseResult.errors) return parseResult;
         const parsed = parseResult.success;
         const getText = makeGetText(parsed);
