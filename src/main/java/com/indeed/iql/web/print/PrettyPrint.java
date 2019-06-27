@@ -59,10 +59,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 public class PrettyPrint {
-    private static final Function<String, String> RENDER_STRING = s -> "\"" + stringEscape(s) + "\"";
     public static final int MILLIS_PER_MINUTE = 1000 * 60;
     public static final int MILLIS_PER_HOUR = MILLIS_PER_MINUTE * 60;
 
@@ -95,8 +93,6 @@ public class PrettyPrint {
 
     private final CharStream inputStream;
     private final StringBuilder sb = new StringBuilder();
-    private final DatasetsMetadata datasetsMetadata;
-    private final ScopedFieldResolver fieldResolver;
     private final TracingTreeTimer timer = new TracingTreeTimer();
     private Query.Context context;
 
@@ -114,8 +110,6 @@ public class PrettyPrint {
             final DateTimeZone timeZone
     ) {
         this.inputStream = queryContext.start.getInputStream();
-        this.datasetsMetadata = datasetsMetadata;
-        this.fieldResolver = fieldResolver;
         this.context = new Query.Context(null, datasetsMetadata, null, consumer, clock, timer, fieldResolver, new NullShardResolver(), PersistentStack.empty(), timeZone);
     }
 

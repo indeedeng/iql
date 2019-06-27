@@ -32,10 +32,6 @@ public class FromClause extends ValueObject implements Serializable {
     private final String startRawString;
     private final String endRawString;
 
-    public FromClause(String dataset, DateTime start, DateTime end) {
-        this(dataset, start, end, start.toString(), end.toString());
-    }
-
     public FromClause(String dataset, DateTime start, DateTime end, String startRawString, String endRawString) {
         this.dataset = dataset;
         this.start = start;

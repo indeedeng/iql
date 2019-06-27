@@ -44,13 +44,6 @@ public class IqlKnownException extends RuntimeException {
         }
     }
 
-    // String field used as int string or vice versa
-    public static class FieldTypeMismatchException extends IqlKnownException {
-        public FieldTypeMismatchException(final String message) {
-            super(message);
-        }
-    }
-
     public static class OptionsErrorException extends IqlKnownException {
         public OptionsErrorException(final String message, final Throwable cause) {
             super(message, cause);
@@ -101,12 +94,6 @@ public class IqlKnownException extends RuntimeException {
 
     public static class IdentificationRequiredException extends IqlKnownException {
         public IdentificationRequiredException(final String message) {
-            super(message);
-        }
-    }
-
-    public static class RowLimitErrorException extends IqlKnownException {
-        public RowLimitErrorException(final String message) {
             super(message);
         }
     }

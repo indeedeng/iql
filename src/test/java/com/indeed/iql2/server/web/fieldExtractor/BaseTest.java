@@ -25,7 +25,6 @@ import com.indeed.util.core.time.StoppedClock;
 import com.indeed.util.core.time.WallClock;
 import com.indeed.util.logging.TracingTreeTimer;
 import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
 import org.junit.Assert;
 
 import java.util.Collections;

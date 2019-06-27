@@ -62,7 +62,6 @@ public class Dataset {
     private List<Shard> normalShards;
     private List<Shard> dimensionShards;
     private DatasetsMetadata datasetsMetada;
-    private DatasetsMetadata dimensionsDatasetsMetadata;
 
     Dataset(List<DatasetShard> shards) {
         this.shards = shards;
@@ -76,15 +75,6 @@ public class Dataset {
             datasetsMetada = metadataCache.get();
         }
         return datasetsMetada;
-    }
-
-    public DatasetsMetadata getDimensionsDatasetsMetadata() {
-        if (dimensionsDatasetsMetadata == null) {
-            final ImhotepMetadataCache metadataCache = new ImhotepMetadataCache(getDimensionImsClient(), getDimensionsClient(), "", new FieldFrequencyCache(null));
-            metadataCache.updateDatasets();
-            dimensionsDatasetsMetadata = metadataCache.get();
-        }
-        return dimensionsDatasetsMetadata;
     }
 
     public ImsClientInterface getDimensionImsClient() {
@@ -114,7 +104,6 @@ public class Dataset {
     }
 
     private ImhotepClient normalClient;
-    private ShardMasterAndImhotepDaemonClusterRunner normalCluster;
 
     public ImhotepClient getNormalClient() {
         if (normalClient == null) {

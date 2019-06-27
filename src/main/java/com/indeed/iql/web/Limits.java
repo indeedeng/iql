@@ -14,8 +14,6 @@
 
 package com.indeed.iql.web;
 
-import com.indeed.iql.exceptions.IqlKnownException;
-
 import javax.annotation.Nullable;
 
 public class Limits {
@@ -35,29 +33,6 @@ public class Limits {
         this.queryFTGSImhotepDaemonLimitMB = queryFTGSImhotepDaemonLimitMB;
         this.concurrentQueriesLimit = concurrentQueriesLimit;
         this.concurrentImhotepSessionsLimit = concurrentImhotepSessionsLimit;
-    }
-
-    public boolean satisfiesQueryDocumentCountLimit(long value) {
-        return queryDocumentCountLimitBillions == null || value <= (long)queryDocumentCountLimitBillions * 1_000_000_000;
-    }
-
-    public boolean satisfiesQueryInMemoryRowsLimit(final long value) {
-        return (queryInMemoryRowsLimit == null) || (value <= queryInMemoryRowsLimit);
-    }
-
-    public void assertQueryInMemoryRowsLimit(final long newNumGroups) {
-        if(!satisfiesQueryInMemoryRowsLimit(newNumGroups)) {
-            throw new IqlKnownException.GroupLimitExceededException("Number of groups [" + newNumGroups + "] exceeds the group limit [" + queryInMemoryRowsLimit + "]"+
-                    ". Please simplify the query.");
-        }
-    }
-
-    public boolean satisfiesQueryFTGSIQLLimitMB(int value) {
-        return queryFTGSIQLLimitMB == null || value <= queryFTGSIQLLimitMB;
-    }
-
-    public boolean satisfiesQueryFTGSImhotepDaemonLimitMB(int value) {
-        return queryFTGSImhotepDaemonLimitMB == null || value <= queryFTGSImhotepDaemonLimitMB;
     }
 
     public boolean satisfiesConcurrentQueriesLimit(int value) {

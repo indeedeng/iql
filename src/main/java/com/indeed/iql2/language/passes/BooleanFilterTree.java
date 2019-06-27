@@ -1,12 +1,9 @@
 package com.indeed.iql2.language.passes;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.indeed.imhotep.api.ImhotepCommand;
 import com.indeed.imhotep.api.ImhotepOutOfMemoryException;
 import com.indeed.imhotep.api.ImhotepSession;
 import com.indeed.imhotep.api.RegroupParams;
-import com.indeed.imhotep.commands.UnconditionalRegroup;
 import com.indeed.imhotep.protobuf.Operator;
 import com.indeed.iql2.language.GroupNameSupplier;
 import com.indeed.iql2.language.query.Query;

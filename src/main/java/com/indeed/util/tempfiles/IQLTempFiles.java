@@ -38,10 +38,6 @@ public class IQLTempFiles extends AbstractTempFiles<IQLTempFiles.Type> {
         return new Builder<>(Type.class, IQLTempFiles::new);
     }
 
-    public static TempFile createForIQL1(final String queryHash) throws IOException {
-        return getInstance().createTempFile(Type.IQL1_QUERY_CACHE, queryHash);
-    }
-
     public static TempFile createForIQL2(final String queryHash) throws IOException {
         return getInstance().createTempFile(Type.IQL2_QUERY_CACHE, queryHash);
     }

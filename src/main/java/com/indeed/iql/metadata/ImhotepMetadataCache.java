@@ -131,7 +131,6 @@ public class ImhotepMetadataCache {
                                 fieldMetadata.setCertified(fieldYaml.getCertified());
                                 fieldMetadata.setAliases(fieldYaml.getAliases());
                                 for (final String alias : fieldMetadata.getAliases()) {
-                                    newDataset.getIql1ExpressionAliases().put(alias, fieldMetadata.getName());
                                     // TODO: make aliases not go through computed metrics?
                                     final MetricMetadata aliasAsComputedMetric = new MetricMetadata(alias,
                                             fieldMetadata.getName(), null, fieldMetadata.getName());

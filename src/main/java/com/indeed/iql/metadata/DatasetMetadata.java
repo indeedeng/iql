@@ -17,15 +17,12 @@ package com.indeed.iql.metadata;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.indeed.iql.exceptions.IqlKnownException;
 import org.apache.log4j.Logger;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -58,11 +55,6 @@ public class DatasetMetadata {
     public Set<String> conflictFieldNames;
     public final Map<String, MetricMetadata> fieldToDimension;
     private final Map<String, Set<String>> dimensionEquivalenceSets = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-
-    // Required by LuceneQueryTranslator, so cache it here
-    @Nonnull Set<String> iql1IntImhotepFieldSet = Sets.newHashSet();
-    // used by the preprocessor
-    @Nonnull Map<String, String> iql1ExpressionAliases = Maps.newHashMap();
 
     public DatasetMetadata(final String name) {
         this(name, null, null, null, false);
@@ -187,17 +179,6 @@ public class DatasetMetadata {
         return null;
     }
 
-    @Nullable
-    public MetricMetadata getMetric(String name) {
-        return null;
-    }
-
-    public boolean hasField(String field) {
-        // FieldType is ignored for searching
-        final FieldMetadata fieldToFind = new FieldMetadata(field, FieldType.String);
-        return intFields.contains(fieldToFind) || stringFields.contains(fieldToFind);
-    }
-
     public boolean hasIntField(String field) {
         return intFields.contains(new FieldMetadata(field, FieldType.Integer));
     }
@@ -250,16 +231,6 @@ public class DatasetMetadata {
         return Objects.requireNonNull(fieldToDimension.get(Iterables.getOnlyElement(equivalent)));
     }
 
-    @Nonnull
-    public Set<String> getIql1IntImhotepFieldSet() {
-        return iql1IntImhotepFieldSet;
-    }
-
-    @Nonnull
-    public Map<String, String> getIql1ExpressionAliases() {
-        return iql1ExpressionAliases;
-    }
-
     public boolean isDeprecatedOrDescriptionDeprecated() {
         return deprecated || Strings.nullToEmpty(description).toLowerCase().contains("deprecated");
     }
@@ -268,22 +239,11 @@ public class DatasetMetadata {
      * Should be called when the metadata loading is complete to update caches.
      */
     public void finishLoading() {
-        Preconditions.checkState(iql1IntImhotepFieldSet.isEmpty());
-        for(FieldMetadata fieldMetadata : intFields) {
-            iql1IntImhotepFieldSet.add(fieldMetadata.getName());
-        }
-        iql1IntImhotepFieldSet = Collections.unmodifiableSet(iql1IntImhotepFieldSet);
-
         for(final Map.Entry<String, MetricMetadata> entry : fieldToDimension.entrySet()) {
-            final MetricMetadata metric = entry.getValue();
-            if(!Strings.isNullOrEmpty(metric.getExpression()) && !metric.getExpression().equals(metric.getName())) {
-                iql1ExpressionAliases.put(metric.getName(), metric.getExpression());
-            }
             dimensionEquivalenceSets
                     .computeIfAbsent(entry.getKey(), ignored -> new HashSet<>())
                     .add(entry.getKey());
         }
-        iql1ExpressionAliases = Collections.unmodifiableMap(iql1ExpressionAliases);
 
         final Set<String> intFieldNames = intFields.stream().map(FieldMetadata::getName).collect(Collectors.toSet());
         final Set<String> stringFieldNames = stringFields.stream().map(FieldMetadata::getName).collect(Collectors.toSet());

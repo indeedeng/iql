@@ -97,7 +97,7 @@ public class QueryServletTestUtils extends BasicTest {
         }
     }
 
-    public static QueryServlet create(ImhotepClient client, final LanguageVersion version, Options options, final IQL2Options defaultOptions) {
+    public static QueryServlet create(ImhotepClient client, Options options, final IQL2Options defaultOptions) {
         final ImhotepMetadataCache metadataCache = new ImhotepMetadataCache(options.imsClient, client, "", new FieldFrequencyCache(null));
         metadataCache.updateDatasets();
         final RunningQueriesManager runningQueriesManager = new RunningQueriesManager(null, Integer.MAX_VALUE);
@@ -178,7 +178,7 @@ public class QueryServletTestUtils extends BasicTest {
             final Options options,
             final IQL2Options defaultOptions
     ) throws Exception {
-        final QueryServlet queryServlet = create(client, version, options, defaultOptions);
+        final QueryServlet queryServlet = create(client, options, defaultOptions);
         final MockHttpServletRequest request = new MockHttpServletRequest();
         final boolean stream = resultFormat.equals(EVENT_STREAM);
         request.addHeader("Accept", stream ? "text/event-stream" : "");

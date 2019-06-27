@@ -4,7 +4,6 @@ import com.google.common.collect.ImmutableList;
 import com.indeed.flamdex.writer.FlamdexDocument;
 import com.indeed.iql.Constants;
 import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
 
 import java.util.ArrayList;
 import java.util.List;

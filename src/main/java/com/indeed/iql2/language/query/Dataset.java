@@ -84,22 +84,6 @@ public class Dataset extends AbstractPositional {
         this.missingShardIntervals = (shardResolutionResult != null) ? shardResolutionResult.missingShardTimeIntervals : null;
     }
 
-    // Use only in IQL1 -> IQL2 conversion
-    public static Dataset createForQueryConversion(
-            final String dataset,
-            final DateTime start,
-            final DateTime end,
-            final ShardResolver.ShardResolutionResult shardResolutionResult
-    ) {
-        return new Dataset(
-                Positioned.unpositioned(dataset),
-                Positioned.unpositioned(start),
-                Positioned.unpositioned(end),
-                Optional.empty(),
-                Collections.emptyMap(),
-                shardResolutionResult);
-    }
-
     public String getDisplayName() {
         return alias.orElse(dataset).unwrap();
     }

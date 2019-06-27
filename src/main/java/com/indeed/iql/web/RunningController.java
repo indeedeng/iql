@@ -38,22 +38,6 @@ public class RunningController {
         this.iqldb = iqldb;
     }
 
-    public static class WaitingQueriesState {
-        private List<SelectQuery> queries;
-
-        public WaitingQueriesState(List<SelectQuery> queries) {
-            this.queries = queries;
-        }
-
-        public List<SelectQuery> getQueries() {
-            return queries;
-        }
-
-        public void setQueries(List<SelectQuery> queries) {
-            this.queries = queries;
-        }
-    }
-
     public static class RunningQueriesState {
         private List<RunningQuery> queries;
 
