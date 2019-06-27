@@ -45,7 +45,6 @@ public class IQLTempFiles extends AbstractTempFiles<IQLTempFiles.Type> {
     @AllArgsConstructor
     @Getter
     enum Type implements TempFileType<Type> {
-        IQL1_QUERY_CACHE("iql_tmp"),
         IQL2_QUERY_CACHE("query"),
         ;
         private final String identifier;
