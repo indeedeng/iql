@@ -31,7 +31,6 @@ public class StringAsIntFieldTest {
         //testWarning(ImmutableList.of("Field \"vp\" in Dataset \"stringAsInt1\" is a string field but it is used as an int field in [DocMetric.HasInt(field=FieldSet{datasetToField={stringAsInt1=vp}, isIntField=false}, term=0)]"),
         //        "from stringAsInt1 yesterday today SELECT vp != 0", QueryServletTestUtils.LanguageVersion.IQL2);
 
-        testWarning(ImmutableList.of(), "from stringAsInt1 yesterday today SELECT vp != 0", QueryServletTestUtils.LanguageVersion.ORIGINAL_IQL1);
         testWarning(ImmutableList.of(), "from stringAsInt1 yesterday today SELECT vp != 0", QueryServletTestUtils.LanguageVersion.IQL1_LEGACY_MODE);
         testWarning(ImmutableList.of(), "from mobsearch yesterday today SELECT page = 0");
     }
@@ -49,9 +48,7 @@ public class StringAsIntFieldTest {
         //                "[IntOrAction(field=FieldSet{datasetToField={stringAsInt1=vp}, isIntField=false}, terms=[3, 1, 2], targetGroup=1, positiveGroup=1, negativeGroup=0)]"),
         //        "from stringAsInt1 yesterday today where vp in (1, 2, 3)", QueryServletTestUtils.LanguageVersion.IQL2);
 
-        testWarning(ImmutableList.of(), "from stringAsInt1 yesterday today where vp != 0", QueryServletTestUtils.LanguageVersion.ORIGINAL_IQL1);
         testWarning(ImmutableList.of(), "from stringAsInt1 yesterday today where vp != 0", QueryServletTestUtils.LanguageVersion.IQL1_LEGACY_MODE);
-        testWarning(ImmutableList.of(), "from stringAsInt1 yesterday today where vp in (1, 2, 3)", QueryServletTestUtils.LanguageVersion.ORIGINAL_IQL1);
         testWarning(ImmutableList.of(), "from stringAsInt1 yesterday today where vp in (1, 2, 3)", QueryServletTestUtils.LanguageVersion.IQL1_LEGACY_MODE);
         testWarning(ImmutableList.of(), "from mobsearch yesterday today where page = 0");
     }

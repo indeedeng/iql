@@ -37,7 +37,6 @@ import lombok.ToString;
 import org.apache.commons.codec.binary.Base64;
 
 import javax.annotation.Nullable;
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;

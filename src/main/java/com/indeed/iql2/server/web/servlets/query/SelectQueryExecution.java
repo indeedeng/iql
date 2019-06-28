@@ -419,7 +419,7 @@ public class SelectQueryExecution {
         // SelectQuery can be closed after all cache has been uploaded
         final SharedReference<SelectQuery> selectQuery = SharedReference.create(
                 new SelectQuery(queryInfo, runningQueriesManager, this.query, clientInfo, limits, new DateTime(queryInfo.queryStartTimestamp, Constants.DEFAULT_IQL_TIME_ZONE),
-                        null, (byte) sessions, queryMetadata, strictCloser, progressCallback)
+                        (byte) sessions, queryMetadata, strictCloser, progressCallback)
         );
         try {
             final ParsedQueryExecution pqe = new ParsedQueryExecution(

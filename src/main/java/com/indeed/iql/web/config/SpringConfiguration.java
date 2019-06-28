@@ -255,17 +255,6 @@ public class SpringConfiguration extends WebMvcConfigurerAdapter {
         return env.getProperty("row.limit", Integer.class, 1000000);
     }
 
-    // TODO: delete after rollout legacy mode on 100%
-    // returns int in range [0, 100] that represents percentage of queries to be switched to legacy mode in iql1
-    @Bean
-    public int switchToLegacyRatio() {
-        final int ratio = env.getProperty("iql.legacy.mode.ratio", Integer.class, 0);
-        if ((ratio < 0) || (ratio > 100)) {
-            return 0;
-        }
-        return ratio;
-    }
-
     @Bean
     public Long maxCachedQuerySizeLimitBytes() {
         final long limitInMegabytes = env.getProperty("iql.max.cached.query.size.mb.limit", Long.class, Long.MAX_VALUE);

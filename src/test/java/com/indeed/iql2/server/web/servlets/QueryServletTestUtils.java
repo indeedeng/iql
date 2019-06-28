@@ -44,7 +44,6 @@ import com.indeed.util.core.time.StoppedClock;
 import com.indeed.util.core.time.WallClock;
 import org.hamcrest.Matcher;
 import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
 import org.junit.Assert;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -98,7 +97,7 @@ public class QueryServletTestUtils extends BasicTest {
         }
     }
 
-    public static QueryServlet create(ImhotepClient client, final LanguageVersion version, Options options, final IQL2Options defaultOptions) {
+    public static QueryServlet create(ImhotepClient client, Options options, final IQL2Options defaultOptions) {
         final ImhotepMetadataCache metadataCache = new ImhotepMetadataCache(options.imsClient, client, "", new FieldFrequencyCache(null));
         metadataCache.updateDatasets();
         final RunningQueriesManager runningQueriesManager = new RunningQueriesManager(null, Integer.MAX_VALUE);
@@ -119,25 +118,19 @@ public class QueryServletTestUtils extends BasicTest {
 				new FieldFrequencyCache(null),
                 options.wallClock,
                 defaultOptions,
-                0,
                 IQLEnv.DEVELOPER
         );
     }
 
     @SuppressWarnings("WeakerAccess")
     public enum LanguageVersion {
-        ORIGINAL_IQL1, // original IQL1
         IQL1_LEGACY_MODE, // legacy mode in IQL2
         IQL2;
 
         public void addRequestParameters(final MockHttpServletRequest request) {
             switch (this) {
-                case ORIGINAL_IQL1:
-                    request.addParameter("v", "1");
-                    break;
                 case IQL1_LEGACY_MODE:
                     request.addParameter("v", "1");
-                    request.addParameter("legacymode", "1");
                     break;
                 case IQL2:
                     request.addParameter("v", "2");
@@ -185,7 +178,7 @@ public class QueryServletTestUtils extends BasicTest {
             final Options options,
             final IQL2Options defaultOptions
     ) throws Exception {
-        final QueryServlet queryServlet = create(client, version, options, defaultOptions);
+        final QueryServlet queryServlet = create(client, options, defaultOptions);
         final MockHttpServletRequest request = new MockHttpServletRequest();
         final boolean stream = resultFormat.equals(EVENT_STREAM);
         request.addHeader("Accept", stream ? "text/event-stream" : "");
@@ -392,69 +385,11 @@ public class QueryServletTestUtils extends BasicTest {
     }
 
     static void testWarning(List<String> expectedWarnings, String query, final Options options) throws Exception {
-        testWarning(expectedWarnings, query, LanguageVersion.ORIGINAL_IQL1, options);
         testWarning(expectedWarnings, query, LanguageVersion.IQL1_LEGACY_MODE, options);
         testWarning(expectedWarnings, query, LanguageVersion.IQL2, options);
     }
 
-    // test only original IQL1
-    static void testOriginalIQL1(final List<List<String>> expected, final String query) throws Exception {
-        testOriginalIQL1(expected, query, false);
-    }
-
-    static void testOriginalIQL1(final List<List<String>> expected, final String query, final boolean skipTestDimension) throws Exception {
-        testOriginalIQL1(expected, query, Options.create(skipTestDimension));
-    }
-
-    static void testOriginalIQL1(final List<List<String>> expected, final String query, final Options options) throws Exception {
-        final Dataset dataset = options.dataset;
-        testOriginalIQL1(dataset.getNormalClient(), expected, query, options);
-        if (!options.skipTestDimension) {
-            testOriginalIQL1(dataset.getDimensionsClient(), expected, query, options.copy().setImsClient(dataset.getDimensionImsClient()));
-        }
-    }
-
-    static void testOriginalIQL1(final ImhotepClient client, final List<List<String>> expected, final String query, final Options options) throws Exception {
-        // iql1 is disabled
-        /*for (final Set<String> queryOptions : OPTIONS_TO_TEST) {
-            for (final ResultFormat resultFormat : ResultFormat.values()) {
-                if (!shouldRun(options, resultFormat)) {
-                    continue;
-                }
-                Assert.assertEquals(expected, runQuery(client, query, LanguageVersion.ORIGINAL_IQL1, resultFormat, options, queryOptions));
-            }
-        }*/
-    }
-
-    // test only legacy mode in IQL2
-    static void testIQL1LegacyMode(final List<List<String>> expected, final String query) throws Exception {
-        testIQL1LegacyMode(expected, query, false);
-    }
-
-    static void testIQL1LegacyMode(final List<List<String>> expected, final String query, final boolean skipTestDimension) throws Exception {
-        testIQL1LegacyMode(expected, query, Options.create(skipTestDimension));
-    }
-
-    static void testIQL1LegacyMode(final List<List<String>> expected, final String query, final Options options) throws Exception {
-        final Dataset dataset = options.dataset;
-        testIQL1LegacyMode(dataset.getNormalClient(), expected, query, options);
-        if (!options.skipTestDimension) {
-            testIQL1LegacyMode(dataset.getDimensionsClient(), expected, query, options.copy().setImsClient(dataset.getDimensionImsClient()));
-        }
-    }
-
-    static void testIQL1LegacyMode(final ImhotepClient client, final List<List<String>> expected, final String query, final Options options) throws Exception {
-        for (final Set<String> queryOptions : OPTIONS_TO_TEST) {
-            for (final ResultFormat resultFormat : ResultFormat.values()) {
-                if (!shouldRun(options, resultFormat)) {
-                    continue;
-                }
-                Assert.assertEquals(expected, runQuery(client, query, LanguageVersion.IQL1_LEGACY_MODE, resultFormat, options, queryOptions));
-            }
-        }
-    }
-
-    // test both original IQL1 and legacy mode.
+    // test legacy mode.
     static void testIQL1(List<List<String>> expected, String query) throws Exception {
         testIQL1(expected, query, false);
     }
@@ -472,24 +407,14 @@ public class QueryServletTestUtils extends BasicTest {
     }
 
     static void testIQL1(ImhotepClient client, List<List<String>> expected, String query, Options options) throws Exception {
-        testOriginalIQL1(client, expected, query, options);
-        testIQL1LegacyMode(client, expected, query, options);
-    }
-
-    // test legacy mode and IQL2.
-    // testIQL2AndLegacy call means that there are some differences between legacy mode and original Iql1.
-    // Each call must have explaining comment about diffs.
-    static void testIQL2AndLegacy(List<List<String>> expected, String query) throws Exception {
-        testIQL2AndLegacy(expected, query, false);
-    }
-
-    static void testIQL2AndLegacy(List<List<String>> expected, String query, boolean skipTestDimension) throws Exception {
-        testIQL2AndLegacy(expected, query, Options.create(skipTestDimension));
-    }
-
-    static void testIQL2AndLegacy(final List<List<String>> expected, final String query, final Options options) throws Exception {
-        testIQL1LegacyMode(expected, query, options);
-        testIQL2(expected, query, options);
+        for (final Set<String> queryOptions : OPTIONS_TO_TEST) {
+            for (final ResultFormat resultFormat : ResultFormat.values()) {
+                if (!shouldRun(options, resultFormat)) {
+                    continue;
+                }
+                Assert.assertEquals(expected, runQuery(client, query, LanguageVersion.IQL1_LEGACY_MODE, resultFormat, options, queryOptions));
+            }
+        }
     }
 
     // test only IQL2
@@ -554,7 +479,6 @@ public class QueryServletTestUtils extends BasicTest {
                 if (!shouldRun(options, resultFormat)) {
                     continue;
                 }
-                runQuery(client, query, LanguageVersion.ORIGINAL_IQL1, resultFormat, options, queryOptions);
                 runQuery(client, query, LanguageVersion.IQL1_LEGACY_MODE, resultFormat, options, queryOptions);
             }
         }
@@ -581,7 +505,7 @@ public class QueryServletTestUtils extends BasicTest {
         runIQL2(client, query);
     }
 
-    // test all 3 language versions
+    // test both language versions
     static void testAll(List<List<String>> expected, String query) throws Exception {
         testAll(expected, query, false);
     }
@@ -599,8 +523,7 @@ public class QueryServletTestUtils extends BasicTest {
     }
 
     static void testAll(ImhotepClient client, List<List<String>> expected, String query, Options options) throws Exception {
-        testOriginalIQL1(client, expected, query, options);
-        testIQL1LegacyMode(client, expected, query, options);
+        testIQL1(client, expected, query, options);
         testIQL2(client, expected, query, options);
     }
 

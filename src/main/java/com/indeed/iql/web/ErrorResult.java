@@ -21,15 +21,11 @@ public class ErrorResult {
     private final String exceptionType;
     private final String message;
     private final String stackTrace;
-    private final String clause;
-    private final int offsetInClause;
 
-    public ErrorResult(String exceptionType, String message, String stackTrace, String clause, int offsetInClause) {
+    public ErrorResult(final String exceptionType, final String message, final String stackTrace) {
         this.exceptionType = exceptionType;
         this.message = message;
         this.stackTrace = stackTrace;
-        this.clause = clause;
-        this.offsetInClause = offsetInClause;
     }
 
     public String getExceptionType() {
@@ -42,13 +38,5 @@ public class ErrorResult {
 
     public String getStackTrace() {
         return stackTrace;
-    }
-
-    public String getClause() {
-        return clause;
-    }
-
-    public int getOffsetInClause() {
-        return offsetInClause;
     }
 }

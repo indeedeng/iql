@@ -5,8 +5,6 @@ import com.indeed.iql2.language.AggregateFilter;
 import com.indeed.iql2.language.DocMetricsTest;
 import com.indeed.iql2.language.JQLParser;
 import com.indeed.iql2.language.query.Queries;
-import com.indeed.iql2.language.query.fieldresolution.FieldResolver;
-import com.indeed.iql2.language.query.fieldresolution.FieldSet;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;

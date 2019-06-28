@@ -232,28 +232,4 @@ public class FieldResolver {
 
         return new FieldResolver(aliasesFound, datasets, datasetsMetadata, useLegacy ? FieldType.String : FieldType.Integer);
     }
-
-    // Use only in IQL1 -> IQL2 conversion
-    // simplified version of build method above
-    public static FieldResolver createForQueryConversion(
-            final String dataset,
-            final DatasetsMetadata datasetsMetadata) {
-        final Map<String, ResolvedDataset> datasets = new HashMap<>();
-
-        final DatasetMetadata metadata = datasetsMetadata
-                .getMetadata(dataset)
-                .orElseGet(() -> new DatasetMetadata(dataset));
-
-        final Map<String, String> dimensionsAliases = datasetsMetadata.getDatasetToDimensionAliasFields().getOrDefault(dataset, Collections.emptyMap());
-
-        datasets.put(dataset, new ResolvedDataset(
-                dataset,
-                dataset,
-                dimensionsAliases,
-                metadata
-        ));
-
-        final Set<String> aliasesFound = Collections.emptySet();
-        return new FieldResolver(aliasesFound, datasets, datasetsMetadata, FieldType.String);
-    }
 }

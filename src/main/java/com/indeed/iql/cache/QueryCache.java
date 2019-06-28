@@ -17,9 +17,6 @@ import com.google.common.io.ByteStreams;
 import com.indeed.imhotep.utils.tempfiles.TempFile;
 
 import javax.annotation.Nullable;
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 

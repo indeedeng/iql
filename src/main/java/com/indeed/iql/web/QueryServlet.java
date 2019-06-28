@@ -23,16 +23,12 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.indeed.imhotep.Shard;
-import com.indeed.imhotep.StrictCloser;
 import com.indeed.imhotep.client.ImhotepClient;
 import com.indeed.imhotep.exceptions.ImhotepErrorResolver;
 import com.indeed.imhotep.exceptions.ImhotepKnownException;
 import com.indeed.imhotep.exceptions.QueryCancelledException;
 import com.indeed.imhotep.service.MetricStatsEmitter;
-import com.indeed.imhotep.utils.tempfiles.TempFiles;
 import com.indeed.iql.Constants;
-import com.indeed.iql.cache.CompletableOutputStream;
 import com.indeed.iql.cache.QueryCache;
 import com.indeed.iql.exceptions.IqlKnownException;
 import com.indeed.iql.language.DescribeStatement;
@@ -46,23 +42,12 @@ import com.indeed.iql.metadata.FieldMetadata;
 import com.indeed.iql.metadata.FieldType;
 import com.indeed.iql.metadata.ImhotepMetadataCache;
 import com.indeed.iql.web.config.IQLEnv;
-import com.indeed.iql1.iql.GroupStats;
-import com.indeed.iql1.iql.IQLQuery;
-import com.indeed.iql1.sql.IQLTranslator;
-import com.indeed.iql1.sql.ast2.FromClause;
-import com.indeed.iql1.sql.ast2.GroupByClause;
-import com.indeed.iql1.sql.ast2.IQL1SelectStatement;
-import com.indeed.iql1.sql.ast2.SelectClause;
-import com.indeed.iql1.sql.parser.SelectStatementParser;
 import com.indeed.iql2.IQL2Options;
 import com.indeed.iql2.execution.QueryOptions;
-import com.indeed.iql2.server.web.servlets.query.EventStreamProgressCallback;
 import com.indeed.iql2.server.web.servlets.query.ExplainQueryExecution;
 import com.indeed.iql2.server.web.servlets.query.SelectQueryExecution;
 import com.indeed.iql2.sqltoiql.AntlrParserGenerator;
 import com.indeed.iql2.sqltoiql.SQLToIQLParser;
-import com.indeed.util.core.io.Closeables2;
-import com.indeed.util.core.reference.SharedReference;
 import com.indeed.util.core.time.StoppedClock;
 import com.indeed.util.core.time.WallClock;
 import com.indeed.util.logging.TracingTreeTimer;
@@ -70,11 +55,9 @@ import io.opentracing.ActiveSpan;
 import io.opentracing.NoopActiveSpanSource;
 import io.opentracing.Tracer;
 import io.opentracing.util.GlobalTracer;
-import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
-import org.joda.time.Duration;
 import org.joda.time.Interval;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
@@ -90,24 +73,18 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TimeZone;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 /**
 * @author dwahler
@@ -131,11 +108,10 @@ public class QueryServlet {
 
     private static final Logger log = Logger.getLogger(QueryServlet.class);
     private static final Logger dataLog = Logger.getLogger("indeed.logentry");
-    private static final String METADATA_FILE_SUFFIX = ".meta";
     private static String hostname;
 
     private static final Set<String> USED_PARAMS = Sets.newHashSet("view", "csv", "json", "interactive",
-            "nocache", "head", "progress", "totals", "nocacheread", "nocachewrite", "sql", "skipValidation", "legacymode",
+            "nocache", "head", "progress", "totals", "nocacheread", "nocachewrite", "sql", "skipValidation",
             "getversion");
 
     @Nullable
@@ -155,7 +131,6 @@ public class QueryServlet {
     private final IQL2Options defaultIQL2Options;
     private final IQLEnv iqlEnv;
     private final SQLToIQLParser sqlToIQLParser;
-    private final int switchToLegacyRatio;
 
     @Autowired
     public QueryServlet(@Nullable final File tmpDir,
@@ -171,7 +146,6 @@ public class QueryServlet {
                         final FieldFrequencyCache fieldFrequencyCache,
                         final WallClock clock,
                         final IQL2Options defaultIQL2Options,
-                        final int switchToLegacyRatio,
                         final IQLEnv iqlEnv) {
         this.tmpDir = tmpDir;
         this.imhotepClient = imhotepClient;
@@ -188,7 +162,6 @@ public class QueryServlet {
         this.defaultIQL2Options = defaultIQL2Options;
         this.iqlEnv = iqlEnv;
         this.sqlToIQLParser = new SQLToIQLParser(new AntlrParserGenerator());
-        this.switchToLegacyRatio = switchToLegacyRatio;
     }
 
     @RequestMapping("/query")
@@ -300,37 +273,6 @@ public class QueryServlet {
         }
     }
 
-    private void setQueryInfoFromSelectStatement(IQL1SelectStatement IQL1SelectStatement, QueryInfo queryInfo, ClientInfo clientInfo) {
-        final FromClause from = IQL1SelectStatement.from;
-        final GroupByClause groupBy = IQL1SelectStatement.groupBy;
-        final SelectClause select =  IQL1SelectStatement.select;
-
-        if(from != null) {
-            accessControl.checkAllowedDatasetAccess(clientInfo.username, from.getDataset());
-            queryInfo.datasets = Collections.singleton(from.getDataset());
-
-            if(from.getStart() != null && from.getEnd() != null) {
-                queryInfo.totalDatasetRangeDays = new Duration(from.getStart(), from.getEnd()).toStandardDays().getDays();
-            }
-        }
-
-        final int selectCount;
-        if(select != null && select.getProjections() != null) {
-            selectCount = select.getProjections().size();
-        } else {
-            selectCount = 0;
-        }
-        queryInfo.selectCount = selectCount;
-
-        final int groupByCount;
-        if(groupBy != null && groupBy.groupings != null) {
-            groupByCount = groupBy.groupings.size();
-        } else {
-            groupByCount = 0;
-        }
-        queryInfo.groupByCount = groupByCount;
-    }
-
     /**
      * Gets the value associated with the last X-Forwarded-For header in the request. WARNING: the contract of HttpServletRequest does not assert anything about
      * the order in which the header values will be returned. I have examined the Tomcat source to establish that it does return the values in order, but this
@@ -366,247 +308,28 @@ public class QueryServlet {
             logQueryToLog4J(queryInfo.queryStringTruncatedForPrint, queryInitiator, -1);
 
             final QueryMetadata queryMetadata = new QueryMetadata(resp);
-            final boolean forceRunLegacyMode = (queryRequestParams.legacyMode != null) && queryRequestParams.legacyMode;
-            final boolean forceRunOriginalIql1 = (queryRequestParams.legacyMode != null) && !queryRequestParams.legacyMode;
 
-            Optional<String> comparisonWarning = Optional.empty();
-            /*boolean switchToLegacy = false;
-            if (queryRequestParams.version == 1) {
-                final AtomicReference<String> queryHash = new AtomicReference<>();
-                comparisonWarning = ComparisonTools.checkCompatibility(selectStatement, metadataCache.get(), imhotepClient, clock, limits, queryHash);
-                if (!comparisonWarning.isPresent() && !forceRunLegacyMode && !forceRunOriginalIql1 && (queryHash.get() != null)) {
-                    // We are in good situation:
-                    // There are no warnings, no explicit demand how to run query and hash is available.
-                    final int bucket = Math.abs(queryHash.get().hashCode()) % 100;
-                    switchToLegacy = bucket < switchToLegacyRatio;
-                }
-            }*/
+            queryInfo.engine = (queryRequestParams.version == 2) ? "iql2" : "iql2legacy";
 
-            // Switching all queries to new IQL engine
-            final boolean switchToLegacy = true;
-
-            if ((queryRequestParams.version == 2) || forceRunLegacyMode || switchToLegacy) {
-                // IQL2
-                queryInfo.engine = (queryRequestParams.version == 2) ? "iql2" : "iql2legacy";
-
-                final Set<String> iql2Options = Sets.newHashSet(defaultIQL2Options.getOptions());
-                if (queryRequestParams.cacheReadDisabled && queryRequestParams.cacheWriteDisabled) {
-                    iql2Options.add(QueryOptions.NO_CACHE);
-                }
-
-                final SelectQueryExecution selectQueryExecution = new SelectQueryExecution(
-                        tmpDir, queryCache, limits, maxCachedQuerySizeLimitBytes, imhotepClient,
-                        metadataCache.get(), resp.getWriter(), queryInfo, clientInfo, timer, query,
-
-                        queryRequestParams.headOnly,
-                        queryRequestParams.version, queryRequestParams.isEventStream, queryRequestParams.returnNewestShardVersion, queryRequestParams.skipValidation, queryRequestParams.getTotals,
-                        queryRequestParams.csv,
-
-                        clock, queryMetadata, cacheUploadExecutorService, ImmutableSet.copyOf(iql2Options), accessControl);
-                selectQueryExecution.processSelect(runningQueriesManager);
-            } else {
-                // IQL1
-                queryInfo.engine = "iql1";
-                final IQL1SelectStatement iql1SelectStatement = SelectStatementParser.parseSelectStatement(query, new DateTime(clock.currentTimeMillis(), Constants.DEFAULT_IQL_TIME_ZONE), metadataCache.get());
-                setQueryInfoFromSelectStatement(iql1SelectStatement, queryInfo, clientInfo);
-
-                final PrintWriter writer = resp.getWriter();
-                final EventStreamProgressCallback eventStreamProgressCallback = new EventStreamProgressCallback(queryRequestParams.isEventStream, writer);
-                final StrictCloser strictCloser = new StrictCloser();
-
-                // SelectQuery can be closed after all cache has been uploaded
-                final SharedReference<SelectQuery> selectQuery = SharedReference.create(
-                        new SelectQuery(queryInfo, runningQueriesManager, query, clientInfo, limits,
-                                new DateTime(queryInfo.queryStartTimestamp, Constants.DEFAULT_IQL_TIME_ZONE), iql1SelectStatement, (byte) 1, queryMetadata, strictCloser, eventStreamProgressCallback)
-                );
-                try {
-                    selectQuery.get().lock(); // blocks and waits if necessary
-
-                    queryInfo.queryStartTimestamp = selectQuery.get().queryStartTimestamp.getMillis();   // ignore time spent waiting
-
-                    // actually process
-                    runSelectStatementIQL1(selectQuery, queryRequestParams, writer, comparisonWarning, strictCloser);
-                } finally {
-                    Closeables2.closeQuietly(selectQuery, log);
-                }
+            final Set<String> iql2Options = Sets.newHashSet(defaultIQL2Options.getOptions());
+            if (queryRequestParams.cacheReadDisabled && queryRequestParams.cacheWriteDisabled) {
+                iql2Options.add(QueryOptions.NO_CACHE);
             }
+
+            final SelectQueryExecution selectQueryExecution = new SelectQueryExecution(
+                    tmpDir, queryCache, limits, maxCachedQuerySizeLimitBytes, imhotepClient,
+                    metadataCache.get(), resp.getWriter(), queryInfo, clientInfo, timer, query,
+
+                    queryRequestParams.headOnly,
+                    queryRequestParams.version, queryRequestParams.isEventStream, queryRequestParams.returnNewestShardVersion, queryRequestParams.skipValidation, queryRequestParams.getTotals,
+                    queryRequestParams.csv,
+
+                    clock, queryMetadata, cacheUploadExecutorService, ImmutableSet.copyOf(iql2Options), accessControl);
+            selectQueryExecution.processSelect(runningQueriesManager);
 
             fieldFrequencyCache.acceptDatasetFields(queryInfo.datasetFields, clientInfo);
             log.debug(timer);
         }
-    }
-
-    private void runSelectStatementIQL1(
-            final SharedReference<SelectQuery> selectQuery,
-            final QueryRequestParams args,
-            final PrintWriter outputStream,
-            final Optional<String> comparisonWarning,
-            final StrictCloser strictCloser
-    ) throws IOException {
-        final QueryInfo queryInfo = selectQuery.get().queryInfo;
-        final IQL1SelectStatement parsedQuery = selectQuery.get().parsedStatement;
-        // hashing is done before calling translate so only original JParsec parsing is considered
-        final String queryForHashing = parsedQuery.toHashKeyString();
-
-        final IQLQuery iqlQuery = IQLTranslator.translate(parsedQuery, imhotepClient,
-                args.imhotepUserName, metadataCache.get(), selectQuery.get().limits, queryInfo, strictCloser);
-
-        queryInfo.numShards = iqlQuery.getShards().size();
-        queryInfo.datasetFields = iqlQuery.getDatasetFields();
-        queryInfo.datasetFieldsNoDescription = iqlQuery.getFields().stream()
-                .filter((field) -> !metadataCache.get().fieldHasDescription(iqlQuery.getDataset(), field, true))
-                .map((field) -> iqlQuery.getDataset() + "." + field)
-                .collect(Collectors.toSet());
-        final Set<String> hostHashSet = Sets.newHashSet();
-        for (final Shard shard: iqlQuery.getShards()) {
-            hostHashSet.add(shard.getServer().toString());
-        }
-        queryInfo.imhotepServers = hostHashSet;
-        queryInfo.numImhotepServers = hostHashSet.size();
-
-        // TODO: handle requested format mismatch: e.g. cached CSV but asked for TSV shouldn't have to rerun the query
-        final String queryHash = SelectQuery.getQueryHash(queryForHashing, iqlQuery.getShards(), args.csv);
-        queryInfo.cacheHashes = Collections.singleton(queryHash);
-        final String cacheFileName = queryHash + (args.csv ? ".csv" : ".tsv");
-        long beginTimeMillis = System.currentTimeMillis();
-        final InputStream cacheInputStream = args.cacheReadDisabled ? null : queryCache.getInputStream(cacheFileName);
-        final boolean isCached = cacheInputStream != null;
-        long endTimeMillis = System.currentTimeMillis();
-        queryInfo.cached = isCached;
-        queryInfo.cacheCheckMillis = endTimeMillis - beginTimeMillis;
-        final QueryMetadata queryMetadata = selectQuery.get().queryMetadata;
-
-        queryMetadata.addItem("IQL-Cached", isCached, true);
-
-        final String dataset = iqlQuery.getDataset();
-        final DateTime startTime = iqlQuery.getStart();
-        final DateTime endTime = iqlQuery.getEnd();
-
-        final DateTime newestShard = getLatestShardVersion(iqlQuery.getShards());
-        queryMetadata.addItem("IQL-Newest-Shard", newestShard, args.returnNewestShardVersion);
-
-        final List<String> warningList = new ArrayList<>();
-        if (comparisonWarning.isPresent()) {
-            warningList.add("Deprecation warning: " + comparisonWarning.get());
-        }
-        iqlQuery.addDeprecatedDatasetWarningIfNecessary(warningList);
-
-        final List<Interval> timeIntervalsMissingShards= iqlQuery.getTimeIntervalsMissingShards();
-        warningList.addAll(missingShardsToWarnings(dataset, startTime, endTime, timeIntervalsMissingShards));
-
-        final Set<String> conflictFieldsUsed = Sets.intersection(iqlQuery.getDatasetFields(), metadataCache.get().getTypeConflictDatasetFieldNames());
-        if (!conflictFieldsUsed.isEmpty()) {
-            final String conflictWarning = "Fields with type conflicts used in query: " + String.join(", ", conflictFieldsUsed);
-            warningList.add(conflictWarning);
-        }
-
-        if(!timeIntervalsMissingShards.isEmpty()) {
-            final String missingIntervals = intervalListToString(timeIntervalsMissingShards);
-            queryMetadata.addItem("IQL-Missing-Shards", missingIntervals, true);
-        }
-
-        queryMetadata.setPendingHeaders();
-
-        queryInfo.headOnly = args.headOnly;
-        if (args.headOnly) {
-            return;
-        }
-        if (args.isEventStream) {
-            outputStream.print(": This is the start of the IQL Query Stream\n\n");
-        }
-
-        if (isCached) {
-            log.trace("Returning cached data in " + cacheFileName);
-
-            // read metadata from cache
-            try {
-                final InputStream metadataCacheStream = queryCache.getInputStream(cacheFileName + METADATA_FILE_SUFFIX);
-                if (metadataCacheStream != null) {
-                    final QueryMetadata cachedMetadata = QueryMetadata.fromStream(metadataCacheStream);
-                    queryMetadata.mergeIn(cachedMetadata);
-                    queryMetadata.renameItem("IQL-Query-Info", "IQL-Cached-Query-Info");
-                    queryMetadata.setPendingHeaders();
-                }
-            } catch (Exception e) {
-                log.warn("Failed to load metadata cache from " + cacheFileName + METADATA_FILE_SUFFIX, e);
-            }
-
-            queryInfo.rows = IQLQuery.copyStream(cacheInputStream, outputStream, Integer.MAX_VALUE, args.isEventStream);
-            queryInfo.totalTime = System.currentTimeMillis() - queryInfo.queryStartTimestamp;
-            queryMetadata.addItem("IQL-Query-Info", queryInfo.toJSON(), false);
-            finalizeQueryExecution(args, queryMetadata, outputStream);
-            return;
-        }
-
-        // Not cached so executing using Imhotep
-        final IQLQuery.WriteResults writeResults;
-        final IQLQuery.ExecutionResult executionResult;
-        try {
-            // TODO: should we always get totals? opt out http param?
-            executionResult = iqlQuery.execute(args.isEventStream, outputStream);
-            queryMetadata.addItem("IQL-Totals", Arrays.toString(executionResult.getTotals()), args.getTotals);
-
-            queryMetadata.setPendingHeaders();
-
-            final Iterator<GroupStats> groupStats = executionResult.getRows();
-            final int groupingColumns = Math.max(1, (parsedQuery.groupBy == null || parsedQuery.groupBy.groupings == null) ? 1 : parsedQuery.groupBy.groupings.size());
-            final int selectColumns = Math.max(1, (parsedQuery.select == null || parsedQuery.select.getProjections() == null) ? 1 : parsedQuery.select.getProjections().size());
-            final long beginSendToClientMillis = System.currentTimeMillis();
-            writeResults = iqlQuery.outputResults(groupStats, outputStream, args.csv, args.isEventStream, iqlQuery.getRowLimit(), groupingColumns, selectColumns, args.cacheWriteDisabled, queryHash);
-            queryInfo.sendToClientMillis = System.currentTimeMillis() - beginSendToClientMillis;
-            queryInfo.rows = writeResults.rowsWritten;
-            if (writeResults.exceedsLimit) {
-                warningList.add("Only first " + iqlQuery.getRowLimit() + " rows returned sorted on the last group by column");
-            }
-        } catch (final Exception e) {
-            selectQuery.get().checkCancelled();
-            throw Throwables.propagate(e);
-        } finally {
-            try {
-                queryInfo.setFromPerformanceStats(iqlQuery.closeAndGetPerformanceStats());
-            } catch (Exception e) {
-                log.error("Exception while closing IQLQuery object", e);
-            }
-        }
-        if (!warningList.isEmpty()){
-            String warning = "[\"" + StringUtils.join(warningList, "\",\"") + "\"]";
-            queryMetadata.addItem("IQL-Warning", warning, false);
-        }
-        queryInfo.totalTime = System.currentTimeMillis() - queryInfo.queryStartTimestamp;
-        queryMetadata.addItem("IQL-Query-Info", queryInfo.toJSON(), false);
-
-        if (!args.cacheWriteDisabled && !isCached) {
-            final SharedReference<SelectQuery> selectQueryRef = selectQuery.copy();
-            cacheUploadExecutorService.submit(new Callable<Void>() {
-                @Override
-                public Void call() throws Exception {
-                    try {
-                        try {
-                            final CompletableOutputStream metadataCacheStream = queryCache.getOutputStream(cacheFileName + METADATA_FILE_SUFFIX);
-                            queryMetadata.toOutputStream(metadataCacheStream);
-                        } catch (Exception e) {
-                            log.warn("Failed to upload metadata cache: " + cacheFileName, e);
-                        }
-                        try {
-                            uploadResultsToCache(writeResults, cacheFileName, args.csv);
-                        } catch (Exception e) {
-                            log.warn("Failed to upload cache: " + cacheFileName, e);
-                        }
-                    } finally {
-                        Closeables2.closeQuietly(selectQueryRef, log);
-                    }
-                    return null;
-                }
-            });
-        }
-        finalizeQueryExecution(args, queryMetadata, outputStream);
-    }
-
-    private void finalizeQueryExecution(QueryRequestParams args, QueryMetadata queryMetadata, PrintWriter outputStream) {
-        if (args.isEventStream) {
-            completeEventStream(outputStream, queryMetadata);
-        }
-        outputStream.close(); // only close on success because on error the stack trace is printed
     }
 
     public static List<String> missingShardsToWarnings(String datasetName, DateTime startTime, DateTime endTime, List<Interval> timeIntervalsMissingShards) {
@@ -655,35 +378,6 @@ public class QueryServlet {
         return warningList;
     }
 
-    public static void completeEventStream(PrintWriter outputStream, QueryMetadata queryMetadata) {
-        outputStream.println();
-        outputStream.println("event: header");
-        outputStream.print("data: ");
-        outputStream.print(queryMetadata.toJSONForClients() + "\n\n");
-        outputStream.print("event: complete\ndata: :)\n\n");
-        outputStream.flush();
-    }
-
-    private static final DateTimeFormatter yyyymmddhhmmss = DateTimeFormat.forPattern("yyyyMMddHHmmss")
-            .withZone(Constants.DEFAULT_IQL_TIME_ZONE);
-
-    @Nullable
-    private static DateTime getLatestShardVersion(List<Shard> shardVersionList) {
-        long maxVersion = 0;
-        if(shardVersionList == null || shardVersionList.isEmpty()) {
-            return null;
-        }
-        for(Shard shard : shardVersionList) {
-            if(shard.getVersion() > maxVersion) {
-                maxVersion = shard.getVersion();
-            }
-        }
-        if(maxVersion == 0) {
-            return null;
-        }
-        return yyyymmddhhmmss.parseDateTime(String.valueOf(maxVersion));
-    }
-
     private static final DateTimeFormatter yyyymmddhh = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH").withZone(Constants.DEFAULT_IQL_TIME_ZONE);
     private static final DateTimeFormatter yyyymmdd = DateTimeFormat.forPattern("yyyy-MM-dd").withZone(Constants.DEFAULT_IQL_TIME_ZONE);
 
@@ -711,32 +405,8 @@ public class QueryServlet {
         return sb.toString();
     }
 
-    private void uploadResultsToCache(IQLQuery.WriteResults writeResults, String cachedFileName, boolean csv) throws IOException {
-        if(writeResults.resultCacheIterator != null) {
-            // use the memory cached data
-            try (
-                final CompletableOutputStream innerCacheOutputStream = queryCache.getOutputStream(cachedFileName);
-                final PrintWriter cacheWriter = new PrintWriter(new OutputStreamWriter(innerCacheOutputStream))
-            ) {
-                IQLQuery.writeRowsToStream(writeResults.resultCacheIterator, cacheWriter, csv, Integer.MAX_VALUE, false);
-                // Don't consider successful if final flush before close() fails.
-                cacheWriter.flush();
-                innerCacheOutputStream.complete();
-            }
-        } else if(writeResults.unsortedFile != null) {
-            // cache overflowed to disk so read from file
-            try {
-                queryCache.writeFromFile(cachedFileName, writeResults.unsortedFile);
-            } finally {
-                TempFiles.removeFileQuietly(writeResults.unsortedFile);
-            }
-        } else {    // this should never happen
-            log.warn("Results are not available to upload cache to HDFS: " + cachedFileName);
-        }
-    }
-
     private void handleExplainStatement(ExplainStatement explainStatement, QueryRequestParams queryRequestParams, final ClientInfo clientInfo, HttpServletResponse resp, WallClock clock) throws IOException {
-        if((queryRequestParams.version == 1) && !((queryRequestParams.legacyMode != null) && queryRequestParams.legacyMode)) {
+        if(queryRequestParams.version == 1) {
             throw new IqlKnownException.ParseErrorException("IQL 1 doesn't support EXPLAIN statements");
         }
         if (queryRequestParams.json) {
@@ -867,15 +537,8 @@ public class QueryServlet {
                 resp.setStatus(getHTTPStatusForError(e));
             }
             // construct a parsed error object to be JSON serialized
-            String clause = "";
-            int offset = -1;
-            if(e instanceof IqlKnownException.StatementParseException) {
-                final IqlKnownException.StatementParseException IQLParseException = (IqlKnownException.StatementParseException) e;
-                clause = IQLParseException.getClause();
-                offset = IQLParseException.getOffsetInClause();
-            }
             final String stackTrace = Throwables.getStackTraceAsString(Throwables.getRootCause(e));
-            final ErrorResult error = new ErrorResult(e.getClass().getSimpleName(), e.getMessage(), stackTrace, clause, offset);
+            final ErrorResult error = new ErrorResult(e.getClass().getSimpleName(), e.getMessage(), stackTrace);
             resp.setContentType(MediaType.APPLICATION_JSON_UTF8_VALUE);
             try (final PrintWriter printWriter = resp.getWriter()) {
                 OBJECT_MAPPER.writerWithDefaultPrettyPrinter().writeValue(printWriter, error);
@@ -1132,10 +795,6 @@ public class QueryServlet {
         public final boolean isEventStream;
         public final boolean getTotals;
         public final boolean skipValidation;
-        // true - force run of legacy mode
-        // false - force run of original iql1
-        // null - decided based on query hash.
-        public final Boolean legacyMode;
         public final String imhotepUserName;
         public final String username;
         public final String requestURL;
@@ -1159,11 +818,6 @@ public class QueryServlet {
             remoteAddr = req.getRemoteAddr();
             sql = req.getParameter("sql") != null;
             version = sql ? 2 : ServletUtil.getIQLVersionBasedOnParam(req);
-            if (req.getParameter("legacymode") != null) {
-                legacyMode = "1".equals(req.getParameter("legacymode"));
-            } else {
-                legacyMode = null;
-            }
         }
     }
 }

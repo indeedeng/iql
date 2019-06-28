@@ -42,7 +42,6 @@ public class MetricRegroupTest extends BasicTest {
 
     @Test
     public void testMetricRegroupSinglesWithDefault() throws Exception {
-        // TODO: Is inadvertently introducing WITH DEFAULT to iql1 bad?
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("[1, 2)", "84", "84"));
         expected.add(ImmutableList.of("[2, 3)", "1", "2"));
@@ -55,8 +54,7 @@ public class MetricRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("[9, 10)", "0", "0"));
         expected.add(ImmutableList.of("[10, 11)", "2", "20"));
         expected.add(ImmutableList.of("DEFAULT", "3", "15"));
-        // IQL1 does not support regroup with default
-        QueryServletTestUtils.testIQL2AndLegacy(expected, "from organic yesterday today group by bucket(ojc, 1, 11, 1) with default select count(), ojc");
+        QueryServletTestUtils.testAll(expected, "from organic yesterday today group by bucket(ojc, 1, 11, 1) with default select count(), ojc");
     }
 
     @Test
@@ -90,7 +88,6 @@ public class MetricRegroupTest extends BasicTest {
 
     @Test
     public void testMetricRegroupIntervalsWithDefault() throws Exception {
-        // TODO: Is inadvertently introducing WITH DEFAULT to iql1 bad?
         final List<List<String>> expected = new ArrayList<>();
         expected.add(ImmutableList.of("[1, 3)", "85", "86"));
         expected.add(ImmutableList.of("[3, 5)", "60", "180"));
@@ -98,8 +95,7 @@ public class MetricRegroupTest extends BasicTest {
         expected.add(ImmutableList.of("[7, 9)", "0", "0"));
         expected.add(ImmutableList.of("[9, 11)", "2", "20"));
         expected.add(ImmutableList.of("DEFAULT", "3", "15"));
-        // IQL1 does not support regroup with default
-        QueryServletTestUtils.testIQL2AndLegacy(expected, "from organic yesterday today group by bucket(ojc, 1, 11, 2) with default select count(), ojc");
+        QueryServletTestUtils.testAll(expected, "from organic yesterday today group by bucket(ojc, 1, 11, 2) with default select count(), ojc");
     }
 
     @Test
@@ -132,35 +128,17 @@ public class MetricRegroupTest extends BasicTest {
         final List<List<String>> expected = ImmutableList.of(
                 ImmutableList.of("1", "84"),
                 ImmutableList.of("3", "60"));
-        QueryServletTestUtils.testIQL1(
+        QueryServletTestUtils.testAll(
                 expected,
                 "from organic yesterday today group by topterms(ojc, 2, count()) select count()", true);
-        QueryServletTestUtils.testIQL1(
+        QueryServletTestUtils.testAll(
                 QueryServletTestUtils.addConstantColumn(1, "1", expected),
                 "from organic yesterday today group by topterms(ojc, 2, count()), allbit select count()", true);
-    }
-
-    @Test
-    public void testRegroupByDiff() throws Exception {
-        final List<List<String>> expected = ImmutableList.of(
-                ImmutableList.of("d", "1212", "1473", "261"),
-                ImmutableList.of("c", "1009", "1030", "21"),
-                ImmutableList.of("b", "93", "110", "17"),
-                ImmutableList.of("a", "33", "40", "7"));
-        // supported only in IQL1
-        QueryServletTestUtils.testOriginalIQL1(expected, "from organic yesterday today group by diff(tk, oji, ojc, 10) select count()", true);
     }
 
     @Test
     public void testInvalidMetric() {
         final Predicate<String> errorDuringValidation = e -> e.contains("Errors found when validating query");
         QueryServletTestUtils.expectException("FROM organic yesterday today GROUP BY BUCKET(EXTRACT(tk, \"+\"), 0, 10, 1)", QueryServletTestUtils.LanguageVersion.IQL2, errorDuringValidation);
-    }
-
-    @Test
-    public void testAggDiv() throws  Exception {
-        // this must fail in IQL1. Ticket jira/IQL-376
-        final Predicate<String> errorDuringValidation = e -> e.contains("IqlKnownException$ParseErrorException");
-        QueryServletTestUtils.expectException("from jobsearch yesterday today group by bucket(oji / 1, 0, 25, 1)", QueryServletTestUtils.LanguageVersion.ORIGINAL_IQL1, errorDuringValidation);
     }
 }

@@ -13,7 +13,6 @@ import com.indeed.iql2.server.web.servlets.dataset.AllData;
 import com.indeed.util.core.time.StoppedClock;
 import com.indeed.util.logging.TracingTreeTimer;
 import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
 import org.joda.time.Interval;
 import org.junit.Assert;
 import org.junit.Test;
@@ -35,7 +34,6 @@ public class DatasetTest {
             final QueryServletTestUtils.LanguageVersion languageVersion,
             @Nullable final ShardResolver shardResolverOverride
     ) {
-        Preconditions.checkArgument(languageVersion != QueryServletTestUtils.LanguageVersion.ORIGINAL_IQL1);
         return Queries.parseQuery(
                 query,
                 languageVersion == QueryServletTestUtils.LanguageVersion.IQL1_LEGACY_MODE,

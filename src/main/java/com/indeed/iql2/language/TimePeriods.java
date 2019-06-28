@@ -151,13 +151,6 @@ public class TimePeriods {
         return TimeUnit.WEEK.millis;
     }
 
-    public static String inferTimeBucketSizeString(final DateTime start,final DateTime end) {
-        final long timeBucketSizeMillis = inferTimeBucketSize(start.getMillis(), end.getMillis(), end.getMillis() - start.getMillis(), false);
-        final StringBuilder inferedTimeStringBuilder = new StringBuilder();
-        appendTimePeriod(timeBucketSizeMillis/TimeUnit.SECOND.millis, inferedTimeStringBuilder);
-        return inferedTimeStringBuilder.toString();
-    }
-
     public static long getTimePeriodFromBucket(final long earliestStart, final long latestEnd, final long longestRange, final int numBuckets, final boolean isRelative) {
         final long timeRange = isRelative ? longestRange: latestEnd - earliestStart;
         return timeRange/numBuckets;

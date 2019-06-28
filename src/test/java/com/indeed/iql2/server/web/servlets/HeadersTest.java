@@ -18,7 +18,6 @@ public class HeadersTest extends BasicTest {
     private static void checkTotals(
             final String query,
             final String expectedTotals) throws Exception {
-        checkTotals(query, expectedTotals, LanguageVersion.ORIGINAL_IQL1);
         checkTotals(query, expectedTotals, LanguageVersion.IQL1_LEGACY_MODE);
     }
 

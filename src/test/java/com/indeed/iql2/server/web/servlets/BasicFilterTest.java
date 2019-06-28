@@ -36,9 +36,8 @@ public class BasicFilterTest extends BasicTest {
 
     @Test
     public void testNegateFilters() throws Exception {
-        // Iql1 does not support unary NOT
-        QueryServletTestUtils.testIQL2AndLegacy(ImmutableList.of(ImmutableList.of("", "149")), "from organic yesterday today where NOT(tk=\"b\") select count()");
-        QueryServletTestUtils.testIQL1(ImmutableList.of(ImmutableList.of("", "147")), "from organic yesterday today where tk!=\"a\" select count()");
+        QueryServletTestUtils.testAll(ImmutableList.of(ImmutableList.of("", "149")), "from organic yesterday today where NOT(tk=\"b\") select count()");
+        QueryServletTestUtils.testAll(ImmutableList.of(ImmutableList.of("", "147")), "from organic yesterday today where tk!=\"a\" select count()");
         QueryServletTestUtils.testIQL1(ImmutableList.of(ImmutableList.of("", "147")), "from organic yesterday today where -tk:c select count()");
         QueryServletTestUtils.testIQL1(ImmutableList.of(ImmutableList.of("", "10")), "from organic yesterday today where -tk=~'d' select count()");
     }
@@ -54,13 +53,8 @@ public class BasicFilterTest extends BasicTest {
 
     @Test
     public void testHasStrOnIntField() throws Exception {
-        // In Iql1 comparisons (field = term) are handles based on field type
-        // and hasInt/hasStr is based on operation name
-        QueryServletTestUtils.testOriginalIQL1(ImmutableList.of(ImmutableList.of("", "129", "0", "151", "0", "0")),
-                "from organic yesterday today select hasint(oji, 10), hasstr(oji, \"10\"), oji != \"sldgkslkkj\", oji = \"lskdgj\", hasstr(\"oji:lskjg\")", true);
-
-        // In Iql2 comparisons and hasInt/hasStr is based on field type and term type
-        QueryServletTestUtils.testIQL2AndLegacy(ImmutableList.of(ImmutableList.of("", "129", "129", "151", "1")),
+        // Comparisons and hasInt/hasStr is based on field type and term type
+        QueryServletTestUtils.testAll(ImmutableList.of(ImmutableList.of("", "129", "129", "151", "1")),
                 "from organic yesterday today select hasint(oji, 10), hasstr(oji, \"10\"), oji != \"1\", oji = \"5\"", true);
     }
 

@@ -1,17 +1,10 @@
 package com.indeed.iql2.server.web.servlets;
 
-import org.junit.Assert;
 import org.junit.Test;
-import org.junit.runners.Parameterized;
 
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 
 public class StringEscapeWarningTest extends BasicTest {
-    private static final QueryServletTestUtils.LanguageVersion VERSION = QueryServletTestUtils.LanguageVersion.IQL2;
-    private static final QueryServletTestUtils.Options OPTIONS = QueryServletTestUtils.Options.create();
-
     @Test
     public void testNoIssues() throws Exception {
         QueryServletTestUtils.testWarning(
