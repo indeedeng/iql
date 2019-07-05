@@ -2,6 +2,7 @@ grammar JQL;
 
 LAG : 'LAG' ;
 RUNNING : 'RUNNING' ;
+RUNNING_SUM : 'RUNNING_SUM' ;
 PARENT : 'PARENT' ;
 DISTINCT : 'DISTINCT' ;
 DISTINCT_WINDOW : 'DISTINCT_WINDOW' ;
@@ -142,7 +143,7 @@ BACKQUOTED_ID : '`' ~[`]+ '`';
 
 // TODO: How to keep this up to date with new lexer tokens..?
 identifier
-    : ID | LAG | RUNNING | PARENT | DISTINCT | DISTINCT_WINDOW | WINDOW | PERCENTILE | MEDIAN | PDIFF | DIFF | RATIODIFF | SINGLESCORE
+    : ID | LAG | RUNNING | RUNNING_SUM | PARENT | DISTINCT | DISTINCT_WINDOW | WINDOW | PERCENTILE | MEDIAN | PDIFF | DIFF | RATIODIFF | SINGLESCORE
     | RATIOSCORE | RMSERROR | LOGLOSS | AVG | VARIANCE | STDEV | LOG | ABS | SUM_OVER | AVG_OVER | WHERE | HASSTR | HASINT | FROM | GROUP | BY | FLOOR | CEIL | ROUND
     | AGO | COUNT | AS | NOT | LUCENE | QUERY | TOP | BOTTOM | WITH | DEFAULT| TIME | TIMEBUCKETS
     | BUCKETS | BUCKET | B | IN | DESCENDING | DESC | ASCENDING | ASC | DAYOFWEEK | QUANTILES | BETWEEN
@@ -217,7 +218,7 @@ aggregateMetricEof [boolean useLegacy]
 jqlAggregateMetric
     : field=identifier '.' syntacticallyAtomicJqlAggregateMetric # AggregateQualified
     | LAG '(' NAT ',' jqlAggregateMetric ')' # AggregateLag
-    | RUNNING '(' jqlAggregateMetric ')' # AggregateRunning
+    | (old=RUNNING | RUNNING_SUM) '(' jqlAggregateMetric ')' # AggregateRunning
     | PARENT '(' jqlAggregateMetric ')' # AggregateParent
     | DISTINCT '(' scopedField (HAVING jqlAggregateFilter)? ')' # AggregateDistinct
     | DISTINCT_WINDOW '(' NAT ',' scopedField (HAVING jqlAggregateFilter)? ')' # AggregateDistinctWindow

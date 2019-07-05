@@ -820,7 +820,7 @@ public class PrettyPrint {
 
             @Override
             public Void visit(AggregateMetric.Running running) {
-                sb.append("running(");
+                sb.append("running_sum(");
                 pp(running.metric);
                 sb.append(')');
                 return null;
