@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
+import com.google.common.io.Closer;
 import com.indeed.imhotep.DatasetInfo;
 import com.indeed.imhotep.DynamicIndexSubshardDirnameUtil;
 import com.indeed.imhotep.Shard;
@@ -442,6 +443,14 @@ public class SelectQueryExecution {
             throw e;
         } finally {
             Closeables2.closeQuietly(selectQuery, log);
+            System.gc();
+            System.gc();
+            System.gc();
+            System.runFinalization();
+            System.gc();
+            System.gc();
+            System.gc();
+            System.runFinalization();
         }
     }
 
@@ -593,13 +602,15 @@ public class SelectQueryExecution {
 
             final TempFile cacheFile;
             final TruncatingBufferedOutputStream cacheWriter;
+            final Closer closeOnFailureCloser = Closer.create();
 
             try (final StrictCloser innerStrictCloser = new StrictCloser()) {
                 strictCloser.registerOrClose(innerStrictCloser);
                 if (cacheEnabled) {
                     final Consumer<String> oldOut = out;
                     cacheFile = IQLTempFiles.createForIQL2(cacheKey.rawHash);
-                    cacheWriter = new TruncatingBufferedOutputStream(cacheFile.outputStream(), maxCachedQuerySizeLimitBytes);
+                    closeOnFailureCloser.register(() -> TempFiles.removeFileQuietly(cacheFile));
+                    cacheWriter = closeOnFailureCloser.register(new TruncatingBufferedOutputStream(cacheFile.outputStream(), maxCachedQuerySizeLimitBytes));
 
                     out = s -> {
                         oldOut.accept(s);
@@ -628,7 +639,7 @@ public class SelectQueryExecution {
                         int rowsWritten = 0;
 
                         @Override
-                        public void accept(String s) {
+                        public void accept(final String s) {
                             if (rowsWritten < rowLimit) {
                                 oldOut.accept(s);
                                 rowsWritten += 1;
@@ -656,93 +667,92 @@ public class SelectQueryExecution {
 
                 final InfoCollectingProgressCallback infoCollectingProgressCallback = new InfoCollectingProgressCallback();
                 final ProgressCallback compositeProgressCallback = CompositeProgressCallback.create(progressCallback, infoCollectingProgressCallback);
-                try {
-                    final Session.CreateSessionResult createResult = Session.createSession(
-                            imhotepClient,
-                            groupLimit,
-                            Sets.newHashSet(query.options),
-                            substitutedQuery.commands(),
-                            substitutedQuery.getTotals(),
-                            datasets,
-                            innerStrictCloser,
-                            out,
-                            timer,
-                            compositeProgressCallback,
-                            mbToBytes(limits.queryFTGSIQLLimitMB),
-                            mbToBytes(limits.queryFTGSImhotepDaemonLimitMB),
-                            limits.priority,
-                            clientInfo.username,
-                            clientInfo.client,
-                            (version == 2) ? FieldType.Integer : FieldType.String,
-                            resultFormat,
-                            version,
-                            substitutedQuery.timeZone
-                    );
 
-                    final SelectExecutionInformation selectExecutionInformation = new SelectExecutionInformation(
-                            query.allShardsUsed(),
-                            query.allMissingShards(),
-                            false,
-                            createResult.tempFileBytesWritten + totalBytesWritten[0],
-                            createResult.imhotepPerformanceStats,
-                            infoCollectingProgressCallback.getSessionIds(),
-                            query.totalNumDocs(),
-                            infoCollectingProgressCallback.getMaxNumGroups(),
-                            query.maxConcurrentSessions(),
-                            hasMoreRows.get(),
-                            (cacheWriter != null) ? cacheWriter.getAttemptedTotalWriteBytes() : null,
-                            (cacheWriter != null) ? cacheWriter.isOverflowed() : null
-                    );
+                final Session.CreateSessionResult createResult = Session.createSession(
+                        imhotepClient,
+                        groupLimit,
+                        Sets.newHashSet(query.options),
+                        substitutedQuery.commands(),
+                        substitutedQuery.getTotals(),
+                        datasets,
+                        innerStrictCloser,
+                        out,
+                        timer,
+                        compositeProgressCallback,
+                        mbToBytes(limits.queryFTGSIQLLimitMB),
+                        mbToBytes(limits.queryFTGSImhotepDaemonLimitMB),
+                        limits.priority,
+                        clientInfo.username,
+                        clientInfo.client,
+                        (version == 2) ? FieldType.Integer : FieldType.String,
+                        resultFormat,
+                        version,
+                        substitutedQuery.timeZone
+                );
 
-                    if (createResult.totals.isPresent()) {
-                        queryMetadata.addItem("IQL-Totals", Arrays.toString(createResult.totals.get()), getTotals);
-                    }
+                final SelectExecutionInformation selectExecutionInformation = new SelectExecutionInformation(
+                        query.allShardsUsed(),
+                        query.allMissingShards(),
+                        false,
+                        createResult.tempFileBytesWritten + totalBytesWritten[0],
+                        createResult.imhotepPerformanceStats,
+                        infoCollectingProgressCallback.getSessionIds(),
+                        query.totalNumDocs(),
+                        infoCollectingProgressCallback.getMaxNumGroups(),
+                        query.maxConcurrentSessions(),
+                        hasMoreRows.get(),
+                        (cacheWriter != null) ? cacheWriter.getAttemptedTotalWriteBytes() : null,
+                        (cacheWriter != null) ? cacheWriter.isOverflowed() : null
+                );
 
-                    finalizeQueryExecution(selectExecutionInformation, countingExternalOutput.getCount());
+                if (createResult.totals.isPresent()) {
+                    queryMetadata.addItem("IQL-Totals", Arrays.toString(createResult.totals.get()), getTotals);
+                }
 
-                    if (cacheEnabled) {
-                        // Cache upload
-                        final SharedReference<SelectQuery> selectQueryRef = selectQuery.copy(); // going to be closed asynchronously after cache is uploaded
-                        cacheUploadExecutorService.submit(new Callable<Void>() {
-                            @Override
-                            public Void call() {
-                                try {
-                                    if (cacheWriter.isOverflowed()) {
-                                        // If the results were too big, we do not want to write to the cache.
-                                        log.warn("Skipping cache upload due to overflow");
-                                        Closeables2.closeQuietly(cacheWriter, log);
-                                    } else {
-                                        final String cacheFileName = cacheKey.cacheFileName;
-                                        if (isTopLevelQuery) {
-                                            try {
-                                                final CompletableOutputStream metadataCacheStream = queryCache.getOutputStream(cacheFileName + METADATA_FILE_SUFFIX);
-                                                queryMetadata.toOutputStream(metadataCacheStream);
-                                            } catch (Exception e) {
-                                                log.warn("Failed to upload metadata cache: " + cacheFileName, e);
-                                            }
-                                        }
+                finalizeQueryExecution(selectExecutionInformation, countingExternalOutput.getCount());
+
+                if (cacheEnabled) {
+                    // Cache upload
+                    final SharedReference<SelectQuery> selectQueryRef = selectQuery.copy(); // going to be closed asynchronously after cache is uploaded
+                    cacheUploadExecutorService.submit(new Callable<Void>() {
+                        @Override
+                        public Void call() {
+                            try {
+                                if (cacheWriter.isOverflowed()) {
+                                    // If the results were too big, we do not want to write to the cache.
+                                    log.warn("Skipping cache upload due to overflow");
+                                    Closeables2.closeQuietly(cacheWriter, log);
+                                } else {
+                                    final String cacheFileName = cacheKey.cacheFileName;
+                                    if (isTopLevelQuery) {
                                         try {
-                                            cacheWriter.close();
-                                            queryCache.writeFromFile(cacheFileName, cacheFile);
+                                            final CompletableOutputStream metadataCacheStream = queryCache.getOutputStream(cacheFileName + METADATA_FILE_SUFFIX);
+                                            queryMetadata.toOutputStream(metadataCacheStream);
                                         } catch (Exception e) {
-                                            log.warn("Failed to upload cache: " + cacheFileName, e);
+                                            log.warn("Failed to upload metadata cache: " + cacheFileName, e);
                                         }
                                     }
-                                } finally {
-                                    Closeables2.closeQuietly(selectQueryRef, log);
-                                    TempFiles.removeFileQuietly(cacheFile);
+                                    try {
+                                        cacheWriter.close();
+                                        queryCache.writeFromFile(cacheFileName, cacheFile);
+                                    } catch (Exception e) {
+                                        log.warn("Failed to upload cache: " + cacheFileName, e);
+                                    }
                                 }
-                                return null;
+                            } finally {
+                                Closeables2.closeQuietly(selectQueryRef, log);
+                                TempFiles.removeFileQuietly(cacheFile);
                             }
-                        });
-                    }
-
-                    return selectExecutionInformation;
-                } catch (final Exception e) {
-                    Closeables2.closeQuietly(cacheWriter, log);
-                    TempFiles.removeFileQuietly(cacheFile);
-                    throw Throwables.propagate(e);
+                            return null;
+                        }
+                    });
                 }
+
+                return selectExecutionInformation;
+            } catch (final Exception e) {
+                Closeables2.closeQuietly(closeOnFailureCloser, log);
+                Throwables.propagateIfPossible(e, IOException.class);
+                throw Throwables.propagate(e);
             }
         }
 
