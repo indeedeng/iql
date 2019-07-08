@@ -443,14 +443,6 @@ public class SelectQueryExecution {
             throw e;
         } finally {
             Closeables2.closeQuietly(selectQuery, log);
-            System.gc();
-            System.gc();
-            System.gc();
-            System.runFinalization();
-            System.gc();
-            System.gc();
-            System.gc();
-            System.runFinalization();
         }
     }
 
