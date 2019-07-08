@@ -519,6 +519,9 @@ public class AggregateMetrics {
 
             @Override
             public void enterAggregateRunning(JQLParser.AggregateRunningContext ctx) {
+                if (ctx.old != null) {
+                    context.warn.accept("Using RUNNING instead of RUNNING_SUM. RUNNING is deprecated because it is deceptive.");
+                }
                 if (context.aggregateContexts.isEmpty()) {
                     throw new IllegalArgumentException("Running shouldn't be applied without any aggregation");
                 }
